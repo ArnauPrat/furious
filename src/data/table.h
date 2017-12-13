@@ -165,7 +165,7 @@ public:
 
 private:
 
-  BTree<TBlock>* get_btree(uint32_t id) const;
+  BTree<TBlock>* get_btree(uint32_t btree_id) const;
 
   /**
    * @brief This is a helper function that virtually allocates the space of an element and

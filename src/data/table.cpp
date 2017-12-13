@@ -16,44 +16,42 @@ uint8_t bitmap_masks[8] = {0x01,
                            0x80
 };
 
-/**
- * @brief Given an id, it returns the block this id belongs to
- *
- * @param id The id to get the block id for
- *
- * @return  The block_id of the block this id belongs to
- */
-static uint8_t get_block_id(uint32_t id) {
+struct DecodedId {
+  const uint32_t m_btree_id;
+  const uint8_t  m_block_id;
+  const uint32_t m_block_offset;
+  const uint32_t m_bitmap_offset;
+  const uint32_t m_bitmap_mask;
+};
+
+static DecodedId decode_id(uint32_t id) { 
   uint32_t btree_key_bits = sizeof(uint8_t)*8;
   uint32_t block_size_bits = std::log2(TABLE_BLOCK_SIZE);
-  uint32_t mask = (0xffffffff) >> (sizeof(uint32_t)*8 - (btree_key_bits)) << block_size_bits;
-  return static_cast<uint8_t>(mask & id);
+  uint32_t btree_id = id >> (btree_key_bits + block_size_bits);
+
+  uint32_t block_id_mask = (0xffffffff) >> (sizeof(uint32_t)*8 - (btree_key_bits)) << block_size_bits;
+  uint8_t  block_id  = static_cast<uint8_t>((block_id_mask & id) >> block_size_bits);
+
+  uint32_t block_offset_mask = (0xffffffff) >> (sizeof(uint32_t)*8 - block_size_bits);
+  uint32_t block_offset = block_offset_mask & id; 
+
+  uint32_t bitmap_offset = block_offset / (sizeof(uint8_t)*8);
+
+  uint32_t bitmap_mask = bitmap_masks[block_offset % (sizeof(uint8_t)*8)];
+
+  return DecodedId{btree_id, block_id, block_offset, bitmap_offset, bitmap_mask};
 }
 
-/**
- * @brief Given an id, returns the offset within a block this id belongs to 
- *
- * @param id The block_offset of the id.  
- *
- * @return Returns the offset in the block where this id belongs to.
- */
-static uint32_t get_block_offset(uint32_t id) {
-  uint32_t block_size_bits = std::log2(TABLE_BLOCK_SIZE);
-  uint32_t mask = (0xffffffff) >> (sizeof(uint32_t)*8 - block_size_bits);
-  return (mask & id);
-}
 
 bool has_element(const TBlock* block, uint32_t id) {
   return get_element(block, id) != nullptr;
 }
 
 void* get_element(const TBlock* block, uint32_t id) {
-  assert(block->m_start == get_block_id(id) * TABLE_BLOCK_SIZE);
-  uint32_t block_offset = get_block_offset(id);
-  uint32_t bitmap_offset = block_offset / (sizeof(uint8_t)*8);
-  uint32_t mask_index = block_offset % (sizeof(uint8_t)*8);
-  if((block->m_exists[bitmap_offset] & bitmap_masks[mask_index]) != 0x00) {
-    return &block->p_data[block_offset*block->m_esize];
+  DecodedId decoded_id = decode_id(id);
+  assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
+  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
+    return &block->p_data[decoded_id.m_block_offset*block->m_esize];
   }
   return nullptr;
 }
@@ -155,78 +153,66 @@ void Table::clear() {
 }
 
 
-BTree<TBlock>* Table::get_btree(uint32_t id) const {
-  uint32_t btree_bits = sizeof(uint8_t)*8;
-  uint32_t block_bits = std::log2(TABLE_BLOCK_SIZE);
-  uint32_t btree_index = id >> (btree_bits + block_bits);
-  if(btree_index >= m_btrees.size()) {
-    m_btrees.resize(btree_index+1, nullptr);
+BTree<TBlock>* Table::get_btree(uint32_t btree_id) const {
+  if(btree_id >= m_btrees.size()) {
+    m_btrees.resize(btree_id+1, nullptr);
   }
-  if(m_btrees[btree_index] == nullptr) {
-    m_btrees[btree_index] = new BTree<TBlock>();
+  if(m_btrees[btree_id] == nullptr) {
+    m_btrees[btree_id] = new BTree<TBlock>();
   }
-  return m_btrees[btree_index];
+  return m_btrees[btree_id];
 }
 
 void* Table::get_element(uint32_t id) const {
-  BTree<TBlock>* btree = get_btree(id);
-  uint8_t block_id = get_block_id(id);
-  TBlock* block = btree->get(block_id);
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
   if (block == nullptr) {
     return nullptr;
   }
-  uint32_t block_offset = get_block_offset(id);
-  uint32_t bitmap_offset = block_offset / sizeof(uint8_t);
-  uint32_t mask_index = block_offset % sizeof(uint8_t);
-  if((block->m_exists[bitmap_offset] & bitmap_masks[mask_index]) != 0x00) {
-    return &block->p_data[block_offset*m_esize];
+  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
+    return &block->p_data[decoded_id.m_block_offset*m_esize];
   }
   return nullptr;
 }
 
 void* Table::alloc_element(uint32_t id) {
-  BTree<TBlock>* btree = get_btree(id);
-  uint8_t block_id = get_block_id(id);
-  TBlock* block = btree->get(block_id);
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
   if (block == nullptr) {
     block = new TBlock();
     block->p_data = static_cast<uint8_t*>(numa_alloc(0, m_esize*TABLE_BLOCK_SIZE ));
-    block->m_start = id / TABLE_BLOCK_SIZE * TABLE_BLOCK_SIZE;
+    block->m_start = (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE;
     block->m_num_elements = 0;
     block->m_esize = m_esize;
     memset(&block->m_exists[0], '\0', TABLE_BLOCK_BITMAP_SIZE);
-    btree->insert(block_id, block);
+    btree->insert(decoded_id.m_block_id, block);
   }
-  uint32_t block_offset = get_block_offset(id);
-  uint32_t bitmap_offset = block_offset / (sizeof(uint8_t)*8);
-  uint32_t mask_index = block_offset % (sizeof(uint8_t)*8);
-  if((block->m_exists[bitmap_offset] & bitmap_masks[mask_index]) == 0x00) {
+  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) == 0x00) {
     m_num_elements++;
     block->m_num_elements++;
   }
-  block->m_exists[bitmap_offset] = block->m_exists[bitmap_offset] | bitmap_masks[mask_index];
-  block->m_enabled[bitmap_offset] = block->m_enabled[bitmap_offset] | bitmap_masks[mask_index];
-  return &block->p_data[block_offset*m_esize];
+  block->m_exists[decoded_id.m_bitmap_offset] = block->m_exists[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
+  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
+  return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
 void  Table::remove_element(uint32_t id) {
-  BTree<TBlock>* btree = get_btree(id);
-  uint8_t block_id = get_block_id(id);
-  TBlock* block = btree->get(block_id);
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
   if (block == nullptr) {
     return;
   }
-  uint32_t block_offset = get_block_offset(id);
-  uint32_t bitmap_offset = block_offset / (sizeof(uint8_t)*8);
-  uint32_t mask_index = block_offset % (sizeof(uint8_t)*8);
-  if((block->m_exists[bitmap_offset] & bitmap_masks[mask_index]) != 0x00) {
+  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
     m_num_elements--;
     block->m_num_elements--;
   }
-  block->m_exists[bitmap_offset] = block->m_exists[bitmap_offset] & ~(bitmap_masks[mask_index]);
-  block->m_enabled[bitmap_offset] = block->m_enabled[bitmap_offset] & ~(bitmap_masks[mask_index]);
-  m_destructor(&block->p_data[block_offset*m_esize]);
-  memset(&block->p_data[block_offset*m_esize], '\0', m_esize);
+  block->m_exists[decoded_id.m_bitmap_offset] = block->m_exists[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
+  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
+  m_destructor(&block->p_data[decoded_id.m_block_offset*m_esize]);
+  memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
 }
 
 void Table::enable_element(uint32_t id) {

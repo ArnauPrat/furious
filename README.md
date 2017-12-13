@@ -1,2 +1,2 @@
 # furious
-A Data Driven entity-component system for computer games
+A Data Driven Entity-Component library for computer games

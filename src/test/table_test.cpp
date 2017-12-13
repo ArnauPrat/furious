@@ -48,6 +48,11 @@ TEST(TableTest,TableWorks) {
   ASSERT_EQ(counter, num_elements);
   ASSERT_EQ(table->size(), num_elements);
 
+  table->disable_element(num_elements-1);
+  ASSERT_FALSE(table->is_enabled(num_elements-1));
+  table->enable_element(num_elements-1);
+  ASSERT_TRUE(table->is_enabled(num_elements-1));
+
   for(uint32_t i = 0; i < num_elements; i+=2) {
     table->remove_element(i);
   }

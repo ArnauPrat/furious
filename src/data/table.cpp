@@ -202,9 +202,7 @@ void  Table::remove_element(uint32_t id) {
   DecodedId decoded_id = decode_id(id);
   BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
   TBlock* block = btree->get(decoded_id.m_block_id);
-  if (block == nullptr) {
-    return;
-  }
+  assert(block != nullptr);
   if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
     m_num_elements--;
     block->m_num_elements--;
@@ -216,13 +214,27 @@ void  Table::remove_element(uint32_t id) {
 }
 
 void Table::enable_element(uint32_t id) {
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
+  assert(block != nullptr);
+  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
 }
 
 void Table::disable_element(uint32_t id) {
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
+  assert(block != nullptr);
+  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
 }
 
 bool Table::is_enabled(uint32_t id) {
-  return false;
+  DecodedId decoded_id = decode_id(id);
+  BTree<TBlock>* btree = get_btree(decoded_id.m_btree_id);
+  TBlock* block = btree->get(decoded_id.m_block_id);
+  assert(block != nullptr);
+  return (block->m_enabled[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0;
 }
 
 Table::Iterator* Table::iterator() {

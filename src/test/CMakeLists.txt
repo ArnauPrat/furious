@@ -31,6 +31,9 @@ foreach( TEST ${TESTS} )
   create_test(${TEST})
 endforeach( TEST )
 
+add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND}
+  DEPENDS ${TESTS})
+
 #create_test ("btree_test")
 #create_test ("memory_test")
 #create_test ("table_test")

@@ -17,6 +17,8 @@ add_library(data STATIC
   table.cpp
   table.inl 
   table.h
+  table_view.h
+  table_view.inl 
 )
 
 target_link_libraries(data common memory)

@@ -4,6 +4,7 @@
 #define _FURIOUS_DATABASE_H_
 
 #include "table.h"
+#include "table_view.h"
 #include "common.h"
 #include "../common/reflection.h"
 
@@ -37,7 +38,7 @@ public:
    * Adds an existing table to the database
    */
   template <typename T>
-  Table* create_table();
+  TableView<T> create_table();
 
   /**
    * Drops an existing table
@@ -49,7 +50,7 @@ public:
    * Gets the table from type 
    * */
   template <typename T>
-  Table* find_table();
+  TableView<T> find_table();
 
   /**
    * Clears and removes all the tables from the database

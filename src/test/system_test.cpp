@@ -33,13 +33,13 @@ TEST(SystemTest, SystemWorks) {
   register_component<ComponentA>();
   register_component<ComponentB>();
   Database* database = Database::get_instance();
-  Table* tableA = database->find_table<ComponentA>();
-  Table* tableB = database->find_table<ComponentB>();
+  TableView<ComponentA> tableA = database->find_table<ComponentA>();
+  TableView<ComponentB> tableB = database->find_table<ComponentB>();
 
   uint32_t num_elements = TABLE_BLOCK_SIZE * 10;
   for(uint32_t i = 0; i < num_elements; ++i) {
-    tableA->insert_element<ComponentA>(i, i);
-    tableB->insert_element<ComponentB>(i, i*2);
+    tableA.insert_element(i, i);
+    tableB.insert_element(i, i*2);
   }
 
 /*  auto test_system = create_static_system<TestSystem>(5);

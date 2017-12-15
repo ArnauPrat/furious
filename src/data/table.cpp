@@ -5,6 +5,8 @@
 
 namespace furious {
 
+  
+
 
 uint8_t bitmap_masks[8] = {0x01, 
                            0x02,
@@ -44,16 +46,38 @@ static DecodedId decode_id(uint32_t id) {
 
 
 bool has_element(const TBlock* block, uint32_t id) {
-  return get_element(block, id) != nullptr;
+  return get_element(block, id).p_data != nullptr;
 }
 
-void* get_element(const TBlock* block, uint32_t id) {
+TRow get_element(const TBlock* block, uint32_t id) {
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
   if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
-    return &block->p_data[decoded_id.m_block_offset*block->m_esize];
+    return TRow{block->m_start + decoded_id.m_block_offset, 
+               &block->p_data[decoded_id.m_block_offset*block->m_esize], 
+               (block->m_enabled[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00};
   }
-  return nullptr;
+  return TRow{0,nullptr,false};
+}
+
+TBlockIterator::TBlockIterator(TBlock* block) : p_block(block),
+m_next_position(0) {
+  while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+    m_next_position++;
+  }
+}
+
+bool TBlockIterator::has_next() const {
+  return m_next_position < TABLE_BLOCK_SIZE;
+}
+
+TRow TBlockIterator::next() {
+  TRow row = get_element(p_block, p_block->m_start+m_next_position);
+  m_next_position++; 
+  while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+    m_next_position++;
+  }
+  return row;
 }
 
 Table::Iterator::Iterator(std::vector<BTree<TBlock>*>* btrees) : 
@@ -136,12 +160,9 @@ void Table::clear() {
       auto iterator = btree->iterator();
       while(iterator->has_next()) {
         TBlock* block = iterator->next();
-        for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i) {
-          uint32_t id = i + block->m_start;
-          void * ptr = ::furious::get_element(block, id);
-          if(ptr != nullptr) {
-            m_destructor(ptr);
-          }
+        TBlockIterator b_iterator{block};
+        while(b_iterator.has_next()) {
+          m_destructor(b_iterator.next().p_data);
         }
         numa_free(block->p_data);
         delete block;

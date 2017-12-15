@@ -32,6 +32,32 @@ struct TBlock {
 };
 
 /**
+ * @brief A row of a table block. This is used to conveniently access the
+ * information of a row, eventhough data is not stored in rows in the block  
+ */
+struct TRow {
+  const uint32_t  m_id;
+  uint8_t* const  p_data;
+  const bool      m_enabled;
+};
+
+/**
+ * @brief Iterator to iterate over the elements of a table block. 
+ */
+class TBlockIterator {
+public:
+  TBlockIterator(TBlock* block);
+
+  bool has_next() const;
+
+  TRow next();
+
+private:
+  TBlock*  p_block;
+  uint32_t m_next_position;
+};
+
+/**
  * @brief Tests if a block contains element with the given id
  *
  * @param block The block to check the element
@@ -50,7 +76,7 @@ bool has_element(const TBlock* block, uint32_t id);
  * @return Returns a pointer to the element. Returns nullptr if the element does
  * not exist in the block
  */
-void* get_element(const TBlock* block, uint32_t id);
+TRow get_element(const TBlock* block, uint32_t id);
 
 class Table {
 

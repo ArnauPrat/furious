@@ -5,46 +5,93 @@
 namespace furious {
 
 template<typename TComponent>
+  TableView<TComponent>::Iterator::Iterator(Table::Iterator* iter ) : p_table_it(iter),
+  p_block_it(nullptr) {
+    if(p_table_it->has_next()) {
+      p_block_it = new TBlockIterator{p_table_it->next()};
+    }
+  }
+
+template<typename TComponent>
+  TableView<TComponent>::Iterator::~Iterator() {
+    if(p_block_it != nullptr) {
+      delete p_block_it;
+      p_block_it = nullptr;
+    }
+    delete p_table_it;
+  }
+
+template<typename TComponent>
+bool TableView<TComponent>::Iterator::has_next() const {
+  return p_block_it != nullptr && p_block_it->has_next();
+}
+
+template<typename TComponent>
+typename TableView<TComponent>::Row TableView<TComponent>::Iterator::next() {
+  TRow row = p_block_it->next();
+  if(!p_block_it->has_next()) {
+    delete p_block_it;
+    p_block_it = nullptr;
+    if(p_table_it->has_next()) {
+      p_block_it = new TBlockIterator{p_table_it->next()};
+    }
+  }
+  return Row{row.m_id, reinterpret_cast<TComponent*>(row.p_data), row.m_enabled};
+}
+
+
+template<typename TComponent>
   TableView<TComponent>::TableView( Table* table ) :
-    m_table(table)
+    p_table(table)
 {
-  assert(m_table != nullptr);
+  assert(p_table != nullptr);
 }
 
 template<typename TComponent>
 void TableView<TComponent>::clear() {
-  m_table->clear();
+  p_table->clear();
 }
 
 template<typename TComponent>
 TComponent* TableView<TComponent>::get_element(uint32_t id) const  {
-  return static_cast<TComponent*>(m_table->get_element(id));
+  return static_cast<TComponent*>(p_table->get_element(id));
 }
 
 template<typename TComponent>
 template<typename...Args>
 void TableView<TComponent>::insert_element(uint32_t id, Args&&...args){
-  m_table->insert_element<TComponent>(id, std::forward<Args>(args)...);
+  p_table->insert_element<TComponent>(id, std::forward<Args>(args)...);
 }
 
 template<typename TComponent>
 void  TableView<TComponent>::remove_element(uint32_t id){
-  m_table->remove_element(id);
+  p_table->remove_element(id);
 }
 
 template<typename TComponent>
 void  TableView<TComponent>::enable_element(uint32_t id){
-  m_table->enable_element(id);
+  p_table->enable_element(id);
 }
 
 template<typename TComponent>
 void TableView<TComponent>::disable_element(uint32_t id){
-  m_table->disable_element(id);
+  p_table->disable_element(id);
 }
 
 template<typename TComponent>
 bool TableView<TComponent>::is_enabled(uint32_t id){
- return m_table->is_enabled(id);
+ return p_table->is_enabled(id);
+}
+
+
+template<typename TComponent>
+size_t TableView<TComponent>::size() const {
+  return p_table->size();
+}
+
+template<typename TComponent>
+typename TableView<TComponent>::Iterator* TableView<TComponent>::iterator() {
+  return new Iterator(p_table->iterator());
 }
 
 } /* furious */ 

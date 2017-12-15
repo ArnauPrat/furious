@@ -44,7 +44,7 @@ public:
    * Drops an existing table
    */
   template <typename T>
-  void drop_table();
+  void remove_table();
 
   /**
    * Gets the table from type 

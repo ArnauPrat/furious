@@ -20,11 +20,11 @@ std::string type_name<Component>() {
   return "Component";
 }
 
-TEST(DatabaseTest, CreateAndDropTable) {
+TEST(DatabaseTest, CreateAndRemoveTable) {
   auto database = Database::get_instance();
   database->clear();
   auto table = database->create_table<Component>();
-  database->drop_table<Component>();
+  database->remove_table<Component>();
 }
 
 
@@ -33,7 +33,7 @@ TEST(DatabaseTest, FindTable) {
   database->clear();
   database->create_table<Component>();
   auto table = database->find_table<Component>();
-  database->drop_table<Component>();
+  database->remove_table<Component>();
 }
 
 } /* furious */ 

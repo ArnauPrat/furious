@@ -34,7 +34,17 @@ void register_component();
  * @tparam TComponent The component to remove 
  */
 template<typename TComponent>
-void remove_component();
+void unregister_component();
+
+/**
+ * @brief Gets a table view of a component component table 
+ *
+ * @tparam TComponent The component to get the table view for 
+ *
+ * @return A table view of the component table. 
+ */
+template<typename TComponent>
+TableView<TComponent> get_table();
 
 /**
  * @brief Adds a system to the furious framework
@@ -51,7 +61,7 @@ void register_system(TArgs&&...);
  * @tparam TSystem The system to remove from the furious framework
  */
 template<typename TSystem>
-void remove_system();
+void unregister_system();
 
 /**
  * @brief Creates an entity

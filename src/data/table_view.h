@@ -11,6 +11,39 @@ template<typename TComponent>
 class TableView final  {
   friend class Database;
 public:
+
+  struct Row {
+    const uint32_t    m_id;
+    const TComponent* p_component;
+    const bool        m_enabled;
+  }; 
+
+  class Iterator final {
+  public:
+    Iterator(Table::Iterator* it);
+    ~Iterator();
+
+    /**
+     * @brief Checks whether there is a another component in the table.
+     *
+     * @return Returns true if there is another component in the table.
+     */
+    bool has_next() const;
+
+    /**
+     * @brief Gets the next row in the table
+     *
+     * @return Returns the next row in the table. Returns nullptr if it does
+     * not exist
+     */
+    Row next();
+    
+  private:
+    Table::Iterator*  p_table_it;
+    TBlockIterator*   p_block_it;
+  };
+
+public:
   ~TableView() = default;
 private:
   TableView( Table* table );
@@ -72,8 +105,23 @@ public:
    */
   bool is_enabled(uint32_t id);
 
+
+  /**
+   * @brief Gets the size of the table
+   *
+   * @return Returns the size of the table
+   */
+  size_t size() const;
+
+  /**
+   * @brief Gets an iterator of the table
+   *
+   * @return A new iterator of the table. 
+   */
+  Iterator* iterator();
+
 private:
-  Table*  m_table;
+  Table*  p_table;
   
 };
   

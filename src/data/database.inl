@@ -17,7 +17,7 @@ TableView<T> Database::create_table() {
 }
 
 template <typename T>
-void Database::drop_table() {
+void Database::remove_table() {
   auto table = m_tables.find(type_name<T>());
   assert(table != m_tables.end());
   delete table->second;

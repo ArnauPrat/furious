@@ -12,9 +12,16 @@ template<typename TComponent>
   }
 
 template<typename TComponent>
-  void remove_component() {
+  void unregister_component() {
     assert(database != nullptr);
+    database->remove_table<TComponent>();
   }
+
+template<typename TComponent>
+TableView<TComponent> get_table() {
+  assert(database != nullptr);
+  return database->find_table<TComponent>();
+}
 
 template<typename TSystem, typename...TArgs>
   void register_system(TArgs&&...args) {
@@ -24,7 +31,7 @@ template<typename TSystem, typename...TArgs>
   }
 
 template<typename TSystem>
-  void remove_system() {
+  void unregister_system() {
     assert(database != nullptr);
     assert(workload != nullptr);
     workload->remove_system<TSystem>();

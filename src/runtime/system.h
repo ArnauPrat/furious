@@ -4,6 +4,7 @@
 #define _FURIOus_SYSTEM_H value
 
 #include "../data/table.h"
+#include "../data/context.h"
 
 #include <vector>
 #include <memory>
@@ -31,16 +32,20 @@ public:
   /**
    * @brief Applies the system over the set of blocks of components
    *
+   * @param context The context of the execution
+   * @param block_start The starting id of the block
    * @param components The set of blocks with the components 
    */
-  virtual void apply_block( const std::vector<void*>& components_blocks ) = 0;
+  virtual void apply_block( Context* context, uint32_t block_start, const std::vector<void*>& components_blocks ) = 0;
 
   /**
    * @brief Applies the system over a set of components
    *
+   * @param context The context of the execution
+   * @param id The entity id 
    * @param components The components to apply the system to 
    */
-  virtual void apply( const std::vector<void*>& components ) = 0;
+  virtual void apply( Context* context, uint32_t id, const std::vector<void*>& components ) = 0;
 
   
   /**

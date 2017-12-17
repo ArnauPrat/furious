@@ -14,7 +14,7 @@ struct TestComponentB {
 };
 
 struct TestSystem {
-  void run(TestComponentA* componentA, const TestComponentB*  componentB) {
+  void run(furious::Context* context, uint32_t id, TestComponentA* componentA, const TestComponentB*  componentB) {
     componentA->x = componentA->x + componentB->x;
     componentA->y = componentA->y + componentB->y;
     componentA->z = componentA->z + componentB->z;
@@ -38,12 +38,18 @@ int main(int argc, char** argv) {
   entity2.add_component<TestComponentA>(0.0f, 0.0f, 0.0f);
   entity2.add_component<TestComponentB>(0.0f, 0.0f, 0.0f);
 
-
   entity1.remove_component<TestComponentA>(); 
   entity1.remove_component<TestComponentB>(); 
 
   entity2.remove_component<TestComponentA>(); 
   entity2.remove_component<TestComponentB>(); 
+
+  furious::remove_entity(entity1);
+  furious::remove_entity(entity2);
+
+  furious::unregister_component<TestComponentA>();
+  furious::unregister_component<TestComponentB>();
+
   furious::release();
 
   return 0;

@@ -20,7 +20,7 @@ public:
   TestSystem(uint32_t val) : m_val{val} {}
   virtual ~TestSystem() = default;
 
-  void run(ComponentA* componentA, const ComponentB* componentB ) {
+  void run(Context* context, uint32_t id, ComponentA* componentA, const ComponentB* componentB ) {
     componentA->m_field = componentB->m_field*m_val;
   }
 

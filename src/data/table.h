@@ -44,9 +44,10 @@ struct TRow {
 /**
  * @brief Iterator to iterate over the elements of a table block. 
  */
-class TBlockIterator {
+class TBlockIterator final {
 public:
   TBlockIterator(TBlock* block);
+  ~TBlockIterator() = default;
 
   bool has_next() const;
 

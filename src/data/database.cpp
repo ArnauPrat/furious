@@ -16,14 +16,14 @@ Database* Database::get_instance() {
   return &instance;
 }
 
-/*Table* Database::find_table(const std::string& table_name) {
+Table* Database::find_table(const std::string& table_name) {
   assert(m_tables.find(table_name) != m_tables.end());
   auto table = m_tables.find(table_name);
   if(table == m_tables.end()) {
     return nullptr;
   }
   return table->second;
-}*/
+}
 
 void Database::clear() {
   for (auto i : m_tables) {

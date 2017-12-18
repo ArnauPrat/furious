@@ -52,6 +52,12 @@ public:
   template <typename T>
   TableView<T> find_table();
 
+
+  /**
+   * Gets a table from its name 
+   * */
+  Table*  find_table(const std::string& table_name);
+
   /**
    * Clears and removes all the tables from the database
    * */

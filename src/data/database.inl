@@ -26,9 +26,9 @@ void Database::remove_table() {
 
 template <typename T>
 TableView<T> Database::find_table() {
-  auto table = m_tables.find(type_name<T>());
-  if(table == m_tables.end()) return nullptr;
-  return TableView<T>(static_cast<Table*>(table->second));
+  auto table = find_table(type_name<T>());
+  assert(table != nullptr);
+  return TableView<T>(static_cast<Table*>(table));
 }
 
 } /* furious */ 

@@ -5,6 +5,7 @@
 
 #include "../data/table.h"
 #include "../data/context.h"
+#include "../common/reflection.h"
 
 #include <vector>
 #include <memory>
@@ -13,10 +14,6 @@ using SystemId = uint32_t;
 
 namespace furious {
 
-enum class ComAccessType : uint8_t {
-  E_READ,
-  E_WRITE
-};
 
 struct SysComDescriptor {
   std::string   m_name;

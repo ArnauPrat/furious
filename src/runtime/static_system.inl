@@ -1,19 +1,8 @@
 
 #include <utility>
-#include <type_traits>
 
 namespace furious {
 
-
-template<typename T>
-  typename std::enable_if<!std::is_const<T>::value,ComAccessType>::type access_type() {
-    return ComAccessType::E_WRITE;
-  }
-
-template<typename T>
-  typename std::enable_if<std::is_const<T>::value,ComAccessType>::type access_type() {
-    return ComAccessType::E_READ;
-  }
 
 template<typename T, typename...Components>
 StaticSystem<T,Components...>::StaticSystem(T* system_object) : System(),

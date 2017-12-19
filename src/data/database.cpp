@@ -17,12 +17,12 @@ Database* Database::get_instance() {
 }
 
 Table* Database::find_table(const std::string& table_name) {
-  assert(m_tables.find(table_name) != m_tables.end());
-  auto table = m_tables.find(table_name);
-  if(table == m_tables.end()) {
-    return nullptr;
+  for( auto it : m_tables ) {
+    if(it.second->table_name() == table_name ) {
+      return it.second;
+    }
   }
-  return table->second;
+  assert(false);
 }
 
 void Database::clear() {

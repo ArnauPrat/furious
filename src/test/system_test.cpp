@@ -42,8 +42,6 @@ TEST(SystemTest, SystemWorks) {
     tableB.insert_element(i, i*2);
   }
 
-  std::cout << type_name<ComponentA>() << std::endl;
-
 /*  auto test_system = create_static_system<TestSystem>(5);
 
   // Checking if we correctly extract the const modifier from the types. 

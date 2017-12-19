@@ -10,15 +10,13 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <typeinfo>
 #include <cassert>
 #include <iostream>
 
 namespace furious {
-
-using TableMap = std::map<std::string, Table*>;
-using TableMapPair = std::pair<std::string, Table*>;
 
 class Database final {
 public:
@@ -70,7 +68,8 @@ protected:
 
 private:
 
-  TableMap          m_tables;      /** Holds a map between component types and their tables **/
+  std::map<std::string, Table*>  m_tables;      /** Holds a map between component types and their tables **/
+  std::set<std::string>          m_tunique_ids;
 };
 
 }

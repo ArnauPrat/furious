@@ -12,6 +12,7 @@ addons:
     - gcc-6
     - g++-6
     - cmake
+    - libnuma-dev
 script:
     - mkdir build
     - cd build

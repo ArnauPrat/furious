@@ -68,8 +68,7 @@ protected:
 
 private:
 
-  std::map<std::string, Table*>  m_tables;      /** Holds a map between component types and their tables **/
-  std::set<std::string>          m_tunique_ids;
+  std::map<uint64_t, Table*>  m_tables;      /** Holds a map between component types and their tables **/
 };
 
 }

@@ -2,6 +2,7 @@
 
 
 #include "database.h"
+#include "../common/utils.h"
 
 namespace furious {
 
@@ -17,10 +18,10 @@ Database* Database::get_instance() {
 }
 
 Table* Database::find_table(const std::string& table_name) {
-  for( auto it : m_tables ) {
-    if(it.second->table_name() == table_name ) {
-      return it.second;
-    }
+  uint64_t hash_value = hash(table_name);
+  auto it = m_tables.find(hash_value);
+  if(it != m_tables.end() ) {
+    return it->second;
   }
   assert(false);
 }

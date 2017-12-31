@@ -4,7 +4,6 @@
 #define _FURIOus_SYSTEM_H value
 
 #include "../data/table.h"
-#include "../data/context.h"
 #include "../common/reflection.h"
 
 #include <vector>
@@ -14,6 +13,7 @@ using SystemId = uint32_t;
 
 namespace furious {
 
+class Context;
 
 struct SysComDescriptor {
   std::string   m_name;

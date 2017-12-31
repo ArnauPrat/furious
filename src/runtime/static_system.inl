@@ -30,9 +30,9 @@ void StaticSystem<T,Components...>::apply_block( Context* context, uint32_t bloc
 }
 
 template<typename T, typename...Components>
-void StaticSystem<T,Components...>::apply_block(Context* __restrict__ context, uint32_t block_start, Components* __restrict__ ...components) {
+void StaticSystem<T,Components...>::apply_block(Context* context, uint32_t block_start, Components* __restrict__ ...components) {
   for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) {
-    m_system_object->run(&context[i], block_start+i, &components[i]...);
+    m_system_object->run(context, block_start+i, &components[i]...);
   }
 }
 

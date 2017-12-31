@@ -13,7 +13,7 @@ addons:
     - g++-6
     - cmake
     - libnuma-dev
-    - libgtest0
+    - libgtest
 script:
     - mkdir build
     - cd build

@@ -15,6 +15,11 @@ addons:
     - libnuma-dev
     - libgtest-dev
 script:
+    - cd /usr/src/gtest
+    - sudo cmake CMakeLists.txt
+    - sudo make
+    - sudo cp *.a /usr/lib
+    - cd
     - mkdir build
     - cd build
     - cmake ..

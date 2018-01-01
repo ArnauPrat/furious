@@ -1,27 +1,11 @@
-sudo: true
+sudo: required
 language: cpp
-compiler:
-  - gcc
-install:
-- if [ "$CXX" = "g++" ]; then export CXX="g++" CC="gcc"; fi
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-6
-    - g++-6
-    - cmake
-    - libnuma-dev
-    - libgtest-dev
+services:
+  - docker
+before_install:
+  - docker build -t furious . 
+  - docker run  -itd --name build furious
 script:
-    - export CURRENT=$PWD
-    - cd /usr/src/gtest
-    - sudo cmake CMakeLists.txt
-    - sudo make
-    - sudo cp *.a /usr/lib
-    - cd $CURRENT
-    - mkdir -p build
-    - cd build
-    - cmake ..
-    - make && make test
+  - docker exec build cmake .
+  - docker exec build make  
+  - docker exec build make test

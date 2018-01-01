@@ -15,12 +15,13 @@ addons:
     - libnuma-dev
     - libgtest-dev
 script:
+    - export CURRENT=$PWD
     - cd /usr/src/gtest
     - sudo cmake CMakeLists.txt
     - sudo make
     - sudo cp *.a /usr/lib
-    - cd /home/travis/furious
-    - mkdir build
+    - cd $CURRENT
+    - mkdir -p build
     - cd build
     - cmake ..
     - make && make test

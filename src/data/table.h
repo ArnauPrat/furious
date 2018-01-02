@@ -114,8 +114,8 @@ public:
 
 public:
 
-  Table(std::string& name, size_t esize, void (*destructor)(void* ptr));
-  Table(std::string&& name, size_t esize, void (*destructor)(void* ptr));
+  Table(std::string& name, uint64_t id, size_t esize, void (*destructor)(void* ptr));
+  Table(std::string&& name, uint64_t id, size_t esize, void (*destructor)(void* ptr));
   virtual ~Table();
 
   /**
@@ -220,6 +220,7 @@ private:
 
 
   std::string                         m_name;   // The name of the table
+  uint64_t                            m_id;
   size_t                              m_esize;  // The size of each element in bytes
   mutable std::vector<BTree<TBlock>*> m_btrees;
   size_t                              m_num_elements;

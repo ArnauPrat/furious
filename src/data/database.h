@@ -57,6 +57,16 @@ public:
   Table*  find_table(const std::string& table_name);
 
   /**
+   * Gets a table from its id
+   */
+  Table* find_table(uint64_t id);
+
+  uint64_t get_table_id(const std::string& name);
+
+  template<typename TComponent>
+    uint64_t get_table_id();
+
+  /**
    * Clears and removes all the tables from the database
    * */
   void clear();

@@ -125,16 +125,18 @@ TBlock* Table::Iterator::next() {
   return next;
 }
 
-Table::Table(std::string& name, size_t esize, void (*destructor)(void* ptr)) :
+Table::Table(std::string& name, uint64_t id, size_t esize, void (*destructor)(void* ptr)) :
   m_name(name),
+  m_id(id),
   m_esize(esize),
   m_num_elements(0),
   m_destructor(destructor) {
     m_btrees.push_back(new BTree<TBlock>());
   }
 
-Table::Table(std::string&& name, size_t esize, void (*destructor)(void* ptr)) :
+Table::Table(std::string&& name, uint64_t id, size_t esize, void (*destructor)(void* ptr)) :
   m_name(name),
+  m_id(id),
   m_esize(esize),
   m_num_elements(0),
   m_destructor(destructor){

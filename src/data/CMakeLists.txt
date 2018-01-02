@@ -6,6 +6,8 @@ add_library(data STATIC
   btree.h
   btree.inl
   common.h
+  context.h
+  context.inl 
   data.h
   database.cpp
   database.h

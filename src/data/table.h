@@ -52,6 +52,8 @@ public:
 
   TRow next();
 
+  void reset(TBlock* block);
+
 private:
   TBlock*   p_block;
   int32_t   m_next_position;

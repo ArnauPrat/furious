@@ -57,13 +57,15 @@ TRow get_element(const TBlock* block, int32_t id) {
 
 TBlockIterator::TBlockIterator(TBlock* block) : p_block(block),
 m_next_position(0) {
-  while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
-    m_next_position++;
+  if(p_block != nullptr) {
+    while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+      m_next_position++;
+    }
   }
 }
 
 bool TBlockIterator::has_next() const {
-  return m_next_position < TABLE_BLOCK_SIZE;
+  return p_block != nullptr && m_next_position < TABLE_BLOCK_SIZE;
 }
 
 TRow TBlockIterator::next() {
@@ -73,6 +75,16 @@ TRow TBlockIterator::next() {
     m_next_position++;
   }
   return row;
+}
+
+void TBlockIterator::reset(TBlock* block) {
+  p_block = block;
+  m_next_position = 0;
+  if(p_block != nullptr) {
+    while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+      m_next_position++;
+    }
+  }
 }
 
 Table::Iterator::Iterator(const std::map<int32_t, TBlock*>& blocks) : 

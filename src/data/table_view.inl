@@ -7,34 +7,25 @@ namespace furious {
 template<typename TComponent>
   TableView<TComponent>::Iterator::Iterator(Table::Iterator iter ) : m_table_it(iter),
   p_block_it(nullptr) {
-    if(m_table_it.has_next()) {
-      p_block_it = new TBlockIterator{m_table_it.next()};
-    }
   }
 
 template<typename TComponent>
   TableView<TComponent>::Iterator::~Iterator() {
-    if(p_block_it != nullptr) {
-      delete p_block_it;
-      p_block_it = nullptr;
-    }
   }
 
 template<typename TComponent>
 bool TableView<TComponent>::Iterator::has_next() const {
-  return p_block_it != nullptr && p_block_it->has_next();
+  return p_block_it.has_next() || (!p_block_it.has_next() && m_table_it.has_next());
 }
 
 template<typename TComponent>
 typename TableView<TComponent>::Row TableView<TComponent>::Iterator::next() {
-  TRow row = p_block_it->next();
-  if(!p_block_it->has_next()) {
-    delete p_block_it;
-    p_block_it = nullptr;
+  if(!p_block_it.has_next()) {
     if(m_table_it.has_next()) {
-      p_block_it = new TBlockIterator{m_table_it.next()};
+      p_block_it.reset(m_table_it.next());
     }
   }
+  TRow row = p_block_it.next();
   return Row{row.m_id, reinterpret_cast<TComponent*>(row.p_data), row.m_enabled};
 }
 

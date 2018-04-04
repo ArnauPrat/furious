@@ -37,7 +37,7 @@ template<typename TComponent>
 void unregister_component();
 
 /**
- * @brief Gets a table view of a component component table 
+ * @brief Gets a table view of a component table 
  *
  * @tparam TComponent The component to get the table view for 
  *

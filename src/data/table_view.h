@@ -40,7 +40,7 @@ public:
     
   private:
     Table::Iterator   m_table_it;
-    TBlockIterator*   p_block_it;
+    TBlockIterator    p_block_it;
   };
 
 public:

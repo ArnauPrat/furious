@@ -5,10 +5,10 @@
 namespace furious {
 
 template<typename TComponent>
-  TableView<TComponent>::Iterator::Iterator(Table::Iterator* iter ) : p_table_it(iter),
+  TableView<TComponent>::Iterator::Iterator(Table::Iterator iter ) : m_table_it(iter),
   p_block_it(nullptr) {
-    if(p_table_it->has_next()) {
-      p_block_it = new TBlockIterator{p_table_it->next()};
+    if(m_table_it.has_next()) {
+      p_block_it = new TBlockIterator{m_table_it.next()};
     }
   }
 
@@ -18,7 +18,6 @@ template<typename TComponent>
       delete p_block_it;
       p_block_it = nullptr;
     }
-    delete p_table_it;
   }
 
 template<typename TComponent>
@@ -32,8 +31,8 @@ typename TableView<TComponent>::Row TableView<TComponent>::Iterator::next() {
   if(!p_block_it->has_next()) {
     delete p_block_it;
     p_block_it = nullptr;
-    if(p_table_it->has_next()) {
-      p_block_it = new TBlockIterator{p_table_it->next()};
+    if(m_table_it.has_next()) {
+      p_block_it = new TBlockIterator{m_table_it.next()};
     }
   }
   return Row{row.m_id, reinterpret_cast<TComponent*>(row.p_data), row.m_enabled};
@@ -90,8 +89,8 @@ size_t TableView<TComponent>::size() const {
 }
 
 template<typename TComponent>
-typename TableView<TComponent>::Iterator* TableView<TComponent>::iterator() {
-  return new Iterator(p_table->iterator());
+typename TableView<TComponent>::Iterator TableView<TComponent>::iterator() {
+  return Iterator(p_table->iterator());
 }
 
 } /* furious */ 

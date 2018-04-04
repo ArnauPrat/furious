@@ -13,14 +13,14 @@ class TableView final  {
 public:
 
   struct Row {
-    const uint32_t    m_id;
+    const int32_t     m_id;
     const TComponent* p_component;
     const bool        m_enabled;
   }; 
 
   class Iterator final {
   public:
-    Iterator(Table::Iterator* it);
+    Iterator(Table::Iterator it);
     ~Iterator();
 
     /**
@@ -39,7 +39,7 @@ public:
     Row next();
     
   private:
-    Table::Iterator*  p_table_it;
+    Table::Iterator   m_table_it;
     TBlockIterator*   p_block_it;
   };
 
@@ -118,7 +118,7 @@ public:
    *
    * @return A new iterator of the table. 
    */
-  Iterator* iterator();
+  Iterator iterator();
 
 private:
   Table*  p_table;

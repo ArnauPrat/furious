@@ -3,8 +3,8 @@ add_definitions(${FURIOUS_DEFAULT_DEFINES})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
 add_library(data STATIC
-  btree.h
-  btree.inl
+  #btree.h
+  #btree.inl
   common.h
   context.h
   context.inl 
@@ -14,8 +14,8 @@ add_library(data STATIC
   database.inl
   entity.cpp
   entity.h
-  impl/btree_impl.cpp
-  impl/btree_impl.h
+  #impl/btree_impl.cpp
+  #impl/btree_impl.h
   table.cpp
   table.inl 
   table.h

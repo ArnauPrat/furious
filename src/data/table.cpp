@@ -9,11 +9,22 @@ namespace furious {
   
 
 
+/**
+ * @brief Represents a decoded id, split into the block id and the offset
+ * within the block
+ */
 struct DecodedId {
   const int32_t m_block_id;
   const int32_t m_block_offset;
 };
 
+/**
+ * @brief Decodes the given id into the block id and offset
+ *
+ * @param id
+ *
+ * @return 
+ */
 static DecodedId decode_id(int32_t id) { 
   
   int32_t block_id  = id / TABLE_BLOCK_SIZE;
@@ -23,12 +34,30 @@ static DecodedId decode_id(int32_t id) {
   return DecodedId{block_id, block_offset};
 }
 
-
-bool has_element(const TBlock* block, int32_t id) {
+/**
+ * @brief Tests if a given block contains the given element enabled
+ *
+ * @param block The block to check at
+ * @param id The id of the element to check for
+ *
+ * @return true if the block contains the given id enabled. false otherwise
+ */
+bool has_element(const TBlock* block, 
+                 int32_t id) {
   return get_element(block, id).p_data != nullptr;
 }
 
-TRow get_element(const TBlock* block, int32_t id) {
+/**
+ * @brief Gets an element from the given block, if it exists
+ *
+ * @param block The block to get the element from
+ * @param id The id to get
+ *
+ * @return The row of the table containing the retrieved element 
+ */
+TRow get_element(const TBlock* block, 
+                 int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
   if(block->m_exists[decoded_id.m_block_offset]) {
@@ -71,7 +100,8 @@ void TBlockIterator::reset(TBlock* block) {
   }
 }
 
-Table::Iterator::Iterator(const std::map<int32_t, TBlock*>& blocks) : 
+Table::Iterator::Iterator(const std::map<int32_t, 
+                          TBlock*>& blocks) : 
   m_blocks(blocks),
   m_it(blocks.cbegin())
 {
@@ -148,6 +178,7 @@ void* Table::get_element(int32_t id) const {
 }
 
 void* Table::alloc_element(int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   TBlock* block = nullptr;
@@ -176,6 +207,7 @@ void* Table::alloc_element(int32_t id) {
 }
 
 void  Table::remove_element(int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   if(it == m_blocks.end()) {
@@ -195,6 +227,7 @@ void  Table::remove_element(int32_t id) {
 }
 
 void Table::enable_element(int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   if(it == m_blocks.end()) {
@@ -206,6 +239,7 @@ void Table::enable_element(int32_t id) {
 }
 
 void Table::disable_element(int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   if(it == m_blocks.end()) {
@@ -217,6 +251,7 @@ void Table::disable_element(int32_t id) {
 }
 
 bool Table::is_enabled(int32_t id) {
+
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   if(it == m_blocks.end()) {

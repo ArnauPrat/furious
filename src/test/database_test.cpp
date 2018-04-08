@@ -15,11 +15,6 @@ struct Component {
   static std::string name() { return "Component"; }
 };
 
-template<>
-std::string type_name<Component>() {
-  return "Component";
-}
-
 TEST(DatabaseTest, CreateAndRemoveTable) {
   auto database = Database::get_instance();
   database->clear();

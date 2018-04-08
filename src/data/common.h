@@ -6,8 +6,8 @@
 
 namespace furious {
 
-using EntityId = uint32_t;
-using TableId  = uint32_t;
+using EntityId = int32_t;
+using TableId  = int32_t;
 
 constexpr TableId INVALID_ID = 0xffffffff;
 

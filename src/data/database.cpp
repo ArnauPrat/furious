@@ -18,19 +18,20 @@ Database* Database::get_instance() {
 }
 
 Table* Database::find_table(const std::string& table_name) {
-  uint64_t hash_value = get_table_id(table_name);
+  int64_t hash_value = get_table_id(table_name);
   return find_table(hash_value);
 }
 
-Table* Database::find_table(uint64_t id) {
+Table* Database::find_table(int64_t id) {
   auto it = m_tables.find(id);
   if(it != m_tables.end() ) {
     return it->second;
   }
   assert(false);
+  return nullptr;
 }
 
-uint64_t Database::get_table_id(const std::string& name) {
+int64_t Database::get_table_id(const std::string& name) {
   return hash(name);
 }
 

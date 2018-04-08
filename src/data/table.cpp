@@ -9,21 +9,9 @@ namespace furious {
   
 
 
-uint8_t bitmap_masks[8] = {0x01, 
-                           0x02,
-                           0x04,
-                           0x08,
-                           0x10,
-                           0x20,
-                           0x40,
-                           0x80
-};
-
 struct DecodedId {
   const int32_t m_block_id;
   const int32_t m_block_offset;
-  const int32_t m_bitmap_offset;
-  const int32_t m_bitmap_mask;
 };
 
 static DecodedId decode_id(int32_t id) { 
@@ -32,11 +20,7 @@ static DecodedId decode_id(int32_t id) {
 
   int32_t block_offset = id % TABLE_BLOCK_SIZE; 
 
-  int32_t bitmap_offset = block_offset / (sizeof(int8_t)*8);
-
-  int32_t bitmap_mask = bitmap_masks[block_offset % (sizeof(int8_t)*8)];
-
-  return DecodedId{block_id, block_offset, bitmap_offset, bitmap_mask};
+  return DecodedId{block_id, block_offset};
 }
 
 
@@ -47,10 +31,10 @@ bool has_element(const TBlock* block, int32_t id) {
 TRow get_element(const TBlock* block, int32_t id) {
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
-  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
+  if(block->m_exists[decoded_id.m_block_offset]) {
     return TRow{block->m_start + decoded_id.m_block_offset, 
                &block->p_data[decoded_id.m_block_offset*block->m_esize], 
-               (block->m_enabled[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00};
+               (block->m_enabled[decoded_id.m_block_offset])};
   }
   return TRow{0,nullptr,false};
 }
@@ -157,7 +141,7 @@ void* Table::get_element(int32_t id) const {
     return nullptr;
   }
   TBlock* block = it->second;
-  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
+  if(block->m_exists[decoded_id.m_block_offset]) {
     return &block->p_data[decoded_id.m_block_offset*m_esize];
   }
   return nullptr;
@@ -172,19 +156,22 @@ void* Table::alloc_element(int32_t id) {
     block->p_data = static_cast<int8_t*>(numa_alloc(0, m_esize*TABLE_BLOCK_SIZE ));
     block->m_start = (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE;
     block->m_num_elements = 0;
+    block->m_num_enabled_elements = 0;
     block->m_esize = m_esize;
-    std::memset(&block->m_exists[0], '\0', TABLE_BLOCK_BITMAP_SIZE);
     m_blocks.insert(std::make_pair(decoded_id.m_block_id, block));
+    m_blocks_mask.resize(std::max(decoded_id.m_block_id+1, static_cast<int32_t>(m_blocks_mask.size())), false);
+    m_blocks_mask[decoded_id.m_block_id] = true;
   } else {
     block = it->second;
   }
 
-  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) == 0x00) {
+  if(!block->m_exists[decoded_id.m_block_offset]) {
     m_num_elements++;
     block->m_num_elements++;
+    block->m_num_enabled_elements++;
   }
-  block->m_exists[decoded_id.m_bitmap_offset] = block->m_exists[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
-  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
+  block->m_exists[decoded_id.m_block_offset] = true;
+  block->m_enabled[decoded_id.m_block_offset] = true;
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
@@ -196,12 +183,13 @@ void  Table::remove_element(int32_t id) {
   }
 
   TBlock* block = it->second; 
-  if((block->m_exists[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0x00) {
+  if(block->m_exists[decoded_id.m_block_offset]) {
     m_num_elements--;
     block->m_num_elements--;
+    block->m_num_enabled_elements--;
   }
-  block->m_exists[decoded_id.m_bitmap_offset] = block->m_exists[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
-  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
+  block->m_exists[decoded_id.m_block_offset] = false;
+  block->m_enabled[decoded_id.m_block_offset] = false;
   m_destructor(&block->p_data[decoded_id.m_block_offset*m_esize]);
   memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
 }
@@ -213,7 +201,8 @@ void Table::enable_element(int32_t id) {
     return;
   }
   TBlock* block = it->second; 
-  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] | decoded_id.m_bitmap_mask;
+  block->m_enabled[decoded_id.m_block_offset] = 1;
+  block->m_num_enabled_elements++;
 }
 
 void Table::disable_element(int32_t id) {
@@ -223,7 +212,8 @@ void Table::disable_element(int32_t id) {
     return;
   }
   TBlock* block = it->second; 
-  block->m_enabled[decoded_id.m_bitmap_offset] = block->m_enabled[decoded_id.m_bitmap_offset] & ~(decoded_id.m_bitmap_mask);
+  block->m_enabled[decoded_id.m_block_offset] = false;
+  block->m_num_enabled_elements--;
 }
 
 bool Table::is_enabled(int32_t id) {
@@ -233,15 +223,25 @@ bool Table::is_enabled(int32_t id) {
     return false;
   }
   TBlock* block = it->second; 
-  return (block->m_enabled[decoded_id.m_bitmap_offset] & decoded_id.m_bitmap_mask) != 0;
+  return block->m_enabled[decoded_id.m_block_offset] == true;
 }
 
 Table::Iterator Table::iterator() {
   return Iterator{m_blocks};
 }
 
-std::string Table::table_name() const {
+std::string Table::name() const {
   return m_name;
+}
+
+const boost::dynamic_bitset<>& Table::get_blocks_mask() {
+  return m_blocks_mask;
+}
+
+TBlock* Table::get_block(int32_t block_id) {
+  auto it = m_blocks.find(block_id);
+  assert(it != m_blocks.end());
+  return it->second;
 }
   
 } /* furious */ 

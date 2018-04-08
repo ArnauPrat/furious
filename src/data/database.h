@@ -59,12 +59,12 @@ public:
   /**
    * Gets a table from its id
    */
-  Table* find_table(uint64_t id);
+  Table* find_table(int64_t id);
 
-  uint64_t get_table_id(const std::string& name);
+  int64_t get_table_id(const std::string& name);
 
   template<typename TComponent>
-    uint64_t get_table_id();
+    int64_t get_table_id();
 
   /**
    * Clears and removes all the tables from the database
@@ -78,7 +78,7 @@ protected:
 
 private:
 
-  std::map<uint64_t, Table*>  m_tables;      /** Holds a map between component types and their tables **/
+  std::map<int64_t, Table*>  m_tables;      /** Holds a map between component types and their tables **/
 };
 
 }

@@ -27,5 +27,9 @@ void remove_entity(Entity entity) {
   Entity::remove_entity(entity);
 }
 
+void run(float deltaTime) {
+  workload->run(deltaTime, database);
+}
+
 } /* furious */ 
 

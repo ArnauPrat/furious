@@ -76,6 +76,11 @@ Entity create_entity();
  * @param entiy The entity to remove. 
  */
 void remove_entity(Entity entiy);
+
+/**
+ * @brief Runs the registered systems
+ */
+void run(float deltaTime);
   
 } /* furious */ 
 

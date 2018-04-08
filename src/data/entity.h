@@ -6,7 +6,7 @@
 
 namespace furious {
 
-using entity_id_t = uint32_t;
+using entity_id_t = int32_t;
 
 class Entity final {
 private:

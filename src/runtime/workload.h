@@ -12,6 +12,7 @@
 namespace furious {
 
 class System;
+class Database;
 
 class Workload final {
 public:
@@ -36,6 +37,8 @@ public:
 
   template<typename TSystem>
     void remove_system();
+
+  void run(float delta_time, Database* database);
 
 private:
 

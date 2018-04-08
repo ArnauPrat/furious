@@ -9,7 +9,7 @@
 #include <vector>
 #include <memory>
 
-using SystemId = uint32_t;
+using SystemId = int32_t;
 
 namespace furious {
 
@@ -33,7 +33,7 @@ public:
    * @param block_start The starting id of the block
    * @param components The set of blocks with the components 
    */
-  virtual void apply_block( Context* context, uint32_t block_start, const std::vector<void*>& components_blocks ) = 0;
+  virtual void apply_block( Context* context, const std::vector<TBlock*>& components_blocks ) = 0;
 
   /**
    * @brief Applies the system over a set of components
@@ -42,7 +42,7 @@ public:
    * @param id The entity id 
    * @param components The components to apply the system to 
    */
-  virtual void apply( Context* context, uint32_t id, const std::vector<void*>& components ) = 0;
+  virtual void apply( Context* context, int32_t id, const std::vector<void*>& components ) = 0;
 
   
   /**

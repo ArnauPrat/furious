@@ -1,54 +1,72 @@
 
 #include "furious.h"
+#include <string>
+#include <iostream>
 
-struct TestComponentA {
-  float x; 
-  float y;
-  float z;
+struct PositionComponent {
+  float m_x; 
+  float m_y;
 };
 
-struct TestComponentB {
-  float x; 
-  float y;
-  float z;
+struct DirectionComponent {
+  float m_x; 
+  float m_y;
 };
 
-struct TestSystem {
-  void run(furious::Context* context, uint32_t id, TestComponentA* componentA, const TestComponentB*  componentB) {
-    componentA->x = componentA->x + componentB->x;
-    componentA->y = componentA->y + componentB->y;
-    componentA->z = componentA->z + componentB->z;
+struct ComflabulationComponent {
+  float       m_thingy; 
+  int         m_dingy;
+  bool        m_mingy;
+  std::string m_stringy;
+};
+
+struct MovementSystem {
+  void run(furious::Context* context, int32_t id, PositionComponent* position, const DirectionComponent*  direction) {
+    position->m_x = direction->m_x*context->m_dt;
+    position->m_y = direction->m_y*context->m_dt;
   }
+};
+
+struct ComflabSystem {
+
+  void run(furious::Context* context, int32_t id, ComflabulationComponent*  comflab) {
+    comflab->m_thingy *= 1.000001f;
+    comflab->m_mingy = !comflab->m_mingy;
+    comflab->m_dingy++;
+  }
+
 };
 
 int main(int argc, char** argv) {
 
   furious::init();
 
-  furious::register_component<TestComponentA>();
-  furious::register_component<TestComponentB>();
+  furious::register_component<PositionComponent>();
+  furious::register_component<DirectionComponent>();
+  furious::register_component<ComflabulationComponent>();
 
-  furious::register_system<TestSystem>();
+  furious::register_system<MovementSystem>();
+  furious::register_system<ComflabSystem>();
 
-  furious::Entity entity1 = furious::create_entity();
-  entity1.add_component<TestComponentA>(0.0f, 0.0f, 0.0f);
-  entity1.add_component<TestComponentB>(0.0f, 0.0f, 0.0f);
+  size_t nentities = 10000;
+  for (size_t i = 0; i < nentities; i++) {
+    auto entity = furious::create_entity();
 
-  furious::Entity entity2 = furious::create_entity();
-  entity2.add_component<TestComponentA>(0.0f, 0.0f, 0.0f);
-  entity2.add_component<TestComponentB>(0.0f, 0.0f, 0.0f);
+    entity.add_component<PositionComponent>();
+    entity.add_component<DirectionComponent>();
 
-  entity1.remove_component<TestComponentA>(); 
-  entity1.remove_component<TestComponentB>(); 
+    if (i % 2) {
+      entity.add_component<ComflabulationComponent>();
+    }
 
-  entity2.remove_component<TestComponentA>(); 
-  entity2.remove_component<TestComponentB>(); 
+  }
 
-  furious::remove_entity(entity1);
-  furious::remove_entity(entity2);
+  furious::run(1.0f);
 
-  furious::unregister_component<TestComponentA>();
-  furious::unregister_component<TestComponentB>();
+  furious::unregister_component<PositionComponent>();
+  furious::unregister_component<DirectionComponent>();
+  furious::unregister_system<MovementSystem>();
+  furious::unregister_system<ComflabSystem>();
 
   furious::release();
 

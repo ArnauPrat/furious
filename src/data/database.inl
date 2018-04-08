@@ -8,7 +8,7 @@ template<typename T>
 template <typename T>
 TableView<T> Database::create_table() {
   assert(m_tables.find(hash(typeid(T).name())) == m_tables.end());
-  uint64_t hash_value = get_table_id<T>(); 
+  int64_t hash_value = get_table_id<T>(); 
   if(m_tables.find(hash_value) != m_tables.end()) {
     return nullptr;
   }
@@ -19,7 +19,7 @@ TableView<T> Database::create_table() {
 
 template <typename T>
 void Database::remove_table() {
-  uint64_t hash_value = get_table_id<T>();
+  int64_t hash_value = get_table_id<T>();
   auto table = m_tables.find(hash_value);
   assert(table != m_tables.end());
   delete table->second;
@@ -28,14 +28,14 @@ void Database::remove_table() {
 
 template <typename T>
 TableView<T> Database::find_table() {
-  uint64_t hash_value = get_table_id<T>();
+  int64_t hash_value = get_table_id<T>();
   auto table = m_tables.find(hash_value);
   assert(table != m_tables.end());
   return TableView<T>(static_cast<Table*>(table->second));
 }
 
 template <typename T>
-uint64_t Database::get_table_id() {
+int64_t Database::get_table_id() {
   return get_table_id(type_name<T>());
 }
 

@@ -9,8 +9,8 @@
 namespace furious {
 
 struct IdComponentPair{
-  uint32_t id;
-  uint64_t table_id;
+  int32_t id;
+  int64_t table_id;
 };
 
 class Context {
@@ -19,11 +19,13 @@ public:
   ~Context() = default;
 
   template<typename TComponent>
-    void enable_component(uint32_t id);
+    void enable_component(int32_t id);
 
   template<typename TComponent>
-    void disable_component(uint32_t id);
+    void disable_component(int32_t id);
 
+
+  float m_dt;                 
   std::vector<IdComponentPair> m_to_enable;
   std::vector<IdComponentPair> m_to_disable;
 

@@ -26,16 +26,6 @@ struct ComponentB {
   static std::string name() { return "ComponentB"; }
 };
 
-template<>
-std::string type_name<ComponentA>() {
-  return "ComponentA";
-}
-
-template<>
-std::string type_name<ComponentB>() {
-  return "ComponentB";
-}
-
 class DataTest : public ::testing::Test {
 protected:
   virtual void SetUp() {

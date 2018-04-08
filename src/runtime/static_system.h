@@ -9,6 +9,7 @@
 
 #include <typeinfo>
 #include <vector>
+#include <bitset>
 
 namespace furious {
 
@@ -49,7 +50,8 @@ template<typename T, typename...Components>
      * @param component_blocks Pointers to the component blocks to apply the
      * system to
      */
-    void apply_block( Context* context, uint32_t block_start, const std::vector<void*>& component_blocks ) override;
+    void apply_block( Context* context, 
+                      const std::vector<TBlock*>& component_blocks ) override;
 
     /**
      * @brief Applies the system to a set of components of an entity
@@ -58,7 +60,9 @@ template<typename T, typename...Components>
      * @param id The id of the entity
      * @param components Pointers to the components of the entity 
      */
-    void apply( Context* context, uint32_t id, const std::vector<void*>& components ) override;
+    void apply( Context* context, 
+                int32_t id, 
+                const std::vector<void*>& components ) override;
 
     /**
      * @brief Gets the name of the components of this system
@@ -74,12 +78,24 @@ template<typename T, typename...Components>
   private:
 
     template<std::size_t...Indices>
-      void apply_block( Context* context, uint32_t block_start, const std::vector<void*>& components, indices<Indices...> );
+      void apply_block( Context* context, 
+                        const std::vector<TBlock*>& components, 
+                        indices<Indices...> );
 
     template<std::size_t...Indices>
-      void apply( Context* context, uint32_t id, const std::vector<void*>& components, indices<Indices...> );
+      void apply( Context* context, 
+                  int32_t id,
+                  const std::vector<void*>& components, 
+                  indices<Indices...> );
 
-    void apply_block(Context* __restrict__ context, uint32_t block_start, Components* __restrict__ ...components);
+    void apply_block(Context* __restrict__ context, 
+                     int32_t block_start, 
+                     Components* __restrict__ ...components);
+
+    void apply_block(Context* __restrict__ context, 
+                     int32_t block_start, 
+                     const std::bitset<TABLE_BLOCK_SIZE>& mask,
+                     Components* __restrict__ ...components);
 
     ////////////////////////////////////////////////
     ////////////////////////////////////////////////

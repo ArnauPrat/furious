@@ -15,10 +15,10 @@ template<typename T>
   class has_name_method {                                                       
   private:
     template <typename U, U> struct type_check;                     
-    template <typename U> static uint8_t  check(type_check<std::string (*)(void), &U::name > *); 
-    template <typename U> static uint16_t check(...);                    
+    template <typename U> static int32_t  check(type_check<std::string (*)(void), &U::name > *); 
+    template <typename U> static int16_t check(...);                    
   public:
-    static constexpr bool  value = (sizeof(check<T>(0)) == sizeof(uint8_t));     
+    static constexpr bool  value = (sizeof(check<T>(0)) == sizeof(int32_t));     
   };
 
 

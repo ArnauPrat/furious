@@ -18,33 +18,68 @@ StaticSystem<T,Components...>::~StaticSystem() {
 }
 
 template<typename T, typename...Components>
-void StaticSystem<T,Components...>::apply_block( Context* context, uint32_t block_start, const std::vector<void*>& component_blocks ) {
-  apply_block( context, block_start, component_blocks, indices_list<sizeof...(Components)>());
+void StaticSystem<T,Components...>::apply_block( Context* context, 
+                                                 const std::vector<TBlock*>& component_blocks ) {
+  apply_block( context, component_blocks, indices_list<sizeof...(Components)>());
 }
 
 template<typename T, typename...Components>
 template<std::size_t...Indices>
-void StaticSystem<T,Components...>::apply_block( Context* context, uint32_t block_start, const std::vector<void*>& component_blocks, 
-                                         indices<Indices...> ) {
-  apply_block(context, block_start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices],32))...);
+void StaticSystem<T,Components...>::apply_block( Context* context, 
+                                                 const std::vector<TBlock*>& component_blocks, 
+                                                 indices<Indices...> ) {
+  bool complete_blocks = true;
+  for(auto block : component_blocks) {
+    complete_blocks = complete_blocks && (block->m_num_enabled_elements == TABLE_BLOCK_SIZE);
+  }
+
+  int32_t start = component_blocks[0]->m_start;
+  if(complete_blocks) {
+    apply_block(context, start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+  } else {
+    std::bitset<TABLE_BLOCK_SIZE> result;
+    result.set();
+    for(auto block : component_blocks) {
+      result &= block->m_enabled;
+    }
+    apply_block(context, start, result, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+  }
 }
 
 template<typename T, typename...Components>
-void StaticSystem<T,Components...>::apply_block(Context* context, uint32_t block_start, Components* __restrict__ ...components) {
+void StaticSystem<T,Components...>::apply_block(Context* context, 
+                                                int32_t block_start,
+                                                Components* __restrict__ ...components) {
   for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) {
     m_system_object->run(context, block_start+i, &components[i]...);
   }
 }
 
 template<typename T, typename...Components>
-void StaticSystem<T,Components...>::apply( Context* context, uint32_t id, const std::vector<void*>& components ) {
+void StaticSystem<T,Components...>::apply_block(Context* context, 
+                                                int32_t block_start,
+                                                const std::bitset<TABLE_BLOCK_SIZE>& mask,
+                                                Components* __restrict__ ...components) {
+  for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) {
+    if(mask[i]) {
+      m_system_object->run(context, block_start+i, &components[i]...);
+    }
+  }
+}
+
+template<typename T, typename...Components>
+void StaticSystem<T,Components...>::apply( Context* context, 
+                                           int32_t id, 
+                                           const std::vector<void*>& components ) {
   apply(context, id, components,indices_list<sizeof...(Components)>());
 }
 
 template<typename T, typename...Components>
 template<std::size_t...Indices>
-void StaticSystem<T,Components...>::apply( Context* context, uint32_t id, const std::vector<void*>& components, 
-                                         indices<Indices...> ) {
+void StaticSystem<T,Components...>::apply( Context* context, 
+                                           int32_t id, 
+                                           const std::vector<void*>& components, 
+                                           indices<Indices...> ) {
   m_system_object->run(context, id, (static_cast<Components*>(components[Indices]))...);
 }
 
@@ -54,7 +89,8 @@ std::vector<SysComDescriptor> StaticSystem<T,Components...>::components() const 
 }
 
 template<typename T, typename...Components> 
-StaticSystem<T, Components...>* create_static_system(T* system, void (T::*)(Context*, uint32_t id, Components*...)  ) {
+StaticSystem<T, Components...>* create_static_system(T* system, 
+                                                     void (T::*)(Context*, int32_t id, Components*...)  ) {
   return new StaticSystem<T,Components...>(system);
 }
 

@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 #include <set>
+#include <bitset>
+#include <boost/dynamic_bitset.hpp>
 
 namespace furious {
 
@@ -15,19 +17,19 @@ namespace furious {
  * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte elements
  * can be stored in a line.
  */
-constexpr int32_t TABLE_BLOCK_SIZE = 16;
-constexpr int32_t TABLE_BLOCK_BITMAP_SIZE=(TABLE_BLOCK_SIZE + 7) >> 3;
+constexpr int32_t TABLE_BLOCK_SIZE = 64;
 
 /**
  * @brief Represents a block of data in a table
  */
 struct TBlock {
-  int8_t*           p_data;                             // The pointer to the block data
-  int32_t           m_start;                            // The id of the first element in the block
-  size_t            m_num_elements;                     // The number of elements in the block 
-  int32_t           m_esize;                            // The size of the elements contained in the block
-  int8_t            m_exists[TABLE_BLOCK_BITMAP_SIZE];  // A vector of bits used to test whether an element is in the block or not
-  int8_t            m_enabled[TABLE_BLOCK_BITMAP_SIZE]; // A vector of bits used to mark components that are enabled/disabled 
+  int8_t*                         p_data;        // The pointer to the block data
+  int32_t                         m_start;       // The id of the first element in the block
+  size_t                          m_num_elements;// The number of elements in the block 
+  size_t                          m_num_enabled_elements;// The number of elements in the block 
+  int32_t                         m_esize;       // The size of the elements contained in the block
+  std::bitset<TABLE_BLOCK_SIZE>   m_exists;      // A vector of bits used to test whether an element is in the block or not
+  std::bitset<TABLE_BLOCK_SIZE>   m_enabled;     // A vector of bits used to mark components that are enabled/disabled 
 };
 
 /**
@@ -85,7 +87,7 @@ class Table {
 public:
   class Iterator {
   public:
-    Iterator(const std::map<int32_t, TBlock*>& blocks);
+    Iterator(const std::map<int32_t,TBlock*>& blocks);
     virtual ~Iterator() = default;
 
     /**
@@ -183,9 +185,26 @@ public:
    *
    * @return Returns the name of the able
    */
-  std::string table_name() const;
+  std::string name() const;
 
   size_t size() const;
+
+  /**
+   * @brief Gets the bitset with the blocks of this table that actually exist
+   *
+   * @return A bitset with the positions of the blocks existing in the table set
+   * to true
+   */
+  const boost::dynamic_bitset<>& get_blocks_mask();
+
+  /**
+   * @brief Gets the given block
+   *
+   * @param block_id The id of the block to retrieve
+   *
+   * @return A pointer to the block
+   */
+  TBlock* get_block(int32_t block_id);
 
 private:
 
@@ -220,6 +239,7 @@ private:
   mutable std::map<int32_t, TBlock*>  m_blocks;
   size_t                              m_num_elements;
   void                                (*m_destructor)(void* ptr);
+  boost::dynamic_bitset<>             m_blocks_mask;
 };
 
 } /* furious */ 

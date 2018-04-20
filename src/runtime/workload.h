@@ -33,7 +33,7 @@ public:
    * @tparam typename...TComponent The components this system works with
    */
   template<typename TSystem, typename...TArgs>
-    void register_system(TArgs&&...args);
+    void add_system(TArgs&&...args);
 
   template<typename TSystem>
     void remove_system();

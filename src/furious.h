@@ -20,6 +20,11 @@ void init();
  */
 void release();
 
+Database* create_database();
+
+void destroy_database(Database* database);
+
+
 /**
  * @brief Registers a component to the furious framework
  *
@@ -68,7 +73,7 @@ void unregister_system();
  *
  * @return A newly created entity
  */
-Entity create_entity();
+Entity create_entity(Database* database);
 
 /**
  * @brief Removes the given entity
@@ -78,12 +83,19 @@ Entity create_entity();
 void remove_entity(Entity entiy);
 
 /**
- * @brief Runs the registered systems
+ * @brief Creates a workload object
+ *
+ * @return  The newly created workload object
  */
-void run(float deltaTime);
+Workload* create_workload();
+
+/**
+ * @brief Destroys a workload
+ *
+ * @param workload A pointer to the workload to destroy
+ */
+void destroy_workload(Workload* workload);
   
 } /* furious */ 
-
-#include "furious.inl"
 
 #endif /* ifndef _FURIOUS_H_ */

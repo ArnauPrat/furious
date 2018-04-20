@@ -3,33 +3,37 @@
 
 namespace furious {
 
-Database* database = nullptr;
-Workload* workload = nullptr;
-
 void init() {
-  database = Database::get_instance();
-  workload = new Workload();
 }
 
 void release() {
-  database->clear();
-  database = nullptr;
+}
 
+Database* create_database() {
+  return new Database();
+}
+
+void destroy_database(Database* database) {
+  delete database;
+}
+
+Entity create_entity(Database* database) {
+ return Entity::create_entity(database);
+}
+
+void remove_entity(Entity entity, Database* database) {
+  Entity::remove_entity(&entity);
+}
+
+
+Workload* create_workload() {
+  return new Workload();
+}
+
+void destroy_workload(Workload* workload) {
   delete workload;
-  workload = nullptr;
 }
 
-Entity create_entity() {
- return Entity::create_entity();
-}
-
-void remove_entity(Entity entity) {
-  Entity::remove_entity(entity);
-}
-
-void run(float deltaTime) {
-  workload->run(deltaTime, database);
-}
 
 } /* furious */ 
 

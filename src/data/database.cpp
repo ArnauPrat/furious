@@ -12,11 +12,6 @@ Database::~Database() {
   }
 }
 
-Database* Database::get_instance() {
-  static Database instance;
-  return &instance;
-}
-
 Table* Database::find_table(const std::string& table_name) {
   int64_t hash_value = get_table_id(table_name);
   return find_table(hash_value);
@@ -40,6 +35,18 @@ void Database::clear() {
     delete i.second;
   }
   m_tables.clear();
+}
+
+int32_t Database::get_next_entity_id() {
+  int32_t next_id = m_next_entity_id;
+  m_next_entity_id++;
+  return next_id;
+}
+
+void Database::clear_element(int32_t id) {
+  for(auto table : m_tables) {
+    table.second->remove_element(id);
+  }
 }
   
 } /* furious */ 

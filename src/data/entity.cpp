@@ -6,16 +6,24 @@ namespace furious  {
 
 entity_id_t Entity::m_next_id = 0;
 
-Entity::Entity(entity_id_t id) : m_id(id) {
+Entity::Entity(Database* database) : 
+  m_id(database->get_next_entity_id()),
+  p_database(database)
+{
 }
 
 
-Entity Entity::create_entity() {
-  Entity entity{m_next_id++};
+Entity Entity::create_entity(Database* database) {
+  Entity entity{database};
   return entity;
 }
 
-void Entity::remove_entity(Entity& entity) {
+void Entity::remove_entity(Entity* entity) {
+  entity->get_database()->clear_element(entity->m_id);
+}
+
+Database* Entity::get_database() {
+  return p_database;
 }
   
 } /* furious  */ 

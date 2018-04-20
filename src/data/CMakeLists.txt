@@ -2,11 +2,10 @@
 add_definitions(${FURIOUS_DEFAULT_DEFINES})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
-add_library(data STATIC
-  #btree.h
-  #btree.inl
+add_library(data STATIC 
   common.h
   context.h
+  context.cpp
   context.inl 
   data.h
   database.cpp
@@ -14,8 +13,6 @@ add_library(data STATIC
   database.inl
   entity.cpp
   entity.h
-  #impl/btree_impl.cpp
-  #impl/btree_impl.h
   table.cpp
   table.inl 
   table.h

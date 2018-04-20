@@ -8,7 +8,6 @@ add_subdirectory(./runtime/)
 add_library(furious SHARED
   furious.h
   furious.cpp
-  furious.inl
   )  
 
 target_link_libraries(furious common memory data runtime)
@@ -23,7 +22,8 @@ set_target_properties(furious
 add_executable( furious_test 
   furious_test.cpp
   )
-target_link_libraries( furious_test furious )
+
+target_link_libraries( furious_test furious memory)
 
 set_target_properties(furious_test
   PROPERTIES
@@ -36,3 +36,15 @@ add_subdirectory(./test/)
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
+
+install (TARGETS furious
+          RUNTIME DESTINATION bin
+          LIBRARY DESTINATION lib)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
+       FILES_MATCHING PATTERN "*.h"
+       )
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
+       FILES_MATCHING PATTERN "*.inl"
+       )

@@ -4,7 +4,7 @@ include_directories(${FURIOUS_INCLUDE_DIR})
 
 Find_Package(NUMA)
 
-add_library(memory STATIC
+add_library(memory STATIC 
   numa_alloc.h
   numa_alloc.cpp
 )

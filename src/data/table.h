@@ -17,7 +17,7 @@ namespace furious {
  * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte elements
  * can be stored in a line.
  */
-constexpr int32_t TABLE_BLOCK_SIZE = 64;
+constexpr int32_t TABLE_BLOCK_SIZE = 16;
 
 /**
  * @brief Represents a block of data in a table

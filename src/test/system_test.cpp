@@ -33,9 +33,9 @@ public:
 TEST(SystemTest, SystemWorks) {
  
   init();
-  register_component<ComponentA>();
-  register_component<ComponentB>();
-  Database* database = Database::get_instance();
+  Database* database = create_database();
+  database->add_table<ComponentA>();
+  database->add_table<ComponentB>();
   TableView<ComponentA> tableA = database->find_table<ComponentA>();
   TableView<ComponentB> tableB = database->find_table<ComponentB>();
 
@@ -71,6 +71,7 @@ TEST(SystemTest, SystemWorks) {
     ASSERT_EQ(next_rowA.p_component->m_field, next_rowB.p_component->m_field*5);
   }
 
+  destroy_database(database);
   release();
 }
 

@@ -20,6 +20,7 @@ namespace furious {
 
 class Database final {
 public:
+  Database() = default;
   Database( const Database& ) = delete;
   Database( Database&& ) = delete;
 
@@ -36,7 +37,7 @@ public:
    * Adds an existing table to the database
    */
   template <typename T>
-  TableView<T> create_table();
+  TableView<T> add_table();
 
   /**
    * Drops an existing table
@@ -71,14 +72,20 @@ public:
    * */
   void clear();
 
-  static Database* get_instance();
+  /**
+   * Clears all the rows of a given element 
+   *
+   * @param id The id of the element to remove
+   */
+  void clear_element(int32_t id);
 
-protected:
-  Database() = default;
+
+  int32_t get_next_entity_id();
 
 private:
 
   std::map<int64_t, Table*>  m_tables;      /** Holds a map between component types and their tables **/
+  int32_t                    m_next_entity_id;
 };
 
 }

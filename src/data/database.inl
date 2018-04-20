@@ -6,7 +6,7 @@ template<typename T>
   }
   
 template <typename T>
-TableView<T> Database::create_table() {
+TableView<T> Database::add_table() {
   assert(m_tables.find(hash(typeid(T).name())) == m_tables.end());
   int64_t hash_value = get_table_id<T>(); 
   if(m_tables.find(hash_value) != m_tables.end()) {

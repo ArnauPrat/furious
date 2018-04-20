@@ -16,19 +16,21 @@ struct Component {
 };
 
 TEST(DatabaseTest, CreateAndRemoveTable) {
-  auto database = Database::get_instance();
+  auto database = new Database();
   database->clear();
-  auto table = database->create_table<Component>();
+  auto table = database->add_table<Component>();
   database->remove_table<Component>();
+  delete database;
 }
 
 
 TEST(DatabaseTest, FindTable) {
-  auto database = Database::get_instance();
+  auto database = new Database();
   database->clear();
-  database->create_table<Component>();
+  database->add_table<Component>();
   auto table = database->find_table<Component>();
   database->remove_table<Component>();
+  delete database;
 }
 
 } /* furious */ 

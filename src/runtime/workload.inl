@@ -6,7 +6,7 @@
 namespace furious {
 
 template<typename TSystem, typename...TArgs>
-  void Workload::register_system(TArgs&&...args) {
+  void Workload::add_system(TArgs&&...args) {
     auto static_system = create_static_system<TSystem>(std::forward<TArgs>(args)...);
     m_systems.insert(std::make_pair(type_name<TSystem>(), static_system));
   }

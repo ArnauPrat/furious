@@ -22,8 +22,8 @@ struct ComflabulationComponent {
 
 struct MovementSystem {
   void run(furious::Context* context, int32_t id, PositionComponent* position, const DirectionComponent*  direction) {
-    position->m_x = direction->m_x*context->m_dt;
-    position->m_y = direction->m_y*context->m_dt;
+    position->m_x = direction->m_x*context->get_dt();
+    position->m_y = direction->m_y*context->get_dt();
   }
 };
 
@@ -41,16 +41,19 @@ int main(int argc, char** argv) {
 
   furious::init();
 
-  furious::register_component<PositionComponent>();
-  furious::register_component<DirectionComponent>();
-  furious::register_component<ComflabulationComponent>();
+  furious::Database* database = furious::create_database();
 
-  furious::register_system<MovementSystem>();
-  furious::register_system<ComflabSystem>();
+  database->add_table<PositionComponent>();
+  database->add_table<DirectionComponent>();
+  database->add_table<ComflabulationComponent>();
+
+  furious::Workload* workload = furious::create_workload();
+  workload->add_system<MovementSystem>();
+  workload->add_system<ComflabSystem>();
 
   size_t nentities = 10000;
   for (size_t i = 0; i < nentities; i++) {
-    auto entity = furious::create_entity();
+    auto entity = furious::create_entity(database);
 
     entity.add_component<PositionComponent>();
     entity.add_component<DirectionComponent>();
@@ -58,16 +61,18 @@ int main(int argc, char** argv) {
     if (i % 2) {
       entity.add_component<ComflabulationComponent>();
     }
-
   }
 
-  furious::run(1.0f);
+  workload->run(1.0, database);
 
-  furious::unregister_component<PositionComponent>();
-  furious::unregister_component<DirectionComponent>();
-  furious::unregister_system<MovementSystem>();
-  furious::unregister_system<ComflabSystem>();
 
+  database->remove_table<PositionComponent>();
+  database->remove_table<DirectionComponent>();
+  workload->remove_system<MovementSystem>();
+  workload->remove_system<ComflabSystem>();
+
+  furious::destroy_workload(workload);
+  furious::destroy_database(database);
   furious::release();
 
   return 0;

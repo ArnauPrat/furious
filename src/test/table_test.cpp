@@ -17,8 +17,9 @@ struct Component {
 TEST(TableTest,TableWorks) {
 
   init();
-  register_component<Component>();
-  TableView<Component> table = get_table<Component>();
+  Database* database = create_database();
+  database->add_table<Component>();
+  TableView<Component> table = database->find_table<Component>();
   int32_t num_elements = TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_elements; ++i) {
@@ -61,7 +62,8 @@ TEST(TableTest,TableWorks) {
   table.clear();
   ASSERT_EQ(table.size(),0);
 
-  unregister_component<Component>();
+  database->remove_table<Component>();
+  destroy_database(database);
   release();
 }
 }

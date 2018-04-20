@@ -17,8 +17,7 @@ Workload::~Workload() {
 
 void Workload::run(float delta_time, Database* database) {
   
-  Context context;
-  context.m_dt = delta_time;
+  Context context{delta_time, database};
   for(auto system : m_systems) {
 
     size_t max_block_count=0;

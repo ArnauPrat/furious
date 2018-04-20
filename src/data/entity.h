@@ -6,12 +6,14 @@
 
 namespace furious {
 
+class Database;
+
 using entity_id_t = int32_t;
 
 class Entity final {
 private:
 
-  Entity( entity_id_t id  );
+  Entity( Database* database  );
 
 public: 
   virtual ~Entity() = default;
@@ -36,18 +38,20 @@ public:
    *
    * @return 
    */
-  static Entity create_entity();
+  static Entity create_entity(Database* database);
 
   /**
    * @brief Removes the given entity
    *
    * @param The entity to remove
    */
-  static void remove_entity( Entity& entity );
+  static void remove_entity( Entity* entity);
 
+  Database* get_database();
 private:
 
   entity_id_t m_id;
+  Database*   p_database;
 
   static entity_id_t m_next_id;
   

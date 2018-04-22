@@ -20,53 +20,19 @@ void init();
  */
 void release();
 
+/**
+ * @brief Creates a new database
+ *
+ * @return  The newly created database
+ */
 Database* create_database();
 
+/**
+ * @brief Destroys a given database
+ *
+ * @param database A pointer to the database to destroy
+ */
 void destroy_database(Database* database);
-
-
-/**
- * @brief Registers a component to the furious framework
- *
- * @tparam TComponent The component to register
- */
-template<typename TComponent>
-void register_component();
-
-/**
- * @brief Removes a component from the furious framework
- *
- * @tparam TComponent The component to remove 
- */
-template<typename TComponent>
-void unregister_component();
-
-/**
- * @brief Gets a table view of a component table 
- *
- * @tparam TComponent The component to get the table view for 
- *
- * @return A table view of the component table. 
- */
-template<typename TComponent>
-TableView<TComponent> get_table();
-
-/**
- * @brief Adds a system to the furious framework
- *
- * @tparam typename TSystem The system to register to the furious framework
- * @tparam typename...TArgs The arguments to initialize the system with 
- */
-template<typename TSystem, typename...TArgs> 
-void register_system(TArgs&&...);
-
-/**
- * @brief Removes a System from the furious framework
- *
- * @tparam TSystem The system to remove from the furious framework
- */
-template<typename TSystem>
-void unregister_system();
 
 /**
  * @brief Creates an entity

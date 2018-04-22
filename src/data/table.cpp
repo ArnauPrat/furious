@@ -26,6 +26,8 @@ struct DecodedId {
  * @return 
  */
 static DecodedId decode_id(int32_t id) { 
+
+  assert(id != FURIOUS_INVALID_ID);
   
   int32_t block_id  = id / TABLE_BLOCK_SIZE;
 
@@ -44,6 +46,8 @@ static DecodedId decode_id(int32_t id) {
  */
 bool has_element(const TBlock* block, 
                  int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
+
   return get_element(block, id).p_data != nullptr;
 }
 
@@ -57,6 +61,7 @@ bool has_element(const TBlock* block,
  */
 TRow get_element(const TBlock* block, 
                  int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
@@ -165,6 +170,7 @@ void Table::clear() {
 
 
 void* Table::get_element(int32_t id) const {
+  assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
   if(it == m_blocks.end()) {
@@ -178,6 +184,7 @@ void* Table::get_element(int32_t id) const {
 }
 
 void* Table::alloc_element(int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
@@ -207,6 +214,7 @@ void* Table::alloc_element(int32_t id) {
 }
 
 void  Table::remove_element(int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
@@ -227,6 +235,7 @@ void  Table::remove_element(int32_t id) {
 }
 
 void Table::enable_element(int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
@@ -239,6 +248,7 @@ void Table::enable_element(int32_t id) {
 }
 
 void Table::disable_element(int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
@@ -251,6 +261,7 @@ void Table::disable_element(int32_t id) {
 }
 
 bool Table::is_enabled(int32_t id) {
+  assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
   auto it = m_blocks.find(decoded_id.m_block_id);
@@ -274,6 +285,7 @@ const boost::dynamic_bitset<>& Table::get_blocks_mask() {
 }
 
 TBlock* Table::get_block(int32_t block_id) {
+  assert(id != FURIOUS_INVALID_ID);
   auto it = m_blocks.find(block_id);
   assert(it != m_blocks.end());
   return it->second;

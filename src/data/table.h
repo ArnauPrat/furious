@@ -11,6 +11,8 @@
 
 namespace furious {
 
+#define FURIOUS_INVALID_ID 0xffffffff
+
 
 /**
  * @brief The number of elements per block. The current number, 16 is not

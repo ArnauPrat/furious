@@ -6,8 +6,7 @@
 #include <map>
 #include <string>
 #include <set>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
+#include "bitset.h"
 
 namespace furious {
 
@@ -30,8 +29,8 @@ struct TBlock {
   size_t                          m_num_elements;// The number of elements in the block 
   size_t                          m_num_enabled_elements;// The number of elements in the block 
   int32_t                         m_esize;       // The size of the elements contained in the block
-  std::bitset<TABLE_BLOCK_SIZE>   m_exists;      // A vector of bits used to test whether an element is in the block or not
-  std::bitset<TABLE_BLOCK_SIZE>   m_enabled;     // A vector of bits used to mark components that are enabled/disabled 
+  bitset                          m_exists;      // A vector of bits used to test whether an element is in the block or not
+  bitset                          m_enabled;     // A vector of bits used to mark components that are enabled/disabled 
 };
 
 /**
@@ -197,7 +196,7 @@ public:
    * @return A bitset with the positions of the blocks existing in the table set
    * to true
    */
-  const boost::dynamic_bitset<>& get_blocks_mask();
+  const bitset& get_blocks_mask();
 
   /**
    * @brief Gets the given block
@@ -241,7 +240,7 @@ private:
   mutable std::map<int32_t, TBlock*>  m_blocks;
   size_t                              m_num_elements;
   void                                (*m_destructor)(void* ptr);
-  boost::dynamic_bitset<>             m_blocks_mask;
+  bitset                              m_blocks_mask;
 };
 
 } /* furious */ 

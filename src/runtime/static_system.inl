@@ -28,20 +28,16 @@ template<std::size_t...Indices>
 void StaticSystem<T,Components...>::apply_block( Context* context, 
                                                  const std::vector<TBlock*>& component_blocks, 
                                                  indices<Indices...> ) {
-  bool complete_blocks = true;
+  bitset result;
+  result.resize(TABLE_BLOCK_SIZE, true);
   for(auto block : component_blocks) {
-    complete_blocks = complete_blocks && (block->m_num_enabled_elements == TABLE_BLOCK_SIZE);
+    result &= block->m_enabled;
   }
 
   int32_t start = component_blocks[0]->m_start;
-  if(complete_blocks) {
+  if(result.count() == TABLE_BLOCK_SIZE) {
     apply_block(context, start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
   } else {
-    std::bitset<TABLE_BLOCK_SIZE> result;
-    result.set();
-    for(auto block : component_blocks) {
-      result &= block->m_enabled;
-    }
     apply_block(context, start, result, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
   }
 }
@@ -58,7 +54,7 @@ void StaticSystem<T,Components...>::apply_block(Context* context,
 template<typename T, typename...Components>
 void StaticSystem<T,Components...>::apply_block(Context* context, 
                                                 int32_t block_start,
-                                                const std::bitset<TABLE_BLOCK_SIZE>& mask,
+                                                const bitset& mask,
                                                 Components* __restrict__ ...components) {
   for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) {
     if(mask[i]) {

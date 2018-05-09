@@ -94,7 +94,7 @@ template<typename T, typename...Components>
 
     void apply_block(Context* __restrict__ context, 
                      int32_t block_start, 
-                     const std::bitset<TABLE_BLOCK_SIZE>& mask,
+                     const bitset& mask,
                      Components* __restrict__ ...components);
 
     ////////////////////////////////////////////////

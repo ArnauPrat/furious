@@ -1,6 +1,6 @@
 
 #include "workload.h"
-#include <boost/dynamic_bitset.hpp>
+#include "data/bitset.h" 
 #include <cmath>
 
 namespace furious {
@@ -28,7 +28,7 @@ void Workload::run(float delta_time, Database* database) {
       max_block_count = std::max(max_block_count, table->get_blocks_mask().size());
     }
 
-    boost::dynamic_bitset<> matching_blocks{max_block_count};
+    bitset matching_blocks{max_block_count};
     matching_blocks.set();
     for(auto table : tables) {
       matching_blocks &= table->get_blocks_mask();

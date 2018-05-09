@@ -11,12 +11,11 @@ class Database;
 using entity_id_t = int32_t;
 
 class Entity final {
-private:
-
-  Entity( Database* database  );
-
 public: 
+  Entity( Database* database  );
   virtual ~Entity() = default;
+
+  Entity( const Entity& entity) = default;
 
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////

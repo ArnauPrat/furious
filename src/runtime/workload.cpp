@@ -43,8 +43,8 @@ void Workload::run(float delta_time, Database* database) {
           blocks[j] = table->get_block(i);
           ++j;
         }
+        system.second->apply_block(&context,blocks);
       }
-      system.second->apply_block(&context,blocks);
     }
 
   }

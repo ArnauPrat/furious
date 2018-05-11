@@ -6,5 +6,6 @@
 #include "platform.h"
 #include "reflection.h"
 #include "utils.h"
+#include "optional.h"
 
 #endif

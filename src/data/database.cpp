@@ -48,5 +48,39 @@ void Database::clear_element(int32_t id) {
     table.second->remove_element(id);
   }
 }
+
+void Database::tag_entity(int32_t entity_id, 
+                          const std::string& tag) {
+
+  auto it = m_tags.find(tag);
+  if(it == m_tags.end()) {
+    it = m_tags.insert(std::make_pair(tag, bitset())).first;
+  }
+  if(static_cast<int32_t>(it->second.size()) < entity_id+1) {
+    it->second.resize(entity_id+1);
+    it->second[entity_id] = true; 
+  }
+
+}
+
+void Database::untag_entity(int32_t entity_id, 
+                          const std::string& tag) {
+
+  auto it = m_tags.find(tag);
+  if(it != m_tags.end()) {
+    if(static_cast<int32_t>(it->second.size()) > entity_id) {
+      it->second[entity_id] = false;
+    }
+  }
+}
+
+optional<const bitset&> 
+Database::get_tagged_entities(const std::string& tag) {
+  auto it = m_tags.find(tag);
+  if(it != m_tags.end()) {
+    return optional<const bitset&>(it->second);
+  }
+  return optional<const bitset&>{};
+}
   
 } /* furious */ 

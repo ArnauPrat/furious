@@ -24,6 +24,14 @@ void Entity::remove_entity(Entity* entity) {
   entity->m_id = FURIOUS_INVALID_ID;
 }
 
+void Entity::add_tag(const std::string& tag) {
+  p_database->tag_entity(m_id, tag);
+}
+
+void Entity::remove_tag(const std::string& tag) {
+  p_database->untag_entity(m_id, tag);
+}
+
 Database* Entity::get_database() {
   return p_database;
 }

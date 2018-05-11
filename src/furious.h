@@ -46,7 +46,7 @@ Entity create_entity(Database* database);
  *
  * @param entiy The entity to remove. 
  */
-void remove_entity(Entity entiy);
+void destroy_entity(Entity* entiy);
 
 /**
  * @brief Creates a workload object

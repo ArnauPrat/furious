@@ -13,6 +13,29 @@ namespace furious {
 
 class System;
 class Database;
+class Workload;
+
+
+class ScopeModifier {
+public:
+  ScopeModifier(Workload* workload, 
+                System* system);
+
+  ScopeModifier& restrict_to(const std::vector<std::string>& tags);
+
+private:
+  Workload*   p_workload;
+  System*     p_system;
+
+};
+
+class SystemExecInfo {
+public:
+  SystemExecInfo(System* system);
+
+  System * const                    p_system;
+  std::vector<std::string>          m_tags;
+};
 
 class Workload final {
 public:
@@ -33,7 +56,7 @@ public:
    * @tparam typename...TComponent The components this system works with
    */
   template<typename TSystem, typename...TArgs>
-    void add_system(TArgs&&...args);
+    ScopeModifier add_system(TArgs&&...args);
 
   template<typename TSystem>
     void remove_system();
@@ -41,8 +64,9 @@ public:
   void run(float delta_time, Database* database);
 
 private:
+  friend class ScopeModifier;
 
-  std::map<std::string, System*> m_systems;
+  std::map<std::string, SystemExecInfo> m_systems;
 
 };
 

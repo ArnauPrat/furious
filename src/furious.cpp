@@ -21,8 +21,8 @@ Entity create_entity(Database* database) {
  return Entity::create_entity(database);
 }
 
-void remove_entity(Entity entity, Database* database) {
-  Entity::remove_entity(&entity);
+void destroy_entity(Entity* entity) {
+  Entity::remove_entity(entity);
 }
 
 

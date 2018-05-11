@@ -31,6 +31,10 @@ public:
 
   template<typename TComponent> 
   TComponent* get_component();
+
+  void add_tag(const std::string& tag);
+
+  void remove_tag(const std::string& tag);
   
   /**
    * @brief Creates an entity 

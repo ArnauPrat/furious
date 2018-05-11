@@ -8,6 +8,7 @@
 #include "table_view.h"
 #include "common.h"
 #include "../common/reflection.h"
+#include "../common/optional.h"
 
 #include <map>
 #include <memory>
@@ -81,10 +82,23 @@ public:
   void clear_element(int32_t id);
 
 
+  /**
+   * @brief Gets the next free entity id
+   *
+   * @return Returns the next free entity id
+   */
   int32_t get_next_entity_id();
+
+  void tag_entity(int32_t entity_id, const std::string& tag);
+
+  void untag_entity(int32_t entity_id, const std::string& tag);
+
+  optional<const bitset&> 
+    get_tagged_entities(const std::string& tag);
 
 private:
 
+  std::map<std::string, bitset> m_tags;
   std::map<int64_t, Table*>     m_tables;      /** Holds a map between component types and their tables **/
   int32_t                       m_next_entity_id;
 };

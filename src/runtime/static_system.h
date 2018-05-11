@@ -101,7 +101,7 @@ template<typename T, typename...Components>
     ////////////////////////////////////////////////
     ////////////////////////////////////////////////
 
-    const std::vector<SysComDescriptor> m_types;
+    std::vector<SysComDescriptor>       m_types;
     T*                                  m_system_object;
   };
 

@@ -10,7 +10,7 @@
 
 namespace furious {
 
-#define FURIOUS_INVALID_ID 0xffffffff
+constexpr int32_t FURIOUS_INVALID_ID=0xffffffff;
 
 
 /**

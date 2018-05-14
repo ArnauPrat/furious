@@ -69,6 +69,12 @@ public:
   template<typename TComponent>
     int64_t get_table_id();
 
+
+  bool exists_table(const std::string& name);
+
+  template<typename TComponent>
+    bool exists_table();
+
   /**
    * Clears and removes all the tables from the database
    * */

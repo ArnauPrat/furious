@@ -27,7 +27,8 @@ Table* Database::find_table(int64_t id) {
 }
 
 int64_t Database::get_table_id(const std::string& name) {
-  return hash(name);
+  int64_t hash_value = hash(name);
+  return hash_value;
 }
 
 void Database::clear() {
@@ -41,6 +42,11 @@ int32_t Database::get_next_entity_id() {
   int32_t next_id = m_next_entity_id;
   m_next_entity_id++;
   return next_id;
+}
+
+bool Database::exists_table(const std::string& name) {
+  int64_t table_id = get_table_id(name);
+  return m_tables.find(table_id) != m_tables.end();
 }
 
 void Database::clear_element(int32_t id) {
@@ -82,5 +88,6 @@ Database::get_tagged_entities(const std::string& tag) {
   }
   return optional<const bitset&>{};
 }
+
   
 } /* furious */ 

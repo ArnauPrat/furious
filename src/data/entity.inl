@@ -8,6 +8,10 @@ namespace furious  {
 template<typename TComponent, typename...Args>
   void Entity::add_component(Args&&...args) {
 
+    if(!p_database->exists_table<TComponent>()) {
+      p_database->add_table<TComponent>();
+    }
+
     TableView<TComponent> table = p_database->find_table<TComponent>();
     table.insert_element(m_id, std::forward<Args>(args)...);
   }

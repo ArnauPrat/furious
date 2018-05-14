@@ -15,7 +15,7 @@ namespace furious {
  *
  * @return Returns the hash of the given string
  */
-uint64_t  hash(const std::string& str);
+int64_t  hash(const std::string& str);
 
 }
 

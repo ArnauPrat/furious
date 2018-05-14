@@ -4,7 +4,7 @@
 
 namespace furious  {
 
-uint64_t hash(const std::string& str) {
+int64_t hash(const std::string& str) {
   return std::hash<std::string>{}(str);
 }
   

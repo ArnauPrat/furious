@@ -12,7 +12,8 @@ TableView<T> Database::add_table() {
   if(m_tables.find(hash_value) != m_tables.end()) {
     return nullptr;
   }
-  auto table =  new Table(type_name<T>(), hash_value, sizeof(T), &destructor<T>);
+  std::string table_name = type_name<T>();
+  auto table =  new Table(table_name, hash_value, sizeof(T), &destructor<T>);
   m_tables.insert(std::make_pair(hash_value,table));
   return TableView<T>(table); 
 }
@@ -37,6 +38,11 @@ TableView<T> Database::find_table() {
 template <typename T>
 int64_t Database::get_table_id() {
   return get_table_id(type_name<T>());
+}
+
+template <typename T>
+bool Database::exists_table() {
+  return exists_table(type_name<T>());
 }
 
 } /* furious */ 

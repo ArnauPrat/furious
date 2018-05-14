@@ -287,7 +287,7 @@ const bitset& Table::get_blocks_mask() {
 }
 
 TBlock* Table::get_block(int32_t block_id) {
-  assert(id != FURIOUS_INVALID_ID);
+  assert(block_id != FURIOUS_INVALID_ID);
   auto it = m_blocks.find(block_id);
   assert(it != m_blocks.end());
   return it->second;

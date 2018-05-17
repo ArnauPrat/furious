@@ -6,7 +6,7 @@ namespace furious {
 
 template<typename T, typename...Components>
 StaticSystem<T,Components...>::StaticSystem(T* system_object) : System(),
-  m_types{SysComDescriptor{type_name<Components>(), access_type<Components>()}...},
+  m_types{SysComDescriptor{type_name<Components>::name(), access_type<Components>::type()}...},
   m_system_object(system_object)
   {
 
@@ -36,9 +36,16 @@ void StaticSystem<T,Components...>::apply_block( Context* context,
 
   int32_t start = component_blocks[0]->m_start;
   if(result.count() == TABLE_BLOCK_SIZE) {
-    apply_block(context, start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+    //apply_block(context, start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+    apply_block(context, 
+                start, 
+                caster<Components>::cast(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
   } else {
-    apply_block(context, start, result, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+    //apply_block(context, start, result, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
+    apply_block(context, 
+                start, 
+                result, 
+                caster<Components>::cast(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
   }
 }
 

@@ -9,6 +9,7 @@ add_library(common STATIC
   platform.h
   reflection.h
   types.h
+  reference.h
 )
 
 set_target_properties( common 

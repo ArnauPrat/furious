@@ -25,7 +25,14 @@ function(create_test NAME)
     )
 endfunction(create_test)
 
-SET(TESTS "memory_test;table_test;database_test;system_test;tags_test")
+SET(TESTS 
+  memory_test
+  table_test
+  database_test
+  system_test
+  tags_test
+  reflection_test
+  )
 
 foreach( TEST ${TESTS} )
   create_test(${TEST})

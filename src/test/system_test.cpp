@@ -51,8 +51,8 @@ TEST(SystemTest, SystemWorks) {
   ASSERT_EQ(test_system->components()[0].m_access_type, ComAccessType::E_WRITE );
   ASSERT_EQ(test_system->components()[1].m_access_type, ComAccessType::E_READ );
 
-  Table* table1 = database->find_table(type_name<ComponentA>());
-  Table* table2 = database->find_table(type_name<ComponentB>());
+  Table* table1 = database->find_table(type_name<ComponentA>::name());
+  Table* table2 = database->find_table(type_name<ComponentB>::name());
 
   auto it1 = table1->iterator();
   auto it2 = table2->iterator();

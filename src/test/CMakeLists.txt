@@ -31,7 +31,7 @@ SET(TESTS
   database_test
   system_test
   tags_test
-  reflection_test
+  traits_test
   )
 
 foreach( TEST ${TESTS} )

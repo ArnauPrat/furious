@@ -5,7 +5,7 @@
 #include "system.h"
 #include "../data/table.h"
 #include "../data/context.h"
-#include "../common/reflection.h"
+#include "../common/traits.h"
 
 #include <typeinfo>
 #include <vector>

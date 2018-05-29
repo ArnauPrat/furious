@@ -7,7 +7,7 @@
 #include "table.h"
 #include "table_view.h"
 #include "common.h"
-#include "../common/reflection.h"
+#include "../common/traits.h"
 #include "../common/optional.h"
 
 #include <map>

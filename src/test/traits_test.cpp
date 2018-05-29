@@ -37,7 +37,7 @@ public:
 
 extern const char parent_str[] = "parent";
 
-TEST(ReflectionTest,ReflectionWorks) {
+TEST(TraitsTest,TraitsWorks) {
 
   furious::init();
 

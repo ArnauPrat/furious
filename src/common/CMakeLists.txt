@@ -7,7 +7,7 @@ add_library(common STATIC
   utils.cpp 
   optional.h
   platform.h
-  reflection.h
+  traits.h
   types.h
   reference.h
 )

@@ -1,6 +1,6 @@
 
 #include "static_system.h"
-#include "../common/reflection.h"
+#include "../common/traits.h"
 #include <utility>
 
 namespace furious {

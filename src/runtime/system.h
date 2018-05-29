@@ -4,7 +4,7 @@
 #define _FURIOus_SYSTEM_H value
 
 #include "../data/table.h"
-#include "../common/reflection.h"
+#include "../common/traits.h"
 
 #include <vector>
 #include <memory>

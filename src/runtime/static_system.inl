@@ -36,12 +36,10 @@ void StaticSystem<T,Components...>::apply_block( Context* context,
 
   int32_t start = component_blocks[0]->m_start;
   if(result.count() == TABLE_BLOCK_SIZE) {
-    //apply_block(context, start, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
     apply_block(context, 
                 start, 
                 caster<Components>::cast(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
   } else {
-    //apply_block(context, start, result, static_cast<Components*>(__builtin_assume_aligned(component_blocks[Indices]->p_data,32))...);
     apply_block(context, 
                 start, 
                 result, 
@@ -83,7 +81,7 @@ void StaticSystem<T,Components...>::apply( Context* context,
                                            int32_t id, 
                                            const std::vector<void*>& components, 
                                            indices<Indices...> ) {
-  m_system_object->run(context, id, (static_cast<Components*>(components[Indices]))...);
+  m_system_object->run(context, id, (caster<Components>::cast(components[Indices]))...);
 }
 
 template<typename T, typename...Components>

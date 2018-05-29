@@ -10,6 +10,12 @@
 
 namespace furious {
 
+
+/**
+ * @brief Auxiliary class used for trait type_name 
+ *
+ * @tparam T The tamplate argument
+ */
 template<typename T>                                 
   class has_name_method {                                                       
   private:
@@ -21,16 +27,38 @@ template<typename T>
   };
 
 
+/**
+ * @brief Function used for trait typename that calls the static method name()
+ *
+ * @tparam T
+ *
+ * @return 
+ */
 template <typename T>
   typename std::enable_if<has_name_method<T>::value, std::string>::type type_name_func() {
     return T::name();
   } 
 
+/**
+ * @brief Function used for trait typename that returns the compiler generated
+ * type name 
+ *
+ * @tparam T
+ *
+ * @return 
+ */
 template <typename T>
   typename std::enable_if<!has_name_method<T>::value, std::string>::type type_name_func() {
     return typeid(T).name();
   }  
 
+
+
+/**
+ * @brief Static class used to extract the name of a regular type
+ *
+ * @tparam T
+ */
 template <typename T>
   class type_name {
   public:
@@ -39,6 +67,11 @@ template <typename T>
     }
   };
 
+/**
+ * @brief Static class used to extract the name of a Ref type
+ *
+ * @tparam T
+ */
 template <typename T, const char* str>
   class type_name<Ref<T,str>> {
   public:
@@ -47,21 +80,49 @@ template <typename T, const char* str>
     }
   };
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+/**
+ * @brief Component access type
+ */
 enum class ComAccessType : uint8_t {
   E_READ,
   E_WRITE
 };
 
+/**
+ * @brief Axuliary function used to extract the access type of a non-const component
+ *
+ * @tparam T
+ *
+ * @return 
+ */
 template<typename T>
   typename std::enable_if<!std::is_const<typename std::remove_pointer<T>::type>::value,ComAccessType>::type access_type_func() {
     return ComAccessType::E_WRITE;
   }
 
+/**
+ * @brief Axuliary function used to extract the access type of a const component
+ *
+ * @tparam T
+ *
+ * @return 
+ */
 template<typename T>
   typename std::enable_if<std::is_const<typename std::remove_pointer<T>::type>::value,ComAccessType>::type access_type_func() {
     return ComAccessType::E_READ;
   }
 
+
+/**
+ * @brief Staic class used to extract the access type of a regular Component
+ *
+ * @tparam T
+ */
 template<typename T>
 class access_type {
 public:
@@ -70,6 +131,11 @@ public:
   }
 };
 
+/**
+ * @brief Staic class used to extract the access type of a ref Component
+ *
+ * @tparam T
+ */
 template<typename T, const char* str>
 class access_type<Ref<T,str>> {
 public:
@@ -79,6 +145,12 @@ public:
 };
 
 
+/**
+ * @brief Static class used to cast a void* to the actual component type, for
+ * regular types
+ *
+ * @tparam T
+ */
 template<typename T>
 class caster {
 public:
@@ -87,11 +159,17 @@ public:
   }
 };
 
+/**
+ * @brief Static class used to cast a void* to the actual component type, for
+ * reference types
+ *
+ * @tparam T
+ */
 template<typename T, const char* str>
 class caster<Ref<T, str>> {
 public:
-  inline static Ref<T,str> cast(void* ptr) {
-    return Ref<T,str>(ptr);
+  inline static T* cast(void* ptr) {
+    return static_cast<T*>(ptr);
   }
 };
 

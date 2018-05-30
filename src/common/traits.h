@@ -168,8 +168,8 @@ public:
 template<typename T, const char* str>
 class caster<Ref<T, str>> {
 public:
-  inline static T* cast(void* ptr) {
-    return static_cast<T*>(ptr);
+  inline static Ref<T,str> cast(void* ptr) {
+    return Ref<T,str>(static_cast<T*>(ptr));
   }
 };
 

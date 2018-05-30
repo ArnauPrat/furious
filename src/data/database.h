@@ -64,14 +64,35 @@ public:
    */
   Table* find_table(int64_t id);
 
+  /**
+   * @brief Gets the if of a table
+   *
+   * @param name The name of the table
+   *
+   * @return Returns the id of the table
+   */
   int64_t get_table_id(const std::string& name);
 
+  /**
+   * @brief Gets the id of a table
+   *
+   * @tparam TComponent
+   *
+   * @return 
+   */
   template<typename TComponent>
     int64_t get_table_id();
 
 
   bool exists_table(const std::string& name);
 
+  /**
+   * @brief Tests whether a Table exists or not
+   *
+   * @tparam TComponent The component stored in the table
+   *
+   * @return Returns True if the table exists. False otherwise
+   */
   template<typename TComponent>
     bool exists_table();
 
@@ -95,10 +116,29 @@ public:
    */
   int32_t get_next_entity_id();
 
+  /**
+   * @brief Tags an entity with the given tag
+   *
+   * @param entity_id The id of the entity to tag
+   * @param tag The tag to tag the entity with
+   */
   void tag_entity(int32_t entity_id, const std::string& tag);
 
+  /**
+   * @brief Untags an entity from a given tag
+   *
+   * @param entity_id The entity to untag
+   * @param tag The tag to remove from the entity
+   */
   void untag_entity(int32_t entity_id, const std::string& tag);
 
+  /**
+   * @brief Gets a bitset with the entities with a given tag
+   *
+   * @param tag The tag to get the entities for
+   * 
+   * @return Returns a bitset with the entities of the tag
+   */
   optional<const bitset&> 
     get_tagged_entities(const std::string& tag);
 

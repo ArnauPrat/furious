@@ -43,6 +43,7 @@ TEST(TraitsTest,TraitsWorks) {
 
   Ref<ComponentA, parent_str> test(nullptr);
 
+  // testing name trait
   ASSERT_EQ(type_name<ComponentA>::name(), "component_a");
   ASSERT_EQ(type_name<ComponentB>::name(), "component_b");
 
@@ -51,11 +52,32 @@ TEST(TraitsTest,TraitsWorks) {
   result = type_name<Ref<ComponentB, parent_str> >::name() == "component_b";
   ASSERT_TRUE(result);
 
+  // testing accesstype trait
   ASSERT_EQ(access_type<const ComponentA*>::type(), ComAccessType::E_READ);
   ASSERT_EQ(access_type<ComponentB>::type(), ComAccessType::E_WRITE);
 
   result = access_type<Ref<const ComponentA*, parent_str>>::type() == ComAccessType::E_READ;
+  ASSERT_TRUE(result);
   result = access_type<Ref<ComponentB, parent_str>>::type() == ComAccessType::E_WRITE;
+  ASSERT_TRUE(result);
+
+  // testing is_ref trait
+  ASSERT_EQ(is_ref<ComponentA>::value(), false);
+  ASSERT_EQ(is_ref<ComponentB>::value(), false);
+
+  result = is_ref<Ref<ComponentA, parent_str>>::value() == true;
+  ASSERT_TRUE(result);
+  result = is_ref<Ref<ComponentB, parent_str>>::value() == true;
+  ASSERT_TRUE(result);
+
+  // testing ref_name trait
+  ASSERT_EQ(ref_name<ComponentA>::value(), nullptr);
+  ASSERT_EQ(ref_name<ComponentB>::value(), nullptr);
+
+  result = ref_name<Ref<ComponentA, parent_str>>::value() == parent_str;
+  ASSERT_TRUE(result);
+  result = ref_name<Ref<ComponentB, parent_str>>::value() == parent_str;
+  ASSERT_TRUE(result);
 
   furious::release();
 }

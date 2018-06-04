@@ -173,6 +173,60 @@ public:
   }
 };
 
+/**
+ * @brief Static trait class used check if a type is a Ref type
+ *
+ * @tparam T
+ */
+template<typename T>
+class is_ref {
+public:
+  static constexpr bool value() {
+    return false;
+  }
+};
+
+/**
+ * @brief Static trait class used check if a type is a Ref type
+ *
+ * @tparam T
+ */
+template<typename T, const char* str>
+class is_ref<Ref<T,str>> {
+public:
+  static constexpr bool value() {
+    return true;
+  }
+};
+
+
+/**
+ * @brief Static trait class used get the name of a Ref type 
+ *
+ * @tparam T
+ */
+template<typename T>
+class ref_name {
+public:
+  static constexpr const char* value() {
+    return nullptr; 
+  }
+
+};
+
+/**
+ * @brief Static trait class used get the name of a Ref type 
+ *
+ * @tparam T
+ */
+template<typename T, const char* str>
+class ref_name<Ref<T,str>> {
+public:
+  static constexpr const char* value() {
+    return str;
+  }
+};
+
 
 } /* furious */ 
 

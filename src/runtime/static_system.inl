@@ -6,7 +6,7 @@ namespace furious {
 
 template<typename T, typename...Components>
 StaticSystem<T,Components...>::StaticSystem(T* system_object) : System(),
-  m_types{SysComDescriptor{type_name<Components>::name(), access_type<Components>::type()}...},
+  m_types{SysComDescriptor{type_name<Components>::name(), access_type<Components>::type(), is_ref<T>::value(), ref_name<T>::value()}...},
   m_system_object(system_object)
   {
 
@@ -15,6 +15,11 @@ StaticSystem<T,Components...>::StaticSystem(T* system_object) : System(),
 template<typename T, typename...Components>
 StaticSystem<T,Components...>::~StaticSystem() {
   delete m_system_object;
+}
+
+template<typename T, typename...Components>
+std::string StaticSystem<T,Components...>::name() const {
+  return type_name<T>::name();
 }
 
 template<typename T, typename...Components>

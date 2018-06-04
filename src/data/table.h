@@ -114,7 +114,7 @@ public:
 
 public:
 
-  Table(std::string& name, int64_t id, size_t esize, void (*destructor)(void* ptr));
+  Table(const std::string& name, int64_t id, size_t esize, void (*destructor)(void* ptr));
   Table(std::string&& name, int64_t id, size_t esize, void (*destructor)(void* ptr));
   virtual ~Table();
 

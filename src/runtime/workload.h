@@ -63,10 +63,12 @@ public:
 
   void run(float delta_time, Database* database);
 
+  void compile();
+
 private:
   friend class ScopeModifier;
 
-  std::map<std::string, SystemExecInfo> m_systems;
+  std::vector<SystemExecInfo> m_systems;
 
 };
 

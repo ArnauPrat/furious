@@ -12,10 +12,10 @@ ScopeModifier::ScopeModifier(Workload* workload, System* system) :
   }
 
 ScopeModifier& ScopeModifier::restrict_to(const std::vector<std::string>& tags) {
-  for(auto& info : p_workload->m_systems) {
-    if(info.second.p_system == p_system) {
+  for(auto& system_info : p_workload->m_systems) {
+    if(system_info.p_system == p_system) {
       for(auto& tag : tags) {
-        info.second.m_tags.push_back(tag);
+        system_info.m_tags.push_back(tag);
       }
     }
   }
@@ -29,8 +29,8 @@ Workload::Workload() {
 }
 
 Workload::~Workload() {
-  for (auto entry : m_systems) {
-    delete entry.second.p_system;
+  for (auto system_info : m_systems) {
+    delete system_info.p_system;
   }
 }
 
@@ -38,10 +38,10 @@ Workload::~Workload() {
 void Workload::run(float delta_time, Database* database) {
   
   Context context{delta_time, database};
-  for(auto entry : m_systems) {
+  for(auto& system_info : m_systems) {
 
-    System* const system = entry.second.p_system;
-    if(entry.second.m_tags.size() == 0) {
+    System* const system = system_info.p_system;
+    if(system_info.m_tags.size() == 0) {
       size_t max_block_count=0;
       std::vector<Table*> tables;
       for(auto com_descriptor : system->components()) {
@@ -71,23 +71,21 @@ void Workload::run(float delta_time, Database* database) {
     }
     else {
 
-      std::vector<std::reference_wrapper<const bitset>> bitsets;
+      std::vector<const bitset*> bitsets;
       size_t max_size = 0;
-      for(auto tag : entry.second.m_tags) {
+      for(auto tag : system_info.m_tags) {
         auto tagged_entities = database->get_tagged_entities(tag);
         if(tagged_entities) {
           bitsets.emplace_back(*tagged_entities);
-          if(tagged_entities.get().size() > max_size) {
-            max_size = tagged_entities.get().size();
-          }
+          max_size = std::max(tagged_entities.get()->size(), max_size);
         }
       }
 
       bitset entities;
       entities.resize(max_size);
       entities.set();
-      for(auto& tagged_entities : bitsets) {
-        entities &= tagged_entities;
+      for(auto tagged_entities : bitsets) {
+        entities &= *tagged_entities;
       }
 
       std::vector<Table*> tables;
@@ -120,4 +118,5 @@ void Workload::run(float delta_time, Database* database) {
     }
   } 
 }
+
 } /* furious */ 

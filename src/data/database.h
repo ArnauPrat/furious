@@ -139,14 +139,38 @@ public:
    * 
    * @return Returns a bitset with the entities of the tag
    */
-  optional<const bitset&> 
+  optional<const bitset*> 
     get_tagged_entities(const std::string& tag);
+
+
+  /**
+   * @brief Adds a reference between two entities
+   *
+   * @param type The type of the reference
+   * @param tail The origin entity of the reference
+   * @param head The destination entity of the reference
+   */
+  void add_reference( const std::string& type, 
+                      int32_t tail, 
+                      int32_t head);
+
+  /**
+   * @brief Removes a reference between two entities
+   *
+   * @param type The type of the reference
+   * @param tail The origin entity of the reference
+   * @param head The destination entity of the reference
+   */
+  void remove_reference( const std::string& type, 
+                          int32_t tail, 
+                          int32_t head);
 
 private:
 
-  std::map<std::string, bitset> m_tags;
-  std::map<int64_t, Table*>     m_tables;      /** Holds a map between component types and their tables **/
-  int32_t                       m_next_entity_id;
+  std::map<std::string, bitset*>  m_tags;
+  std::map<int64_t, Table*>       m_tables;           /** Holds a map between component types and their tables **/
+  std::map<std::string, Table*>   m_references;
+  int32_t                         m_next_entity_id;
 };
 
 }

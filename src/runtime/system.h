@@ -18,6 +18,8 @@ class Context;
 struct SysComDescriptor {
   std::string   m_name;
   ComAccessType m_access_type;
+  bool          m_is_reference;
+  const char*   m_ref_name;
 };
 
 class System {
@@ -51,6 +53,13 @@ public:
    * @return A vector with the names of the components this system is for
    */
   virtual std::vector<SysComDescriptor> components() const = 0;
+
+  /**
+   * @brief Gets the name of the system
+   *
+   * @return Returns the name of the system
+   */
+  virtual std::string name() const = 0;
 
 };
 

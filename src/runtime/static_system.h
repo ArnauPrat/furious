@@ -71,6 +71,13 @@ template<typename T, typename...Components>
      */
     std::vector<SysComDescriptor> components() const override;
 
+    /**
+     * @brief Returns the name of the system;
+     *
+     * @return 
+     */
+    std::string name() const;
+
     ////////////////////////////////////////////////
     ////////////////////////////////////////////////
     //////////////////////////////////////////////// 

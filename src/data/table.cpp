@@ -123,7 +123,7 @@ TBlock* Table::Iterator::next() {
   return next;
 }
 
-Table::Table(std::string& name, 
+Table::Table(const std::string& name, 
              int64_t id, 
              size_t esize, 
              void (*destructor)(void* ptr)) :

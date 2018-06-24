@@ -12,4 +12,5 @@ ADD cmake ./cmake
 RUN mkdir build 
 
 # Required system packages
+RUN pacman -Syu --noconfirm
 RUN pacman -S --noconfirm gcc cmake gtest numactl make  

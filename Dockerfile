@@ -1,5 +1,5 @@
 FROM         base/archlinux 
-MAINTAINER   Arnau Prat <arnua.prat@gmail.com>
+MAINTAINER   Arnau Prat <arnau.prat@gmail.com>
 CMD          bash
 
 RUN mkdir -p /home/user

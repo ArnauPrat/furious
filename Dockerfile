@@ -1,4 +1,4 @@
-FROM         antergos/archlinux-base-devel 
+FROM         base/archlinux 
 MAINTAINER   Arnau Prat <arnua.prat@gmail.com>
 CMD          bash
 

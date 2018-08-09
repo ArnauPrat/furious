@@ -1,5 +1,7 @@
 
 #include "execution_plan.h"
+#include "workload.h"
+#include "../data/database.h"
 
 namespace furious {
 
@@ -37,9 +39,9 @@ Join::~Join() {
   }
 }
 
-Filter::Filter(const std::string& tag_name, Operator* child) : 
+Filter::Filter(const std::vector<std::string>& tag_names, Operator* child) : 
   Operator(OperatorType::E_FILTER),
-  m_tag(tag_name),
+  m_tags(tag_names),
   p_child(child) {
 
   }
@@ -50,10 +52,10 @@ Filter::~Filter() {
   }
 }
 
-Foreach::Foreach(const std::string& system_name, Operator* child) :
+Foreach::Foreach(int32_t system_id, Operator* child) :
   Operator(OperatorType::E_FOREACH), 
-  m_system_name(system_name), 
-  p_child(child) {
+  m_system_id{system_id}, 
+  p_child{child} {
 
   }
 
@@ -64,10 +66,10 @@ Foreach::~Foreach() {
 }
 
 
-ExecutionPlan* create_execution_plan( const std::vector<SystemExecInfo>& systems ) {
+ExecutionPlan* create_execution_plan( Workload* workload, Database* database ) {
 
   ExecutionPlan* plan = new ExecutionPlan();
-  for(auto& system_info : systems) {
+  for(auto& system_info : workload->get_systems()) {
     System* system = system_info.p_system;
     std::vector<Scan*> scans;
     for(auto& com_info : system->components()) {
@@ -80,11 +82,11 @@ ExecutionPlan* create_execution_plan( const std::vector<SystemExecInfo>& systems
     }
 
     for(auto& tag : system_info.m_tags) {
-      Filter* filter = new Filter(tag, root);
+      Filter* filter = new Filter({tag}, root);
       root = filter;
     }
 
-    root = new Foreach(system->name(), root);
+    root = new Foreach(system->get_id(), root);
     plan->m_queries.push_back(root);
   }
   return plan;

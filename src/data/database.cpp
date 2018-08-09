@@ -16,25 +16,6 @@ Database::~Database() {
   }
 }
 
-Table* Database::find_table(const std::string& table_name) {
-  int64_t hash_value = get_table_id(table_name);
-  return find_table(hash_value);
-}
-
-Table* Database::find_table(int64_t id) {
-  auto it = m_tables.find(id);
-  if(it != m_tables.end() ) {
-    return it->second;
-  }
-  assert(false);
-  return nullptr;
-}
-
-int64_t Database::get_table_id(const std::string& name) {
-  int64_t hash_value = hash(name);
-  return hash_value;
-}
-
 void Database::clear() {
   for (auto i : m_tables) {
     delete i.second;
@@ -46,11 +27,6 @@ int32_t Database::get_next_entity_id() {
   int32_t next_id = m_next_entity_id;
   m_next_entity_id++;
   return next_id;
-}
-
-bool Database::exists_table(const std::string& name) {
-  int64_t table_id = get_table_id(name);
-  return m_tables.find(table_id) != m_tables.end();
 }
 
 void Database::clear_element(int32_t id) {
@@ -97,7 +73,7 @@ void Database::add_reference( const std::string& type,
                               int32_t tail, 
                               int32_t head) {
 
-  auto it = m_references.find(type);
+  /*auto it = m_references.find(type);
   if (it == m_references.end()) {
     int64_t hash_value = get_table_id(type);
     auto table = new Table(type, hash_value, sizeof(int32_t), &destructor<int32_t>);
@@ -105,6 +81,7 @@ void Database::add_reference( const std::string& type,
   }
 
   it->second->insert_element<int32_t>(tail, head);
+  */
 
 }
 
@@ -112,10 +89,10 @@ void Database::remove_reference( const std::string& type,
                                  int32_t tail, 
                                  int32_t head) {
 
-  auto it = m_references.find(type);
+  /*auto it = m_references.find(type);
   if (it != m_references.end()) {
     it->second->remove_element(tail);
-  }
+  }*/
 
 }
 

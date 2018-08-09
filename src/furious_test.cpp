@@ -1,4 +1,5 @@
 
+#include "runtime/backends/basic/basic.h"
 #include "furious.h"
 #include <string>
 #include <iostream>
@@ -63,8 +64,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  workload->run(1.0, database);
+  //furious::Backend* backend = new furious::Basic();
 
+  //backend->compile(workload, database);
+  //backend->run(1.0);
 
   database->remove_table<PositionComponent>();
   database->remove_table<DirectionComponent>();

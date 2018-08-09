@@ -37,12 +37,14 @@ TableView<T> Database::find_table() {
 
 template <typename T>
 int64_t Database::get_table_id() {
-  return get_table_id(type_name<T>::name());
+  int64_t hash_value = hash(type_name<T>::name());
+  return hash_value;
 }
 
 template <typename T>
 bool Database::exists_table() {
-  return exists_table(type_name<T>::name());
+  int64_t table_id = get_table_id<T>();
+  return m_tables.find(table_id) != m_tables.end();
 }
 
 } /* furious */ 

@@ -53,26 +53,6 @@ public:
   template <typename T>
   TableView<T> find_table();
 
-
-  /**
-   * Gets a table from its name 
-   * */
-  Table*  find_table(const std::string& table_name);
-
-  /**
-   * Gets a table from its id
-   */
-  Table* find_table(int64_t id);
-
-  /**
-   * @brief Gets the if of a table
-   *
-   * @param name The name of the table
-   *
-   * @return Returns the id of the table
-   */
-  int64_t get_table_id(const std::string& name);
-
   /**
    * @brief Gets the id of a table
    *
@@ -83,8 +63,6 @@ public:
   template<typename TComponent>
     int64_t get_table_id();
 
-
-  bool exists_table(const std::string& name);
 
   /**
    * @brief Tests whether a Table exists or not

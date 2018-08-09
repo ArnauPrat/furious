@@ -34,7 +34,7 @@ template<typename T, typename...Components>
   class StaticSystem final : public System {
   public:
 
-    StaticSystem(T* system_object); 
+    StaticSystem(int32_t id, T* system_object); 
 
     ~StaticSystem();
 

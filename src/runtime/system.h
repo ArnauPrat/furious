@@ -25,7 +25,7 @@ struct SysComDescriptor {
 class System {
 public:
 
-  System() = default;
+  System(int32_t id);
   virtual ~System() = default;
 
   /**
@@ -60,6 +60,17 @@ public:
    * @return Returns the name of the system
    */
   virtual std::string name() const = 0;
+
+  /**
+   * @brief Gets the id of the system
+   *
+   * @return  Returns the id of the system
+   */
+  int32_t get_id();
+
+private:
+
+  int32_t m_id;
 
 };
 

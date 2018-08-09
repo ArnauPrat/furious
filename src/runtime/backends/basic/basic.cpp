@@ -1,54 +1,29 @@
 
-#include "workload.h"
-#include "data/bitset.h" 
-#include <cmath>
-#include "execution_plan.h"
+
+
+#include "../../workload.h"
+#include "../../../data/database.h"
+#include "basic.h"
 
 namespace furious {
 
-ScopeModifier::ScopeModifier(Workload* workload, System* system) :
-  p_workload{workload},
-  p_system{system} {
-
-  }
-
-ScopeModifier& ScopeModifier::restrict_to(const std::vector<std::string>& tags) {
-  for(auto& system_info : p_workload->m_systems) {
-    if(system_info.p_system == p_system) {
-      for(auto& tag : tags) {
-        system_info.m_tags.push_back(tag);
-      }
-    }
-  }
-  return *this;
+void Basic::compile(Workload* workload,
+             Database* database) {
+  p_workload = workload;
+  p_database = database;
 }
 
-SystemExecInfo::SystemExecInfo(System* system) : p_system(system) {
-}
+void Basic::run(float delta) {
 
-Workload::Workload() :
-  m_next_id{0} {
-}
-
-Workload::~Workload() {
-  for (auto system_info : m_systems) {
-    delete system_info.p_system;
-  }
-}
-
-
-/*
-void Workload::run(float delta_time, Database* database) {
-  
-  Context context{delta_time, database};
-  for(auto& system_info : m_systems) {
+  Context context{delta, p_database};
+  for(auto& system_info : p_workload->get_systems()) {
 
     System* const system = system_info.p_system;
     if(system_info.m_tags.size() == 0) {
       size_t max_block_count=0;
       std::vector<Table*> tables;
       for(auto com_descriptor : system->components()) {
-        Table* table = database->find_table(com_descriptor.m_name);
+        Table* table = p_database->find_table(com_descriptor.m_name);
         tables.push_back(table);
         max_block_count = std::max(max_block_count, table->get_blocks_mask().size());
       }
@@ -77,7 +52,7 @@ void Workload::run(float delta_time, Database* database) {
       std::vector<const bitset*> bitsets;
       size_t max_size = 0;
       for(auto tag : system_info.m_tags) {
-        auto tagged_entities = database->get_tagged_entities(tag);
+        auto tagged_entities = p_database->get_tagged_entities(tag);
         if(tagged_entities) {
           bitsets.emplace_back(*tagged_entities);
           max_size = std::max(tagged_entities.get()->size(), max_size);
@@ -93,7 +68,7 @@ void Workload::run(float delta_time, Database* database) {
 
       std::vector<Table*> tables;
       for(auto com_descriptor : system->components()) {
-          Table* table = database->find_table(com_descriptor.m_name);
+          Table* table = p_database->find_table(com_descriptor.m_name);
           tables.push_back(table);
       }
 
@@ -119,12 +94,7 @@ void Workload::run(float delta_time, Database* database) {
       }
     }
   } 
-
-}
-*/
-
-const std::vector<SystemExecInfo>& Workload::get_systems() const {
-  return m_systems;
 }
 
+  
 } /* furious */ 

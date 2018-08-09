@@ -23,6 +23,10 @@ add_executable( furious_test
   furious_test.cpp
   )
 
+add_executable( mvp_test 
+  mvp_test.cpp
+  )
+
 target_link_libraries( furious_test furious memory)
 
 set_target_properties(furious_test

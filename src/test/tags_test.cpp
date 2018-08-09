@@ -50,7 +50,11 @@ TEST(TagTests,TagWorks) {
   Workload* workload = create_workload();
   workload->add_system<TestSystem>(10).restrict_to({"selected"});
 
-  workload->run(0.0,database);
+  
+  //furious::Backend* backend = new furious::Basic();
+  //backend->compile(workload, database);
+
+  //backend->run(0.0);
 
   ASSERT_EQ(entity1.get_component<ComponentA>()->m_field, 30 );
   ASSERT_EQ(entity2.get_component<ComponentA>()->m_field, 2 );

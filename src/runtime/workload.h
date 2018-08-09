@@ -61,13 +61,14 @@ public:
   template<typename TSystem>
     void remove_system();
 
-  void run(float delta_time, Database* database);
-
-  void compile();
+  const std::vector<SystemExecInfo>& get_systems() const;
 
 private:
   friend class ScopeModifier;
 
+  void reset_execution_plan();
+
+  int32_t                     m_next_id;
   std::vector<SystemExecInfo> m_systems;
 
 };

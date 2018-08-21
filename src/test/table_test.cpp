@@ -28,13 +28,18 @@ TEST(TableTest,TableWorks) {
 
   ASSERT_EQ(table.size(), num_elements);
 
-  TableView<Component>::Iterator iterator = table.iterator();
+  TableView<Component>::BlockIterator iterator = table.iterator();
   int32_t counter = 0;
   while (iterator.has_next()) {
-    TableView<Component>::Row row = iterator.next();
-    ASSERT_EQ(row.p_component->field1_, row.m_id);
-    ASSERT_EQ(row.p_component->field2_, static_cast<float>(row.m_id));
-    counter++;
+    TableView<Component>::Block block = iterator.next();
+    Component* data = block.get_data();
+    const std::bitset<TABLE_BLOCK_SIZE>& mask = block.get_enabled();
+    for (size_t i = 0; i < block.get_size(); ++i) {
+      ASSERT_TRUE(mask[i]);
+      ASSERT_EQ(data[i].field1_, counter);
+      ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
+      counter++;
+    }
   }
   ASSERT_EQ(counter, num_elements);
   ASSERT_EQ(table.size(), num_elements);
@@ -49,15 +54,26 @@ TEST(TableTest,TableWorks) {
   }
   ASSERT_EQ(table.size(), num_elements/2);
 
-  TableView<Component>::Iterator iterator2 = table.iterator();
+  TableView<Component>::BlockIterator iterator2 = table.iterator();
+  int32_t num_real = 0;
   counter = 0;
   while (iterator2.has_next()) {
-    TableView<Component>::Row row = iterator2.next();
-    ASSERT_EQ(row.p_component->field1_, row.m_id);
-    ASSERT_EQ(row.p_component->field2_, static_cast<float>(row.m_id));
-    counter++;
+    TableView<Component>::Block block = iterator2.next();
+    const std::bitset<TABLE_BLOCK_SIZE>& mask = block.get_enabled();
+    Component* data = block.get_data();
+    for (size_t i = 0; i < block.get_size(); ++i) {
+      if(i % 2 == 0) {
+        ASSERT_FALSE(mask[i]);
+      } else {
+        ASSERT_TRUE(mask[i]);
+        ASSERT_EQ(data[i].field1_, counter);
+        ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
+        num_real++;
+      }
+        counter++;
+    }
   }
-  ASSERT_EQ(counter, num_elements/2);
+  ASSERT_EQ(num_real, num_elements/2);
 
   table.clear();
   ASSERT_EQ(table.size(),0);

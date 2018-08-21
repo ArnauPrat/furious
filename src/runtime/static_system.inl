@@ -3,6 +3,7 @@
 
 namespace furious {
 
+/*
 
 template<typename T, typename...Components>
 StaticSystem<T,Components...>::StaticSystem(int32_t id, 
@@ -108,5 +109,6 @@ auto create_static_system(int32_t id, TArgs&&...args) {
   TSystem* system_object = new TSystem(std::forward<TArgs>(args)...);
   return create_static_system(id, system_object, &TSystem::run );
 }
+*/
   
 } /* furious */ 

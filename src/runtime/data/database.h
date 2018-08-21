@@ -3,20 +3,20 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
-#include "bitset.h"
 #include "table.h"
 #include "table_view.h"
 #include "common.h"
-#include "../common/traits.h"
-#include "../common/optional.h"
+#include "../../common/traits.h"
+#include "../../common/optional.h"
 
+#include <bitset>
+#include <cassert>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <typeinfo>
-#include <cassert>
-#include <iostream>
 
 namespace furious {
 
@@ -117,7 +117,7 @@ public:
    * 
    * @return Returns a bitset with the entities of the tag
    */
-  optional<const bitset*> 
+  optional<const std::set<int32_t>*> 
     get_tagged_entities(const std::string& tag);
 
 
@@ -145,10 +145,10 @@ public:
 
 private:
 
-  std::map<std::string, bitset*>  m_tags;
-  std::map<int64_t, Table*>       m_tables;           /** Holds a map between component types and their tables **/
-  std::map<std::string, Table*>   m_references;
-  int32_t                         m_next_entity_id;
+  std::map<std::string, std::set<int32_t>*> m_tags;
+  std::map<int64_t, Table*>                 m_tables;           /** Holds a map between component types and their tables **/
+  std::map<std::string, Table*>             m_references;
+  int32_t                                   m_next_entity_id;
 };
 
 }

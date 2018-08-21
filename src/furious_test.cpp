@@ -40,6 +40,7 @@ struct ComflabSystem {
 
 int main(int argc, char** argv) {
 
+  /*
   furious::init();
 
   furious::Database* database = furious::create_database();
@@ -64,10 +65,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  //furious::Backend* backend = new furious::Basic();
+  furious::Backend* backend = new furious::Basic();
 
-  //backend->compile(workload, database);
-  //backend->run(1.0);
+  backend->compile(workload, database);
+  backend->run(1.0);
 
   database->remove_table<PositionComponent>();
   database->remove_table<DirectionComponent>();
@@ -77,6 +78,7 @@ int main(int argc, char** argv) {
   furious::destroy_workload(workload);
   furious::destroy_database(database);
   furious::release();
+  */
 
   return 0;
 }

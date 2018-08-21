@@ -2,7 +2,7 @@
 #ifndef _FURIOUS_ENTITY_H_ 
 #define _FURIOUS_ENTITY_H_
 
-#include "../common/common.h"
+#include "../../common/common.h"
 
 namespace furious {
 

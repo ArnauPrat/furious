@@ -5,30 +5,53 @@
 namespace furious {
 
 template<typename TComponent>
-  TableView<TComponent>::Iterator::Iterator(Table::Iterator iter ) : m_table_it(iter),
-  p_block_it(nullptr) {
-  }
+TableView<TComponent>::Block::Block(TBlock* block) : p_tblock{block} {
 
-template<typename TComponent>
-  TableView<TComponent>::Iterator::~Iterator() {
-  }
-
-template<typename TComponent>
-bool TableView<TComponent>::Iterator::has_next() const {
-  return p_block_it.has_next() || (!p_block_it.has_next() && m_table_it.has_next());
 }
 
 template<typename TComponent>
-typename TableView<TComponent>::Row TableView<TComponent>::Iterator::next() {
-  if(!p_block_it.has_next()) {
-    if(m_table_it.has_next()) {
-      p_block_it.reset(m_table_it.next());
-    }
+  TComponent* TableView<TComponent>::Block::get_data() const {
+    return reinterpret_cast<TComponent*>(p_tblock->p_data);
   }
-  TRow row = p_block_it.next();
-  return Row{row.m_id, reinterpret_cast<TComponent*>(row.p_data), row.m_enabled};
+
+template<typename TComponent>
+  size_t TableView<TComponent>::Block::get_num_elements() const {
+    return p_tblock->m_num_elements;
+  }
+
+template<typename TComponent>
+  size_t TableView<TComponent>::Block::get_size() const {
+    return TABLE_BLOCK_SIZE;
+  }
+
+template<typename TComponent>
+const std::bitset<TABLE_BLOCK_SIZE>&   TableView<TComponent>::Block::get_enabled() const {
+  return p_tblock->m_enabled;
+}
+  
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+template<typename TComponent>
+  TableView<TComponent>::BlockIterator::BlockIterator(Table::Iterator iter ) : m_iterator(iter) {
+  }
+
+template<typename TComponent>
+bool TableView<TComponent>::BlockIterator::has_next() const {
+  return m_iterator.has_next();
 }
 
+template<typename TComponent>
+typename TableView<TComponent>::Block TableView<TComponent>::BlockIterator::next() {
+  return Block{m_iterator.next()};
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
 template<typename TComponent>
   TableView<TComponent>::TableView( Table* table ) :
@@ -80,8 +103,8 @@ size_t TableView<TComponent>::size() const {
 }
 
 template<typename TComponent>
-typename TableView<TComponent>::Iterator TableView<TComponent>::iterator() {
-  return Iterator(p_table->iterator());
+typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator() {
+  return BlockIterator{p_table->iterator()};
 }
 
 } /* furious */ 

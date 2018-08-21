@@ -2,7 +2,7 @@
 
 
 #include "database.h"
-#include "../common/utils.h"
+#include "../../common/utils.h"
 
 namespace furious {
 
@@ -40,13 +40,9 @@ void Database::tag_entity(int32_t entity_id,
 
   auto it = m_tags.find(tag);
   if(it == m_tags.end()) {
-    it = m_tags.insert(std::make_pair(tag, new bitset())).first;
+    it = m_tags.insert(std::make_pair(tag, new std::set<int32_t>())).first;
   }
-  if(static_cast<int32_t>(it->second->size()) < entity_id+1) {
-    it->second->resize(entity_id+1);
-    (*(it->second))[entity_id] = true; 
-  }
-
+  (*it).second->insert(entity_id);
 }
 
 void Database::untag_entity(int32_t entity_id, 
@@ -54,19 +50,17 @@ void Database::untag_entity(int32_t entity_id,
 
   auto it = m_tags.find(tag);
   if(it != m_tags.end()) {
-    if(static_cast<int32_t>(it->second->size()) > entity_id) {
-    (*(it->second))[entity_id] = false; 
-    }
+    it->second->erase(entity_id);
   }
 }
 
-optional<const bitset*> 
+optional<const std::set<int32_t>*> 
 Database::get_tagged_entities(const std::string& tag) {
   auto it = m_tags.find(tag);
   if(it != m_tags.end()) {
-    return optional<const bitset*>(it->second);
+    return optional<const std::set<int32_t>*>(it->second);
   }
-  return optional<const bitset*>{};
+  return optional<const std::set<int32_t>*>{};
 }
 
 void Database::add_reference( const std::string& type, 

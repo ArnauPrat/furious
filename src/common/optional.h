@@ -3,7 +3,7 @@
 #ifndef _FURIOUS_OPTIONAL_H_
 #define _FURIOUS_OPTIONAL_H_ value
 
-#include<boost/optional.hpp>
+#include <boost/optional.hpp>
 
 namespace furious {
 

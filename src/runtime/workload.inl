@@ -5,6 +5,7 @@
 
 namespace furious {
 
+/*
 template<typename TSystem, typename...TArgs>
   ScopeModifier Workload::add_system(TArgs&&...args) {
     auto static_system = create_static_system<TSystem>(m_next_id, 
@@ -17,5 +18,6 @@ template<typename TSystem, typename...TArgs>
 template<typename TSystem>
   void Workload::remove_system() {
   }
+  */
 
 } /* furious */ 

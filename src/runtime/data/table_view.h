@@ -9,44 +9,45 @@ namespace furious {
 
 template<typename TComponent> 
 class TableView final  {
-  friend class Database;
 public:
 
-  struct Row {
-    const int32_t     m_id;
-    const TComponent* p_component;
-    const bool        m_enabled;
-  }; 
+    class Block {
+    public:
+      typedef TComponent type;
+      Block(TBlock* block);
+      ~Block() = default;
 
-  class Iterator final {
-  public:
-    Iterator(Table::Iterator it);
-    ~Iterator();
+      TComponent* get_data() const;
 
-    /**
-     * @brief Checks whether there is a another component in the table.
-     *
-     * @return Returns true if there is another component in the table.
-     */
-    bool has_next() const;
+      size_t      get_num_elements() const;
 
-    /**
-     * @brief Gets the next row in the table
-     *
-     * @return Returns the next row in the table. Returns nullptr if it does
-     * not exist
-     */
-    Row next();
-    
-  private:
-    Table::Iterator   m_table_it;
-    TBlockIterator    p_block_it;
-  };
+      size_t      get_size() const;
 
-public:
-  ~TableView() = default;
-private:
+      int32_t     get_start() const;
+
+      const std::bitset<TABLE_BLOCK_SIZE>&  get_enabled() const;
+
+    private:
+      TBlock* p_tblock;
+    };
+
+    class BlockIterator {
+    public:
+
+      BlockIterator(Table::Iterator iter);
+      ~BlockIterator() = default;
+
+      Block next();
+
+      bool has_next() const;
+
+    private:
+      Table::Iterator m_iterator;
+
+    };
+
   TableView( Table* table );
+  ~TableView() = default;
 
 public:
   /**
@@ -80,7 +81,7 @@ public:
    *
    * @param id
    */
-  void  remove_element(int32_t id);
+  void remove_element(int32_t id);
 
   /**
    * @brief Enables an element of the table, only it it exists 
@@ -118,11 +119,10 @@ public:
    *
    * @return A new iterator of the table. 
    */
-  Iterator iterator();
+  BlockIterator iterator();
 
 private:
   Table*  p_table;
-  
 };
   
 } /* furious */ 

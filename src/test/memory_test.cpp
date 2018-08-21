@@ -1,5 +1,5 @@
 
-#include "../memory/memory.h"
+#include "../runtime/memory/memory.h"
 
 #include <gtest/gtest.h>
 #include <set>

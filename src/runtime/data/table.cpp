@@ -196,11 +196,9 @@ void* Table::alloc_element(int32_t id) {
     block->m_num_elements = 0;
     block->m_num_enabled_elements = 0;
     block->m_esize = m_esize;
-    block->m_enabled.resize(TABLE_BLOCK_SIZE, false);
-    block->m_exists.resize(TABLE_BLOCK_SIZE, false);
+    block->m_enabled.reset();
+    block->m_exists.reset();
     m_blocks.insert(std::make_pair(decoded_id.m_block_id, block));
-    m_blocks_mask.resize(std::max(decoded_id.m_block_id+1, static_cast<int32_t>(m_blocks_mask.size())), false);
-    m_blocks_mask[decoded_id.m_block_id] = true;
   } else {
     block = it->second;
   }
@@ -280,10 +278,6 @@ Table::Iterator Table::iterator() {
 
 std::string Table::name() const {
   return m_name;
-}
-
-const bitset& Table::get_blocks_mask() {
-  return m_blocks_mask;
 }
 
 TBlock* Table::get_block(int32_t block_id) {

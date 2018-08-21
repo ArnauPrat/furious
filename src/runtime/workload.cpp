@@ -1,11 +1,11 @@
 
 #include "workload.h"
-#include "data/bitset.h" 
 #include <cmath>
-#include "execution_plan.h"
+//#include "execution_plan.h"
 
 namespace furious {
 
+/*
 ScopeModifier::ScopeModifier(Workload* workload, System* system) :
   p_workload{workload},
   p_system{system} {
@@ -25,6 +25,7 @@ ScopeModifier& ScopeModifier::restrict_to(const std::vector<std::string>& tags) 
 
 SystemExecInfo::SystemExecInfo(System* system) : p_system(system) {
 }
+*/
 
 Workload::Workload() :
   m_next_id{0} {

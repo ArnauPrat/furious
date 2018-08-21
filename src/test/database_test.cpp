@@ -1,5 +1,5 @@
 
-#include "../data/database.h"
+#include "../furious.h"
 #include <gtest/gtest.h>
 
 namespace furious {

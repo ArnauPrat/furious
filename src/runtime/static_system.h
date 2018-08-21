@@ -3,8 +3,8 @@
 #define _FURIOUS_STATIC_SYSTEM_H_ 
 
 #include "system.h"
-#include "../data/table.h"
-#include "../data/context.h"
+#include "data/table.h"
+#include "data/context.h"
 #include "../common/traits.h"
 
 #include <typeinfo>
@@ -101,7 +101,7 @@ template<typename T, typename...Components>
 
     void apply_block(Context* __restrict__ context, 
                      int32_t block_start, 
-                     const bitset& mask,
+                     const std::bitset<TABLE_BLOCK_SIZE>& mask,
                      Components* __restrict__ ...components);
 
     ////////////////////////////////////////////////

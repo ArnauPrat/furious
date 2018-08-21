@@ -12,8 +12,6 @@ add_library(runtime STATIC
   #backends/basic/basic.cpp
   static_system.h
   static_system.inl
-  execution_plan.h
-  execution_plan.cpp
   system.h
   system.cpp
   workload.h

@@ -3,7 +3,7 @@
 #ifndef _FURIOUS_NUMA_ALLOC_H_
 #define _FURIOUS_NUMA_ALLOC_H_ value
 
-#include "../common/types.h"
+#include "../../common/types.h"
 
 namespace furious  {
 

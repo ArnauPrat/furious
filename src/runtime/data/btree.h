@@ -2,7 +2,7 @@
 
 #ifndef _FURIOUS_BTREE_H_
 #define _FURIOUS_BTREE_H_ value
-#include "../common/types.h"
+#include "../../common/types.h"
 #include <stdlib.h>
 
 namespace furious {

@@ -1,12 +1,13 @@
 
 
 #ifndef _FURIOUS_H_
-#define _FURIOUS_H_ value
+#define _FURIOUS_H_
 
 #include "common/common.h"
-#include "memory/memory.h"
-#include "data/data.h"
+#include "runtime/memory/memory.h"
+#include "runtime/data/data.h"
 #include "runtime/runtime.h"
+#include "runtime/operators/operators.h"
 
 namespace furious {
 

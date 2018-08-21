@@ -10,7 +10,7 @@ TableView<T> Database::add_table() {
   assert(m_tables.find(hash(typeid(T).name())) == m_tables.end());
   int64_t hash_value = get_table_id<T>(); 
   if(m_tables.find(hash_value) != m_tables.end()) {
-    return nullptr;
+    return TableView<T>{nullptr};
   }
   std::string table_name = type_name<T>::name();
   auto table =  new Table(table_name, hash_value, sizeof(T), &destructor<T>);

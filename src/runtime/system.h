@@ -1,9 +1,9 @@
 
 
-#ifndef _FURIOus_SYSTEM_H
-#define _FURIOus_SYSTEM_H value
+#ifndef _FURIOUS_SYSTEM_H
+#define _FURIOUS_SYSTEM_H value
 
-#include "../data/table.h"
+#include "data/table.h"
 #include "../common/traits.h"
 
 #include <vector>

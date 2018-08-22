@@ -2,118 +2,11 @@
 
 #include "fccASTVisitor.h"
 #include "structs.h"
+#include "clang_tools.h"
+
+#include <clang/Lex/Lexer.h>
 
 namespace furious {
-
-/**
- * @brief Gets the code between start and end SourceLocations.
- *
- * @param sm The source manager to get the code from
- * @param start The start location of the code
- * @param end The end location of the code.
- *
- * @return Returns a string with the code in the expecified source location
- * range
- */
-std::string get_code(SourceManager &sm,
-                     SourceLocation &start,
-                     SourceLocation &end)
-{
-
-  clang::SourceLocation token_end(clang::Lexer::getLocForEndOfToken(end,
-                                                                    0,
-                                                                    sm,
-                                                                    LangOptions()));
-  return std::string(sm.getCharacterData(start),
-                     sm.getCharacterData(token_end) - sm.getCharacterData(start));
-}
-
-/**
- * @brief Given a TemplateArgumentList, extract the QualTypes of the template
- * argument types
- *
- * @param arg_list The TemplateArgumentList to extract the types from
- *
- * @return Returns a std::vector with the extracted QualTypes
- */
-std::vector<QualType> get_tmplt_types(const TemplateArgumentList& arg_list) 
-{
-  std::vector<QualType> ret;
-
-  for (auto arg : arg_list.asArray())
-  {
-    switch(arg.getKind()) {
-    case TemplateArgument::ArgKind::Null:
-      break;
-    case TemplateArgument::ArgKind::Type:
-      ret.push_back(arg.getAsType());
-      break;
-    case TemplateArgument::ArgKind::Declaration:
-      break;
-    case TemplateArgument::ArgKind::NullPtr:
-      break;
-    case TemplateArgument::ArgKind::Integral:
-      break;
-    case TemplateArgument::ArgKind::Template:
-      break;
-    case TemplateArgument::ArgKind::TemplateExpansion:
-      break;
-    case TemplateArgument::ArgKind::Expression:
-      break;
-    case TemplateArgument::ArgKind::Pack:
-      for (auto arg2 : arg.getPackAsArray())
-      {
-        ret.push_back(arg2.getAsType());
-      }
-      break;
-    }
-  }
-  return ret;
-}
-
-/**
- * @brief Extract the execution information from 
- *
- * @param decl
- *
- * @return 
- */
-static void extract_basic_info(FccExecInfo* exec_info, 
-                                 const FunctionDecl* func_decl) 
-{
-  std::string func_name = func_decl->getQualifiedNameAsString();
-  QualType ret_type = func_decl->getReturnType();
-  exec_info->m_operation_type = OperationType::E_UNKNOWN;
-  if(func_name == "furious::register_foreach" ) {
-    exec_info->m_operation_type = OperationType::E_FOREACH;
-  }
-
-  if(exec_info->m_operation_type == OperationType::E_UNKNOWN) {
-    // trigger error;
-    return;
-  }
-
-  // Check if the declaration is a register system entry point
-  if (func_decl->isTemplateInstantiation() &&
-      func_decl->getTemplatedKind() == FunctionDecl::TemplatedKind::TK_FunctionTemplateSpecialization &&
-      ret_type->isStructureOrClassType() &&
-      ret_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo")
-  {
-    RecordDecl* ret_decl = ret_type.getTypePtr()->getAsCXXRecordDecl();
-    const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(ret_decl);
-    const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
-    std::vector<QualType> tmplt_types = get_tmplt_types(arg_list);
-
-    exec_info->m_system_type = tmplt_types[0];
-    for (size_t i = 1; i < tmplt_types.size(); ++i) {
-      exec_info->m_basic_component_types.push_back(tmplt_types[i]);
-    }
-  } else {
-    // trigger error
-    return;
-  }
-  return;
-}
 
 
 ////////////////////////////////////////////////
@@ -122,7 +15,7 @@ static void extract_basic_info(FccExecInfo* exec_info,
 
 FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context,
                                        FccContext *fcc_context) : 
-  p_ast_context(ast_context), 
+p_ast_context(ast_context), 
   p_fcc_context(fcc_context)
 {
 }
@@ -172,7 +65,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr *func)
 
 FuriousScriptVisitor::FuriousScriptVisitor(CompilerInstance *CI,
                                            FccContext *fcc_context) : 
-  p_ast_context(&(CI->getASTContext())),
+p_ast_context(&(CI->getASTContext())),
   p_fcc_context(fcc_context)
 {
 }
@@ -203,7 +96,7 @@ bool FuriousScriptVisitor::VisitExprWithCleanups(ExprWithCleanups *expr)
 ////////////////////////////////////////////////
 
 FccASTVisitor::FccASTVisitor(CompilerInstance *CI,
-                       FccContext *fcc_context) : p_ast_context(&(CI->getASTContext())),
+                             FccContext *fcc_context) : p_ast_context(&(CI->getASTContext())),
   p_script_visitor(new FuriousScriptVisitor(CI, fcc_context)),
   p_fcc_context(fcc_context)
 {
@@ -221,5 +114,36 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
   return true;
 }
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+  // override the constructor in order to pass CI
+FccASTConsumer::FccASTConsumer(CompilerInstance *cI,
+                               FccContext *fcc_context)
+  : visitor(new FccASTVisitor(cI, fcc_context)) // initialize the visitor
+{
+}
+
+// override this to call our ExampleVisitor on the entire source file
+void
+FccASTConsumer::HandleTranslationUnit(ASTContext &context)
+{
+  // context.getTranslationUnitDecl()->dump(llvm::errs());
+  /* we can use ASTContext to get the TranslationUnitDecl, which is
+     a single Decl that collectively represents the entire source file */
+  visitor->TraverseDecl(context.getTranslationUnitDecl());
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+std::unique_ptr<ASTConsumer>
+FccFrontendAction::CreateASTConsumer(CompilerInstance &cI, 
+                                     StringRef file)
+{
+ return std::make_unique<FccASTConsumer>(&cI, fcc_get_context()); // pass CI pointer to ASTConsumer
+}
 
 } /* furious */ 

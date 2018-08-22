@@ -2,18 +2,20 @@
 include_directories(./)
 
 add_executable( fcc 
-  fcc.cpp
-  execution_plan.h
-  execution_plan.cpp
-  transforms.h
-  structs.h
-  structs.cpp
-  fccASTVisitor.h
-  fccASTVisitor.cpp
-  transforms.h
-  transforms.cpp
-  codegen.h
+  clang_tools.cpp
+  clang_tools.h
   codegen.cpp
+  codegen.h
+  execution_plan.cpp
+  execution_plan.h
+  fcc.cpp
+  fccASTVisitor.cpp
+  fccASTVisitor.h
+  structs.cpp
+  structs.h
+  transforms.cpp
+  transforms.h
+  transforms.h
   )
 
 #set_target_properties(fcc

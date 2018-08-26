@@ -32,42 +32,7 @@ public:
                               FccContext *fcc_context);
 
   virtual 
-  bool VisitExprWithCleanups(ExprWithCleanups *expr);
-
-  virtual
-  bool VisitCXXMemberCallExpr(CXXMemberCallExpr *expr);
-
-  virtual 
-  bool VisitCallExpr(CallExpr *func);
-};
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-/**
- * @brief Visitor triggered on the body of the furious script (code within
- * BEGIN_FURIOUS and END_FURIOUS). It is responsible of triggering a
- * FunctionExprVisitor on every ExpressionWithCleanUps found within such macros
- */
-class FuriousScriptVisitor : public RecursiveASTVisitor<FuriousScriptVisitor>
-{
-private:
-  ASTContext *p_ast_context; // used for getting additional AST info
-  FccContext *p_fcc_context;
-
-public:
-  explicit FuriousScriptVisitor(CompilerInstance* cI,
-                                FccContext *fcc_context);
-
-  virtual 
-  bool VisitCXXRecordDecl(CXXRecordDecl *record);
-
-  virtual 
-  bool VisitLambdaExpr(LambdaExpr *lamnda);
-
-  virtual 
-  bool VisitExprWithCleanups(ExprWithCleanups *expr);
+  bool VisitCallExpr(CallExpr* call);
 };
 
 ////////////////////////////////////////////////
@@ -82,7 +47,6 @@ class FccASTVisitor : public RecursiveASTVisitor<FccASTVisitor>
 {
 private:
   ASTContext *p_ast_context; // used for getting additional AST info
-  FuriousScriptVisitor *p_script_visitor;
   FccContext *p_fcc_context;
 
 public:

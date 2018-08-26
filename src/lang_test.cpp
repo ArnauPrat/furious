@@ -6,7 +6,6 @@ BEGIN_FURIOUS_SCRIPT
 
 struct TestSystem1
 {
-
   TestSystem1(int32_t val, float val2) : m_val{val} {}
 
   void run(furious::Context *context,
@@ -28,7 +27,7 @@ struct TestSystem1
                                     ).with_tag("Affected").without_component<ComponentC>();
                                     */
 
-furious::register_foreach<TestSystem1>(5, 1.0);
+furious::register_foreach<TestSystem1>(5, 1.0).with_tag("Affected").without_tag("NotAffected");
 
 END_FURIOUS_SCRIPT
 

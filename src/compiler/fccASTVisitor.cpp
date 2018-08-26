@@ -20,74 +20,18 @@ p_ast_context(ast_context),
 {
 }
 
-bool FuriousExprVisitor::VisitExprWithCleanups(ExprWithCleanups *expr)
+bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
 {
-  expr->dump(llvm::errs());
-  return true;
-}
-
-bool FuriousExprVisitor::VisitCXXMemberCallExpr(CXXMemberCallExpr *expr)
-{
-  llvm::errs() << "CXXMemberCallExpr found"
-    << "\n";
-  CXXMethodDecl *method_decl = expr->getMethodDecl();
-  CXXRecordDecl *record_decl = expr->getRecordDecl();
-
-  std::string method_name = method_decl->getNameAsString();
-  std::string record_name = record_decl->getNameAsString();
-
-  llvm::errs() << record_name << " " << method_name << "\n";
-
-  return true;
-
-}
-
-bool FuriousExprVisitor::VisitCallExpr(CallExpr *func)
-{
-  FunctionDecl *func_decl = func->getDirectCallee();
-  if (func_decl)
+  if(!extract_exec_info(p_ast_context,
+                        &m_fcc_exec_info,
+                        call))
   {
-    extract_basic_info(&m_fcc_exec_info,
-                       func_decl);
-    llvm::errs() << m_fcc_exec_info.m_system_type.getAsString() << "\n";
-    for(auto type : m_fcc_exec_info.m_basic_component_types) {
-      llvm::errs() << type.getAsString() << "\n";
-    }
-  } else {
-    // Trigger error of unsupported statatment?
-  }
-  return true;
-}
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-FuriousScriptVisitor::FuriousScriptVisitor(CompilerInstance *CI,
-                                           FccContext *fcc_context) : 
-p_ast_context(&(CI->getASTContext())),
-  p_fcc_context(fcc_context)
-{
-}
-
-bool FuriousScriptVisitor::VisitCXXRecordDecl(CXXRecordDecl *record)
-{
-  return true;
-}
-
-bool FuriousScriptVisitor::VisitLambdaExpr(LambdaExpr *lamnda)
-{
-  llvm::errs() << "Found lamnda expr" << "\n";
-  return true;
-}
-
-bool FuriousScriptVisitor::VisitExprWithCleanups(ExprWithCleanups *expr)
-{
-  FuriousExprVisitor visitor(p_ast_context,
-                             p_fcc_context);
-
-  visitor.TraverseExprWithCleanups(expr);
-  llvm::errs() << "expr with cleanups found" << "\n";
+    SourceLocation location = call->getLocStart();
+    report_error(p_ast_context,
+                 location,
+                 FccErrorType::E_UNKNOWN_FURIOUS_OPERATION);
+    return false;
+  } 
   return true;
 }
 
@@ -96,9 +40,9 @@ bool FuriousScriptVisitor::VisitExprWithCleanups(ExprWithCleanups *expr)
 ////////////////////////////////////////////////
 
 FccASTVisitor::FccASTVisitor(CompilerInstance *CI,
-                             FccContext *fcc_context) : p_ast_context(&(CI->getASTContext())),
-  p_script_visitor(new FuriousScriptVisitor(CI, fcc_context)),
-  p_fcc_context(fcc_context)
+                             FccContext *fcc_context) : 
+p_ast_context(&(CI->getASTContext())),
+p_fcc_context(fcc_context)
 {
 }
 
@@ -108,7 +52,36 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
   {
     if (func->hasBody())
     {
-      p_script_visitor->TraverseCompoundStmt(cast<CompoundStmt>(func->getBody()));
+      for(auto stmt : func->getBody()->children()) 
+      {
+        if(isa<Expr>(stmt))
+        {
+          Expr* expr = cast<Expr>(stmt);
+          QualType expr_type = expr->getType();
+          const RecordDecl* ret_decl = expr_type->getAsCXXRecordDecl();
+          // We need to translate those expressions that evaluate into a
+          // "RegisterSystemInfo" type
+          if(expr_type->isStructureOrClassType() &&
+             expr_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo" &&
+             isa<ClassTemplateSpecializationDecl>(ret_decl) )
+          {
+            FuriousExprVisitor visitor(p_ast_context,
+                                       p_fcc_context);
+
+            visitor.TraverseStmt(expr);
+
+            // TODO: Register the information extracted using the visitor
+          }
+          else 
+          {
+            SourceLocation location = expr->getLocStart();
+            report_error(p_ast_context,
+                         location,
+                         FccErrorType::E_UNSUPPORTED_STATEMENT);
+          }
+        }
+      }
+      //p_script_visitor->TraverseCompoundStmt(cast<CompoundStmt>(func->getBody()));
     }
   }
   return true;
@@ -118,7 +91,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-  // override the constructor in order to pass CI
+// override the constructor in order to pass CI
 FccASTConsumer::FccASTConsumer(CompilerInstance *cI,
                                FccContext *fcc_context)
   : visitor(new FccASTVisitor(cI, fcc_context)) // initialize the visitor

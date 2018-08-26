@@ -1,5 +1,6 @@
 
 
+#include <sstream>
 
 #include "structs.h"
 
@@ -8,14 +9,26 @@ namespace furious
 
 void 
 handle_error(FccContext* context,
-             FccErrorType type)
+             FccErrorType type,
+             const std::string& filename, 
+             int line,
+             int column
+             )
 {
+  std::stringstream ss;
   switch(type) 
   {
     case FccErrorType::E_UNKNOWN_ERROR:
-      llvm::errs() << "Unknown error" << "\n";
+      ss << "Unknown error";
       break;
+    case FccErrorType::E_UNKNOWN_FURIOUS_OPERATION:
+      ss << "Unknown furious operation"; 
+      break;
+    case FccErrorType::E_UNSUPPORTED_STATEMENT:
+      ss << "Non furious staetment ";
   }
+  ss << " found in " << filename << ":" << line << ":" << column << "\n"; 
+  llvm::errs() << ss.str();
 }
 
 ////////////////////////////////////////////////
@@ -53,18 +66,29 @@ FccContext_release(FccContext* context)
 
 void 
 FccContext_set_error_callback(FccContext* context,
-                              void (*callback)(FccContext*, FccErrorType))
+                              void (*callback)(FccContext*, 
+                                               FccErrorType,
+                                               const std::string&,
+                                               int32_t,
+                                               int32_t))
 {
   context->p_ecallback = callback;
 }
 
 void 
 FccContext_report_error(FccContext* context,
-                        FccErrorType error_type)
+                        FccErrorType error_type,
+                        const std::string& filename,
+                        int32_t line,
+                        int32_t column)
 {
   if(context->p_ecallback) 
   {
-    context->p_ecallback(context, error_type);
+    context->p_ecallback(context, 
+                         error_type,
+                         filename,
+                         line,
+                         column);
   }
 }
 

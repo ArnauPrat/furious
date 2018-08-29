@@ -3,24 +3,34 @@
 
 namespace furious {
 
-Operator::Operator(OperatorType type) : 
-  m_type(type) {
+FccOperator::FccOperator(FccOperatorType type) : 
+m_type(type) 
+{
 
 }
 
-Scan::Scan(int32_t table_id) : 
-  Operator(OperatorType::E_SCAN), 
-  m_table_id(table_id) {
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+Scan::Scan(QualType component) : 
+  FccOperator(FccOperatorType::E_SCAN), 
+  m_component(component) {
 
 }
 
-Join::Join(Operator* left, 
-           Operator* right) :
-  Operator(OperatorType::E_JOIN),
-  p_left(left),
-  p_right(right) {
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
-  }
+Join::Join(FccOperator* left, 
+           FccOperator* right) :
+FccOperator(FccOperatorType::E_JOIN),
+p_left(left),
+p_right(right) 
+{
+
+}
 
 Join::~Join() {
   if(p_left != nullptr) {
@@ -32,24 +42,72 @@ Join::~Join() {
   }
 }
 
-Filter::Filter( Operator* child, 
-                int32_t func_id) : 
-  Operator(OperatorType::E_FILTER),
-  m_func_id(func_id),
-  p_child(child) {
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
-  }
+Filter::Filter( FccOperator* child) :
+FccOperator(FccOperatorType::E_FILTER),
+p_child(child) 
+{
 
-Filter::~Filter() {
+}
+
+Filter::~Filter() 
+{
   if(p_child != nullptr) {
     delete p_child;
   }
 }
 
-Foreach::Foreach(Operator* child,
-                 const std::vector<int32_t>& funcs) :
-  Operator(OperatorType::E_FOREACH), 
-  m_funcs{funcs}, 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+PredicateFilter::PredicateFilter(FccOperator* child, 
+                                 const FunctionDecl* func_decl) :
+Filter(child),
+p_func_decl{func_decl}
+{
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+TagFilter::TagFilter(FccOperator* child,
+                     const std::string& tag,
+                     FccFilterOpType op_type) :
+Filter{child},
+m_tag{tag},
+m_op_type{op_type}
+{
+
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+ComponentFilter::ComponentFilter(FccOperator* child,
+                                 QualType component_type,
+                                 FccFilterOpType op_type) :
+Filter{child},
+m_component_type{component_type},
+m_op_type{op_type}
+{
+
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+Foreach::Foreach(FccOperator* child,
+                 const std::vector<const FccSystemInfo*>& systems) :
+  FccOperator{FccOperatorType::E_FOREACH}, 
+  m_systems{systems}, 
   p_child{child} {
 
   }
@@ -59,5 +117,25 @@ Foreach::~Foreach() {
     delete p_child;
   }
 }
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+ExecPlan::ExecPlan(FccContext* context) :
+p_context{context}
+{
+
+}
+
+ExecPlan::~ExecPlan()
+{
+  for(auto root : m_roots)
+  {
+    delete root;
+  }
+}
+
 
 } /* furious */ 

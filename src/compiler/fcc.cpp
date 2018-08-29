@@ -12,20 +12,15 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 
-static llvm::cl::OptionCategory fccToolCategory("fcc options");
+using namespace furious;
 
-static furious::FccContext fcc_context;
+static llvm::cl::OptionCategory fccToolCategory("fcc options");
 
 int main(int argc, const char **argv)
 {
-
   CommonOptionsParser op(argc, argv, fccToolCategory);
-  ClangTool tool(op.getCompilations(), op.getSourcePathList());
-
-  furious::FccContext_initialize(&fcc_context);
-  int result = tool.run(newFrontendActionFactory<furious::FccFrontendAction>().get());
-  if (result == 0)
-  {
-  }
+  FccContext* fcc_context = FccContext_create_and_init();
+  int result = FccContext_run(fcc_context, op);
+  FccContext_release(fcc_context);
   return result;
 }

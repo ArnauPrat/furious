@@ -3,31 +3,51 @@
 #include <sstream>
 
 #include "structs.h"
+#include "fccASTVisitor.h"
+
 
 namespace furious 
 {
 
 void 
-handle_error(FccContext* context,
-             FccErrorType type,
-             const std::string& filename, 
-             int line,
-             int column
-             )
+handle_parsing_error(FccContext* context,
+                     FccParsingErrorType type,
+                     const std::string& filename, 
+                     int line,
+                     int column
+                    )
 {
   std::stringstream ss;
   switch(type) 
   {
-    case FccErrorType::E_UNKNOWN_ERROR:
+    case FccParsingErrorType::E_UNKNOWN_ERROR:
       ss << "Unknown error";
       break;
-    case FccErrorType::E_UNKNOWN_FURIOUS_OPERATION:
+    case FccParsingErrorType::E_UNKNOWN_FURIOUS_OPERATION:
       ss << "Unknown furious operation"; 
       break;
-    case FccErrorType::E_UNSUPPORTED_STATEMENT:
+    case FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT:
+      ss << "Incomplete furious statement";
+      break;
+    case FccParsingErrorType::E_UNSUPPORTED_STATEMENT:
       ss << "Non furious staetment ";
   }
   ss << " found in " << filename << ":" << line << ":" << column << "\n"; 
+  llvm::errs() << ss.str();
+}
+
+void 
+handle_compilation_error(FccContext* context,
+                     FccCompilationErrorType type,
+                     const FccOperator* op)
+{
+  std::stringstream ss;
+  switch(type) 
+  {
+    case FccCompilationErrorType::E_UNKNOWN_ERROR:
+      ss << "Unknown error";
+      break;
+  }
   llvm::errs() << ss.str();
 }
 
@@ -35,56 +55,56 @@ handle_error(FccContext* context,
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccContext*
-fcc_get_context()
+FccContext* FccContext_create_and_init() 
 {
-  static FccContext* global_fcc_context = new FccContext();
-  FccContext_initialize(global_fcc_context);
-  FccContext_set_error_callback(global_fcc_context, 
-                                handle_error);
-  return global_fcc_context;
+  FccContext* context = new FccContext();
+  FccContext_set_parsing_error_callback(context,
+                                handle_parsing_error);
+
+  FccContext_set_compilation_error_callback(context,
+                                            handle_compilation_error);
+  return context;
 }
 
-void
-fcc_release_context()
-{
-  FccContext_release(fcc_get_context());
-  delete fcc_get_context();
-}
-
-void 
-FccContext_initialize(FccContext* context)
-{
-  context->p_ecallback = nullptr;
-}
 
 void 
 FccContext_release(FccContext* context)
 {
-  context->p_ecallback = nullptr;
+  context->p_pecallback = nullptr;
+  context->p_cecallback = nullptr;
+  delete context;
 }
 
 void 
-FccContext_set_error_callback(FccContext* context,
-                              void (*callback)(FccContext*, 
-                                               FccErrorType,
-                                               const std::string&,
-                                               int32_t,
-                                               int32_t))
+FccContext_set_parsing_error_callback(FccContext* context,
+                                      void (*callback)(FccContext*, 
+                                                       FccParsingErrorType,
+                                                       const std::string&,
+                                                       int32_t,
+                                                       int32_t))
 {
-  context->p_ecallback = callback;
+  context->p_pecallback = callback;
 }
 
 void 
-FccContext_report_error(FccContext* context,
-                        FccErrorType error_type,
-                        const std::string& filename,
-                        int32_t line,
-                        int32_t column)
+FccContext_set_compilation_error_callback(FccContext* context,
+                                          void (*callback)(FccContext*, 
+                                                           FccCompilationErrorType,
+                                                           const FccOperator*))
 {
-  if(context->p_ecallback) 
+  context->p_cecallback = callback;
+}
+
+void 
+FccContext_report_parsing_error(FccContext* context,
+                                FccParsingErrorType error_type,
+                                const std::string& filename,
+                                int32_t line,
+                                int32_t column)
+{
+  if(context->p_pecallback) 
   {
-    context->p_ecallback(context, 
+    context->p_pecallback(context, 
                          error_type,
                          filename,
                          line,
@@ -92,5 +112,39 @@ FccContext_report_error(FccContext* context,
   }
 }
 
+void 
+FccContext_report_compilation_error(FccContext* context,
+                                FccCompilationErrorType error_type,
+                                const FccOperator* op)
+{
+  if(context->p_cecallback) 
+  {
+    context->p_cecallback(context, 
+                         error_type,
+                         op);
+  }
+}
+
+int 
+FccContext_run(FccContext* context, 
+               CommonOptionsParser& op )
+{
+  ClangTool tool(op.getCompilations(), op.getSourcePathList());
+  int result = tool.buildASTs(context->m_asts);
+  if(result != 0)
+  {
+    return result;
+  }
+
+  // Parse and visit all compilation units (furious scripts)
+  for(auto& ast : context->m_asts) 
+  {
+    ASTContext& ast_context = ast->getASTContext();
+    FccASTVisitor visitor(&ast_context,
+                          context);
+    visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
+  }
+  return result;
+}
 
 } /* furious */ 

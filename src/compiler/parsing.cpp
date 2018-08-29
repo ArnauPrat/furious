@@ -1,6 +1,6 @@
 
 
-#include "clang_tools.h"
+#include "parsing.h"
 #include "structs.h"
 
 namespace furious 
@@ -22,38 +22,65 @@ get_code(SourceManager &sm,
                      sm.getCharacterData(token_end) - sm.getCharacterData(start));
 }
 
+
+/**
+ * @brief Gets the line number of a source location
+ *
+ * @param manager The source manager the source location depends on
+ * @param location The source location
+ *
+ * @return Returns the line represented by the given source location
+ */
 int 
 get_line_number(const SourceManager& manager,
-                    const SourceLocation& location) {
+                const SourceLocation& location) 
+{
   FileID file_id = manager.getFileID(location);
   int offset = manager.getFileOffset(location);
   return manager.getLineNumber(file_id, offset);
 }
 
+/**
+ * @brief Gets the column number of a source location
+ *
+ * @param manager The source manager the source location depends on
+ * @param location The source location
+ *
+ * @return Returns the column represented by the given source location
+ */
 int 
 get_column_number(const SourceManager& manager,
-                      const SourceLocation& location) {
+                  const SourceLocation& location) 
+{
   FileID file_id = manager.getFileID(location);
   int offset = manager.getFileOffset(location);
   return manager.getColumnNumber(file_id, offset);
 }
 
-void report_error(ASTContext* context, 
-                  const SourceLocation& location,
-                  const FccErrorType& type) {
-
-    const SourceManager& sm = context->getSourceManager();
-    std::string filename = sm.getFilename(location);
-    int32_t line_number = get_line_number(sm, location);
-    int32_t column_number = get_column_number(sm, location);
-    REPORT_ERROR(type,
-                 filename,
-                 line_number,
-                 column_number
-                 );
+void report_parsing_error(ASTContext* ast_context, 
+                          FccContext* fcc_context,
+                          const SourceLocation& location,
+                          const FccParsingErrorType& type) 
+{
+  const SourceManager& sm = ast_context->getSourceManager();
+  std::string filename = sm.getFilename(location);
+  int32_t line_number = get_line_number(sm, location);
+  int32_t column_number = get_column_number(sm, location);
+  FccContext_report_parsing_error(fcc_context,
+                                  type,
+                                  filename,
+                                  line_number,
+                                  column_number);
 }
 
-
+/**
+ * @brief Given a TemplateArgumentList, extract the QualTypes of the template
+ * argument types
+ *
+ * @param arg_list The TemplateArgumentList to extract the types from
+ *
+ * @return Returns a std::vector with the extracted QualTypes
+ */
 std::vector<QualType> 
 get_tmplt_types(const TemplateArgumentList& arg_list) 
 {
@@ -90,11 +117,17 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
   return ret;
 }
 
+/**
+ * @brief Provess a furious entry point call
+ *
+ * @param ast_context The ast context of the call to process
+ * @param exec_info The FccExecInfo where the result must be stored
+ * @param call The CallExpr representing the call
+ */
 void process_entry_point(ASTContext* ast_context,
-                     FccExecInfo* exec_info,
-                     const CallExpr* call)
+                         FccExecInfo* exec_info,
+                         const CallExpr* call)
 {
-
 #ifdef DEBUG
   llvm::errs() << "Found Furious Entry Point" << "\n";
 #endif
@@ -108,7 +141,7 @@ void process_entry_point(ASTContext* ast_context,
   const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
   std::vector<QualType> tmplt_types = get_tmplt_types(arg_list);
 
-  exec_info->m_system_type = tmplt_types[0];
+  exec_info->m_system.m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
     exec_info->m_basic_component_types.push_back(tmplt_types[i]);
@@ -119,41 +152,111 @@ void process_entry_point(ASTContext* ast_context,
   for(uint32_t i = 0; i < num_args; ++i)
   {
     const Expr* arg_expr = call->getArg(i);
-    exec_info->m_ctor_params.push_back(arg_expr);
+    exec_info->m_system.m_ctor_params.push_back(arg_expr);
   }
 }
 
+/**
+ * @brief Finds and returns the first occurrence of the stmt of type T in a depth first
+ * search way.
+ *
+ * @tparam T The type of expr to find
+ * @param expr The expr to start looking at
+ *
+ * @return Returns the first occurrence of a node of type T (traversed in a DFS way). nullptr otherwise.
+ */
+template<typename T>
+const T* find_first_dfs(const Stmt* expr)
+{
+  for(const Stmt* stmt : expr->children())
+  {
+    if(isa<Expr>(stmt))
+    {
+      if(isa<T>(stmt))
+      {
+        return cast<T>(stmt);
+      }
+      else
+      {
+        const T* l_expr = find_first_dfs<T>(stmt);
+        if(l_expr != nullptr)
+        {
+          return l_expr;
+        }
+      }
+    } 
+  }
+  return nullptr;
+}
+
+/**
+ * @brief Process a filter call
+ *
+ * @param ast_context The ast context of the filter call
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The AST call expression to process
+ */
 void process_filter(ASTContext* ast_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call)
 {
-
 #ifdef DEBUG
   llvm::errs() << "Found filter" << "\n";
 #endif
 
+  const Expr* argument = call->getArg(0);
+  if(find_first_dfs<LambdaExpr>(argument) != nullptr)
+  {
+    llvm::errs() << "Lambda found" << "\n";
+  } 
+
+  if(find_first_dfs<DeclRefExpr>(argument) != nullptr)
+  {
+    llvm::errs() << "DeclRef found " << "\n";
+  } 
+
+  
 }
 
+/**
+ * @brief Process a with_tag call
+ *
+ * @param ast_context The ast context of the with_tag call
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The AST call expression to process
+ */
 void process_with_tag(ASTContext* ast_context,
                       FccExecInfo* exec_info,
                       const CallExpr* call)
 {
-
 #ifdef DEBUG
   llvm::errs() << "Found with_tag" << "\n";
 #endif
 }
 
+/**
+ * @brief Process a without_tag call
+ *
+ * @param ast_context The ast context of the without_tag call
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The AST call expression to process
+ */
 void process_without_tag(ASTContext* ast_context,
                          FccExecInfo* exec_info,
                          const CallExpr* call)
 {
-
 #ifdef DEBUG
   llvm::errs() << "Found without_tag" << "\n";
 #endif
 }
 
+/**
+ * @brief Process a with_component call
+ *
+ * @param ast_context The ast context of the with_component call
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The AST call expression to process
+ */
 void process_with_component(ASTContext* ast_context,
                             FccExecInfo* exec_info,
                             const CallExpr* call)
@@ -163,6 +266,13 @@ void process_with_component(ASTContext* ast_context,
 #endif
 }
 
+/**
+ * @brief Process a without_component call
+ *
+ * @param ast_context The ast context of the without_component call
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The AST call expression to process
+ */
 void process_without_component(ASTContext* ast_context,
                                FccExecInfo* exec_info,
                                const CallExpr* call)
@@ -173,22 +283,29 @@ void process_without_component(ASTContext* ast_context,
 }
 
 /**
- * @brief Extract the execution information from 
+ * @brief Extracts the execution information of a furious call expression
  *
- * @param decl
+ * @param ast_context The AST context of the call expression
+ * @param exec_info The exec info where the result is going to be stored
+ * @param call The call expression to process
  *
- * @return 
+ * @return True if the processing went well.
  */
 bool extract_exec_info(ASTContext* ast_context,
-                        FccExecInfo* exec_info, 
-                        const CallExpr* call) 
+                       FccExecInfo* exec_info, 
+                       const CallExpr* call) 
 {
 
   const FunctionDecl* func_decl = call->getDirectCallee();
 
-  if(func_decl)
+  if( func_decl->getNameAsString().find("operator bool") != std::string::npos)
   {
-    //std::string func_name = func_decl->getQualifiedNameAsString();
+    // NOTE (Arnau Prat): This is a hack because clang captures lambdas passes as parameters to functions as
+    // as CXXMemberCallExpr which I think it makes no sense.
+    return true;
+  }
+
+  if(func_decl)   {                                                                              
     std::string func_name = func_decl->getName();
     QualType ret_type = func_decl->getReturnType().getNonReferenceType();
     const RecordDecl* ret_decl = ret_type.getTypePtr()->getAsCXXRecordDecl();

@@ -2,8 +2,8 @@
 include_directories(./)
 
 add_executable( fcc 
-  clang_tools.cpp
-  clang_tools.h
+  parsing.cpp
+  parsing.h
   codegen.cpp
   codegen.h
   execution_plan.cpp

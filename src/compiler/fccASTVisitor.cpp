@@ -2,12 +2,12 @@
 
 #include "fccASTVisitor.h"
 #include "structs.h"
-#include "clang_tools.h"
+#include "parsing.h"
 
 #include <clang/Lex/Lexer.h>
 
-namespace furious {
-
+namespace furious 
+{
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -16,7 +16,7 @@ namespace furious {
 FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context,
                                        FccContext *fcc_context) : 
 p_ast_context(ast_context), 
-  p_fcc_context(fcc_context)
+p_fcc_context(fcc_context)
 {
 }
 
@@ -27,21 +27,29 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
                         call))
   {
     SourceLocation location = call->getLocStart();
-    report_error(p_ast_context,
-                 location,
-                 FccErrorType::E_UNKNOWN_FURIOUS_OPERATION);
+    report_parsing_error(p_ast_context,
+                         p_fcc_context,
+                         location,
+                         FccParsingErrorType::E_UNKNOWN_FURIOUS_OPERATION);
     return false;
   } 
   return true;
 }
 
+bool FuriousExprVisitor::TraverseLambdaBody(LambdaExpr* expr)
+{
+  // Not to traverse the body of a lambda
+  return true;
+}
+
+
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccASTVisitor::FccASTVisitor(CompilerInstance *CI,
+FccASTVisitor::FccASTVisitor(ASTContext *ast_context,
                              FccContext *fcc_context) : 
-p_ast_context(&(CI->getASTContext())),
+p_ast_context(ast_context),
 p_fcc_context(fcc_context)
 {
 }
@@ -52,6 +60,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
   {
     if (func->hasBody())
     {
+      func->dump();
       for(auto stmt : func->getBody()->children()) 
       {
         if(isa<Expr>(stmt))
@@ -70,53 +79,34 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 
             visitor.TraverseStmt(expr);
 
-            // TODO: Register the information extracted using the visitor
+            // We register the execution information obtained with the visitor,
+            // after checking it is well-formed.
+            if(visitor.m_fcc_exec_info.m_operation_type != OperationType::E_UNKNOWN) 
+            {
+              p_fcc_context->m_operations.push_back(visitor.m_fcc_exec_info);
+            } else 
+            {
+              SourceLocation location = expr->getLocStart();
+              report_parsing_error(p_ast_context,
+                           p_fcc_context,
+                           location,
+                           FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT);
+              return false;
+            }
           }
           else 
           {
             SourceLocation location = expr->getLocStart();
-            report_error(p_ast_context,
-                         location,
-                         FccErrorType::E_UNSUPPORTED_STATEMENT);
+            report_parsing_error(p_ast_context,
+                                 p_fcc_context,
+                                 location,
+                                 FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+            return false;
           }
         }
       }
-      //p_script_visitor->TraverseCompoundStmt(cast<CompoundStmt>(func->getBody()));
     }
   }
   return true;
 }
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-// override the constructor in order to pass CI
-FccASTConsumer::FccASTConsumer(CompilerInstance *cI,
-                               FccContext *fcc_context)
-  : visitor(new FccASTVisitor(cI, fcc_context)) // initialize the visitor
-{
 }
-
-// override this to call our ExampleVisitor on the entire source file
-void
-FccASTConsumer::HandleTranslationUnit(ASTContext &context)
-{
-  // context.getTranslationUnitDecl()->dump(llvm::errs());
-  /* we can use ASTContext to get the TranslationUnitDecl, which is
-     a single Decl that collectively represents the entire source file */
-  visitor->TraverseDecl(context.getTranslationUnitDecl());
-}
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-std::unique_ptr<ASTConsumer>
-FccFrontendAction::CreateASTConsumer(CompilerInstance &cI, 
-                                     StringRef file)
-{
- return std::make_unique<FccASTConsumer>(&cI, fcc_get_context()); // pass CI pointer to ASTConsumer
-}
-
-} /* furious */ 

@@ -13,8 +13,9 @@ using namespace clang;
 namespace furious 
 {
 
+struct FccContext;
 struct FccExecInfo;
-enum class FccErrorType;
+enum class FccParsingErrorType;
 
 /**
  * @brief Gets the code between start and end SourceLocations.
@@ -32,17 +33,6 @@ get_code(SourceManager &sm,
          SourceLocation &end);
 
 /**
- * @brief Given a TemplateArgumentList, extract the QualTypes of the template
- * argument types
- *
- * @param arg_list The TemplateArgumentList to extract the types from
- *
- * @return Returns a std::vector with the extracted QualTypes
- */
-std::vector<QualType> 
-get_tmplt_types(const TemplateArgumentList& arg_list);
-
-/**
  * @brief Extract the execution information from 
  *
  * @param decl
@@ -53,9 +43,10 @@ bool extract_exec_info(ASTContext* context,
                        FccExecInfo* exec_info, 
                        const CallExpr* call);
 
-void report_error(ASTContext* context, 
-                  const SourceLocation& location,
-                  const FccErrorType& type);
+void report_parsing_error(ASTContext* ast_context, 
+                          FccContext* fcc_context,
+                          const SourceLocation& location,
+                          const FccParsingErrorType& type);
 
 } /* furious */ 
 

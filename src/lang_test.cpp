@@ -25,11 +25,6 @@ struct TestSystem1
   int32_t m_val;
 };
 
-auto test2 = [](const ComponentA* ca, const ComponentB* cb)
-        {
-        return true;
-        };
-
 furious::register_foreach<TestSystem1>(10,0.2)
   .with_component<ComponentA>()
   .without_component<ComponentB>()
@@ -40,8 +35,7 @@ furious::register_foreach<TestSystem1>(10,0.2)
         return test1(ca,cb);
         }
        )
-  .filter(test1)
-  .filter(test2);
+  .filter(test1);
 //furious::register_foreach<TestSystem1>(5, 1.0).with_tag("Affected").without_tag("NotAffected");
 
 END_FURIOUS_SCRIPT

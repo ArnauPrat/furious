@@ -30,7 +30,14 @@ handle_parsing_error(FccContext* context,
       ss << "Incomplete furious statement";
       break;
     case FccParsingErrorType::E_UNSUPPORTED_STATEMENT:
-      ss << "Non furious staetment ";
+      ss << "Non furious staetment";
+      break;
+    case FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS:
+      ss << "Non allowed var declaration";
+      break;
+    case FccParsingErrorType::E_EXPECTED_STRING_LITERAL:
+      ss << "Expected String Literal error";
+      break;
   }
   ss << " found in " << filename << ":" << line << ":" << column << "\n"; 
   llvm::errs() << ss.str();

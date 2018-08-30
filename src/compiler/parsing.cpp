@@ -117,14 +117,8 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
   return ret;
 }
 
-/**
- * @brief Provess a furious entry point call
- *
- * @param ast_context The ast context of the call to process
- * @param exec_info The FccExecInfo where the result must be stored
- * @param call The CallExpr representing the call
- */
-void process_entry_point(ASTContext* ast_context,
+bool process_entry_point(ASTContext* ast_context,
+                         FccContext* fcc_contex,
                          FccExecInfo* exec_info,
                          const CallExpr* call)
 {
@@ -154,6 +148,7 @@ void process_entry_point(ASTContext* ast_context,
     const Expr* arg_expr = call->getArg(i);
     exec_info->m_system.m_ctor_params.push_back(arg_expr);
   }
+  return true;
 }
 
 /**
@@ -189,14 +184,8 @@ const T* find_first_dfs(const Stmt* expr)
   return nullptr;
 }
 
-/**
- * @brief Process a filter call
- *
- * @param ast_context The ast context of the filter call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
- */
-void process_filter(ASTContext* ast_context,
+bool process_filter(ASTContext* ast_context,
+                    FccContext* fcc_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call)
 {
@@ -205,163 +194,131 @@ void process_filter(ASTContext* ast_context,
 #endif
 
   const Expr* argument = call->getArg(0);
-  if(find_first_dfs<LambdaExpr>(argument) != nullptr)
+  const FunctionDecl* func_decl = nullptr;
+  const LambdaExpr* lambda = nullptr;
+  if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
-    llvm::errs() << "Lambda found" << "\n";
+    func_decl = lambda->getCallOperator();
+    exec_info->m_filter_func.push_back(func_decl);
   } 
 
-  if(find_first_dfs<DeclRefExpr>(argument) != nullptr)
+  const DeclRefExpr* decl_ref = nullptr;
+  if(func_decl == nullptr && (decl_ref = find_first_dfs<DeclRefExpr>(argument)) != nullptr)
   {
-    llvm::errs() << "DeclRef found " << "\n";
+    const ValueDecl* decl = decl_ref->getDecl();
+    if(isa<FunctionDecl>(decl))
+    {
+      func_decl = cast<FunctionDecl>(decl);
+      exec_info->m_filter_func.push_back(func_decl);
+    } else if(isa<VarDecl>(decl))
+    {
+      // TODO: Report error via callback
+      SourceLocation location = call->getLocStart();
+      report_parsing_error(ast_context,
+                           fcc_context,
+                           location,
+                           FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS);
+      return false;
+    }
   } 
-
-  
+  return true;
 }
 
-/**
- * @brief Process a with_tag call
- *
- * @param ast_context The ast context of the with_tag call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
- */
-void process_with_tag(ASTContext* ast_context,
+bool process_with_tag(ASTContext* ast_context,
+                      FccContext* fcc_context,
                       FccExecInfo* exec_info,
                       const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found with_tag" << "\n";
 #endif
+
+  uint32_t num_args = call->getNumArgs();
+  for(uint32_t i = 0; i < num_args; ++i)
+  {
+    const Expr* arg_expr = call->getArg(i);
+    const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
+    if(literal != nullptr)
+    {
+      exec_info->m_with_tags.push_back(literal->getString());
+    } else
+    {
+
+      SourceLocation location = call->getLocStart();
+      report_parsing_error(ast_context,
+                           fcc_context,
+                           location,
+                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL);
+      return false;
+    }
+  }
+  return true;
 }
 
-/**
- * @brief Process a without_tag call
- *
- * @param ast_context The ast context of the without_tag call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
- */
-void process_without_tag(ASTContext* ast_context,
+bool process_without_tag(ASTContext* ast_context,
+                         FccContext* fcc_context,
                          FccExecInfo* exec_info,
                          const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found without_tag" << "\n";
 #endif
+  uint32_t num_args = call->getNumArgs();
+  for(uint32_t i = 0; i < num_args; ++i)
+  {
+    const Expr* arg_expr = call->getArg(i);
+    const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
+    if(literal != nullptr)
+    {
+      exec_info->m_without_tags.push_back(literal->getString());
+    } else
+    {
+
+      SourceLocation location = call->getLocStart();
+      report_parsing_error(ast_context,
+                           fcc_context,
+                           location,
+                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL);
+      return false;
+    }
+  }
+  return true;
 }
 
-/**
- * @brief Process a with_component call
- *
- * @param ast_context The ast context of the with_component call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
- */
-void process_with_component(ASTContext* ast_context,
+bool process_with_component(ASTContext* ast_context,
+                            FccContext* fcc_contex,
                             FccExecInfo* exec_info,
                             const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found with_component" << "\n";
 #endif
+  const FunctionDecl* func_decl = call->getDirectCallee();
+  const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
+  for (uint32_t i = 0; i < arg_list->size(); ++i) {
+   const TemplateArgument& arg = arg_list->get(i); 
+   QualType type = arg.getAsType();
+   exec_info->m_with_components.push_back(type);
+  }
+  return true;
 }
 
-/**
- * @brief Process a without_component call
- *
- * @param ast_context The ast context of the without_component call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
- */
-void process_without_component(ASTContext* ast_context,
+bool process_without_component(ASTContext* ast_context,
+                               FccContext* fcc_contex,
                                FccExecInfo* exec_info,
                                const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found without_component" << "\n";
 #endif
-}
-
-/**
- * @brief Extracts the execution information of a furious call expression
- *
- * @param ast_context The AST context of the call expression
- * @param exec_info The exec info where the result is going to be stored
- * @param call The call expression to process
- *
- * @return True if the processing went well.
- */
-bool extract_exec_info(ASTContext* ast_context,
-                       FccExecInfo* exec_info, 
-                       const CallExpr* call) 
-{
-
   const FunctionDecl* func_decl = call->getDirectCallee();
-
-  if( func_decl->getNameAsString().find("operator bool") != std::string::npos)
-  {
-    // NOTE (Arnau Prat): This is a hack because clang captures lambdas passes as parameters to functions as
-    // as CXXMemberCallExpr which I think it makes no sense.
-    return true;
+  const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
+  for (uint32_t i = 0; i < arg_list->size(); ++i) {
+   const TemplateArgument& arg = arg_list->get(i); 
+   QualType type = arg.getAsType();
+   exec_info->m_without_components.push_back(type);
   }
-
-  if(func_decl)   {                                                                              
-    std::string func_name = func_decl->getName();
-    QualType ret_type = func_decl->getReturnType().getNonReferenceType();
-    const RecordDecl* ret_decl = ret_type.getTypePtr()->getAsCXXRecordDecl();
-
-    // Check if the declaration is a valid furious api call 
-    if (ret_type->isStructureOrClassType() &&
-        ret_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo" &&
-        isa<ClassTemplateSpecializationDecl>(ret_decl))
-    {
-      // Extracting operation type (e.g. foreach, etc.)
-      if(func_name == "register_foreach") 
-      {
-        exec_info->m_operation_type = OperationType::E_FOREACH;
-        process_entry_point(ast_context,
-                            exec_info,
-                            call);
-        return true;
-      }
-
-      if(func_name == "with_tag" ) {
-        process_with_tag(ast_context,
-                         exec_info,
-                         call);
-        return true;
-      }
-
-      if(func_name == "without_tag" ) {
-        process_without_tag(ast_context,
-                            exec_info,
-                            call);
-        return true;
-      }
-
-      if(func_name == "with_component" ) {
-        process_with_component(ast_context,
-                               exec_info,
-                               call);
-        return true;
-      }
-
-      if(func_name == "without_component" ) {
-        process_without_component(ast_context,
-                                  exec_info,
-                                  call);
-        return true;
-      }
-
-      if(func_name == "filter" ) {
-        process_filter(ast_context,
-                       exec_info,
-                       call);
-        return true;
-      }
-    } 
-  }
-  return false;
+  return true;
 }
 
 } /* furious */ 

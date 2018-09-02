@@ -4,7 +4,9 @@
 
 #include "structs.h"
 #include "fccASTVisitor.h"
-
+#include "transforms.h"
+#include "execution_plan.h"
+#include "exec_plan_printer.h"
 
 namespace furious 
 {
@@ -127,8 +129,8 @@ FccContext_report_compilation_error(FccContext* context,
   if(context->p_cecallback) 
   {
     context->p_cecallback(context, 
-                         error_type,
-                         op);
+                          error_type,
+                          op);
   }
 }
 
@@ -151,6 +153,18 @@ FccContext_run(FccContext* context,
                           context);
     visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
   }
+
+  // Build initial execution plan
+  FccExecPlan exec_plan{context};
+  for(FccExecInfo& exec_info : context->m_operations)
+  {
+    FccOperator* next_root = bootstrap_subplan(&exec_info);
+    exec_plan.m_roots.push_back(next_root);
+  }
+
+  ExecPlanPrinter printer;
+  printer.traverse(&exec_plan);
+  llvm::errs() << printer.m_string_builder.str() << "\n";
   return result;
 }
 

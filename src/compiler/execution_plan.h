@@ -9,10 +9,12 @@
 
 using namespace clang;
 
-namespace furious {
+namespace furious 
+{
 
 struct FccContext;
 struct FccSystemInfo;
+class FccExecPlanVisitor;
 
 enum class FccOperatorType {
   E_JOIN,
@@ -21,22 +23,46 @@ enum class FccOperatorType {
   E_FOREACH,
 };
 
+class FccOperator
+{
+public:
+
+  FccOperator(FccOperatorType type);
+
+  virtual
+  ~FccOperator() = default;
+
+  virtual void
+  accept(FccExecPlanVisitor* visitor) const = 0;  
+
+  FccOperatorType m_type;
+};
+
 /**
  * @brief Base structure for an operator 
  */
-struct FccOperator {
-  FccOperator(FccOperatorType type);
-  virtual ~FccOperator() = default;
+template<typename T>
+class FccOperatorTmplt : public FccOperator
+{
+public:
+  FccOperatorTmplt(FccOperatorType type);
 
-   FccOperatorType m_type;
+  virtual 
+  ~FccOperatorTmplt() = default;
+
+  virtual void
+  accept(FccExecPlanVisitor* visitor) const override; 
 };
 
 /**
  * @brief Scan operator. Streams components from tables
  */
-struct Scan : public FccOperator {
+struct Scan : public FccOperatorTmplt<Scan> 
+{
   Scan(QualType component);
-  virtual ~Scan() = default;
+
+  virtual 
+  ~Scan() = default;
 
   QualType  m_component;
 };
@@ -44,31 +70,37 @@ struct Scan : public FccOperator {
 /**
  * @brief Join operator. Joins two tables by entity id
  */
-struct Join : public FccOperator {
+struct Join : public FccOperatorTmplt<Join> 
+{
   Join(FccOperator* left, 
        FccOperator* right);
-  virtual ~Join();
+  virtual 
+  ~Join();
 
-  FccOperator* p_left;
-  FccOperator* p_right;
+  const FccOperator* p_left;
+  const FccOperator* p_right;
 };
 
 /**
  * @brief Filter operator. Filter components by entity tags
  */
-struct Filter : public FccOperator 
+template<typename T>
+struct Filter : public FccOperatorTmplt<T> 
 {
   Filter(FccOperator* child);
-  virtual ~Filter();
 
-  FccOperator* p_child;
+  virtual 
+  ~Filter();
+
+  const FccOperator* p_child;
 };
 
-struct PredicateFilter : public Filter 
+struct PredicateFilter : public Filter<PredicateFilter>
 {
   PredicateFilter(FccOperator* child,
                   const FunctionDecl* func_decl);
-  virtual ~PredicateFilter() = default;
+  virtual 
+  ~PredicateFilter() = default;
 
   const FunctionDecl*   p_func_decl;
 };
@@ -79,23 +111,27 @@ enum class FccFilterOpType
   E_WITHOUT
 };
 
-struct TagFilter : public Filter 
+struct TagFilter : public Filter<TagFilter> 
 {
   TagFilter(FccOperator* child,
             const std::string& tag,
             FccFilterOpType op_type);
-  virtual ~TagFilter() = default;
+
+  virtual 
+  ~TagFilter() = default;
 
   const std::string m_tag;
   FccFilterOpType   m_op_type;
 };
 
-struct ComponentFilter : public Filter
+struct ComponentFilter : public Filter<ComponentFilter>
 {
   ComponentFilter(FccOperator* child,
                   QualType component_type,
                   FccFilterOpType op_type);
-  virtual ~ComponentFilter() = default;
+
+  virtual 
+  ~ComponentFilter() = default;
 
   QualType          m_component_type;
   FccFilterOpType   m_op_type;
@@ -105,28 +141,64 @@ struct ComponentFilter : public Filter
 /**
  * @brief Foreach operator. Applies a system for each table row
  */
-struct Foreach : public FccOperator  {
-  Foreach(FccOperator* child, 
-          const std::vector<const FccSystemInfo*>& systems);
-  virtual ~Foreach();
-
-  std::vector<const FccSystemInfo*>  m_systems;
-  FccOperator*                          p_child;
-};
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-struct ExecPlan 
+struct Foreach : public FccOperatorTmplt<Foreach>  
 {
-  ExecPlan(FccContext* context);
-  ~ExecPlan();
+  Foreach(const FccOperator* child, 
+          const std::vector<FccSystemInfo>& systems);
 
-  FccContext*            p_context;
-  std::vector<FccOperator*> m_roots; 
+  virtual 
+  ~Foreach();
+
+  std::vector<FccSystemInfo>  m_systems;
+  const FccOperator*          p_child;
 };
 
-} /* execution_plan */ 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+struct FccExecPlan 
+{
+  FccExecPlan(FccContext* context);
+  ~FccExecPlan();
+
+  FccContext*               p_context;
+  std::vector<const FccOperator*> m_roots; 
+};
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+class FccExecPlanVisitor
+{
+public:
+
+  void
+  traverse(const FccExecPlan* plan);
+
+  virtual void 
+  visit(const Foreach* foreach) = 0;
+
+  virtual void 
+  visit(const Scan* scan) = 0;
+
+  virtual void
+  visit(const Join* join) = 0;
+
+  virtual void 
+  visit(const TagFilter* tag_filter) = 0;
+
+  virtual void
+  visit(const ComponentFilter* component_filter) = 0;
+
+  virtual void
+  visit(const PredicateFilter* predicate_filter) = 0;
+};
+
+}  
+
+#include "execution_plan.inl"
 
 #endif /* ifndef SYMBOL */

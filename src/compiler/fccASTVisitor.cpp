@@ -32,7 +32,8 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
     return true;
   }
 
-  if(func_decl)   {                                                                              
+  if(func_decl)   
+  {                                                                              
     std::string func_name = func_decl->getName();
     QualType ret_type = func_decl->getReturnType().getNonReferenceType();
     const RecordDecl* ret_decl = ret_type.getTypePtr()->getAsCXXRecordDecl();
@@ -45,7 +46,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       // Extracting operation type (e.g. foreach, etc.)
       if(func_name == "register_foreach") 
       {
-        m_fcc_exec_info.m_operation_type = OperationType::E_FOREACH;
+        m_fcc_exec_info.m_operation_type = FccOperationType::E_FOREACH;
         return process_entry_point(p_ast_context,
                                    p_fcc_context,
                                    &m_fcc_exec_info,
@@ -136,16 +137,16 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 
             // We register the execution information obtained with the visitor,
             // after checking it is well-formed.
-            if(visitor.m_fcc_exec_info.m_operation_type != OperationType::E_UNKNOWN) 
+            if(visitor.m_fcc_exec_info.m_operation_type != FccOperationType::E_UNKNOWN) 
             {
               p_fcc_context->m_operations.push_back(visitor.m_fcc_exec_info);
             } else 
             {
               SourceLocation location = expr->getLocStart();
               report_parsing_error(p_ast_context,
-                           p_fcc_context,
-                           location,
-                           FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT);
+                                   p_fcc_context,
+                                   location,
+                                   FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT);
               return false;
             }
           }

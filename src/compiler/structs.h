@@ -24,7 +24,7 @@ namespace furious {
 
 struct FccOperator;
 
-enum class OperationType {
+enum class FccOperationType {
   E_UNKNOWN,
   E_FOREACH
 };
@@ -42,7 +42,7 @@ struct FccSystemInfo
  */
 struct FccExecInfo 
 {
-  OperationType         m_operation_type = OperationType::E_UNKNOWN; // The type of operations
+  FccOperationType      m_operation_type = FccOperationType::E_UNKNOWN; // The type of operations
   FccSystemInfo         m_system;                   // The system to execute
   std::vector<QualType> m_basic_component_types;    // The types of the components of the system
   std::vector<QualType> m_with_components;          // The types of the "with" components

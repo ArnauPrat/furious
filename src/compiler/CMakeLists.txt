@@ -2,15 +2,18 @@
 include_directories(./)
 
 add_executable( fcc 
-  parsing.cpp
-  parsing.h
   codegen.cpp
   codegen.h
   execution_plan.cpp
   execution_plan.h
+  execution_plan.inl
+  exec_plan_printer.h
+  exec_plan_printer.cpp
   fcc.cpp
   fccASTVisitor.cpp
   fccASTVisitor.h
+  parsing.cpp
+  parsing.h
   structs.cpp
   structs.h
   transforms.cpp

@@ -40,10 +40,11 @@ get_code(SourceManager &sm,
  * @param exec_info The FccExecInfo where the result must be stored
  * @param call The CallExpr representing the call
  */
-bool process_entry_point(ASTContext* ast_context,
-                         FccContext *fcc_context,
-                         FccExecInfo* exec_info,
-                         const CallExpr* call);
+bool 
+process_entry_point(ASTContext* ast_context,
+                    FccContext *fcc_context,
+                    FccExecInfo* exec_info,
+                    const CallExpr* call);
 
 /**
  * @brief Process a with_tag call
@@ -52,10 +53,11 @@ bool process_entry_point(ASTContext* ast_context,
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
-bool process_with_tag(ASTContext* ast_context,
-                      FccContext *fcc_context,
-                      FccExecInfo* exec_info,
-                      const CallExpr* call);
+bool 
+process_with_tag(ASTContext* ast_context,
+                 FccContext *fcc_context,
+                 FccExecInfo* exec_info,
+                 const CallExpr* call);
 
 /**
  * @brief Process a without_tag call
@@ -64,10 +66,11 @@ bool process_with_tag(ASTContext* ast_context,
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
-bool process_without_tag(ASTContext* ast_context,
-                         FccContext *fcc_context,
-                         FccExecInfo* exec_info,
-                         const CallExpr* call);
+bool 
+process_without_tag(ASTContext* ast_context,
+                    FccContext *fcc_context,
+                    FccExecInfo* exec_info,
+                    const CallExpr* call);
 
 /**
  * @brief Process a with_component call
@@ -76,10 +79,11 @@ bool process_without_tag(ASTContext* ast_context,
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
-bool process_with_component(ASTContext* ast_context,
-                            FccContext *fcc_context,
-                            FccExecInfo* exec_info,
-                            const CallExpr* call);
+bool 
+process_with_component(ASTContext* ast_context,
+                       FccContext *fcc_context,
+                       FccExecInfo* exec_info,
+                       const CallExpr* call);
 
 /**
  * @brief Process a without_component call
@@ -88,10 +92,11 @@ bool process_with_component(ASTContext* ast_context,
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
-bool process_without_component(ASTContext* ast_context,
-                               FccContext *fcc_context,
-                               FccExecInfo* exec_info,
-                               const CallExpr* call);
+bool 
+process_without_component(ASTContext* ast_context,
+                          FccContext *fcc_context,
+                          FccExecInfo* exec_info,
+                          const CallExpr* call);
 
 /**
  * @brief Process a filter call
@@ -100,17 +105,19 @@ bool process_without_component(ASTContext* ast_context,
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
-bool process_filter(ASTContext* ast_context,
-                    FccContext *fcc_context,
-                    FccExecInfo* exec_info,
-                    const CallExpr* call);
+bool 
+process_filter(ASTContext* ast_context,
+               FccContext *fcc_context,
+               FccExecInfo* exec_info,
+               const CallExpr* call);
 
 
 
-void report_parsing_error(ASTContext* ast_context, 
-                          FccContext* fcc_context,
-                          const SourceLocation& location,
-                          const FccParsingErrorType& type);
+void 
+report_parsing_error(ASTContext* ast_context, 
+                     FccContext* fcc_context,
+                     const SourceLocation& location,
+                     const FccParsingErrorType& type);
 
 } /* furious */ 
 

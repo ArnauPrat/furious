@@ -8,7 +8,7 @@ namespace furious {
 struct Foreach;
 struct FccContext;
 struct FccExecInfo;
-struct Operator;
+struct FccOperator;
 
 /**
  * @brief Bootstraps an initial plan from an execution info
@@ -17,7 +17,7 @@ struct Operator;
  *
  * @return Retorns the root operator of the generated plan
  */
-Operator* bootstrap_subplan(FccExecInfo* exec_info);
+FccOperator* bootstrap_subplan(const FccExecInfo* exec_info);
 
 /**
  * @brief  Merges two Foreach operators into a new one. The new Foreach operator
@@ -36,7 +36,7 @@ Foreach* merge_foreach(FccContext* context,
 
 
 
-  
+
 } /* furious */ 
 
 #endif /* ifndef _FURIOUS_COMPILER_TRANSFORMS_H_ */

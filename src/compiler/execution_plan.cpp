@@ -1,20 +1,21 @@
 
 #include "execution_plan.h"
+#include "structs.h"
 
 namespace furious {
 
-FccOperator::FccOperator(FccOperatorType type) : 
+FccOperator::FccOperator(FccOperatorType type) :
 m_type(type) 
 {
-
 }
+
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
 Scan::Scan(QualType component) : 
-  FccOperator(FccOperatorType::E_SCAN), 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN), 
   m_component(component) {
 
 }
@@ -25,7 +26,7 @@ Scan::Scan(QualType component) :
 
 Join::Join(FccOperator* left, 
            FccOperator* right) :
-FccOperator(FccOperatorType::E_JOIN),
+FccOperatorTmplt<Join>(FccOperatorType::E_JOIN),
 p_left(left),
 p_right(right) 
 {
@@ -46,27 +47,9 @@ Join::~Join() {
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Filter::Filter( FccOperator* child) :
-FccOperator(FccOperatorType::E_FILTER),
-p_child(child) 
-{
-
-}
-
-Filter::~Filter() 
-{
-  if(p_child != nullptr) {
-    delete p_child;
-  }
-}
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
 PredicateFilter::PredicateFilter(FccOperator* child, 
                                  const FunctionDecl* func_decl) :
-Filter(child),
+Filter<PredicateFilter>{child},
 p_func_decl{func_decl}
 {
 }
@@ -93,7 +76,7 @@ m_op_type{op_type}
 ComponentFilter::ComponentFilter(FccOperator* child,
                                  QualType component_type,
                                  FccFilterOpType op_type) :
-Filter{child},
+Filter<ComponentFilter>{child},
 m_component_type{component_type},
 m_op_type{op_type}
 {
@@ -104,9 +87,9 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Foreach::Foreach(FccOperator* child,
-                 const std::vector<const FccSystemInfo*>& systems) :
-  FccOperator{FccOperatorType::E_FOREACH}, 
+Foreach::Foreach(const FccOperator* child,
+                 const std::vector<FccSystemInfo>& systems) :
+  FccOperatorTmplt<Foreach>{FccOperatorType::E_FOREACH}, 
   m_systems{systems}, 
   p_child{child} {
 
@@ -123,13 +106,13 @@ Foreach::~Foreach() {
 ////////////////////////////////////////////////
 
 
-ExecPlan::ExecPlan(FccContext* context) :
+FccExecPlan::FccExecPlan(FccContext* context) :
 p_context{context}
 {
 
 }
 
-ExecPlan::~ExecPlan()
+FccExecPlan::~FccExecPlan()
 {
   for(auto root : m_roots)
   {
@@ -137,5 +120,17 @@ ExecPlan::~ExecPlan()
   }
 }
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+void
+FccExecPlanVisitor::traverse(const FccExecPlan* plan)
+{
+  for(const FccOperator* root : plan->m_roots)
+  {
+    root->accept(this);
+  }
+}
 
 } /* furious */ 

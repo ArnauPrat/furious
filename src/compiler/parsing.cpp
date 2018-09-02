@@ -57,10 +57,11 @@ get_column_number(const SourceManager& manager,
   return manager.getColumnNumber(file_id, offset);
 }
 
-void report_parsing_error(ASTContext* ast_context, 
-                          FccContext* fcc_context,
-                          const SourceLocation& location,
-                          const FccParsingErrorType& type) 
+void 
+report_parsing_error(ASTContext* ast_context, 
+                     FccContext* fcc_context,
+                     const SourceLocation& location,
+                     const FccParsingErrorType& type) 
 {
   const SourceManager& sm = ast_context->getSourceManager();
   std::string filename = sm.getFilename(location);
@@ -117,10 +118,11 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
   return ret;
 }
 
-bool process_entry_point(ASTContext* ast_context,
-                         FccContext* fcc_contex,
-                         FccExecInfo* exec_info,
-                         const CallExpr* call)
+bool 
+process_entry_point(ASTContext* ast_context,
+                    FccContext* fcc_contex,
+                    FccExecInfo* exec_info,
+                    const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found Furious Entry Point" << "\n";
@@ -184,10 +186,11 @@ const T* find_first_dfs(const Stmt* expr)
   return nullptr;
 }
 
-bool process_filter(ASTContext* ast_context,
-                    FccContext* fcc_context,
-                    FccExecInfo* exec_info,
-                    const CallExpr* call)
+bool 
+process_filter(ASTContext* ast_context,
+               FccContext* fcc_context,
+               FccExecInfo* exec_info,
+               const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found filter" << "\n";
@@ -224,10 +227,11 @@ bool process_filter(ASTContext* ast_context,
   return true;
 }
 
-bool process_with_tag(ASTContext* ast_context,
-                      FccContext* fcc_context,
-                      FccExecInfo* exec_info,
-                      const CallExpr* call)
+bool 
+process_with_tag(ASTContext* ast_context,
+                 FccContext* fcc_context,
+                 FccExecInfo* exec_info,
+                 const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found with_tag" << "\n";
@@ -255,10 +259,11 @@ bool process_with_tag(ASTContext* ast_context,
   return true;
 }
 
-bool process_without_tag(ASTContext* ast_context,
-                         FccContext* fcc_context,
-                         FccExecInfo* exec_info,
-                         const CallExpr* call)
+bool 
+process_without_tag(ASTContext* ast_context,
+                    FccContext* fcc_context,
+                    FccExecInfo* exec_info,
+                    const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found without_tag" << "\n";
@@ -285,10 +290,11 @@ bool process_without_tag(ASTContext* ast_context,
   return true;
 }
 
-bool process_with_component(ASTContext* ast_context,
-                            FccContext* fcc_contex,
-                            FccExecInfo* exec_info,
-                            const CallExpr* call)
+bool 
+process_with_component(ASTContext* ast_context,
+                       FccContext* fcc_contex,
+                       FccExecInfo* exec_info,
+                       const CallExpr* call)
 {
 #ifdef DEBUG
   llvm::errs() << "Found with_component" << "\n";
@@ -296,27 +302,30 @@ bool process_with_component(ASTContext* ast_context,
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
-   const TemplateArgument& arg = arg_list->get(i); 
-   QualType type = arg.getAsType();
-   exec_info->m_with_components.push_back(type);
+    const TemplateArgument& arg = arg_list->get(i); 
+    QualType type = arg.getAsType();
+    exec_info->m_with_components.push_back(type);
   }
   return true;
 }
 
-bool process_without_component(ASTContext* ast_context,
-                               FccContext* fcc_contex,
-                               FccExecInfo* exec_info,
-                               const CallExpr* call)
+bool 
+process_without_component(ASTContext* ast_context,
+                          FccContext* fcc_contex,
+                          FccExecInfo* exec_info,
+                          const CallExpr* call)
 {
+
 #ifdef DEBUG
   llvm::errs() << "Found without_component" << "\n";
 #endif
+
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
-   const TemplateArgument& arg = arg_list->get(i); 
-   QualType type = arg.getAsType();
-   exec_info->m_without_components.push_back(type);
+    const TemplateArgument& arg = arg_list->get(i); 
+    QualType type = arg.getAsType();
+    exec_info->m_without_components.push_back(type);
   }
   return true;
 }

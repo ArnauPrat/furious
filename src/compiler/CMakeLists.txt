@@ -2,6 +2,8 @@
 include_directories(./)
 
 add_executable( fcc 
+  clang_tools.h
+  clang_tools.cpp
   codegen.cpp
   codegen.h
   execution_plan.cpp

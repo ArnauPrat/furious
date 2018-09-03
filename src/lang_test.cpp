@@ -29,7 +29,7 @@ furious::register_foreach<TestSystem1>(10,0.2)
   .with_component<ComponentA>()
   .without_component<ComponentB>()
   .with_tag("Affected")
-  .without_tag("Affected")
+  .without_tag("NotAffected")
    .filter([](const ComponentA* ca, const ComponentB* cb)
         {
         return test1(ca,cb);

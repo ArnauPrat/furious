@@ -160,6 +160,7 @@ FccContext_run(FccContext* context,
   {
     FccOperator* next_root = bootstrap_subplan(&exec_info);
     exec_plan.m_roots.push_back(next_root);
+    exec_plan.m_asts.push_back(exec_info.p_ast_context);
   }
 
   ExecPlanPrinter printer;

@@ -162,7 +162,8 @@ struct FccExecPlan
   FccExecPlan(FccContext* context);
   ~FccExecPlan();
 
-  FccContext*               p_context;
+  FccContext*                     p_context;
+  std::vector<ASTContext*>        m_asts;
   std::vector<const FccOperator*> m_roots; 
 };
 
@@ -174,7 +175,6 @@ struct FccExecPlan
 class FccExecPlanVisitor
 {
 public:
-
   void
   traverse(const FccExecPlan* plan);
 

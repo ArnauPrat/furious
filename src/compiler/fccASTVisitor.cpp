@@ -47,6 +47,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "register_foreach") 
       {
         m_fcc_exec_info.m_operation_type = FccOperationType::E_FOREACH;
+        m_fcc_exec_info.p_ast_context = p_ast_context;
         return process_entry_point(p_ast_context,
                                    p_fcc_context,
                                    &m_fcc_exec_info,

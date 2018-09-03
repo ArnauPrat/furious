@@ -47,7 +47,8 @@ public:
 
   int32_t m_indents = 0;
   std::stringstream   m_string_builder;
-  std::vector<char>  m_offsets;
+  std::vector<char>   m_offsets;
+  ASTContext*         p_ast_context;
 };
 
 } /* furious */ 

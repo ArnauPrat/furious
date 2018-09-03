@@ -42,6 +42,7 @@ struct FccSystemInfo
  */
 struct FccExecInfo 
 {
+  ASTContext*           p_ast_context;              // clang ast context
   FccOperationType      m_operation_type = FccOperationType::E_UNKNOWN; // The type of operations
   FccSystemInfo         m_system;                   // The system to execute
   std::vector<QualType> m_basic_component_types;    // The types of the components of the system

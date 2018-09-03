@@ -29,8 +29,8 @@ private:
 public:
   FccExecInfo m_fcc_exec_info;
 
-  explicit FuriousExprVisitor(ASTContext *ast_context,
-                              FccContext *fcc_context);
+  FuriousExprVisitor(ASTContext *ast_context,
+                     FccContext *fcc_context);
 
   virtual 
   bool TraverseLambdaBody(LambdaExpr* expr);

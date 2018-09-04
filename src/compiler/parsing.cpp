@@ -101,6 +101,21 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
   return ret;
 }
 
+inline
+void 
+print_debug_info(const ASTContext* ast_context,
+                 const std::string& str,
+                 SourceLocation& location)
+{
+  const SourceManager& sm = ast_context->getSourceManager();
+  std::string filename = sm.getFilename(location);
+  llvm::errs() << str << " at " 
+               << filename << ":" 
+               << get_line_number(sm, location) 
+               << get_column_number(sm, location)<< "\n";
+}
+
+
 bool 
 process_entry_point(ASTContext* ast_context,
                     FccContext* fcc_contex,
@@ -108,7 +123,10 @@ process_entry_point(ASTContext* ast_context,
                     const CallExpr* call)
 {
 #ifdef DEBUG
-  llvm::errs() << "Found Furious Entry Point" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found furious entry point",
+                   location);
 #endif
 
   const FunctionDecl* func_decl = call->getDirectCallee();
@@ -176,7 +194,10 @@ process_filter(ASTContext* ast_context,
                const CallExpr* call)
 {
 #ifdef DEBUG
-  llvm::errs() << "Found filter" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found filter",
+                   location);
 #endif
 
   const Expr* argument = call->getArg(0);
@@ -211,13 +232,16 @@ process_filter(ASTContext* ast_context,
 }
 
 bool 
-process_with_tag(ASTContext* ast_context,
+process_has_tag(ASTContext* ast_context,
                  FccContext* fcc_context,
                  FccExecInfo* exec_info,
                  const CallExpr* call)
 {
 #ifdef DEBUG
-  llvm::errs() << "Found with_tag" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found has tag",
+                   location);
 #endif
 
   uint32_t num_args = call->getNumArgs();
@@ -227,7 +251,7 @@ process_with_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->m_with_tags.push_back(literal->getString());
+      exec_info->m_has_tags.push_back(literal->getString());
     } else
     {
 
@@ -243,13 +267,16 @@ process_with_tag(ASTContext* ast_context,
 }
 
 bool 
-process_without_tag(ASTContext* ast_context,
+process_has_not_tag(ASTContext* ast_context,
                     FccContext* fcc_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call)
 {
 #ifdef DEBUG
-  llvm::errs() << "Found without_tag" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found has not tag",
+                   location);
 #endif
   uint32_t num_args = call->getNumArgs();
   for(uint32_t i = 0; i < num_args; ++i)
@@ -258,7 +285,7 @@ process_without_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->m_without_tags.push_back(literal->getString());
+      exec_info->m_has_not_tags.push_back(literal->getString());
     } else
     {
 
@@ -274,33 +301,39 @@ process_without_tag(ASTContext* ast_context,
 }
 
 bool 
-process_with_component(ASTContext* ast_context,
+process_has_component(ASTContext* ast_context,
                        FccContext* fcc_contex,
                        FccExecInfo* exec_info,
                        const CallExpr* call)
 {
 #ifdef DEBUG
-  llvm::errs() << "Found with_component" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found has component",
+                   location);
 #endif
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->m_with_components.push_back(type);
+    exec_info->m_has_components.push_back(type);
   }
   return true;
 }
 
 bool 
-process_without_component(ASTContext* ast_context,
+process_has_not_component(ASTContext* ast_context,
                           FccContext* fcc_contex,
                           FccExecInfo* exec_info,
                           const CallExpr* call)
 {
 
 #ifdef DEBUG
-  llvm::errs() << "Found without_component" << "\n";
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found has not component",
+                   location);
 #endif
 
   const FunctionDecl* func_decl = call->getDirectCallee();
@@ -308,7 +341,7 @@ process_without_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->m_without_components.push_back(type);
+    exec_info->m_has_not_components.push_back(type);
   }
   return true;
 }

@@ -30,35 +30,35 @@ FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create without Tag Filters
-  for(const std::string& tag : exec_info->m_without_tags)
+  for(const std::string& tag : exec_info->m_has_not_tags)
   {
     root = new TagFilter(root, 
                          tag,
-                         FccFilterOpType::E_WITHOUT);
+                         FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with tag filters
-  for(const std::string& tag : exec_info->m_with_tags)
+  for(const std::string& tag : exec_info->m_has_tags)
   {
     root = new TagFilter(root, 
                          tag,
-                         FccFilterOpType::E_WITH);
+                         FccFilterOpType::E_HAS);
   }
 
   // Create with components filters
-  for(const QualType& component_type : exec_info->m_without_components)
+  for(const QualType& component_type : exec_info->m_has_not_components)
   {
     root = new ComponentFilter(root, 
                                component_type,
-                               FccFilterOpType::E_WITHOUT);
+                               FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with components filters
-  for(const QualType& component_type : exec_info->m_with_components)
+  for(const QualType& component_type : exec_info->m_has_components)
   {
     root = new ComponentFilter(root, 
                                component_type,
-                               FccFilterOpType::E_WITH);
+                               FccFilterOpType::E_HAS);
   }
 
   // Create predicate filters

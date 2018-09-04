@@ -38,20 +38,20 @@ process_entry_point(ASTContext* ast_context,
  * @param call The AST call expression to process
  */
 bool 
-process_with_tag(ASTContext* ast_context,
+process_has_tag(ASTContext* ast_context,
                  FccContext *fcc_context,
                  FccExecInfo* exec_info,
                  const CallExpr* call);
 
 /**
- * @brief Process a without_tag call
+ * @brief Process a has_not_tag call
  *
- * @param ast_context The ast context of the without_tag call
+ * @param ast_context The ast context of the has_not_tag call
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
 bool 
-process_without_tag(ASTContext* ast_context,
+process_has_not_tag(ASTContext* ast_context,
                     FccContext *fcc_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call);
@@ -64,7 +64,7 @@ process_without_tag(ASTContext* ast_context,
  * @param call The AST call expression to process
  */
 bool 
-process_with_component(ASTContext* ast_context,
+process_has_component(ASTContext* ast_context,
                        FccContext *fcc_context,
                        FccExecInfo* exec_info,
                        const CallExpr* call);
@@ -72,12 +72,12 @@ process_with_component(ASTContext* ast_context,
 /**
  * @brief Process a without_component call
  *
- * @param ast_context The ast context of the without_component call
+ * @param ast_context The ast context of the has_not_component call
  * @param exec_info The exec info where the result is going to be stored
  * @param call The AST call expression to process
  */
 bool 
-process_without_component(ASTContext* ast_context,
+process_has_not_component(ASTContext* ast_context,
                           FccContext *fcc_context,
                           FccExecInfo* exec_info,
                           const CallExpr* call);

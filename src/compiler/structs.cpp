@@ -145,6 +145,10 @@ FccContext_run(FccContext* context,
     return result;
   }
 
+#ifdef DEBUG
+  llvm::errs() << "Parsing furious scripts" << "\n";
+#endif
+
   // Parse and visit all compilation units (furious scripts)
   for(auto& ast : context->m_asts) 
   {
@@ -153,6 +157,11 @@ FccContext_run(FccContext* context,
                           context);
     visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
   }
+
+#ifdef DEBUG
+  llvm::errs() << "\n";
+  llvm::errs() << "Building Query Plan" << "\n";
+#endif
 
   // Build initial execution plan
   FccExecPlan exec_plan{context};

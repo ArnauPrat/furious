@@ -107,8 +107,8 @@ struct PredicateFilter : public Filter<PredicateFilter>
 
 enum class FccFilterOpType
 {
-  E_WITH,
-  E_WITHOUT
+  E_HAS,
+  E_HAS_NOT
 };
 
 struct TagFilter : public Filter<TagFilter> 

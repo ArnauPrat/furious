@@ -88,13 +88,13 @@ ExecPlanPrinter::visit(const TagFilter* tag_filter)
 {
   std::stringstream ss;
   ss << "tag_filter (" << tag_filter << ") - ";
-  if(tag_filter->m_op_type == FccFilterOpType::E_WITH) 
+  if(tag_filter->m_op_type == FccFilterOpType::E_HAS) 
   {
-    ss << "with ";
+    ss << "has ";
   }
   else
   {
-    ss << "without ";
+    ss << "has not ";
   }
   ss << "\"" << tag_filter->m_tag << "\"";
   print(ss.str());
@@ -108,13 +108,13 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
 {
   std::stringstream ss;
   ss << "component_filter (" << component_filter << ") - ";
-  if(component_filter->m_op_type == FccFilterOpType::E_WITH) 
+  if(component_filter->m_op_type == FccFilterOpType::E_HAS) 
   {
-    ss << "with ";
+    ss << "has ";
   }
   else
   {
-    ss << "without ";
+    ss << "has not ";
   }
   ss << "\"" << component_filter->m_component_type->getAsCXXRecordDecl()->getNameAsString() << "\"";
   incr_level(false);

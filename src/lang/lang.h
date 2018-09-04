@@ -40,77 +40,10 @@ namespace furious
  * @tparam TSystem
  * @tparam typename...Components
  */
-template <typename TSystem, typename... Components>
+template <typename TSystem, typename... TComponents>
 struct RegisterSystemInfo
 {
 
-  /**
-   * @brief Executes the system on the entities that qualify the given
-   * predicate
-   *
-   * @param  The predicate 
-   *
-   * @return This RegisterSystemInfo
-   */
-  RegisterSystemInfo<TSystem, Components...> &
-  filter(bool (*)(const typename std::remove_pointer<Components>::type *...))
-  {
-    return *this;
-  }
-
-  /**
-   * @brief Executes the system on those entities with the given tag
-   *
-   * @param tag The tag to qualify
-   *
-   * @return This RegisterSystemInfo
-   */
-  RegisterSystemInfo<TSystem, Components...> &
-  with_tag(const char *tag)
-  {
-    return *this;
-  }
-
-  /**
-   * @brief Executes the system on those entities without the given tag
-   *
-   * @param tag The tag to qualify
-   *
-   * @return This RegisterSystemInfo
-   */
-  RegisterSystemInfo<TSystem, Components...> &
-  without_tag(const char *tag)
-  {
-    return *this;
-  }
-
-  /**
-   * @brief Executes the system on those entities with the given component
-   *
-   * @tparam TComponent The component to qualify
-   *
-   * @return This RegisterSystemInfo
-   */
-  template <typename TComponent>
-  RegisterSystemInfo<TSystem, Components...> &
-  with_component()
-  {
-    return *this;
-  }
-
-  /**
-   * @brief Executes the system on those entities without the given component
-   *
-   * @tparam TComponent The component to qualify
-   *
-   * @return This RegisterSystemInfo
-   */
-  template <typename TComponent>
-  RegisterSystemInfo<TSystem, Components...> &
-  without_component()
-  {
-    return *this;
-  }
 };
 
 /**
@@ -126,31 +59,117 @@ struct RegisterSystemInfo
  *
  * @return 
  */
-template <typename T, typename... Components>
-typename std::enable_if<(std::is_pointer<Components>::value && ...), RegisterSystemInfo<T, Components...>>::type
+template <typename T, typename... TComponents>
+typename std::enable_if<(std::is_pointer<TComponents>::value && ...), RegisterSystemInfo<T, TComponents...>>::type
 __register_foreach(T *system,
-      void (T::*)(Context *, int32_t id, Components...))
+      void (T::*)(Context *, int32_t id, TComponents...))
 {
-  return RegisterSystemInfo<T, Components...>();
+  return RegisterSystemInfo<T,TComponents...>();
 }
 
-/**
- * @brief This method is called in order to run a system over a set of component
- * types. The component types are specified in the system's run method, and thus
- * are implicitly extracted from it. 
- *
- * @tparam TSystem The type of the system to run
- * @tparam typename...TArgs The type of the arguments to initialize the system
- * @param ...args  The arguments to initialize the system
- *
- * @return Returns a RegisterSystemInfo object
- */
-template <typename TSystem, typename... TArgs>
-auto register_foreach(TArgs &&... args)
+template<typename...TComponents>
+struct QueryBuilder
 {
-  TSystem *system_object = new TSystem(std::forward<TArgs>(args)...);
-  return __register_foreach(system_object, &TSystem::run);
+  /**
+   * @brief Executes the system on the entities that qualify the given
+   * predicate
+   *
+   * @param  The predicate 
+   *
+   * @return This RegisterSystemInfo
+   */
+  QueryBuilder<TComponents...> &
+  filter(bool (*)(const typename std::remove_pointer<TComponents>::type *...))
+  {
+    return *this;
+  }
+
+  /**
+   * @brief Executes the system on those entities with the given tag
+   *
+   * @param tag The tag to qualify
+   *
+   * @return This QueryBuilder
+   */
+  QueryBuilder<TComponents...> &
+  has_tag(const char *tag)
+  {
+    return *this;
+  }
+
+  /**
+   * @brief Executes the system on those entities that do not have the given tag
+   *
+   * @param tag The tag to qualify
+   *
+   * @return This QueryBuilder
+   */
+  QueryBuilder<TComponents...> &
+  has_not_tag(const char *tag)
+  {
+    return *this;
+  }
+
+  /**
+   * @brief Executes the system on those entities with the given component
+   *
+   * @tparam TComponent The component to qualify
+   *
+   * @return This QueryBuilder
+   */
+  template <typename TComponent>
+  QueryBuilder<TComponents...> &
+  has_component()
+  {
+    return *this;
+  }
+
+  /**
+   * @brief Executes the system on those entities that do not have the given component
+   *
+   * @tparam TComponent The component to qualify
+   *
+   * @return This QueryBuilder
+   */
+  template <typename TComponent>
+  QueryBuilder<TComponents...> &
+  has_not_component()
+  {
+    return *this;
+  }
+
+  /**
+   * @brief Applies a system for each selected element
+   *
+   * @tparam TSystem The type of the system to apply
+   * @tparam typename...TArgs The type arguments for the system constructor
+   * @param TArgs...args The arguments for the system constructor
+   *
+   * @return 
+   */
+  template <typename TSystem, typename...TArgs>
+  auto
+  foreach(TArgs&&...args)
+  {
+    TSystem *system_object = new TSystem(std::forward<TArgs>(args)...);
+    return __register_foreach(system_object, &TSystem::run);
+  }
+  
+};
+
+/**
+ * @brief Method use to start a query in a furious script by selecting those
+ * entitties with the given components
+ *
+ * @tparam typename...TComponents The components to select
+ *
+ * @return Returns a QueryBuilder 
+ */
+template<typename...TComponents>
+QueryBuilder<TComponents...> select() {
+  return QueryBuilder<TComponents...>{};
 }
+
 
 } // namespace furious
 

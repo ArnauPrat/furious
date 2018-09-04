@@ -25,18 +25,17 @@ struct TestSystem1
   int32_t m_val;
 };
 
-furious::register_foreach<TestSystem1>(10,0.2)
-  .with_component<ComponentA>()
-  .without_component<ComponentB>()
-  .with_tag("Affected")
-  .without_tag("NotAffected")
+furious::select<ComponentA,ComponentB>()
+  .has_component<ComponentA>()
+  .has_not_component<ComponentB>()
+  .has_tag("Affected")
+  .has_not_tag("NotAffected")
    .filter([](const ComponentA* ca, const ComponentB* cb)
         {
         return test1(ca,cb);
         }
        )
-  .filter(test1);
-//furious::register_foreach<TestSystem1>(5, 1.0).with_tag("Affected").without_tag("NotAffected");
+  .filter(test1).foreach<TestSystem1>(10,0.2);
 
 END_FURIOUS_SCRIPT
 

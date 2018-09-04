@@ -40,11 +40,12 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
 
     // Check if the declaration is a valid furious api call 
     if (ret_type->isStructureOrClassType() &&
-        ret_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo" &&
+        (ret_type->getAsCXXRecordDecl()->getNameAsString() == "QueryBuilder" ||
+         ret_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo") &&
         isa<ClassTemplateSpecializationDecl>(ret_decl))
     {
       // Extracting operation type (e.g. foreach, etc.)
-      if(func_name == "register_foreach") 
+      if(func_name == "foreach") 
       {
         m_fcc_exec_info.m_operation_type = FccOperationType::E_FOREACH;
         m_fcc_exec_info.p_ast_context = p_ast_context;
@@ -54,29 +55,29 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
                                    call);
       }
 
-      if(func_name == "with_tag" ) {
-        return process_with_tag(p_ast_context,
+      if(func_name == "has_tag" ) {
+        return process_has_tag(p_ast_context,
                                 p_fcc_context,
                                 &m_fcc_exec_info,
                                 call);
       }
 
-      if(func_name == "without_tag" ) {
-        return process_without_tag(p_ast_context,
+      if(func_name == "has_not_tag" ) {
+        return process_has_not_tag(p_ast_context,
                                    p_fcc_context,
                                    &m_fcc_exec_info,
                                    call);
       }
 
-      if(func_name == "with_component" ) {
-        return process_with_component(p_ast_context,
+      if(func_name == "has_component" ) {
+        return process_has_component(p_ast_context,
                                       p_fcc_context,
                                       &m_fcc_exec_info,
                                       call);
       }
 
-      if(func_name == "without_component" ) {
-        return process_without_component(p_ast_context,
+      if(func_name == "has_not_component" ) {
+        return process_has_not_component(p_ast_context,
                                          p_fcc_context,
                                          &m_fcc_exec_info,
                                          call);
@@ -116,7 +117,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
   {
     if (func->hasBody())
     {
-      func->dump();
+      //func->dump();
       for(auto stmt : func->getBody()->children()) 
       {
         if(isa<Expr>(stmt))

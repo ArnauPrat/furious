@@ -36,6 +36,7 @@ public:
   accept(FccExecPlanVisitor* visitor) const = 0;  
 
   FccOperatorType m_type;
+  const FccOperator*  p_parent;
 };
 
 /**
@@ -45,7 +46,7 @@ template<typename T>
 class FccOperatorTmplt : public FccOperator
 {
 public:
-  FccOperatorTmplt(FccOperatorType type);
+  FccOperatorTmplt(const FccOperatorType type);
 
   virtual 
   ~FccOperatorTmplt() = default;
@@ -77,8 +78,8 @@ struct Join : public FccOperatorTmplt<Join>
   virtual 
   ~Join();
 
-  const FccOperator* p_left;
-  const FccOperator* p_right;
+  FccOperator * p_left;
+  FccOperator * p_right;
 };
 
 /**
@@ -92,7 +93,7 @@ struct Filter : public FccOperatorTmplt<T>
   virtual 
   ~Filter();
 
-  const FccOperator* p_child;
+  FccOperator* p_child;
 };
 
 struct PredicateFilter : public Filter<PredicateFilter>
@@ -102,7 +103,7 @@ struct PredicateFilter : public Filter<PredicateFilter>
   virtual 
   ~PredicateFilter() = default;
 
-  const FunctionDecl*   p_func_decl;
+  const FunctionDecl* p_func_decl;
 };
 
 enum class FccFilterOpType
@@ -143,14 +144,14 @@ struct ComponentFilter : public Filter<ComponentFilter>
  */
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
-  Foreach(const FccOperator* child, 
+  Foreach(FccOperator* child, 
           const std::vector<FccSystemInfo>& systems);
 
   virtual 
   ~Foreach();
 
   std::vector<FccSystemInfo>  m_systems;
-  const FccOperator*          p_child;
+  FccOperator*          p_child;
 };
 
 ////////////////////////////////////////////////

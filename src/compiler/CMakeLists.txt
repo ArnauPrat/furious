@@ -2,25 +2,28 @@
 include_directories(./)
 
 add_executable( fcc 
+  backend/produce_visitor.h
+  backend/consume_visitor.h
+  backend/produce_visitor.cpp
+  backend/consume_visitor.cpp
   clang_tools.h
   clang_tools.cpp
-  codegen.cpp
-  codegen.h
-  execution_plan.cpp
-  execution_plan.h
-  execution_plan.inl
-  exec_plan_printer.h
-  exec_plan_printer.cpp
+  backend/codegen.cpp
+  backend/codegen.h
+  frontend/execution_plan.cpp
+  frontend/execution_plan.h
+  frontend/execution_plan.inl
+  frontend/exec_plan_printer.h
+  frontend/exec_plan_printer.cpp
   fcc.cpp
-  fccASTVisitor.cpp
-  fccASTVisitor.h
-  parsing.cpp
-  parsing.h
+  frontend/fccASTVisitor.cpp
+  frontend/fccASTVisitor.h
+  frontend/parsing.cpp
+  frontend/parsing.h
   structs.cpp
   structs.h
-  transforms.cpp
-  transforms.h
-  transforms.h
+  frontend/transforms.cpp
+  frontend/transforms.h
   )
 
 #set_target_properties(fcc

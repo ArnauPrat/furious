@@ -5,7 +5,8 @@
 namespace furious {
 
 FccOperator::FccOperator(FccOperatorType type) :
-m_type(type) 
+m_type(type),
+p_parent{nullptr}
 {
 }
 
@@ -16,7 +17,8 @@ m_type(type)
 
 Scan::Scan(QualType component) : 
   FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN), 
-  m_component(component) {
+  m_component(component) 
+{
 
 }
 
@@ -26,11 +28,12 @@ Scan::Scan(QualType component) :
 
 Join::Join(FccOperator* left, 
            FccOperator* right) :
-FccOperatorTmplt<Join>(FccOperatorType::E_JOIN),
+FccOperatorTmplt<Join>(FccOperatorType::E_JOIN), 
 p_left(left),
 p_right(right) 
 {
-
+  p_left->p_parent = this;
+  p_right->p_parent = this;
 }
 
 Join::~Join() {
@@ -47,7 +50,7 @@ Join::~Join() {
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-PredicateFilter::PredicateFilter(FccOperator* child, 
+PredicateFilter::PredicateFilter(FccOperator* child,
                                  const FunctionDecl* func_decl) :
 Filter<PredicateFilter>{child},
 p_func_decl{func_decl}
@@ -87,13 +90,14 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Foreach::Foreach(const FccOperator* child,
+Foreach::Foreach(FccOperator* child,
                  const std::vector<FccSystemInfo>& systems) :
   FccOperatorTmplt<Foreach>{FccOperatorType::E_FOREACH}, 
   m_systems{systems}, 
-  p_child{child} {
-
-  }
+  p_child{child} 
+{
+  p_child->p_parent = this;
+}
 
 Foreach::~Foreach() {
   if(p_child != nullptr) {

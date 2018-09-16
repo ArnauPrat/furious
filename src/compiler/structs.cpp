@@ -3,10 +3,10 @@
 #include <sstream>
 
 #include "structs.h"
-#include "fccASTVisitor.h"
-#include "transforms.h"
-#include "execution_plan.h"
-#include "exec_plan_printer.h"
+#include "frontend/fccASTVisitor.h"
+#include "frontend/transforms.h"
+#include "frontend/execution_plan.h"
+#include "frontend/exec_plan_printer.h"
 
 namespace furious 
 {
@@ -146,6 +146,7 @@ FccContext_run(FccContext* context,
   }
 
 #ifdef DEBUG
+  llvm::errs() << "\n";
   llvm::errs() << "Parsing furious scripts" << "\n";
 #endif
 

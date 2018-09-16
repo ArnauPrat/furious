@@ -20,10 +20,11 @@ FccOperatorTmplt<T>::accept(FccExecPlanVisitor* visitor) const
 }
 
 template<typename T>
-Filter<T>::Filter( FccOperator* child) :
+Filter<T>::Filter(FccOperator* child) :
 FccOperatorTmplt<T>(FccOperatorType::E_FILTER),
 p_child(child) 
 {
+  p_child->p_parent = this;
 
 }
 

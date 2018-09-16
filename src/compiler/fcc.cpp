@@ -6,7 +6,7 @@
 #include "clang/Tooling/Tooling.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 
-#include "fccASTVisitor.h"
+#include "frontend/fccASTVisitor.h"
 
 using namespace clang::driver;
 using namespace clang::tooling;

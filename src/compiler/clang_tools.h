@@ -5,7 +5,14 @@
 #include <string>
 #include <clang/Basic/SourceManager.h>
 
+
 using namespace clang;
+
+namespace clang
+{
+class ASTContext;
+class Decl;
+}
 
 namespace furious
 {
@@ -23,6 +30,25 @@ std::string
 get_code(SourceManager &sm,
          SourceLocation &start,
          SourceLocation &end);
+
+
+struct Dependency 
+{
+  std::string m_include_file = "";
+  Decl*       p_decl         = nullptr;
+};
+
+/**
+ * @brief Gets the dependencies of a given declaration
+ *
+ * @param decl The declaration to get the dependencies from
+ *
+ * @return Returns a vector with the dependencies of a given declaration
+ */
+std::vector<Dependency> 
+get_dependencies(ASTContext* context, 
+                 const Decl* decl);
+
   
 } /* furious
  */ 

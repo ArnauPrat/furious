@@ -13,7 +13,7 @@ class ProduceVisitor : public FccExecPlanVisitor
 {
 public:
 
-  ProduceVisitor(std::ofstream& output_file);
+  ProduceVisitor(std::stringstream& output_stream);
 
   virtual ~ProduceVisitor() = default;
 
@@ -36,7 +36,7 @@ public:
   visit(const PredicateFilter* predicate_filter);
 
 private:
-  std::ofstream&  m_output_file;
+  std::stringstream&  m_output_ss;
 };
   
 } /* produce_visitor */ 

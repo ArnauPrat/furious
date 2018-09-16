@@ -6,10 +6,9 @@
 namespace furious 
 {
 
-extern ProduceVisitor* produce;
 
-ConsumeVisitor::ConsumeVisitor(std::ofstream& output_file)  :
-m_output_file{output_file}
+ConsumeVisitor::ConsumeVisitor(std::stringstream& output_ss)  :
+m_output_ss{output_ss}
 {
 }
 
@@ -31,16 +30,26 @@ ConsumeVisitor::visit(const Join* join)
 void 
 ConsumeVisitor::visit(const TagFilter* tag_filter)
 {
+  // if ...
+  ConsumeVisitor consume{m_output_ss} ;
+  tag_filter->p_parent->accept(&consume);
 }
 
 void
 ConsumeVisitor::visit(const ComponentFilter* component_filter)
 {
+  // if ...
+  ConsumeVisitor consume{m_output_ss};
+    component_filter->p_parent->accept(&consume);
 }
 
 void
 ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
 {
+  // if ...
+  ConsumeVisitor consume{m_output_ss};
+  predicate_filter->p_parent->accept(&consume);
+
 }
 
 } /* furious */ 

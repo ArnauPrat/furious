@@ -7,6 +7,7 @@
 #include "frontend/transforms.h"
 #include "frontend/execution_plan.h"
 #include "frontend/exec_plan_printer.h"
+#include "backend/codegen.h"
 
 namespace furious 
 {
@@ -176,6 +177,8 @@ FccContext_run(FccContext* context,
   ExecPlanPrinter printer;
   printer.traverse(&exec_plan);
   llvm::errs() << printer.m_string_builder.str() << "\n";
+  generate_code(&exec_plan,
+                "output.cpp");
   return result;
 }
 

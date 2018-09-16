@@ -6,27 +6,25 @@
 #include "produce_visitor.h"
 
 
+#include <sstream>
 #include <fstream>
 
 namespace furious {
-
-
-ConsumeVisitor* consume;
-ProduceVisitor* produce;
 
 void 
 generate_code(const FccExecPlan* exec_plan,
               const std::string& filename)
 {
-  std::ofstream output_file(filename);
-  consume = new ConsumeVisitor(output_file);
-  produce = new ProduceVisitor(output_file);
+  std::stringstream ss;
+  ConsumeVisitor* consume = new ConsumeVisitor(ss);
+  ProduceVisitor* produce = new ProduceVisitor(ss);
   for(const FccOperator* root : exec_plan->m_roots)
   {
     root->accept(produce);
   }
   delete consume;
   delete produce;
+  std::ofstream output_file(filename);
   output_file.close();
 }
   

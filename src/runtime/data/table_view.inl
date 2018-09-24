@@ -28,7 +28,11 @@ template<typename TComponent>
 const std::bitset<TABLE_BLOCK_SIZE>&   TableView<TComponent>::Block::get_enabled() const {
   return p_tblock->m_enabled;
 }
-  
+
+template<typename TComponent>
+TBlock* TableView<TComponent>::Block::get_raw() const {
+  return p_tblock;
+}
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////

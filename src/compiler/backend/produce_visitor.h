@@ -3,6 +3,7 @@
 #define _FURIOUS_COMPILER_PRODUCE_VISITOR_H_ value
 
 #include "frontend/execution_plan.h"
+#include <sstream>
 
 
 namespace furious {

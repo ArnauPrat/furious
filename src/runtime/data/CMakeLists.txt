@@ -3,6 +3,8 @@ add_definitions(${FURIOUS_DEFAULT_DEFINES})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
 add_library(data STATIC 
+  block_cluster.h
+  block_cluster.cpp
   common.h
   context.h
   context.cpp

@@ -2,20 +2,22 @@
 include_directories(./)
 
 add_executable( fcc 
-  backend/produce_visitor.h
-  backend/consume_visitor.h
-  backend/produce_visitor.cpp
-  backend/consume_visitor.cpp
-  clang_tools.h
-  clang_tools.cpp
   backend/codegen.cpp
   backend/codegen.h
+  backend/codegen_tools.cpp
+  backend/codegen_tools.h
+  backend/consume_visitor.cpp
+  backend/consume_visitor.h
+  backend/produce_visitor.cpp
+  backend/produce_visitor.h
+  clang_tools.cpp
+  clang_tools.h
+  fcc.cpp
+  frontend/exec_plan_printer.cpp
+  frontend/exec_plan_printer.h
   frontend/execution_plan.cpp
   frontend/execution_plan.h
   frontend/execution_plan.inl
-  frontend/exec_plan_printer.h
-  frontend/exec_plan_printer.cpp
-  fcc.cpp
   frontend/fccASTVisitor.cpp
   frontend/fccASTVisitor.h
   frontend/parsing.cpp

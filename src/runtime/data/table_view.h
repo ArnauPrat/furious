@@ -27,6 +27,8 @@ public:
 
       const std::bitset<TABLE_BLOCK_SIZE>&  get_enabled() const;
 
+      TBlock*     get_raw() const;
+
     private:
       TBlock* p_tblock;
     };

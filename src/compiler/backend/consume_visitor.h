@@ -9,7 +9,9 @@ class ConsumeVisitor : public FccExecPlanVisitor
 {
 public:
 
-  ConsumeVisitor(std::stringstream& output_ss);
+  ConsumeVisitor(std::stringstream& output_ss,
+                 const std::string& source,
+                 const FccOperator* caller);
   virtual ~ConsumeVisitor() = default;
 
   virtual void 
@@ -30,9 +32,10 @@ public:
   virtual void
   visit(const PredicateFilter* predicate_filter);
 
+  const std::string m_source;
 private:
   std::stringstream& m_output_ss;
-  ProduceVisitor* p_produce;
+  const FccOperator*   p_caller;
 
 };
 

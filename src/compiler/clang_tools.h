@@ -4,6 +4,8 @@
 
 #include <string>
 #include <clang/Basic/SourceManager.h>
+#include <clang/AST/Type.h>
+
 
 
 using namespace clang;
@@ -49,6 +51,8 @@ std::vector<Dependency>
 get_dependencies(ASTContext* context, 
                  const Decl* decl);
 
+std::string 
+get_type_name(const QualType& type);
   
 } /* furious
  */ 

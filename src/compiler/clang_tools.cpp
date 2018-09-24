@@ -84,4 +84,16 @@ get_dependencies(ASTContext* ast_context,
   return dep_visitor.m_dependencies;
 }
 
+std::string 
+get_type_name(const QualType& type)
+{
+
+  QualType pointeeType = type->getPointeeType();
+  pointeeType.removeLocalConst();
+  PrintingPolicy policy{{}};
+  policy.SuppressTagKeyword = true;
+  return QualType::getAsString(pointeeType.split(), policy);
+
+}
+
 } /* furious*/

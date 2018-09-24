@@ -16,15 +16,13 @@ generate_code(const FccExecPlan* exec_plan,
               const std::string& filename)
 {
   std::stringstream ss;
-  ConsumeVisitor* consume = new ConsumeVisitor(ss);
-  ProduceVisitor* produce = new ProduceVisitor(ss);
+  ProduceVisitor produce{ss};
   for(const FccOperator* root : exec_plan->m_roots)
   {
-    root->accept(produce);
+    root->accept(&produce);
   }
-  delete consume;
-  delete produce;
   std::ofstream output_file(filename);
+  output_file << ss.str();
   output_file.close();
 }
   

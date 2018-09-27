@@ -76,7 +76,6 @@ FccContext* FccContext_create_and_init()
   return context;
 }
 
-
 void 
 FccContext_release(FccContext* context)
 {
@@ -181,5 +180,6 @@ FccContext_run(FccContext* context,
                 "output.cpp");
   return result;
 }
+
 
 } /* furious */ 

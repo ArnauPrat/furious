@@ -12,7 +12,7 @@ class ExecPlanPrinter : public FccExecPlanVisitor
 {
 public:
 
-  ExecPlanPrinter();
+  ExecPlanPrinter(bool add_comments = false);
   virtual ~ExecPlanPrinter() = default;
 
   virtual void
@@ -48,7 +48,6 @@ public:
   int32_t m_indents = 0;
   std::stringstream   m_string_builder;
   std::vector<char>   m_offsets;
-  ASTContext*         p_ast_context;
 };
 
 } /* furious */ 

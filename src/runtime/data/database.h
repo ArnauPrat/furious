@@ -117,8 +117,8 @@ public:
    * 
    * @return Returns a bitset with the entities of the tag
    */
-  optional<const std::set<int32_t>*> 
-    get_tagged_entities(const std::string& tag);
+  const std::set<int32_t>*
+  get_tagged_entities(const std::string& tag);
 
 
   /**
@@ -145,6 +145,7 @@ public:
 
 private:
 
+  std::set<int32_t>                         m_empty_tags;
   std::map<std::string, std::set<int32_t>*> m_tags;
   std::map<int64_t, Table*>                 m_tables;           /** Holds a map between component types and their tables **/
   std::map<std::string, Table*>             m_references;

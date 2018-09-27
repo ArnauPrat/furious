@@ -33,6 +33,7 @@ struct FccSystemInfo
 {
   QualType                  m_system_type;  // The type of the system
   std::vector<const Expr*>  m_ctor_params;  // The expressions of the system's constructor parameters 
+  int32_t                   m_id;
 };
 
 /**

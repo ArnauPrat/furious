@@ -54,13 +54,13 @@ void Database::untag_entity(int32_t entity_id,
   }
 }
 
-optional<const std::set<int32_t>*> 
+const std::set<int32_t>* 
 Database::get_tagged_entities(const std::string& tag) {
   auto it = m_tags.find(tag);
   if(it != m_tags.end()) {
-    return optional<const std::set<int32_t>*>(it->second);
+    return it->second;
   }
-  return optional<const std::set<int32_t>*>{};
+  return &m_empty_tags;
 }
 
 void Database::add_reference( const std::string& type, 

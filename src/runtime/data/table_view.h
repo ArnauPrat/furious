@@ -49,6 +49,7 @@ public:
     };
 
   TableView( Table* table );
+  TableView(const TableView& other) = default;
   ~TableView() = default;
 
 public:

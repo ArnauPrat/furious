@@ -29,7 +29,7 @@ namespace furious
  * range
  */
 std::string 
-get_code(SourceManager &sm,
+get_code(const SourceManager &sm,
          SourceLocation &start,
          SourceLocation &end);
 
@@ -48,11 +48,16 @@ struct Dependency
  * @return Returns a vector with the dependencies of a given declaration
  */
 std::vector<Dependency> 
-get_dependencies(ASTContext* context, 
-                 const Decl* decl);
+get_dependencies(const Decl* decl);
+
+std::vector<Dependency> 
+get_dependencies(const QualType& type);
 
 std::string 
-get_type_name(const QualType& type);
+get_type_name(QualType type);
+
+std::string 
+get_qualified_type_name(QualType type);
   
 } /* furious
  */ 

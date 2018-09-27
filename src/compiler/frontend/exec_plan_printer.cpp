@@ -7,29 +7,34 @@
 namespace furious
 {
 
-ExecPlanPrinter::ExecPlanPrinter()
+ExecPlanPrinter::ExecPlanPrinter(bool add_comments)
 {
+  if(add_comments)
+  {
+    m_offsets.push_back('/');
+    m_offsets.push_back('/');
+  }
 }
+
 
 void
 ExecPlanPrinter::traverse(const FccExecPlan* plan) 
 {
   for(int32_t i = 0; i < (int32_t)plan->m_roots.size(); ++i)
   {
-    p_ast_context = plan->m_asts[i];
     plan->m_roots[i]->accept(this);
   }
 }
 
 std::string
-to_string(ASTContext* context, 
-          const FccSystemInfo* info)
+to_string(const FccSystemInfo* info)
 {
   std::stringstream ss;
   ss << info->m_system_type->getAsCXXRecordDecl()->getNameAsString() << "(";
   if(info->m_ctor_params.size() > 0)
   {
-    SourceManager& sm = context->getSourceManager();
+    const ASTContext& context = info->m_system_type->getAsCXXRecordDecl()->getASTContext();
+    const SourceManager& sm = context.getSourceManager();
     SourceLocation start = info->m_ctor_params[0]->getLocStart();
     SourceLocation end = info->m_ctor_params[0]->getLocEnd();
     ss << get_code(sm, start, end); 
@@ -51,8 +56,7 @@ ExecPlanPrinter::visit(const Foreach* foreach)
 {
   std::stringstream ss;
   ss << "foreach ("<< foreach <<  ") - " 
-     << "\"" << to_string(p_ast_context,
-                          &foreach->m_systems[0]) << "\"";
+     << "\"" << to_string(&foreach->m_systems[0]) << "\"";
   print(ss.str());
   incr_level(false);
   foreach->p_child->accept(this);
@@ -64,7 +68,7 @@ ExecPlanPrinter::visit(const Scan* scan)
 {
   std::stringstream ss;
   ss << "scan (" << scan << ") - " 
-     << "\"" << scan->m_component->getPointeeCXXRecordDecl()->getNameAsString() << "\"";
+     << "\"" << scan->m_component->getAsCXXRecordDecl()->getNameAsString() << "\"";
   print(ss.str());
   incr_level(false);
   decr_level();
@@ -73,7 +77,6 @@ ExecPlanPrinter::visit(const Scan* scan)
 void
 ExecPlanPrinter::visit(const Join* join) 
 {
-  
   std::stringstream ss;
   ss << "join (" << join << ")";
   print(ss.str());
@@ -117,6 +120,7 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
     ss << "has not ";
   }
   ss << "\"" << component_filter->m_component_type->getAsCXXRecordDecl()->getNameAsString() << "\"";
+  print(ss.str());
   incr_level(false);
   component_filter->p_child->accept(this);
   decr_level();

@@ -151,7 +151,7 @@ struct Foreach : public FccOperatorTmplt<Foreach>
   ~Foreach();
 
   std::vector<FccSystemInfo>  m_systems;
-  FccOperator*          p_child;
+  FccOperator*                p_child;
 };
 
 ////////////////////////////////////////////////

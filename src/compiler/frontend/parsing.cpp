@@ -129,6 +129,8 @@ process_entry_point(ASTContext* ast_context,
                    location);
 #endif
 
+  static int32_t system_id = 0;
+
   const FunctionDecl* func_decl = call->getDirectCallee();
 
   // Extract Basic Components and System from function return type
@@ -138,10 +140,11 @@ process_entry_point(ASTContext* ast_context,
   const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
   std::vector<QualType> tmplt_types = get_tmplt_types(arg_list);
 
+  exec_info->m_system.m_id = system_id;
   exec_info->m_system.m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
-    exec_info->m_basic_component_types.push_back(tmplt_types[i]);
+    exec_info->m_basic_component_types.push_back(tmplt_types[i]->getPointeeType());
   }
 
   // Extract System constructor parameter expressions
@@ -151,6 +154,7 @@ process_entry_point(ASTContext* ast_context,
     const Expr* arg_expr = call->getArg(i);
     exec_info->m_system.m_ctor_params.push_back(arg_expr);
   }
+  system_id++;
   return true;
 }
 

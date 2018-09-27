@@ -38,6 +38,7 @@ public:
 
 private:
   std::stringstream&  m_output_ss;
+  std::vector<std::string> m_types;
 };
   
 } /* produce_visitor */ 

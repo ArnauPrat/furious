@@ -9,7 +9,7 @@ namespace furious
 {
 
 std::string 
-get_code(SourceManager &sm,
+get_code(const SourceManager &sm,
          SourceLocation &start,
          SourceLocation &end)
 {
@@ -35,10 +35,10 @@ get_code(SourceManager &sm,
 class DependenciesVisitor : public RecursiveASTVisitor<DependenciesVisitor>
 {
 public:
-  ASTContext*             p_ast_context;
-  std::vector<Dependency> m_dependencies;
+  const ASTContext*             p_ast_context;
+  std::vector<Dependency>       m_dependencies;
 
-  DependenciesVisitor(ASTContext* context) :
+  DependenciesVisitor(const ASTContext* context) :
   p_ast_context(context)
   {
 
@@ -46,7 +46,7 @@ public:
 
   bool process_decl(Decl* decl) 
   {
-    SourceManager& sm = p_ast_context->getSourceManager();
+    const SourceManager& sm = p_ast_context->getSourceManager();
     std::string filename = sm.getFilename(decl->getLocStart());
     std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
 
@@ -76,24 +76,48 @@ public:
 };
 
 std::vector<Dependency> 
-get_dependencies(ASTContext* ast_context, 
-                 const Decl* decl)
+get_dependencies(const Decl* decl)
 {
-  DependenciesVisitor dep_visitor{ast_context};
+  const ASTContext& ast_context = decl->getASTContext();
+  DependenciesVisitor dep_visitor{&ast_context};
   dep_visitor.TraverseDecl(const_cast<Decl*>(decl));
   return dep_visitor.m_dependencies;
 }
 
-std::string 
-get_type_name(const QualType& type)
+std::vector<Dependency> 
+get_dependencies(const QualType& type)
 {
+  const Type* ptr = type.getTypePtrOrNull();
+  if(ptr)
+  {
+    const Decl* decl = nullptr;
+    if(type->isAnyPointerType()) 
+    {
+      decl = type->getPointeeCXXRecordDecl();
+    } else 
+    {
+      decl = type->getAsCXXRecordDecl();
+    }
+    return get_dependencies(decl);
+  }
+  return {};//std::vector<Dependency>();
+}
 
-  QualType pointeeType = type->getPointeeType();
-  pointeeType.removeLocalConst();
+std::string 
+get_type_name(QualType type)
+{
+  type.removeLocalConst();
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
-  return QualType::getAsString(pointeeType.split(), policy);
+  return QualType::getAsString(type.split(), policy);
+}
 
+std::string 
+get_qualified_type_name(QualType type) 
+{
+  PrintingPolicy policy{{}};
+  policy.SuppressTagKeyword = true;
+  return QualType::getAsString(type.split(), policy);
 }
 
 } /* furious*/

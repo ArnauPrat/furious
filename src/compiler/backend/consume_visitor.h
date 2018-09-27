@@ -11,6 +11,7 @@ public:
 
   ConsumeVisitor(std::stringstream& output_ss,
                  const std::string& source,
+                 const std::vector<std::string>& m_types,
                  const FccOperator* caller);
   virtual ~ConsumeVisitor() = default;
 
@@ -34,8 +35,9 @@ public:
 
   const std::string m_source;
 private:
-  std::stringstream& m_output_ss;
-  const FccOperator*   p_caller;
+  std::stringstream&        m_output_ss;
+  std::vector<std::string>  m_types;
+  const FccOperator*        p_caller;
 
 };
 

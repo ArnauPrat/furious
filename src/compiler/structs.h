@@ -84,10 +84,10 @@ enum class FccCompilationErrorType
  */
 struct FccContext {
   void (*p_pecallback)(FccContext*, 
-                      FccParsingErrorType, 
-                      const std::string&, 
-                      int32_t, 
-                      int32_t); // Pointer to function handling the error
+                       FccParsingErrorType, 
+                       const std::string&, 
+                       int32_t, 
+                       int32_t); // Pointer to function handling the error
 
   void (*p_cecallback)(FccContext*,
                        FccCompilationErrorType,

@@ -1,5 +1,5 @@
 
-#include "static_system.h"
+#include "system_wrapper.h"
 #include "workload.h"
 #include "system.h"
 #include "backend.h"

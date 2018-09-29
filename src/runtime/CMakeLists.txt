@@ -10,8 +10,8 @@ add_library(runtime STATIC
   #backends/volcano/temp_buffer.cpp
   #backends/basic/basic.h
   #backends/basic/basic.cpp
-  static_system.h
-  static_system.inl
+  system_wrapper.h
+  system_wrapper.inl
   system.h
   system.cpp
   workload.h

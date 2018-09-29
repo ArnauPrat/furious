@@ -13,9 +13,6 @@ struct ComponentB {
   int32_t m_field;
 };
 
-struct ComponentC {
-  int32_t m_field;
-};
 
   
 #endif /* ifndef _FURIOUS_LANG_TEST_H_ */

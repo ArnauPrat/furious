@@ -4,6 +4,7 @@
 #include "../frontend/execution_plan.h"
 #include "../clang_tools.h"
 #include "codegen.h"
+#include "codegen_tools.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
 #include "../structs.h"
@@ -13,6 +14,19 @@
 #include <fstream>
 
 namespace furious {
+
+CodeGenContext::CodeGenContext(std::stringstream& output) :
+m_output_ss{output}
+{
+  p_consumer = new ConsumeVisitor(this);
+  p_producer = new ProduceVisitor(this);
+}
+
+CodeGenContext::~CodeGenContext()
+{
+  delete p_consumer;
+  delete p_producer;
+}
 
 /**
  * @brief Visitor used to extract the dependencies of an execution plan
@@ -193,7 +207,7 @@ generate_code(const FccExecPlan* exec_plan,
   for(const std::string& tag : vars_extr.m_tags)
   {
     // TagSets
-    output_ss << "std::set<int32_t>* tagged_"<<tag<< ";\n";
+    output_ss << "BitTable* tagged_"<<tag<< ";\n";
   }
 
   for(const FccExecInfo& info : exec_plan->p_context->m_operations)
@@ -203,7 +217,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << system_name <<"* "<< base_name << "_" << info.m_system.m_id << ";\n";
+    output_ss << "SystemWrapper<"<< system_name <<">* "<< base_name << "_" << info.m_system.m_id << ";\n";
   }
 
   /// Initialize variables
@@ -232,7 +246,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << base_name << "_" << info.m_system.m_id << " = new "<<system_name<<"{";
+    output_ss << base_name << "_" << info.m_system.m_id << " = create_system<"<<system_name<<">(";
 
     size_t num_params = info.m_system.m_ctor_params.size();
     if( num_params > 0) 
@@ -256,7 +270,7 @@ generate_code(const FccExecPlan* exec_plan,
         output_ss << "," << code;
       }
     }
-    output_ss << "};\n";
+    output_ss << ");\n";
   }
   output_ss << "}\n";
 
@@ -266,14 +280,13 @@ generate_code(const FccExecPlan* exec_plan,
 
   output_ss << "Context context{delta,database};\n";
 
-  ProduceVisitor produce{output_ss};
   for(const FccOperator* root : exec_plan->m_roots)
   {
     ExecPlanPrinter printer{true};
     root->accept(&printer);
     output_ss << printer.m_string_builder.str();
     output_ss << "{\n";
-    root->accept(&produce);
+    produce(output_ss,root);
     output_ss << "}\n";
   }
   output_ss << "}\n";
@@ -288,7 +301,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << "delete " << base_name << "_" << info.m_system.m_id << ";\n";
+    output_ss << "destroy_system("<< base_name << "_" << info.m_system.m_id << ");\n";
   }
   output_ss << "}\n";
   output_ss << "}\n";

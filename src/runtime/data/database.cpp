@@ -40,9 +40,9 @@ void Database::tag_entity(int32_t entity_id,
 
   auto it = m_tags.find(tag);
   if(it == m_tags.end()) {
-    it = m_tags.insert(std::make_pair(tag, new std::set<int32_t>())).first;
+    it = m_tags.insert(std::make_pair(tag, new BitTable())).first;
   }
-  (*it).second->insert(entity_id);
+  (*it).second->add(entity_id);
 }
 
 void Database::untag_entity(int32_t entity_id, 
@@ -50,11 +50,11 @@ void Database::untag_entity(int32_t entity_id,
 
   auto it = m_tags.find(tag);
   if(it != m_tags.end()) {
-    it->second->erase(entity_id);
+    it->second->remove(entity_id);
   }
 }
 
-const std::set<int32_t>* 
+const BitTable* 
 Database::get_tagged_entities(const std::string& tag) {
   auto it = m_tags.find(tag);
   if(it != m_tags.end()) {

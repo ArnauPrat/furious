@@ -8,13 +8,13 @@
 
 namespace furious {
 
-class ConsumeVisitor;
+class CodeGenContext;
 
 class ProduceVisitor : public FccExecPlanVisitor
 {
 public:
 
-  ProduceVisitor(std::stringstream& output_stream);
+  ProduceVisitor(CodeGenContext* p_context);
 
   virtual ~ProduceVisitor() = default;
 
@@ -36,9 +36,7 @@ public:
   virtual void
   visit(const PredicateFilter* predicate_filter);
 
-private:
-  std::stringstream&  m_output_ss;
-  std::vector<std::string> m_types;
+  CodeGenContext* p_context;
 };
   
 } /* produce_visitor */ 

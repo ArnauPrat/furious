@@ -1,21 +1,25 @@
 
-#include "../runtime/static_system.h"
+#include "../runtime/system_wrapper.h"
 #include "../furious.h"
 
 #include <gtest/gtest.h>
 
-namespace furious {
+namespace furious 
+{
 
-struct ComponentA {
+struct ComponentA 
+{
   int32_t m_field;
 };
 
-struct ComponentB {
+struct ComponentB 
+{
   int32_t m_field;
 };
 
 
-class TestSystem {
+class TestSystem 
+{
 public:
   TestSystem(uint32_t val) : m_val{val} {}
   virtual ~TestSystem() = default;
@@ -30,8 +34,8 @@ public:
   uint32_t m_val;
 };
 
-TEST(SystemTest, SystemWorks) {
- 
+TEST(SystemTest, SystemWorks) 
+{
   /*
   init();
   Database* database = create_database();

@@ -3,6 +3,7 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
+#include "bit_table.h"
 #include "table.h"
 #include "table_view.h"
 #include "common.h"
@@ -14,9 +15,9 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <typeinfo>
+
 
 namespace furious {
 
@@ -117,7 +118,7 @@ public:
    * 
    * @return Returns a bitset with the entities of the tag
    */
-  const std::set<int32_t>*
+  const BitTable*
   get_tagged_entities(const std::string& tag);
 
 
@@ -145,8 +146,8 @@ public:
 
 private:
 
-  std::set<int32_t>                         m_empty_tags;
-  std::map<std::string, std::set<int32_t>*> m_tags;
+  BitTable                                  m_empty_tags;
+  std::map<std::string, BitTable*>          m_tags;
   std::map<int64_t, Table*>                 m_tables;           /** Holds a map between component types and their tables **/
   std::map<std::string, Table*>             m_references;
   int32_t                                   m_next_entity_id;

@@ -3,11 +3,13 @@ add_definitions(${FURIOUS_DEFAULT_DEFINES})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
 add_library(data STATIC 
-  block_cluster.h
+  bit_table.cpp
+  bit_table.h
   block_cluster.cpp
+  block_cluster.h
   common.h
-  context.h
   context.cpp
+  context.h
   context.inl 
   data.h
   database.cpp
@@ -16,8 +18,8 @@ add_library(data STATIC
   entity.cpp
   entity.h
   table.cpp
-  table.inl 
   table.h
+  table.inl 
   table_view.h
   table_view.inl 
 )

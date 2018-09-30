@@ -12,4 +12,4 @@ ADD cmake ./cmake
 RUN mkdir build 
 
 # Required system packages
-RUN pacman -S --noconfirm gcc cmake gtest numactl make clang compiler-rt
+RUN pacman -S --noconfirm gcc cmake gtest numactl make clang compiler-rt llvm-libs

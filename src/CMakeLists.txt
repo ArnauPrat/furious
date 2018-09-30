@@ -58,6 +58,10 @@ install (TARGETS furious
           RUNTIME DESTINATION bin
           LIBRARY DESTINATION lib)
 
+install (TARGETS furious_runtime
+          RUNTIME DESTINATION bin
+          LIBRARY DESTINATION lib)
+
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
        FILES_MATCHING PATTERN "*.h"
        )

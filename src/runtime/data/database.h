@@ -3,7 +3,6 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
-#include "bit_table.h"
 #include "table.h"
 #include "table_view.h"
 #include "common.h"
@@ -20,6 +19,8 @@
 
 
 namespace furious {
+
+class BitTable;
 
 class Database final {
 public:
@@ -146,7 +147,6 @@ public:
 
 private:
 
-  BitTable                                  m_empty_tags;
   std::map<std::string, BitTable*>          m_tags;
   std::map<int64_t, Table*>                 m_tables;           /** Holds a map between component types and their tables **/
   std::map<std::string, Table*>             m_references;

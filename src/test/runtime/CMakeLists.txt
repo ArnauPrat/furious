@@ -30,10 +30,8 @@ SET(TESTS
   memory_test
   table_test
   database_test
-  system_test
   tags_test
   traits_test
-  foreach_test
   )
 
 foreach( TEST ${TESTS} )

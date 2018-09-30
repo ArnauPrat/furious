@@ -1,6 +1,7 @@
 
 
 
+#include "bit_table.h"
 #include "database.h"
 #include "../../common/utils.h"
 
@@ -60,7 +61,9 @@ Database::get_tagged_entities(const std::string& tag) {
   if(it != m_tags.end()) {
     return it->second;
   }
-  return &m_empty_tags;
+  BitTable* bit_table = new BitTable();
+  m_tags[tag] = bit_table;
+  return bit_table;
 }
 
 void Database::add_reference( const std::string& type, 

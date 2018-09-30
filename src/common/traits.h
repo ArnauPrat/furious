@@ -10,7 +10,6 @@
 
 namespace furious {
 
-
 /**
  * @brief Auxiliary class used for trait type_name 
  *

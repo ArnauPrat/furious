@@ -25,15 +25,5 @@ void destroy_entity(Entity* entity) {
   Entity::remove_entity(entity);
 }
 
-
-Workload* create_workload() {
-  return new Workload();
-}
-
-void destroy_workload(Workload* workload) {
-  delete workload;
-}
-
-
 } /* furious */ 
 

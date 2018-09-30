@@ -35,6 +35,8 @@ public:
   void add_tag(const std::string& tag);
 
   void remove_tag(const std::string& tag);
+
+  bool has_tag(const std::string& tag);
   
   /**
    * @brief Creates an entity 
@@ -51,9 +53,11 @@ public:
   static void remove_entity( Entity* entity);
 
   Database* get_database();
-private:
 
   entity_id_t m_id;
+
+private:
+
   Database*   p_database;
 
   static entity_id_t m_next_id;

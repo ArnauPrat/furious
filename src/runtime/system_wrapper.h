@@ -2,7 +2,6 @@
 #ifndef _FURIOUS_STATIC_SYSTEM_H_
 #define _FURIOUS_STATIC_SYSTEM_H_ 
 
-#include "system.h"
 #include "data/table.h"
 #include "data/context.h"
 #include "../common/traits.h"

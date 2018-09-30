@@ -55,27 +55,29 @@ ConsumeVisitor::visit(const Scan* scan)
 void
 ConsumeVisitor::visit(const Join* join)
 {
+
+  std::string hashtable = "hashtable"+p_context->m_join_id;
   if(p_context->p_caller == join->p_left) 
   {
-
-    p_context->m_output_ss << p_context->m_hashtable_name << "[" << p_context->m_source << ".m_start] = " << p_context->m_source << ";\n"; 
+    p_context->m_output_ss << hashtable << "[" << p_context->m_source << ".m_start] = " << p_context->m_source << ";\n"; 
     p_context->m_left_types.insert(p_context->m_left_types.end(), 
                                    p_context->m_types.begin(),
                                    p_context->m_types.end());
   } else 
   {
-    p_context->m_output_ss << "auto it = "<< p_context->m_hashtable_name << ".find(" << p_context->m_source << ".m_start);\n";
-    p_context->m_output_ss << "if(it != "<< p_context->m_hashtable_name <<".end())\n{\n";
-    p_context->m_output_ss << "auto& cluster = *it;\n";
+    std::string clustername = "cluster_"+p_context->m_join_id;
+    p_context->m_output_ss << "auto it = "<< hashtable << ".find(" << p_context->m_source << ".m_start);\n";
+    p_context->m_output_ss << "if(it != "<< hashtable <<".end())\n{\n";
+    p_context->m_output_ss << "auto& "<< clustername <<" = *it;\n";
     p_context->m_output_ss << "cluster.append(&" << p_context->m_source<< ");\n";
-    p_context->m_output_ss << "if(cluster.m_enabled.any())\n{\n";
+    p_context->m_output_ss << "if("<< clustername << ".m_enabled.any())\n{\n";
     std::vector<std::string> joined_types{p_context->m_left_types};
     joined_types.insert(joined_types.end(),
                         p_context->m_types.begin(),
                         p_context->m_types.end());
     consume(p_context->m_output_ss,
             join->p_parent,
-            "cluster",
+            clustername,
             joined_types,
             join);
     p_context->m_output_ss << "}\n";

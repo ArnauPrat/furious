@@ -1,5 +1,5 @@
 
-#include "../runtime/memory/memory.h"
+#include "furious.h"
 
 #include <gtest/gtest.h>
 #include <set>

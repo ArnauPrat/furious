@@ -1,4 +1,4 @@
-#include "../furious.h"
+#include "furious.h"
 #include <gtest/gtest.h>
 
 namespace furious {

@@ -6,6 +6,8 @@
 #include "../clang_tools.h"
 #include "codegen_tools.h"
 
+#include <ctime>
+#include <cstdlib>
 #include <clang/AST/PrettyPrinter.h>
 #include <string>
 
@@ -56,9 +58,9 @@ ProduceVisitor::visit(const Scan* scan)
 void
 ProduceVisitor::visit(const Join* join)
 {
-
-  p_context->m_hashtable_name = "hash_X";
-  p_context->m_output_ss << "std::unordered_map<int32_t,BlockCluster> "<<p_context->m_hashtable_name<<";\n";
+  p_context->m_join_id = std::to_string((uint32_t)rand());
+  std::string hashtable = "hashtable_" + p_context->m_join_id;
+  p_context->m_output_ss << "std::unordered_map<int32_t,BlockCluster> "<<hashtable<<";\n";
   produce(p_context->m_output_ss,join->p_left);
   produce(p_context->m_output_ss,join->p_right);
 }

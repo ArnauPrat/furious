@@ -4,10 +4,7 @@
 #define _FURIOUS_H_
 
 #include "common/common.h"
-#include "runtime/memory/memory.h"
-#include "runtime/data/data.h"
 #include "runtime/runtime.h"
-#include "runtime/operators/operators.h"
 
 namespace furious {
 
@@ -49,20 +46,6 @@ Entity create_entity(Database* database);
  */
 void destroy_entity(Entity* entiy);
 
-/**
- * @brief Creates a workload object
- *
- * @return  The newly created workload object
- */
-Workload* create_workload();
-
-/**
- * @brief Destroys a workload
- *
- * @param workload A pointer to the workload to destroy
- */
-void destroy_workload(Workload* workload);
-  
 } /* furious */ 
 
 #endif /* ifndef _FURIOUS_H_ */

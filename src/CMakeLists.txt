@@ -45,7 +45,7 @@ set_target_properties(furious_test
   ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
 )
 
-add_subdirectory(./test/)
+add_subdirectory(./test/runtime)
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 

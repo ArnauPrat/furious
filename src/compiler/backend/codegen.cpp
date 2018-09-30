@@ -15,18 +15,6 @@
 
 namespace furious {
 
-CodeGenContext::CodeGenContext(std::stringstream& output) :
-m_output_ss{output}
-{
-  p_consumer = new ConsumeVisitor(this);
-  p_producer = new ProduceVisitor(this);
-}
-
-CodeGenContext::~CodeGenContext()
-{
-  delete p_consumer;
-  delete p_producer;
-}
 
 /**
  * @brief Visitor used to extract the dependencies of an execution plan

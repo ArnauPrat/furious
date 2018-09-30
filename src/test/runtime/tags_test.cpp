@@ -1,5 +1,5 @@
 
-#include "../furious.h"
+#include "furious.h"
 #include <gtest/gtest.h>
 
 namespace furious {
@@ -30,7 +30,6 @@ public:
 
 TEST(TagTests,TagWorks) {
 
-  /*
   furious::init();
 
   Database* database = create_database();
@@ -40,34 +39,19 @@ TEST(TagTests,TagWorks) {
   Entity entity1 = create_entity(database);
   Entity entity2 = create_entity(database);
   Entity entity3 = create_entity(database);
-  entity1.add_component<ComponentA>(1);
-  entity1.add_component<ComponentB>(3);
   entity1.add_tag("selected");
-  entity2.add_component<ComponentA>(2);
-  entity2.add_component<ComponentB>(4);
-  entity3.add_component<ComponentA>(60);
   entity3.add_tag("selected");
 
-  Workload* workload = create_workload();
-  workload->add_system<TestSystem>(10).restrict_to({"selected"});
+  ASSERT_TRUE(entity1.has_tag("selected"));
+  ASSERT_FALSE(entity2.has_tag("selected"));
+  ASSERT_TRUE(entity3.has_tag("selected"));
 
-  
-  furious::Backend* backend = new furious::Basic();
-  backend->compile(workload, database);
-
-  backend->run(0.0);
-
-  ASSERT_EQ(entity1.get_component<ComponentA>()->m_field, 30 );
-  ASSERT_EQ(entity2.get_component<ComponentA>()->m_field, 2 );
-  ASSERT_EQ(entity3.get_component<ComponentA>()->m_field, 60 );
 
   destroy_entity(&entity1);
   destroy_entity(&entity2);
   destroy_entity(&entity3);
-  destroy_workload(workload);
   destroy_database(database);
   furious::release();
-  */
 }
 }
 

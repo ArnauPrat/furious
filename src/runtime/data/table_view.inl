@@ -58,6 +58,12 @@ typename TableView<TComponent>::Block TableView<TComponent>::BlockIterator::next
 ////////////////////////////////////////////////
 
 template<typename TComponent>
+  TableView<TComponent>::TableView() :
+    p_table(nullptr)
+{
+}
+
+template<typename TComponent>
   TableView<TComponent>::TableView( Table* table ) :
     p_table(table)
 {

@@ -1,5 +1,6 @@
 
 #include "entity.h"
+#include "bit_table.h"
 
 namespace furious  {
 
@@ -34,11 +35,19 @@ void Entity::remove_tag(const std::string& tag) {
 bool Entity::has_tag(const std::string& tag) 
 {
   const BitTable* bit_table = p_database->get_tagged_entities(tag);
-
+  return bit_table->exists(m_id);
 }
 
 Database* Entity::get_database() {
   return p_database;
+}
+
+Entity create_entity(Database* database) {
+ return Entity::create_entity(database);
+}
+
+void destroy_entity(Entity* entity) {
+  Entity::remove_entity(entity);
 }
   
 } /* furious  */ 

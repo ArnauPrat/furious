@@ -20,9 +20,21 @@ set_target_properties(furious
   ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
 )
 
-add_executable( furious_test 
-  furious_test.cpp
-  )
+######################
+
+add_library(furious_runtime SHARED
+  furious_runtime.h
+  furious_runtime.cpp
+  )  
+
+target_link_libraries(furious_runtime furious)
+
+set_target_properties(furious_runtime
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
+  LIBRARY_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
+  ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
+)
 
 add_executable( mvp_test 
   mvp_test.cpp
@@ -32,20 +44,12 @@ add_executable( bitset_test
   bitset_test.cpp 
   )
 
-add_executable(lang_test 
+add_executable( lang_test 
   lang_test.cpp
   )
 
-target_link_libraries( furious_test furious memory)
-
-set_target_properties(furious_test
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-  LIBRARY_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-  ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-)
-
 add_subdirectory(./test/runtime)
+add_subdirectory(./test/compiler)
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 

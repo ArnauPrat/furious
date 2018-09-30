@@ -205,13 +205,19 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << "SystemWrapper<"<< system_name <<">* "<< base_name << "_" << info.m_system.m_id << ";\n";
+    output_ss << "SystemWrapper<"<< system_name;
+		for(const QualType& component : info.m_basic_component_types)
+		{
+      std::string q_ctype = get_qualified_type_name(component);
+      output_ss << "," << q_ctype;
+		}
+    output_ss <<">* "<< base_name << "_" << info.m_system.m_id << ";\n";
   }
 
   /// Initialize variables
   output_ss << "\n\n\n";
   output_ss << "// Variable initializations \n";
-  output_ss << "void __furious_init()\n{\n";
+  output_ss << "void __furious_init(Database* database)\n{\n";
   for(const std::string& table : vars_extr.m_components)
   {
     std::string base_name = table;
@@ -219,7 +225,7 @@ generate_code(const FccExecPlan* exec_plan,
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     std::string table_varname = base_name+"_table";
-    output_ss << table_varname<< " = database->find_table<"<<table<<">();\n";
+    output_ss << table_varname<< " = database->find_or_add_table<"<<table<<">();\n";
   }
 
   for(const std::string& tag : vars_extr.m_tags)
@@ -264,7 +270,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   /// Generate execution code
   output_ss << "\n\n\n";
-  output_ss << "void __furious_frame(float_t delta)\n{\n";
+  output_ss << "void __furious_frame(float delta, Database* database)\n{\n";
 
   output_ss << "Context context{delta,database};\n";
 

@@ -23,7 +23,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
   int param_index = 0;
   for(const std::string& type : p_context->m_types) 
   {
-      p_context->m_output_ss << type << "* data_"<< param_index << " = static_cast<" << type << "*>(" << p_context->m_source << ".m_blocks["<<param_index<<"]->m_data);\n";
+      p_context->m_output_ss << type << "* data_"<< param_index << " = reinterpret_cast<" << type << "*>(" << p_context->m_source << ".m_blocks["<<param_index<<"]->p_data);\n";
       param_index++;
   }
   p_context->m_output_ss << "\n";
@@ -41,7 +41,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
     p_context->m_output_ss << base_name << "_" << info.m_id << "->apply_block(&context,\n"<< p_context->m_source<<".m_start,\n"<<p_context->m_source<<".m_enabled";
     for(size_t i = 0; i <  p_context->m_types.size(); ++i) 
     {
-      p_context->m_output_ss << ",\n&data_"<< i << "[i]";
+      p_context->m_output_ss << ",\ndata_"<< i;
     }
     p_context->m_output_ss << ");\n"; 
   }
@@ -56,7 +56,7 @@ void
 ConsumeVisitor::visit(const Join* join)
 {
 
-  std::string hashtable = "hashtable"+p_context->m_join_id;
+  std::string hashtable = "hashtable_"+p_context->m_join_id;
   if(p_context->p_caller == join->p_left) 
   {
     p_context->m_output_ss << hashtable << "[" << p_context->m_source << ".m_start] = " << p_context->m_source << ";\n"; 
@@ -68,8 +68,8 @@ ConsumeVisitor::visit(const Join* join)
     std::string clustername = "cluster_"+p_context->m_join_id;
     p_context->m_output_ss << "auto it = "<< hashtable << ".find(" << p_context->m_source << ".m_start);\n";
     p_context->m_output_ss << "if(it != "<< hashtable <<".end())\n{\n";
-    p_context->m_output_ss << "auto& "<< clustername <<" = *it;\n";
-    p_context->m_output_ss << "cluster.append(&" << p_context->m_source<< ");\n";
+    p_context->m_output_ss << "BlockCluster& "<< clustername <<" = it->second;\n";
+    p_context->m_output_ss << clustername << ".append(&" << p_context->m_source<< ");\n";
     p_context->m_output_ss << "if("<< clustername << ".m_enabled.any())\n{\n";
     std::vector<std::string> joined_types{p_context->m_left_types};
     joined_types.insert(joined_types.end(),
@@ -133,7 +133,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   int param_index = 0;
   for(const std::string& type : p_context->m_types) 
   {
-      p_context->m_output_ss << type << "* data_"<< param_index << " = static_cast<" << type << "*>(" << p_context->m_source << ".m_blocks["<<param_index<<"]->m_data);\n";
+      p_context->m_output_ss << type << "* data_"<< param_index << " = reinterpret_cast<" << type << "*>(" << p_context->m_source << ".m_blocks["<<param_index<<"]->p_data);\n";
       param_index++;
   }
   p_context->m_output_ss << "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && "<< p_context->m_source <<".m_enabled.any(); ++i) \n{\n";

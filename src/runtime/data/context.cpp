@@ -10,12 +10,4 @@ Context::Context(float dt, Database* database) :
   p_database(database) {
   }
 
-
-float Context::get_dt() {
-  return m_dt;
-}
-
-Database* Context::get_database() {
-  return p_database;
-}
 }

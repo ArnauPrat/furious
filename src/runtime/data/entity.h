@@ -63,6 +63,20 @@ private:
   static entity_id_t m_next_id;
   
 };
+
+/**
+ * @brief Creates an entity
+ *
+ * @return A newly created entity
+ */
+Entity create_entity(Database* database);
+
+/**
+ * @brief Removes the given entity
+ *
+ * @param entiy The entity to remove. 
+ */
+void destroy_entity(Entity* entiy);
   
 } /* furious */ 
 

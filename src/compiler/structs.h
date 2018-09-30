@@ -169,12 +169,14 @@ FccContext_report_compilation_error(FccContext* context,
  *
  * @param context The context to run the compiler with
  * @param op The options to run the compiler with
+ * @param output_file The output file to generate 
  *
  * @return Returns the exit code of the compilation. 0 if successful.
  */
 int 
 FccContext_run(FccContext* context, 
-               CommonOptionsParser& op);
+               CommonOptionsParser& op,
+               const std::string& output_file);
 
 } /* furious */ 
 

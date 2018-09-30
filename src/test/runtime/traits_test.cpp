@@ -39,8 +39,6 @@ extern const char parent_str[] = "parent";
 
 TEST(TraitsTest,TraitsWorks) {
 
-  furious::init();
-
   Ref<ComponentA, parent_str> test(nullptr);
 
   // testing name trait
@@ -79,7 +77,6 @@ TEST(TraitsTest,TraitsWorks) {
   result = ref_name<Ref<ComponentB, parent_str>>::value() == parent_str;
   ASSERT_TRUE(result);
 
-  furious::release();
 }
 }
 

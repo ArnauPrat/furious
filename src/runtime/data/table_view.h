@@ -48,9 +48,12 @@ public:
 
     };
 
+  TableView();
   TableView( Table* table );
   TableView(const TableView& other) = default;
   ~TableView() = default;
+
+  TableView& operator=(const TableView& other) = default;
 
 public:
   /**

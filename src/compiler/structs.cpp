@@ -136,7 +136,8 @@ FccContext_report_compilation_error(FccContext* context,
 
 int 
 FccContext_run(FccContext* context, 
-               CommonOptionsParser& op )
+               CommonOptionsParser& op,
+               const std::string& output_file)
 {
   ClangTool tool(op.getCompilations(), op.getSourcePathList());
   int result = tool.buildASTs(context->m_asts);
@@ -177,7 +178,7 @@ FccContext_run(FccContext* context,
   printer.traverse(&exec_plan);
   llvm::errs() << printer.m_string_builder.str() << "\n";
   generate_code(&exec_plan,
-                "output.cpp");
+                output_file);
   return result;
 }
 

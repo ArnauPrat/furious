@@ -54,8 +54,8 @@ auto create_system(TArgs&&...args)
   return create_system(system_object, &TSystem::run );
 }
 
-template<typename TSystem>
-void destroy_system(SystemWrapper<TSystem>* system) 
+template<typename TSystem, typename...Components>
+void destroy_system(SystemWrapper<TSystem,Components...>* system) 
 {
   delete system;
 }

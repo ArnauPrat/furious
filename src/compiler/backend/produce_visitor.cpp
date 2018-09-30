@@ -44,7 +44,7 @@ ProduceVisitor::visit(const Scan* scan)
 
   p_context->m_output_ss << "auto " + iter_varname << " = " << table_varname << ".iterator();\n";
   p_context->m_output_ss << "while(" << iter_varname << ".has_next())\n{\n";
-  p_context->m_output_ss << "BlockCluster "<<block_varname<<"{"<< iter_varname <<".next()->get_raw()};\n";
+  p_context->m_output_ss << "BlockCluster "<<block_varname<<"{"<< iter_varname <<".next().get_raw()};\n";
 
   consume(p_context->m_output_ss,
           scan->p_parent,

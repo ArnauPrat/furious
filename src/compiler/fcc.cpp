@@ -14,13 +14,15 @@ using namespace llvm;
 
 using namespace furious;
 
-static llvm::cl::OptionCategory fccToolCategory("fcc options");
+static cl::OptionCategory fccToolCategory("fcc options");
+static cl::opt<std::string> output_file("o", cl::cat(fccToolCategory));
 
 int main(int argc, const char **argv)
 {
+  output_file.setInitialValue("furious_generated.cpp");
   CommonOptionsParser op(argc, argv, fccToolCategory);
   FccContext* fcc_context = FccContext_create_and_init();
-  int result = FccContext_run(fcc_context, op);
+  int result = FccContext_run(fcc_context, op, output_file.getValue());
   FccContext_release(fcc_context);
   return result;
 }

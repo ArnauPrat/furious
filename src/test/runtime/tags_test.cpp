@@ -28,17 +28,15 @@ public:
   uint32_t m_val;
 };
 
-TEST(TagTests,TagWorks) {
+TEST(TagTests,TagWorks) 
+{
+  Database database{};
+  database.add_table<ComponentA>();
+  database.add_table<ComponentB>();
 
-  furious::init();
-
-  Database* database = create_database();
-  database->add_table<ComponentA>();
-  database->add_table<ComponentB>();
-
-  Entity entity1 = create_entity(database);
-  Entity entity2 = create_entity(database);
-  Entity entity3 = create_entity(database);
+  Entity entity1 = create_entity(&database);
+  Entity entity2 = create_entity(&database);
+  Entity entity3 = create_entity(&database);
   entity1.add_tag("selected");
   entity3.add_tag("selected");
 
@@ -46,12 +44,9 @@ TEST(TagTests,TagWorks) {
   ASSERT_FALSE(entity2.has_tag("selected"));
   ASSERT_TRUE(entity3.has_tag("selected"));
 
-
   destroy_entity(&entity1);
   destroy_entity(&entity2);
   destroy_entity(&entity3);
-  destroy_database(database);
-  furious::release();
 }
 }
 

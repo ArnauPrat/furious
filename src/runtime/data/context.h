@@ -26,17 +26,12 @@ public:
   template<typename TComponent>
     void disable_component(int32_t id);
 
-  float get_dt();
-
-  Database* get_database();
+  const float m_dt;                 
 
 private:
-  float m_dt;                 
+  Database*     p_database;
   std::vector<IdComponentPair> m_to_enable;
   std::vector<IdComponentPair> m_to_disable;
-
-  Database*     p_database;
-
 };
   
 } /* furious */ 

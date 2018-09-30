@@ -19,7 +19,7 @@ struct TestSystem1
 {
   TestSystem1(int32_t val, float val2) : m_val{val} {}
 
-  void run(furious::Context *context,
+  void run(furious::Context* context,
            int32_t id,
            ComponentA *componentA,
            const ComponentC* componentC,

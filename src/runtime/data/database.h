@@ -56,6 +56,17 @@ public:
   TableView<T> find_table();
 
   /**
+   * @brief Finds the table for the specified component or adds it to the
+   * database if it does not exist
+   *
+   * @tparam T The component type
+   *
+   * @return A TableView of the table
+   */
+  template <typename T>
+  TableView<T> find_or_add_table();
+
+  /**
    * @brief Gets the id of a table
    *
    * @tparam TComponent

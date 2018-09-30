@@ -7,6 +7,14 @@
 namespace furious
 {
 
+BlockCluster::BlockCluster(TBlock* block) :
+m_num_elements{1},
+m_enabled{block->m_enabled},
+m_start{block->m_start} 
+{
+  m_blocks[0] = block;
+}
+
 void BlockCluster::append(TBlock* block, 
                           const std::string& type)
 {

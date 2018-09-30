@@ -12,31 +12,36 @@ include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
 function(create_test NAME)
-  add_executable(${NAME}
-    ${NAME}.cpp
-    data_test.h
+
+  add_custom_command(
+										OUTPUT ${NAME}_furious.cpp
+                    COMMAND fcc -o ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- --std=c++17 -I /usr/lib/clang/6.0.1/include -I ${CMAKE_SOURCE_DIR}/src
+                    DEPENDS fcc ${NAME}_script.cpp
     )
 
-  target_link_libraries(${NAME} ${GTEST_LIBRARIES} common memory data runtime) 
-  add_test(${NAME} ${FURIOUS_OUTPUT_DIR}/test/runtime/${NAME})
+  add_executable(${NAME}
+    ${NAME}.cpp
+    ${NAME}_script.cpp
+    ${NAME}_header.h
+    ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp
+    )
+
+  target_link_libraries(${NAME} ${GTEST_LIBRARIES} furious furious_runtime) 
+  add_test(${NAME} ${FURIOUS_OUTPUT_DIR}/test/compiler/${NAME})
 
   set_target_properties( ${NAME} 
     PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}/test/runtime
+    RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}/test/compiler
     )
 endfunction(create_test)
 
 SET(TESTS 
-  memory_test
-  table_test
-  database_test
-  tags_test
-  traits_test
+    basic_test
   )
 
 foreach( TEST ${TESTS} )
   create_test(${TEST})
 endforeach( TEST )
 
-add_custom_target(runtime_tests COMMAND ${CMAKE_CTEST_COMMAND}
+add_custom_target(compiler_tests COMMAND ${CMAKE_CTEST_COMMAND}
   DEPENDS ${TESTS})

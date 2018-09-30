@@ -5,6 +5,8 @@
 
 #include "../../common/common.h"
 #include "table.h"
+#include <bitset>
+#include <unordered_map>
 
 //#include <bitset>
 

@@ -7,7 +7,6 @@
 #include "table_view.h"
 #include "common.h"
 #include "../../common/traits.h"
-#include "../../common/optional.h"
 
 #include <bitset>
 #include <cassert>

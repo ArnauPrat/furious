@@ -1,5 +1,5 @@
-FROM         antergos/archlinux-base-devel 
-MAINTAINER   Arnau Prat <arnua.prat@gmail.com>
+FROM         base/archlinux:latest
+MAINTAINER   Arnau Prat <arnau.prat@gmail.com>
 CMD          bash
 
 RUN mkdir -p /home/user
@@ -12,4 +12,5 @@ ADD cmake ./cmake
 RUN mkdir build 
 
 # Required system packages
-RUN pacman -S --noconfirm gcc cmake gtest numactl make clang compiler-rt llvm-libs
+RUN pacman -Syy --noconfirm 
+RUN pacman -S --noconfirm gcc cmake gtest numactl make clang llvm-libs llvm

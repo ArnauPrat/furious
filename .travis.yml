@@ -1,21 +1,12 @@
+sudo: required
 language: cpp
-dist: trusty
-compiler:
-  - gcc
-
-matrix:
-  include:
-  - os: linux
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - g++-7
-        - clang-6.0
-        - llvm-6.0
+services:
+  - docker
+before_install:
+  - docker build -t furious . 
+  - docker run  -itd --name build furious
 script:
-  - cmake .
-  - make
-  - make runtime_tests
-  - make compiler_tests
+  - docker exec build cmake .
+  - docker exec build make  
+  - docker exec build make runtime_tests
+  - docker exec build make compiler_tests

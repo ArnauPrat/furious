@@ -65,7 +65,7 @@ void Database::untag_entity(int32_t entity_id,
   }
 }
 
-const BitTable* 
+BitTable* 
 Database::get_tagged_entities(const std::string& tag) 
 {
   auto it = m_tags.find(tag);

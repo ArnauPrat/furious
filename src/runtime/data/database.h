@@ -129,7 +129,7 @@ public:
    * 
    * @return Returns a bitset with the entities of the tag
    */
-  const BitTable*
+  BitTable*
   get_tagged_entities(const std::string& tag);
 
 

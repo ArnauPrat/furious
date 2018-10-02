@@ -31,7 +31,7 @@ BitTable::add(int32_t id)
   }
 
   std::bitset<TABLE_BLOCK_SIZE>& set = m_bitsets[bitset_id];
-  set[id - bitset_id] = true;
+  set[id % TABLE_BLOCK_SIZE] = true;
 }
 
 void
@@ -45,13 +45,13 @@ BitTable::remove(int32_t id)
   }
 
   std::bitset<TABLE_BLOCK_SIZE>& set = m_bitsets[bitset_id];
-  set[id - bitset_id] = false;
+  set[id % TABLE_BLOCK_SIZE] = false;
 }
 
 const std::bitset<TABLE_BLOCK_SIZE>&
-BitTable::get_bitset(int32_t bitset_id) const
+BitTable::get_bitset(int32_t id) const
 {
-  assert(bitset_id % TABLE_BLOCK_SIZE == 0 && "Invalid bitset_id on bit table");
+  int32_t bitset_id = id / TABLE_BLOCK_SIZE;
   auto it = m_bitsets.find(bitset_id);
   if(it == m_bitsets.end()) 
   {

@@ -5,7 +5,6 @@ include_directories(${FURIOUS_INCLUDE_DIR})
 add_library(common STATIC 
   platform.cpp
   utils.cpp 
-  optional.h
   platform.h
   traits.h
   types.h

@@ -1,6 +1,5 @@
 
-#include "static_system.h"
-#include "workload.h"
-#include "system.h"
+#include "system_wrapper.h"
+#include "memory/memory.h"
+#include "data/data.h"
 
-//#include "execution_engine.h"

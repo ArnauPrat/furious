@@ -1,9 +1,10 @@
 
 include_directories(./)
 add_subdirectory(./common/)
-add_subdirectory(./memory/)
-add_subdirectory(./data/)
 add_subdirectory(./runtime/)
+add_subdirectory(./runtime/memory/)
+add_subdirectory(./runtime/data/)
+add_subdirectory(./compiler)
 
 add_library(furious SHARED
   furious.h
@@ -19,25 +20,45 @@ set_target_properties(furious
   ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
 )
 
-add_executable( furious_test 
-  furious_test.cpp
-  )
+######################
 
-target_link_libraries( furious_test furious memory)
+add_library(furious_runtime SHARED
+  furious_runtime.h
+  furious_runtime.cpp
+  )  
 
-set_target_properties(furious_test
+target_link_libraries(furious_runtime furious)
+
+set_target_properties(furious_runtime
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
   LIBRARY_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
   ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
 )
 
-add_subdirectory(./test/)
+add_executable( mvp_test 
+  mvp_test.cpp
+  )
+
+add_executable( bitset_test
+  bitset_test.cpp 
+  )
+
+add_executable( lang_test 
+  lang_test.cpp
+  )
+
+add_subdirectory(./test/runtime)
+add_subdirectory(./test/compiler)
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 
-install (TARGETS furious
+install (TARGETS furious 
+          RUNTIME DESTINATION bin
+          LIBRARY DESTINATION lib)
+
+install (TARGETS furious_runtime
           RUNTIME DESTINATION bin
           LIBRARY DESTINATION lib)
 

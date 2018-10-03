@@ -3,14 +3,8 @@ add_definitions(${FURIOUS_DEFAULT_DEFINES})
 include_directories(${FURIOUS_INCLUDE_DIR})
 
 add_library(runtime STATIC 
-  static_system.h
-  static_system.inl
-  execution_plan.h
-  execution_plan.cpp
-  system.h
-  workload.h
-  workload.cpp
-  workload.inl
+  system_wrapper.h
+  system_wrapper.inl
 )
  
 target_link_libraries(runtime data common)

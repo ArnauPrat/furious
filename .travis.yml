@@ -8,4 +8,5 @@ before_install:
 script:
   - docker exec build cmake .
   - docker exec build make  
-  - docker exec build make test
+  - docker exec build make runtime_tests
+  - docker exec build make compiler_tests

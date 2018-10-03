@@ -1,4 +1,4 @@
-FROM         base/archlinux 
+FROM         base/archlinux:latest
 MAINTAINER   Arnau Prat <arnau.prat@gmail.com>
 CMD          bash
 
@@ -11,6 +11,5 @@ ADD cmake ./cmake
 
 RUN mkdir build 
 
-# Required system packages
-RUN pacman -Syu --noconfirm
-RUN pacman -S --noconfirm gcc cmake gtest numactl make boost  
+RUN pacman -Syy --noconfirm 
+RUN pacman -S --noconfirm gcc cmake gtest numactl make clang llvm-libs llvm

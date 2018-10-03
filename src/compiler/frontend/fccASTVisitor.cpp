@@ -117,7 +117,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
   {
     if (func->hasBody())
     {
-      //func->dump();
+      func->dump();
       for(auto stmt : func->getBody()->children()) 
       {
         if(isa<Expr>(stmt))

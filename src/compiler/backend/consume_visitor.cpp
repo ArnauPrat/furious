@@ -136,19 +136,39 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
       p_context->m_output_ss << type << "* data_"<< param_index << " = reinterpret_cast<" << type << "*>(" << p_context->m_source << ".m_blocks["<<param_index<<"]->p_data);\n";
       param_index++;
   }
-  p_context->m_output_ss << "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && "<< p_context->m_source <<".m_enabled.any(); ++i) \n{\n";
+  std::string func_name = "";
   if(!predicate_filter->p_func_decl->isCXXClassMember())
   {
     const FunctionDecl* func_decl = predicate_filter->p_func_decl;
-    std::string func_name = func_decl->getName();
-    p_context->m_output_ss << p_context->m_source <<".m_enabled[i] = "<< p_context->m_source <<".m_enabled[i] && "<<func_name<<"(";
-    p_context->m_output_ss << "&data_0[i]";
-    for(size_t i = 1; i <p_context->m_types.size(); ++i)
+    func_name = func_decl->getName();
+  } else
+  {
+    p_context->m_output_ss << "auto predicate = [] (";
+    const FunctionDecl* func_decl = predicate_filter->p_func_decl;
+    auto array = func_decl->parameters();
+    p_context->m_output_ss << get_type_name(array[0]->getType()) << array[0]->getNameAsString();
+    for(size_t i = 1; i < array.size(); ++i)
     {
-      p_context->m_output_ss << ",&data_"<<i<<"[i]";
+      p_context->m_output_ss << "," << get_type_name(array[i]->getType()) << array[i]->getNameAsString();
     }
-    p_context->m_output_ss << ");\n";
+    const ASTContext& context = predicate_filter->p_func_decl->getASTContext();
+    const SourceManager& sm = context.getSourceManager();
+    SourceLocation start = predicate_filter->p_func_decl->getLocStart();
+    SourceLocation end = predicate_filter->p_func_decl->getLocEnd();
+
+    p_context->m_output_ss << get_code(sm, start, end) << ";\n";
+    func_name = "predicate";
   }
+
+  p_context->m_output_ss << "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && "<< p_context->m_source <<".m_enabled.any(); ++i) \n{\n";
+  p_context->m_output_ss << p_context->m_source <<".m_enabled[i] = "<< p_context->m_source <<".m_enabled[i] && "<<func_name<<"(";
+  p_context->m_output_ss << "&data_0[i]";
+  for(size_t i = 1; i <p_context->m_types.size(); ++i)
+  {
+    p_context->m_output_ss << ",&data_"<<i<<"[i]";
+  }
+  p_context->m_output_ss << ");\n";
+
   p_context->m_output_ss << "}\n";
   p_context->m_output_ss << "if("<<p_context->m_source<<".m_enabled.any())\n{\n"; 
   consume(p_context->m_output_ss,

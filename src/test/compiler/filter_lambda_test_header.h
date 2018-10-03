@@ -1,6 +1,6 @@
 
-#ifndef _FILTER_TAG_TEST_HEADER_H_
-#define _FILTER_TAG_TEST_HEADER_H_ value
+#ifndef _FILTER_LAMBDA_TEST_HEADER_H_
+#define _FILTER_LAMBDA_TEST_HEADER_H_ value
 
 struct Position
 {

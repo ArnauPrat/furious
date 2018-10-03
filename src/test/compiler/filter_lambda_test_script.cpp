@@ -1,6 +1,6 @@
 
 #include "furious.h"
-#include "filter_tag_test_header.h"
+#include "filter_func_test_header.h"
 
 BEGIN_FURIOUS_SCRIPT
 
@@ -21,8 +21,9 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::select<Position,Velocity>().has_tag("affected")
-                                    .has_not_tag("not_affected")
+furious::select<Position,Velocity>().filter([](const Position* pos, const Velocity* vel){
+                                            return vel->m_x < 2.0f && vel->m_y < 2.0f && vel->m_z < 2.0f;
+                                            })
                                     .foreach<UpdatePosition>(1.0f);
 
 END_FURIOUS_SCRIPT

@@ -1,6 +1,6 @@
 
 #include "furious_runtime.h"
-#include "filter_tag_test_header.h"
+#include "filter_func_test_header.h"
 
 #include <gtest/gtest.h>
 #include <set>
@@ -8,7 +8,7 @@
 #include <iostream>
 
 
-TEST(FilterTagTest, FilterTagTest ) 
+TEST(FilterFuncTest, FilterFuncTest ) 
 {
   furious::init();
   furious::Database* database = furious::get_database();
@@ -18,17 +18,14 @@ TEST(FilterTagTest, FilterTagTest )
   {
     furious::Entity entity = furious::create_entity(database);
     entity.add_component<Position>(0.0f, 0.0f, 0.0f);
-    entity.add_component<Velocity>(1.0f, 1.0f, 1.0f);
+
     if(entity.m_id % 2 == 0)
     {
-      entity.add_tag("affected");
-    }
-
-    if(entity.m_id % 6 == 0)
+      entity.add_component<Velocity>(1.0f, 1.0f, 1.0f);
+    } else
     {
-      entity.add_tag("not_affected");
+      entity.add_component<Velocity>(2.0f, 2.0f, 2.0f);
     }
-
     entities.push_back(entity);
   }
 
@@ -38,20 +35,17 @@ TEST(FilterTagTest, FilterTagTest )
   {
     Position* position = entity.get_component<Position>();
 
-    if(entity.m_id % 2 == 0 && entity.m_id % 6 != 0)
+    if(entity.m_id % 2 == 0)
     {
       ASSERT_EQ(position->m_x, 0.1f);
       ASSERT_EQ(position->m_y, 0.1f);
       ASSERT_EQ(position->m_z, 0.1f);
-    }
-
-    if(entity.m_id % 6 == 0 || entity.m_id % 2 != 0)
+    } else
     {
-      ASSERT_EQ(position->m_x , 0.0f);
-      ASSERT_EQ(position->m_y , 0.0f);
-      ASSERT_EQ(position->m_z , 0.0f);
+      ASSERT_EQ(position->m_x, 0.0f);
+      ASSERT_EQ(position->m_y, 0.0f);
+      ASSERT_EQ(position->m_z, 0.0f);
     }
-
   }
   furious::release();
 }

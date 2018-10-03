@@ -37,6 +37,8 @@ endfunction(create_test)
 SET(TESTS 
     basic_test
     filter_tag_test
+    filter_func_test
+    filter_lambda_test
   )
 
 foreach( TEST ${TESTS} )

@@ -43,7 +43,9 @@ furious::select<ComponentA,ComponentC,ComponentB>()
        )
   .filter(test1).foreach<TestSystem1>(10,0.2);
 
+
 furious::select<ComponentA,ComponentC,ComponentB>().foreach<TestSystem1>(10,0.2);
+
 
 END_FURIOUS_SCRIPT
 

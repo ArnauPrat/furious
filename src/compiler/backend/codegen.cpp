@@ -1,17 +1,17 @@
 
 
+#include "../clang_tools.h"
+#include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
 #include "../frontend/execution_plan.h"
-#include "../clang_tools.h"
 #include "codegen.h"
 #include "codegen_tools.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
-#include "../structs.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <sstream>
-#include <fstream>
 
 namespace furious {
 
@@ -149,19 +149,19 @@ void
 generate_code(const FccExecPlan* exec_plan,
               const std::string& filename)
 {
-  std::stringstream output_ss;
-  output_ss << "\n\n\n";
+  FILE* fd = fopen(filename.c_str(), "w");
+  fprintf(fd, "\n\n\n");
   // add basic includes
-  output_ss << "#include <furious.h> \n";
+  fprintf(fd, "#include <furious.h> \n");
   /// Find dependencies
   DependenciesExtr deps_visitor;
   deps_visitor.traverse(exec_plan);
   for(const std::string& incl : deps_visitor.m_include_files)
   {
-    output_ss << "#include \""<< incl <<"\"\n";
+    fprintf(fd, "#include \"%s\"\n", incl.c_str());
   }
 
-  output_ss << "\n\n\n";
+  fprintf(fd, "\n\n\n");
 
   for(const Decl* decl : deps_visitor.m_declarations)
   {
@@ -171,14 +171,14 @@ generate_code(const FccExecPlan* exec_plan,
     std::string code = get_code(sm,
                                 start,
                                 end);
-    output_ss << code << ";\n\n";
+    fprintf(fd,"%s;\n\n", code.c_str());
   }
 
 
-  output_ss << "namespace furious \n{\n";
+  fprintf(fd,"namespace furious \n{\n");
   /// Declare variables (e.g. tableviews, tag sets, etc.)
-  output_ss << "\n\n\n";
-  output_ss << "// Variable declarations \n";
+  fprintf(fd, "\n\n\n");
+  fprintf(fd,"// Variable declarations \n");
   VarsExtr vars_extr;
   vars_extr.traverse(exec_plan);
   for(const std::string& table : vars_extr.m_components)
@@ -189,13 +189,13 @@ generate_code(const FccExecPlan* exec_plan,
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     std::string table_varname = base_name+"_table";
-    output_ss << "TableView<"<<table<<"> " <<table_varname<< ";\n";
+    fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
   }
 
   for(const std::string& tag : vars_extr.m_tags)
   {
     // TagSets
-    output_ss << "BitTable* tagged_"<<tag<< ";\n";
+    fprintf(fd, "BitTable* tagged_%s;\n", tag.c_str());
   }
 
   for(const FccExecInfo& info : exec_plan->p_context->m_operations)
@@ -205,19 +205,19 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << "SystemWrapper<"<< system_name;
+    fprintf(fd, "SystemWrapper<%s", system_name.c_str());
 		for(const QualType& component : info.m_basic_component_types)
 		{
       std::string q_ctype = get_qualified_type_name(component);
-      output_ss << "," << q_ctype;
+      fprintf(fd,",%s",q_ctype.c_str());
 		}
-    output_ss <<">* "<< base_name << "_" << info.m_system.m_id << ";\n";
+    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info.m_system.m_id);
   }
 
   /// Initialize variables
-  output_ss << "\n\n\n";
-  output_ss << "// Variable initializations \n";
-  output_ss << "void __furious_init(Database* database)\n{\n";
+  fprintf(fd, "\n\n\n");
+  fprintf(fd, "// Variable initializations \n");
+  fprintf(fd, "void __furious_init(Database* database)\n{\n");
   for(const std::string& table : vars_extr.m_components)
   {
     std::string base_name = table;
@@ -225,12 +225,12 @@ generate_code(const FccExecPlan* exec_plan,
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     std::string table_varname = base_name+"_table";
-    output_ss << table_varname<< " = database->find_or_add_table<"<<table<<">();\n";
+    fprintf(fd,"%s  = database->find_or_add_table<%s>();\n", table_varname.c_str(), table.c_str());
   }
 
   for(const std::string& tag : vars_extr.m_tags)
   {
-    output_ss << "tagged_"<< tag << " = database->get_tagged_entities(\""<<tag<<"\");\n";
+    fprintf(fd,"tagged_%s = database->get_tagged_entities(\"%s\");\n", tag.c_str(), tag.c_str());
   }
 
   for(const FccExecInfo& info : exec_plan->p_context->m_operations)
@@ -240,7 +240,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << base_name << "_" << info.m_system.m_id << " = create_system<"<<system_name<<">(";
+    fprintf(fd,"%s_%d = create_system<%s>(", base_name.c_str(), info.m_system.m_id, system_name.c_str());
 
     size_t num_params = info.m_system.m_ctor_params.size();
     if( num_params > 0) 
@@ -252,7 +252,7 @@ generate_code(const FccExecPlan* exec_plan,
       std::string code = get_code(sm, 
                                   start,
                                   end);
-        output_ss << code;
+        fprintf(fd,"%s", code.c_str());
       for(size_t i = 1; i < num_params; ++i)
       {
         const Expr* param = info.m_system.m_ctor_params[i];
@@ -261,32 +261,32 @@ generate_code(const FccExecPlan* exec_plan,
         std::string code = get_code(sm, 
                                     start,
                                     end);
-        output_ss << "," << code;
+        fprintf(fd,",%s",code.c_str());
       }
     }
-    output_ss << ");\n";
+    fprintf(fd,");\n");
   }
-  output_ss << "}\n";
+  fprintf(fd,"}\n");
 
   /// Generate execution code
-  output_ss << "\n\n\n";
-  output_ss << "void __furious_frame(float delta, Database* database)\n{\n";
+  fprintf(fd,"\n\n\n");
+  fprintf(fd,"void __furious_frame(float delta, Database* database)\n{\n");
 
-  output_ss << "Context context{delta,database};\n";
+  fprintf(fd, "Context context{delta,database};\n");
 
   for(const FccOperator* root : exec_plan->m_roots)
   {
     ExecPlanPrinter printer{true};
     root->accept(&printer);
-    output_ss << printer.m_string_builder.str();
-    output_ss << "{\n";
-    produce(output_ss,root);
-    output_ss << "}\n";
+    fprintf(fd,"%s", printer.m_string_builder.str().c_str());
+    fprintf(fd,"{\n");
+    produce(fd,root);
+    fprintf(fd,"}\n");
   }
-  output_ss << "}\n";
+  fprintf(fd, "}\n");
 
-  output_ss << "// Variable releases \n";
-  output_ss << "void __furious_release()\n{\n";
+  fprintf(fd, "// Variable releases \n");
+  fprintf(fd, "void __furious_release()\n{\n");
 
   for(const FccExecInfo& info : exec_plan->p_context->m_operations)
   {
@@ -295,13 +295,11 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    output_ss << "destroy_system("<< base_name << "_" << info.m_system.m_id << ");\n";
+    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), info.m_system.m_id);
   }
-  output_ss << "}\n";
-  output_ss << "}\n";
-  std::ofstream output_file(filename);
-  output_file << output_ss.str();
-  output_file.close();
+  fprintf(fd, "}\n");
+  fprintf(fd, "}\n");
+  fclose(fd);
 }
   
 } /* furious */ 

@@ -2,9 +2,10 @@
 #ifndef _FURIOUS_CODEGEN_TOOLS_H_
 #define _FURIOUS_CODEGEN_TOOLS_H_
 
-#include <sstream>
 #include <vector>
 #include <string>
+
+#include <stdio.h>
 
 namespace furious 
 {
@@ -16,7 +17,7 @@ class ConsumeVisitor;
 class CodeGenContext
 {
 public:
-  CodeGenContext(std::stringstream& output);
+  CodeGenContext(FILE* fd);
   ~CodeGenContext();
 
   ProduceVisitor* p_producer;
@@ -24,7 +25,7 @@ public:
 
   // Generic state
   std::string m_source;
-  std::stringstream&        m_output_ss;
+  FILE*                     p_fd;
   std::vector<std::string>  m_types;
   const FccOperator*        p_caller;
 
@@ -35,14 +36,14 @@ public:
 };
 
 void 
-consume(std::stringstream& output,
+consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
         const std::vector<std::string>& types,
         const FccOperator* caller);
 
 void 
-produce(std::stringstream& output,
+produce(FILE* fd,
         const FccOperator* op);
 
 } /* furious */ 

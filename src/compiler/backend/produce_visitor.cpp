@@ -6,8 +6,8 @@
 #include "../clang_tools.h"
 #include "codegen_tools.h"
 
-#include <ctime>
-#include <cstdlib>
+#include <time.h>
+#include <stdlib.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <string>
 
@@ -24,7 +24,7 @@ p_context{context}
 void 
 ProduceVisitor::visit(const Foreach* foreach)
 {
-  produce(p_context->m_output_ss,foreach->p_child);
+  produce(p_context->p_fd,foreach->p_child);
 }
 
 void 
@@ -42,17 +42,17 @@ ProduceVisitor::visit(const Scan* scan)
   std::string iter_varname = base_name+"_iter";
   std::string block_varname = base_name+"_block"; 
 
-  p_context->m_output_ss << "auto " + iter_varname << " = " << table_varname << ".iterator();\n";
-  p_context->m_output_ss << "while(" << iter_varname << ".has_next())\n{\n";
-  p_context->m_output_ss << "BlockCluster "<<block_varname<<"{"<< iter_varname <<".next().get_raw()};\n";
+  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());
+  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
+  fprintf(p_context->p_fd, "BlockCluster %s{%s.next().get_raw()};\n", block_varname.c_str(), iter_varname.c_str());
 
-  consume(p_context->m_output_ss,
+  consume(p_context->p_fd,
           scan->p_parent,
           block_varname,
           {q_ctype},
           scan);
 
-  p_context->m_output_ss << "}\n\n";
+  fprintf(p_context->p_fd,"}\n\n");
 }
 
 void
@@ -60,27 +60,27 @@ ProduceVisitor::visit(const Join* join)
 {
   p_context->m_join_id = std::to_string((uint32_t)rand());
   std::string hashtable = "hashtable_" + p_context->m_join_id;
-  p_context->m_output_ss << "std::unordered_map<int32_t,BlockCluster> "<<hashtable<<";\n";
-  produce(p_context->m_output_ss,join->p_left);
-  produce(p_context->m_output_ss,join->p_right);
+  fprintf(p_context->p_fd,"std::unordered_map<int32_t,BlockCluster> %s;\n", hashtable.c_str());
+  produce(p_context->p_fd,join->p_left);
+  produce(p_context->p_fd,join->p_right);
 }
 
 void 
 ProduceVisitor::visit(const TagFilter* tag_filter)
 {
-  produce(p_context->m_output_ss,tag_filter->p_child);
+  produce(p_context->p_fd,tag_filter->p_child);
 }
 
 void
 ProduceVisitor::visit(const ComponentFilter* component_filter)
 {
-  produce(p_context->m_output_ss,component_filter->p_child);
+  produce(p_context->p_fd,component_filter->p_child);
 }
 
 void
 ProduceVisitor::visit(const PredicateFilter* predicate_filter)
 {
-  produce(p_context->m_output_ss,predicate_filter->p_child);
+  produce(p_context->p_fd,predicate_filter->p_child);
 }
 
 } /* furious */ 

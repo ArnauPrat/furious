@@ -21,8 +21,8 @@ int main(int argc, const char **argv)
 {
   output_file.setInitialValue("furious_generated.cpp");
   CommonOptionsParser op(argc, argv, fccToolCategory);
-  FccContext* fcc_context = FccContext_create_and_init();
-  int result = FccContext_run(fcc_context, op, output_file.getValue());
-  FccContext_release(fcc_context);
+  FccContext* fcc_context = Fcc_create_context();
+  int result = Fcc_run(fcc_context, op, output_file.getValue());
+  Fcc_release_context(fcc_context);
   return result;
 }

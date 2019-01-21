@@ -1,6 +1,6 @@
 
 #include "execution_plan.h"
-#include "structs.h"
+#include "fcc_context.h"
 
 namespace furious {
 

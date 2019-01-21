@@ -9,7 +9,7 @@
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Lex/Lexer.h>
 
-#include "structs.h"
+#include "fcc_context.h"
 
 using namespace clang;
 

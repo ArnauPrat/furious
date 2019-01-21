@@ -1,7 +1,7 @@
 
 
 #include "fccASTVisitor.h"
-#include "structs.h"
+#include "fcc_context.h"
 #include "parsing.h"
 
 #include <clang/Lex/Lexer.h>

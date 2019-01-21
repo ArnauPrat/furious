@@ -15,7 +15,9 @@ function(create_test NAME)
 
   add_custom_command(
 										OUTPUT ${NAME}_furious.cpp
-                    COMMAND fcc -o ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- --std=c++17 -I /usr/lib/clang/7.0.0/include -I ${CMAKE_SOURCE_DIR}/src
+                    COMMAND fcc -o
+                    ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp
+                    ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- --std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src
                     DEPENDS fcc ${NAME}_script.cpp
     )
 

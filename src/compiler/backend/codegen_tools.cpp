@@ -13,8 +13,8 @@
 
 namespace furious {
 
-CodeGenContext::CodeGenContext(std::stringstream& output) :
-m_output_ss{output}
+CodeGenContext::CodeGenContext(FILE* fd) :
+p_fd(fd)
 {
   p_consumer = new ConsumeVisitor(this);
   p_producer = new ProduceVisitor(this);
@@ -34,7 +34,7 @@ static
 std::unordered_map<const FccOperator*, std::unique_ptr<CodeGenContext>> contexts; 
 
 void 
-consume(std::stringstream& output,
+consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
         const std::vector<std::string>& types,
@@ -43,7 +43,7 @@ consume(std::stringstream& output,
   auto it = contexts.find(op);
   if( it == contexts.end())
   {
-    contexts[op] = std::make_unique<CodeGenContext>(output);
+    contexts[op] = std::make_unique<CodeGenContext>(fd);
   }  
 
   CodeGenContext* context = contexts[op].get();
@@ -54,13 +54,13 @@ consume(std::stringstream& output,
 }
 
 void 
-produce(std::stringstream& output,
+produce(FILE* fd,
         const FccOperator* op)
 {
   auto it = contexts.find(op);
   if( it == contexts.end())
   {
-    contexts[op] = std::make_unique<CodeGenContext>(output);
+    contexts[op] = std::make_unique<CodeGenContext>(fd);
   }  
   CodeGenContext* context = contexts[op].get();
   op->accept(context->p_producer);

@@ -22,8 +22,8 @@ add_executable( fcc
   frontend/fccASTVisitor.h
   frontend/parsing.cpp
   frontend/parsing.h
-  structs.cpp
-  structs.h
+  fcc_context.cpp
+  fcc_context.h
   frontend/transforms.cpp
   frontend/transforms.h
   )

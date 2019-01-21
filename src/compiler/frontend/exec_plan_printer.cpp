@@ -1,7 +1,7 @@
 
 
 #include "exec_plan_printer.h"
-#include "structs.h"
+#include "fcc_context.h"
 #include "clang_tools.h"
 
 namespace furious

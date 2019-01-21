@@ -1,7 +1,7 @@
 
 
 #include "parsing.h"
-#include "structs.h"
+#include "fcc_context.h"
 
 namespace furious 
 {
@@ -50,11 +50,10 @@ report_parsing_error(ASTContext* ast_context,
   std::string filename = sm.getFilename(location);
   int32_t line_number = get_line_number(sm, location);
   int32_t column_number = get_column_number(sm, location);
-  FccContext_report_parsing_error(fcc_context,
-                                  type,
-                                  filename,
-                                  line_number,
-                                  column_number);
+  fcc_context->report_parsing_error(type,
+                                    filename,
+                                    line_number,
+                                    column_number);
 }
 
 /**

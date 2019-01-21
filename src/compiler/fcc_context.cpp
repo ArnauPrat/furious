@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "structs.h"
+#include "fcc_context.h"
 #include "frontend/fccASTVisitor.h"
 #include "frontend/transforms.h"
 #include "frontend/execution_plan.h"
@@ -65,19 +65,17 @@ handle_compilation_error(FccContext* context,
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccContext* FccContext_create_and_init() 
+FccContext* Fcc_create_context() 
 {
   FccContext* context = new FccContext();
-  FccContext_set_parsing_error_callback(context,
-                                handle_parsing_error);
+  context->set_parsing_error_callback(handle_parsing_error);
 
-  FccContext_set_compilation_error_callback(context,
-                                            handle_compilation_error);
+  context->set_compilation_error_callback(handle_compilation_error);
   return context;
 }
 
 void 
-FccContext_release(FccContext* context)
+Fcc_release_context(FccContext* context)
 {
   context->p_pecallback = nullptr;
   context->p_cecallback = nullptr;
@@ -85,59 +83,49 @@ FccContext_release(FccContext* context)
 }
 
 void 
-FccContext_set_parsing_error_callback(FccContext* context,
-                                      void (*callback)(FccContext*, 
-                                                       FccParsingErrorType,
-                                                       const std::string&,
-                                                       int32_t,
-                                                       int32_t))
+FccContext::set_parsing_error_callback(FCC_PARSING_ERROR_CALLBACK callback)
 {
-  context->p_pecallback = callback;
+  p_pecallback = callback;
 }
 
 void 
-FccContext_set_compilation_error_callback(FccContext* context,
-                                          void (*callback)(FccContext*, 
-                                                           FccCompilationErrorType,
-                                                           const FccOperator*))
+FccContext::set_compilation_error_callback(FCC_COMP_ERROR_CALLBACK callback)
 {
-  context->p_cecallback = callback;
+  p_cecallback = callback;
 }
 
 void 
-FccContext_report_parsing_error(FccContext* context,
-                                FccParsingErrorType error_type,
-                                const std::string& filename,
-                                int32_t line,
-                                int32_t column)
+FccContext::report_parsing_error(FccParsingErrorType error_type,
+                                 const std::string& filename,
+                                 int32_t line,
+                                 int32_t column)
 {
-  if(context->p_pecallback) 
+  if(p_pecallback) 
   {
-    context->p_pecallback(context, 
-                         error_type,
-                         filename,
-                         line,
-                         column);
+    p_pecallback(this, 
+                 error_type,
+                 filename,
+                 line,
+                 column);
   }
 }
 
 void 
-FccContext_report_compilation_error(FccContext* context,
-                                FccCompilationErrorType error_type,
-                                const FccOperator* op)
+FccContext::report_compilation_error(FccCompilationErrorType error_type,
+                                     const FccOperator* op)
 {
-  if(context->p_cecallback) 
+  if(p_cecallback) 
   {
-    context->p_cecallback(context, 
-                          error_type,
-                          op);
+    p_cecallback(this, 
+                 error_type,
+                 op);
   }
 }
 
 int 
-FccContext_run(FccContext* context, 
-               CommonOptionsParser& op,
-               const std::string& output_file)
+Fcc_run(FccContext* context, 
+        CommonOptionsParser& op,
+        const std::string& output_file)
 {
   ClangTool tool(op.getCompilations(), op.getSourcePathList());
   int result = tool.buildASTs(context->m_asts);

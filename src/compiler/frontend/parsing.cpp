@@ -121,7 +121,7 @@ process_entry_point(ASTContext* ast_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found furious entry point",
@@ -143,7 +143,8 @@ process_entry_point(ASTContext* ast_context,
   exec_info->m_system.m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
-    exec_info->m_basic_component_types.push_back(tmplt_types[i]->getPointeeType());
+    QualType type = tmplt_types[i]->getPointeeType();
+    exec_info->insert_component_type(&type);
   }
 
   // Extract System constructor parameter expressions
@@ -151,7 +152,7 @@ process_entry_point(ASTContext* ast_context,
   for(uint32_t i = 0; i < num_args; ++i)
   {
     const Expr* arg_expr = call->getArg(i);
-    exec_info->m_system.m_ctor_params.push_back(arg_expr);
+    exec_info->m_system.insert_ctor_param(arg_expr);
   }
   system_id++;
   return true;
@@ -196,7 +197,7 @@ process_filter(ASTContext* ast_context,
                FccExecInfo* exec_info,
                const CallExpr* call)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found filter",
@@ -209,7 +210,7 @@ process_filter(ASTContext* ast_context,
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
-    exec_info->m_filter_func.push_back(func_decl);
+    exec_info->insert_filter_func(func_decl);
   } 
 
   const DeclRefExpr* decl_ref = nullptr;
@@ -219,7 +220,7 @@ process_filter(ASTContext* ast_context,
     if(isa<FunctionDecl>(decl))
     {
       func_decl = cast<FunctionDecl>(decl);
-      exec_info->m_filter_func.push_back(func_decl);
+      exec_info->insert_filter_func(func_decl);
     } else if(isa<VarDecl>(decl))
     {
       // TODO: Report error via callback
@@ -240,7 +241,7 @@ process_has_tag(ASTContext* ast_context,
                  FccExecInfo* exec_info,
                  const CallExpr* call)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found has tag",
@@ -254,8 +255,9 @@ process_has_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->m_has_tags.push_back(literal->getString());
-    } else
+      exec_info->insert_has_tag(literal->getString());
+    } 
+    else
     {
 
       SourceLocation location = call->getLocStart();
@@ -275,7 +277,7 @@ process_has_not_tag(ASTContext* ast_context,
                     FccExecInfo* exec_info,
                     const CallExpr* call)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found has not tag",
@@ -288,8 +290,9 @@ process_has_not_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->m_has_not_tags.push_back(literal->getString());
-    } else
+      exec_info->insert_has_not_tag(literal->getString());
+    } 
+    else
     {
 
       SourceLocation location = call->getLocStart();
@@ -309,7 +312,7 @@ process_has_component(ASTContext* ast_context,
                        FccExecInfo* exec_info,
                        const CallExpr* call)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found has component",
@@ -320,7 +323,7 @@ process_has_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->m_has_components.push_back(type);
+    exec_info->insert_has_compponent(&type);
   }
   return true;
 }
@@ -332,7 +335,7 @@ process_has_not_component(ASTContext* ast_context,
                           const CallExpr* call)
 {
 
-#ifdef DEBUG
+#ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
                    "Found has not component",
@@ -344,7 +347,7 @@ process_has_not_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->m_has_not_components.push_back(type);
+    exec_info->insert_has_not_component(&type);
   }
   return true;
 }

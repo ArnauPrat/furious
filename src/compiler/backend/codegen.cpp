@@ -198,20 +198,22 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "BitTable* tagged_%s;\n", tag.c_str());
   }
 
-  for(const FccExecInfo& info : exec_plan->p_context->m_operations)
+  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos;++i)
   {
-    std::string system_name = get_type_name(info.m_system.m_system_type);
+    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     fprintf(fd, "SystemWrapper<%s", system_name.c_str());
-		for(const QualType& component : info.m_basic_component_types)
+    for(uint32_t j = 0; j < info->m_num_basic_component_types; ++j)
 		{
-      std::string q_ctype = get_qualified_type_name(component);
+      QualType* component = &info->m_basic_component_types[j];
+      std::string q_ctype = get_qualified_type_name(*component);
       fprintf(fd,",%s",q_ctype.c_str());
 		}
-    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info.m_system.m_id);
+    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info->m_system.m_id);
   }
 
   /// Initialize variables
@@ -233,20 +235,21 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"tagged_%s = database->get_tagged_entities(\"%s\");\n", tag.c_str(), tag.c_str());
   }
 
-  for(const FccExecInfo& info : exec_plan->p_context->m_operations)
+  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
   {
-    std::string system_name = get_type_name(info.m_system.m_system_type);
+    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    fprintf(fd,"%s_%d = create_system<%s>(", base_name.c_str(), info.m_system.m_id, system_name.c_str());
+    fprintf(fd,"%s_%d = create_system<%s>(", base_name.c_str(), info->m_system.m_id, system_name.c_str());
 
-    size_t num_params = info.m_system.m_ctor_params.size();
+    size_t num_params = info->m_system.m_num_ctor_params;
     if( num_params > 0) 
     {
-      const Expr* param = info.m_system.m_ctor_params[0];
-      const SourceManager& sm = info.p_ast_context->getSourceManager();
+      const Expr* param = info->m_system.m_ctor_params[0];
+      const SourceManager& sm = info->p_ast_context->getSourceManager();
       SourceLocation start = param->getLocStart();
       SourceLocation end = param->getLocEnd();
       std::string code = get_code(sm, 
@@ -255,7 +258,7 @@ generate_code(const FccExecPlan* exec_plan,
         fprintf(fd,"%s", code.c_str());
       for(size_t i = 1; i < num_params; ++i)
       {
-        const Expr* param = info.m_system.m_ctor_params[i];
+        const Expr* param = info->m_system.m_ctor_params[i];
         SourceLocation start = param->getLocStart();
         SourceLocation end = param->getLocEnd();
         std::string code = get_code(sm, 
@@ -288,14 +291,15 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 
-  for(const FccExecInfo& info : exec_plan->p_context->m_operations)
+  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
   {
-    std::string system_name = get_type_name(info.m_system.m_system_type);
+    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), info.m_system.m_id);
+    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), info->m_system.m_id);
   }
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");

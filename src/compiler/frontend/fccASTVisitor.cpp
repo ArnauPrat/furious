@@ -16,8 +16,17 @@ namespace furious
 FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context,
                                        FccContext *fcc_context) : 
 p_ast_context(ast_context), 
-p_fcc_context(fcc_context)
+p_fcc_context(fcc_context),
+p_fcc_exec_info(nullptr)
 {
+}
+
+FccExecInfo*
+FuriousExprVisitor::parse_expression(Expr* expr)
+{
+  p_fcc_exec_info = p_fcc_context->create_exec_info(p_ast_context);
+  this->TraverseStmt(expr);
+  return p_fcc_exec_info;
 }
 
 bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
@@ -47,46 +56,46 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       // Extracting operation type (e.g. foreach, etc.)
       if(func_name == "foreach") 
       {
-        m_fcc_exec_info.m_operation_type = FccOperationType::E_FOREACH;
-        m_fcc_exec_info.p_ast_context = p_ast_context;
+        p_fcc_exec_info->m_operation_type = FccOperationType::E_FOREACH;
+        p_fcc_exec_info->p_ast_context = p_ast_context;
         return process_entry_point(p_ast_context,
                                    p_fcc_context,
-                                   &m_fcc_exec_info,
+                                   p_fcc_exec_info,
                                    call);
       }
 
       if(func_name == "has_tag" ) {
         return process_has_tag(p_ast_context,
-                                p_fcc_context,
-                                &m_fcc_exec_info,
-                                call);
+                               p_fcc_context,
+                               p_fcc_exec_info,
+                               call);
       }
 
       if(func_name == "has_not_tag" ) {
         return process_has_not_tag(p_ast_context,
                                    p_fcc_context,
-                                   &m_fcc_exec_info,
+                                   p_fcc_exec_info,
                                    call);
       }
 
       if(func_name == "has_component" ) {
         return process_has_component(p_ast_context,
-                                      p_fcc_context,
-                                      &m_fcc_exec_info,
-                                      call);
+                                     p_fcc_context,
+                                     p_fcc_exec_info,
+                                     call);
       }
 
       if(func_name == "has_not_component" ) {
         return process_has_not_component(p_ast_context,
                                          p_fcc_context,
-                                         &m_fcc_exec_info,
+                                         p_fcc_exec_info,
                                          call);
       }
 
       if(func_name == "filter" ) {
         return process_filter(p_ast_context,
                               p_fcc_context,
-                              &m_fcc_exec_info,
+                              p_fcc_exec_info,
                               call);
       }
     } 
@@ -110,6 +119,7 @@ p_ast_context(ast_context),
 p_fcc_context(fcc_context)
 {
 }
+
 
 bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 {
@@ -135,14 +145,11 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             FuriousExprVisitor visitor(p_ast_context,
                                        p_fcc_context);
 
-            visitor.TraverseStmt(expr);
+            FccExecInfo* info = visitor.parse_expression(expr);
 
             // We register the execution information obtained with the visitor,
             // after checking it is well-formed.
-            if(visitor.m_fcc_exec_info.m_operation_type != FccOperationType::E_UNKNOWN) 
-            {
-              p_fcc_context->m_operations.push_back(visitor.m_fcc_exec_info);
-            } else 
+            if(info->m_operation_type == FccOperationType::E_UNKNOWN) 
             {
               SourceLocation location = expr->getLocStart();
               report_parsing_error(p_ast_context,
@@ -161,7 +168,8 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
                                  FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
             return false;
           }
-        } else 
+        } 
+        else 
         {
           // Parsing Declarations
           if(isa<DeclStmt>(stmt))
@@ -171,7 +179,8 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             if(isa<CXXRecordDecl>(decl))
             {
               // OK
-            } else 
+            } 
+            else 
             {
               SourceLocation location = decl->getLocStart();
               report_parsing_error(p_ast_context,

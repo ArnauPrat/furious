@@ -9,10 +9,10 @@ namespace furious {
 FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
 {
   FccOperator* root = nullptr;
-  if(exec_info->m_basic_component_types.size() > 1)
+  if(exec_info->m_num_basic_component_types > 1)
   {
     // We need to build joins
-    int32_t size = exec_info->m_basic_component_types.size();
+    int32_t size = exec_info->m_num_basic_component_types;
     FccOperator* left = new Scan(exec_info->m_basic_component_types[size-2]);
     FccOperator* right = new Scan(exec_info->m_basic_component_types[size-1]);
     root = new Join(left, right);
@@ -30,42 +30,42 @@ FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create without Tag Filters
-  for(const std::string& tag : exec_info->m_has_not_tags)
+  for(uint32_t i = 0; i < exec_info->m_num_has_not_tags; ++i)
   {
     root = new TagFilter(root, 
-                         tag,
+                         exec_info->m_has_not_tags[i],
                          FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with tag filters
-  for(const std::string& tag : exec_info->m_has_tags)
+  for(uint32_t i = 0; i < exec_info->m_num_has_tags; ++i)
   {
     root = new TagFilter(root, 
-                         tag,
+                         exec_info->m_has_tags[i],
                          FccFilterOpType::E_HAS);
   }
 
   // Create with components filters
-  for(const QualType& component_type : exec_info->m_has_not_components)
+  for(uint32_t i = 0; i < exec_info->m_num_has_not_components; ++i)
   {
     root = new ComponentFilter(root, 
-                               component_type,
+                               exec_info->m_has_not_components[i],
                                FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with components filters
-  for(const QualType& component_type : exec_info->m_has_components)
+  for(uint32_t i = 0; i < exec_info->m_num_has_components; ++i)
   {
     root = new ComponentFilter(root, 
-                               component_type,
+                               exec_info->m_has_components[i],
                                FccFilterOpType::E_HAS);
   }
 
   // Create predicate filters
-  for(const FunctionDecl* func_decl : exec_info->m_filter_func)
+  for(uint32_t i = 0; i < exec_info->m_num_func_filters; ++i)
   {
     root = new PredicateFilter(root, 
-                               func_decl);
+                               exec_info->m_filter_func[i]);
   }
 
   // Create Operation operator

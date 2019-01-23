@@ -5,7 +5,6 @@
 #include "../common/common.h"
 
 #include <clang/AST/AST.h>
-#include <vector>
 
 using namespace clang;
 
@@ -163,9 +162,22 @@ struct FccExecPlan
   FccExecPlan(FccContext* context);
   ~FccExecPlan();
 
+  /**
+   * \brief Inserts a new root to the execution plan
+   *
+   * \param ast_context The ast context of the root operator 
+   * \param FccOperator The root operator
+   */
+  void
+  insert_root(ASTContext* ast_context, const FccOperator*);
+
   FccContext*                     p_context;
-  std::vector<ASTContext*>        m_asts;
-  std::vector<const FccOperator*> m_roots; 
+  uint32_t                        m_num_asts;
+  uint32_t                        m_max_asts;
+  uint32_t                        m_num_roots;
+  uint32_t                        m_max_roots;
+  ASTContext**                    m_asts;
+  const FccOperator**             m_roots; 
 };
 
 ////////////////////////////////////////////////

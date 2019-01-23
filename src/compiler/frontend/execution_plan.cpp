@@ -111,17 +111,58 @@ Foreach::~Foreach() {
 
 
 FccExecPlan::FccExecPlan(FccContext* context) :
-p_context{context}
+p_context(context),
+m_num_asts(0),
+m_max_asts(0),
+m_num_roots(0),
+m_max_roots(0),
+m_asts(NULL),
+m_roots(NULL)
 {
 
 }
 
 FccExecPlan::~FccExecPlan()
 {
-  for(auto root : m_roots)
+  if(m_asts != NULL)
   {
-    delete root;
+    delete [] m_asts;
   }
+
+  for(uint32_t i = 0;  i < m_num_roots; ++i)
+  {
+    if(m_roots[i] != NULL)
+    {
+      delete m_roots[i];
+      m_roots[i] = NULL;
+    }
+  }
+
+  if(m_roots != NULL)
+  {
+    delete [] m_roots;
+  }
+}
+
+#define FCC_EXEC_PLAN_GROWING_FACTOR 16 
+
+void
+FccExecPlan::insert_root(ASTContext* ast_context, const FccOperator* root)
+{
+  if(m_num_roots == m_max_roots)
+  {
+    m_max_roots += FCC_EXEC_PLAN_GROWING_FACTOR;
+    m_roots = (const FccOperator**)realloc(m_roots, m_max_roots*sizeof(const FccOperator**));
+
+    m_max_asts += FCC_EXEC_PLAN_GROWING_FACTOR;
+    m_asts = (ASTContext**)realloc(m_asts, m_max_asts*sizeof(ASTContext*));
+  }
+
+  m_roots[m_num_roots] = root; 
+  m_num_roots++;
+  m_asts[m_num_asts] = ast_context;
+  m_num_asts++;
+
 }
 
 ////////////////////////////////////////////////
@@ -131,9 +172,9 @@ FccExecPlan::~FccExecPlan()
 void
 FccExecPlanVisitor::traverse(const FccExecPlan* plan)
 {
-  for(const FccOperator* root : plan->m_roots)
+  for(uint32_t i = 0; i < plan->m_num_roots; ++i)
   {
-    root->accept(this);
+    plan->m_roots[i]->accept(this);
   }
 }
 

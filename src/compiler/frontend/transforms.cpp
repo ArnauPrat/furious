@@ -6,7 +6,8 @@
 
 namespace furious {
 
-FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
+FccOperator* 
+bootstrap_subplan(const FccExecInfo* exec_info)
 {
   FccOperator* root = nullptr;
   if(exec_info->m_num_basic_component_types > 1)
@@ -23,7 +24,8 @@ FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
       FccOperator* left = new Scan(exec_info->m_basic_component_types[i]);
       root = new Join(left, root);
     }
-  } else 
+  } 
+  else 
   {
     // No join is needed, a single component needs to be scanned
     root = new Scan(exec_info->m_basic_component_types[0]);
@@ -86,9 +88,10 @@ FccOperator* bootstrap_subplan(const FccExecInfo* exec_info)
   return root;
 }
 
-Foreach* merge_foreach(FccContext* context,
-                       const Foreach* foreach1, 
-                       const Foreach* foreach2) {
+Foreach* 
+merge_foreach(FccContext* context,
+              const Foreach* foreach1, 
+              const Foreach* foreach2) {
   return nullptr;
 }
   

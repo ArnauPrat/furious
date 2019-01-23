@@ -14,6 +14,12 @@ class FccOperator;
 class ProduceVisitor;
 class ConsumeVisitor;
 
+/**
+ * \brief This class represents the context of the code generation process at a
+ * given code generation step. Since the code generation is a recursive
+ * procedure implemented through the visitors, we need to store the "state" of
+ * the generation process at a given step produce/consume step.
+ */
 class CodeGenContext
 {
 public:

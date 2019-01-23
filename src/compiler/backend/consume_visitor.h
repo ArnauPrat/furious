@@ -1,10 +1,17 @@
 
+#ifndef _FURIOUS_COMPILER_CONSUME_VISITOR_H_
+#define _FURIOUS_COMPILER_CONSUME_VISITOR_H_ value
+
 #include "../frontend/execution_plan.h"
 
-namespace furious {
+namespace furious 
+{
 
 class CodeGenContext;
-  
+
+/**
+ * \brief Visitor that implements the consume operation for generating code
+ */
 class ConsumeVisitor : public FccExecPlanVisitor
 {
 public:
@@ -34,3 +41,5 @@ public:
 };
 
 } /* consume_visitor */ 
+
+#endif

@@ -12,12 +12,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <vector>
+
 
 namespace furious {
 
 
 /**
- * @brief Visitor used to extract the dependencies of an execution plan
+ * @brief Visitor used to extract the dependencies of an execution plan, which
+ * include structures and headers including dependent structures
  */
 class DependenciesExtr : public FccExecPlanVisitor 
 {
@@ -95,6 +98,10 @@ public:
 ////////////////////////////////////////////////
 
 
+/**
+ * \brief Extracts the components and tags used in an execution plan, which will
+ * be used to declare the required variables in the generated code.
+ */
 class VarsExtr : public FccExecPlanVisitor 
 {
 public:
@@ -227,12 +234,18 @@ generate_code(const FccExecPlan* exec_plan,
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     std::string table_varname = base_name+"_table";
-    fprintf(fd,"%s  = database->find_or_add_table<%s>();\n", table_varname.c_str(), table.c_str());
+    fprintf(fd,
+            "%s  = database->find_or_add_table<%s>();\n",
+            table_varname.c_str(),
+            table.c_str());
   }
 
   for(const std::string& tag : vars_extr.m_tags)
   {
-    fprintf(fd,"tagged_%s = database->get_tagged_entities(\"%s\");\n", tag.c_str(), tag.c_str());
+    fprintf(fd,
+            "tagged_%s = database->get_tagged_entities(\"%s\");\n",
+            tag.c_str(),
+            tag.c_str());
   }
 
   for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
@@ -243,7 +256,11 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    fprintf(fd,"%s_%d = create_system<%s>(", base_name.c_str(), info->m_system.m_id, system_name.c_str());
+    fprintf(fd,
+            "%s_%d = create_system<%s>(",
+            base_name.c_str(),
+            info->m_system.m_id,
+            system_name.c_str());
 
     size_t num_params = info->m_system.m_num_ctor_params;
     if( num_params > 0) 
@@ -252,18 +269,14 @@ generate_code(const FccExecPlan* exec_plan,
       const SourceManager& sm = info->p_ast_context->getSourceManager();
       SourceLocation start = param->getLocStart();
       SourceLocation end = param->getLocEnd();
-      std::string code = get_code(sm, 
-                                  start,
-                                  end);
-        fprintf(fd,"%s", code.c_str());
+      std::string code = get_code(sm,start,end);
+      fprintf(fd,"%s", code.c_str());
       for(size_t i = 1; i < num_params; ++i)
       {
         const Expr* param = info->m_system.m_ctor_params[i];
         SourceLocation start = param->getLocStart();
         SourceLocation end = param->getLocEnd();
-        std::string code = get_code(sm, 
-                                    start,
-                                    end);
+        std::string code = get_code(sm,start,end);
         fprintf(fd,",%s",code.c_str());
       }
     }
@@ -277,8 +290,9 @@ generate_code(const FccExecPlan* exec_plan,
 
   fprintf(fd, "Context context{delta,database};\n");
 
-  for(const FccOperator* root : exec_plan->m_roots)
+  for(uint32_t i = 0; i < exec_plan->m_num_roots; ++i)
   {
+    const FccOperator* root = exec_plan->m_roots[i];
     ExecPlanPrinter printer{true};
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.str().c_str());

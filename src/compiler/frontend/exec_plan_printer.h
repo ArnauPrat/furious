@@ -3,7 +3,6 @@
 #define _FURIOUS_COMPILER_PRITER_H_
 
 #include "execution_plan.h"
-
 #include <sstream>
 
 namespace furious {

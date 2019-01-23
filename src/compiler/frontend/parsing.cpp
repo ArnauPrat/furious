@@ -320,7 +320,8 @@ process_has_component(ASTContext* ast_context,
 #endif
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
-  for (uint32_t i = 0; i < arg_list->size(); ++i) {
+  for (uint32_t i = 0; i < arg_list->size(); ++i) 
+  {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
     exec_info->insert_has_compponent(&type);

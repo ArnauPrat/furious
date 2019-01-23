@@ -6,7 +6,6 @@
 
 #include <string>
 #include <clang/AST/AST.h>
-#include <clang/Lex/Lexer.h>
 
 using namespace clang;
 

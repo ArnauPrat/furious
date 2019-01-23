@@ -3,13 +3,15 @@
 #define _FURIOUS_COMPILER_PRODUCE_VISITOR_H_ value
 
 #include "frontend/execution_plan.h"
-#include <sstream>
 
-
-namespace furious {
+namespace furious 
+{
 
 class CodeGenContext;
 
+/**
+ * \brief Visitor that implements the produce operation for generating code
+ */
 class ProduceVisitor : public FccExecPlanVisitor
 {
 public:

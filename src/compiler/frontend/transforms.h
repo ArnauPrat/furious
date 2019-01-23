@@ -17,7 +17,8 @@ struct FccOperator;
  *
  * @return Retorns the root operator of the generated plan
  */
-FccOperator* bootstrap_subplan(const FccExecInfo* exec_info);
+FccOperator* 
+bootstrap_subplan(const FccExecInfo* exec_info);
 
 /**
  * @brief  Merges two Foreach operators into a new one. The new Foreach operator
@@ -29,9 +30,10 @@ FccOperator* bootstrap_subplan(const FccExecInfo* exec_info);
  *
  * @return A newly created Foreach resulting of merging the two input Foreach.
  */
-Foreach* merge_foreach(FccContext* context,
-                       const Foreach* foreach1, 
-                       const Foreach* foreach2);
+Foreach* 
+merge_foreach(FccContext* context,
+              const Foreach* foreach1, 
+              const Foreach* foreach2);
 
 
 

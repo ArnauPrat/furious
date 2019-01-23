@@ -4,8 +4,6 @@
 #include "fcc_context.h"
 #include "parsing.h"
 
-#include <clang/Lex/Lexer.h>
-
 namespace furious 
 {
 

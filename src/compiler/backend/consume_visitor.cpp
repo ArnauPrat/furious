@@ -23,7 +23,14 @@ ConsumeVisitor::visit(const Foreach* foreach)
   int param_index = 0;
   for(const std::string& type : p_context->m_types) 
   {
-      fprintf(p_context->p_fd,"%s* data_%d = reinterpret_cast<%s*>(%s.m_blocks[%d]->p_data);\n", type.c_str(), param_index, type.c_str(), p_context->m_source.c_str(), param_index);
+      fprintf(p_context->p_fd,
+              "%s* data_%d = reinterpret_cast<%s*>(%s.m_blocks[%d]->p_data);\n", 
+              type.c_str(), 
+              param_index, 
+              type.c_str(), 
+              p_context->m_source.c_str(), 
+              param_index);
+
       param_index++;
   }
   fprintf(p_context->p_fd, "\n");
@@ -38,7 +45,13 @@ ConsumeVisitor::visit(const Foreach* foreach)
                    base_name.end(), 
                    base_name.begin(), ::tolower);
 
-    fprintf(p_context->p_fd,  "%s_%d->apply_block(&context,\n%s.m_start,\n%s.m_enabled", base_name.c_str(), info.m_id, p_context->m_source.c_str(), p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "%s_%d->apply_block(&context,\n%s.m_start,\n%s.m_enabled", 
+            base_name.c_str(), 
+            info.m_id, 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str());
+
     for(size_t i = 0; i <  p_context->m_types.size(); ++i) 
     {
       fprintf(p_context->p_fd,",\ndata_%zu",i);
@@ -59,22 +72,41 @@ ConsumeVisitor::visit(const Join* join)
   std::string hashtable = "hashtable_"+p_context->m_join_id;
   if(p_context->p_caller == join->p_left) 
   {
-    fprintf(p_context->p_fd, "%s[%s.m_start] = %s;\n", hashtable.c_str(), p_context->m_source.c_str(), p_context->m_source.c_str()); 
+    fprintf(p_context->p_fd, 
+            "%s[%s.m_start] = %s;\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str()); 
+
     p_context->m_left_types.insert(p_context->m_left_types.end(), 
                                    p_context->m_types.begin(),
                                    p_context->m_types.end());
   } else 
   {
     std::string clustername = "cluster_"+p_context->m_join_id;
-    fprintf(p_context->p_fd,"auto it = %s.find(%s.m_start);\n", hashtable.c_str(), p_context->m_source.c_str());
-    fprintf(p_context->p_fd,"if(it != %s.end())\n{\n", hashtable.c_str());
-    fprintf(p_context->p_fd,"BlockCluster& %s = it->second;\n",clustername.c_str());
-    fprintf(p_context->p_fd,"%s.append(&%s);\n", clustername.c_str(), p_context->m_source.c_str());
-    fprintf(p_context->p_fd,"if(%s.m_enabled.any())\n{\n", clustername.c_str());
+    fprintf(p_context->p_fd,
+            "auto it = %s.find(%s.m_start);\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "if(it != %s.end())\n{\n",
+            hashtable.c_str());
+    fprintf(p_context->p_fd,
+            "BlockCluster& %s = it->second;\n",
+            clustername.c_str());
+    fprintf(p_context->p_fd,
+            "%s.append(&%s);\n", 
+            clustername.c_str(), 
+            p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "if(%s.m_enabled.any())\n{\n", 
+            clustername.c_str());
+
     std::vector<std::string> joined_types{p_context->m_left_types};
     joined_types.insert(joined_types.end(),
                         p_context->m_types.begin(),
                         p_context->m_types.end());
+
     consume(p_context->p_fd,
             join->p_parent,
             clustername,
@@ -90,22 +122,32 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
 {
   const std::string tag = tag_filter->m_tag;
   fprintf(p_context->p_fd,"\n");
-  fprintf(p_context->p_fd, "const std::bitset<TABLE_BLOCK_SIZE>& filter = tagged_%s->get_bitset(%s.m_start);\n", tag.c_str(), p_context->m_source.c_str());
+  fprintf(p_context->p_fd,
+          "const std::bitset<TABLE_BLOCK_SIZE>& filter = tagged_%s->get_bitset(%s.m_start);\n", 
+          tag.c_str(), 
+          p_context->m_source.c_str());
+
   switch(tag_filter->m_op_type) 
   {
     case FccFilterOpType::E_HAS:
       {
-        fprintf(p_context->p_fd,"%s.m_enabled &= filter;\n", p_context->m_source.c_str());
+        fprintf(p_context->p_fd,
+                "%s.m_enabled &= filter;\n",
+                p_context->m_source.c_str());
         break;
       }
     case FccFilterOpType::E_HAS_NOT:
       {
-        fprintf(p_context->p_fd, "%s.m_enabled &= ~filter;\n", p_context->m_source.c_str());
+        fprintf(p_context->p_fd,
+                "%s.m_enabled &= ~filter;\n",
+                p_context->m_source.c_str());
         break;
       }
   }
 
-  fprintf(p_context->p_fd, "if(%s.m_enabled.any())\n{\n", p_context->m_source.c_str()); 
+  fprintf(p_context->p_fd,
+          "if(%s.m_enabled.any())\n{\n",
+          p_context->m_source.c_str()); 
   consume(p_context->p_fd,
           tag_filter->p_parent,
           p_context->m_source,
@@ -133,7 +175,13 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   int param_index = 0;
   for(const std::string& type : p_context->m_types) 
   {
-      fprintf(p_context->p_fd,"%s* data_%d = reinterpret_cast<%s*>(%s.m_blocks[%d]->p_data);\n", type.c_str(), param_index, type.c_str(), p_context->m_source.c_str(), param_index);
+      fprintf(p_context->p_fd,
+              "%s* data_%d = reinterpret_cast<%s*>(%s.m_blocks[%d]->p_data);\n",
+              type.c_str(),
+              param_index,
+              type.c_str(),
+              p_context->m_source.c_str(),
+              param_index);
       param_index++;
   }
   std::string func_name = "";
@@ -160,17 +208,24 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
     func_name = "predicate";
   }
 
-  fprintf(p_context->p_fd, "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && %s.m_enabled.any(); ++i) \n{\n", p_context->m_source.c_str());
-  fprintf(p_context->p_fd, "%s.m_enabled[i] = %s.m_enabled[i] && %s(", p_context->m_source.c_str(), p_context->m_source.c_str(),func_name.c_str());
+  fprintf(p_context->p_fd,
+          "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && %s.m_enabled.any(); ++i) \n{\n",
+          p_context->m_source.c_str());
+  fprintf(p_context->p_fd,
+          "%s.m_enabled[i] = %s.m_enabled[i] && %s(",
+          p_context->m_source.c_str(),
+          p_context->m_source.c_str(),
+          func_name.c_str());
   fprintf(p_context->p_fd, "&data_0[i]");
   for(size_t i = 1; i <p_context->m_types.size(); ++i)
   {
     fprintf(p_context->p_fd, ",&data_%zu[i]", i);
   }
   fprintf(p_context->p_fd, ");\n");
-
   fprintf(p_context->p_fd, "}\n");
-  fprintf(p_context->p_fd, "if(%s.m_enabled.any())\n{\n", p_context->m_source.c_str()); 
+  fprintf(p_context->p_fd,
+          "if(%s.m_enabled.any())\n{\n",
+          p_context->m_source.c_str()); 
   consume(p_context->p_fd,
           predicate_filter->p_parent,
           p_context->m_source,

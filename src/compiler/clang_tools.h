@@ -2,6 +2,7 @@
 #ifndef _FURIOUS_COMPILER_CLANG_TOOLS_H_
 #define _FURIOUS_COMPILER_CLANG_TOOLS_H_ value
 
+#include <vector>
 #include <string>
 #include <clang/Basic/SourceManager.h>
 #include <clang/AST/Type.h>

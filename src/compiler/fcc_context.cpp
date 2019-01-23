@@ -375,13 +375,12 @@ Fcc_run(FccContext* context,
 #endif
 
   // Build initial execution plan
-  FccExecPlan exec_plan{context};
+  FccExecPlan exec_plan(context);
   for(uint32_t i = 0; i < context->m_num_exec_infos; ++i)
   {
     FccExecInfo* info = context->m_exec_infos[i];
     FccOperator* next_root = bootstrap_subplan(info);
-    exec_plan.m_roots.push_back(next_root);
-    exec_plan.m_asts.push_back(info->p_ast_context);
+    exec_plan.insert_root(info->p_ast_context, next_root);
   }
 
   ExecPlanPrinter printer;

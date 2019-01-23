@@ -8,7 +8,6 @@
 #include "codegen_tools.h"
 
 #include <unordered_map>
-
 #include <memory>
 
 namespace furious {
@@ -32,6 +31,7 @@ CodeGenContext::~CodeGenContext()
 
 static 
 std::unordered_map<const FccOperator*, std::unique_ptr<CodeGenContext>> contexts; 
+typedef std::unordered_map<const FccOperator*, std::unique_ptr<CodeGenContext>>::iterator context_iter;
 
 void 
 consume(FILE* fd,
@@ -40,7 +40,7 @@ consume(FILE* fd,
         const std::vector<std::string>& types,
         const FccOperator* caller)
 {
-  auto it = contexts.find(op);
+  context_iter it = contexts.find(op);
   if( it == contexts.end())
   {
     contexts[op] = std::make_unique<CodeGenContext>(fd);
@@ -57,7 +57,7 @@ void
 produce(FILE* fd,
         const FccOperator* op)
 {
-  auto it = contexts.find(op);
+  context_iter it = contexts.find(op);
   if( it == contexts.end())
   {
     contexts[op] = std::make_unique<CodeGenContext>(fd);

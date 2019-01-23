@@ -2,12 +2,7 @@
 #ifndef _FURIOUS_FCCASTVISITOR_H_
 #define _FURIOUS_FCCASTVISITOR_H_
 
-#include "clang/Frontend/ASTConsumers.h"
-#include "clang/Frontend/FrontendActions.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include <clang/AST/RecursiveASTVisitor.h>
-#include <clang/Frontend/CompilerInstance.h>
-#include <clang/Lex/Lexer.h>
+#include <clang/AST/AST.h>
 
 #include "fcc_context.h"
 

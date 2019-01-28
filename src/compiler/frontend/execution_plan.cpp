@@ -6,7 +6,7 @@ namespace furious {
 
 FccOperator::FccOperator(FccOperatorType type) :
 m_type(type),
-p_parent{nullptr}
+p_parent(nullptr)
 {
 }
 
@@ -126,7 +126,7 @@ FccExecPlan::~FccExecPlan()
 {
   if(m_asts != NULL)
   {
-    delete [] m_asts;
+    free(m_asts);
   }
 
   for(uint32_t i = 0;  i < m_num_roots; ++i)
@@ -140,7 +140,7 @@ FccExecPlan::~FccExecPlan()
 
   if(m_roots != NULL)
   {
-    delete [] m_roots;
+    free(m_roots);
   }
 }
 

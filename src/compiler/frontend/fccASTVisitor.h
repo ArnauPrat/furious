@@ -2,7 +2,8 @@
 #ifndef _FURIOUS_FCCASTVISITOR_H_
 #define _FURIOUS_FCCASTVISITOR_H_
 
-#include <clang/AST/AST.h>
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/RecursiveASTVisitor.h>
 
 #include "fcc_context.h"
 
@@ -10,6 +11,8 @@ using namespace clang;
 
 namespace furious
 {
+
+struct FccContext;
 
 /**
 * @brief Visitor that extracts the execution information of a an expression with

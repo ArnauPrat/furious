@@ -154,12 +154,13 @@ public:
 
 void 
 generate_code(const FccExecPlan* exec_plan,
-              const std::string& filename)
+              const std::string& filename,
+              const std::string& include_file)
 {
   FILE* fd = fopen(filename.c_str(), "w");
   fprintf(fd, "\n\n\n");
   // add basic includes
-  fprintf(fd, "#include <furious.h> \n");
+  fprintf(fd, "#include <%s> \n", include_file.c_str());
   /// Find dependencies
   DependenciesExtr deps_visitor;
   deps_visitor.traverse(exec_plan);

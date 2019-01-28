@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <vector>
 
+#include <clang/Tooling/Tooling.h>
+
 namespace furious 
 {
 
@@ -339,40 +341,45 @@ FccContext::report_compilation_error(FccCompilationErrorType error_type,
 int 
 Fcc_run(FccContext* context, 
         CommonOptionsParser& op,
-        const std::string& output_file)
+        const std::string& output_file,
+        const std::string& include_file)
 {
-  ClangTool tool(op.getCompilations(), op.getSourcePathList());
-  std::vector<std::unique_ptr<ASTUnit>> asts;
-  int result = tool.buildASTs(asts);
-  if(result != 0)
+  int result = 0;
+  if(op.getSourcePathList().size() > 0)
   {
-    return result;
-  }
+    ClangTool tool(op.getCompilations(), op.getSourcePathList());
+    std::vector<std::unique_ptr<ASTUnit>> asts;
+    result = tool.buildASTs(asts);
+    if(result != 0)
+    {
+      return result;
+    }
 
-  for(uint32_t i = 0; i < asts.size();++i)
-  {
-    context->insert_ast_unit(asts[i]);
-  }
+    for(uint32_t i = 0; i < asts.size();++i)
+    {
+      context->insert_ast_unit(asts[i]);
+    }
 
 #ifndef NDEBUG
-  llvm::errs() << "\n";
-  llvm::errs() << "Parsing furious scripts" << "\n";
+    llvm::errs() << "\n";
+    llvm::errs() << "Parsing furious scripts" << "\n";
 #endif
 
-  // Parse and visit all compilation units (furious scripts)
-  for(uint32_t i = 0; i < context->m_num_translation_units; ++i) 
-  {
-    ASTUnit* ast = context->m_asts[i].get();
-    ASTContext& ast_context = ast->getASTContext();
-    FccASTVisitor visitor(&ast_context,
-                          context);
-    visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
-  }
+    // Parse and visit all compilation units (furious scripts)
+    for(uint32_t i = 0; i < context->m_num_translation_units; ++i) 
+    {
+      ASTUnit* ast = context->m_asts[i].get();
+      ASTContext& ast_context = ast->getASTContext();
+      FccASTVisitor visitor(&ast_context,
+                            context);
+      visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
+    }
 
 #ifndef NDEBUG
-  llvm::errs() << "\n";
-  llvm::errs() << "Building Query Plan" << "\n";
+    llvm::errs() << "\n";
+    llvm::errs() << "Building Query Plan" << "\n";
 #endif
+  }
 
   // Build initial execution plan
   FccExecPlan exec_plan(context);
@@ -387,7 +394,8 @@ Fcc_run(FccContext* context,
   printer.traverse(&exec_plan);
   llvm::errs() << printer.m_string_builder.str() << "\n";
   generate_code(&exec_plan,
-                output_file);
+                output_file,
+                include_file);
   return result;
 }
 

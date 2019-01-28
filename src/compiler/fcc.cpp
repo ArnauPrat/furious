@@ -16,13 +16,15 @@ using namespace furious;
 
 static cl::OptionCategory fccToolCategory("fcc options");
 static cl::opt<std::string> output_file("o", cl::cat(fccToolCategory));
+static cl::opt<std::string> include_file("i", cl::cat(fccToolCategory));
 
 int main(int argc, const char **argv)
 {
   output_file.setInitialValue("furious_generated.cpp");
+  include_file.setInitialValue("furious/furious.h");
   CommonOptionsParser op(argc, argv, fccToolCategory);
   FccContext* fcc_context = Fcc_create_context();
-  int result = Fcc_run(fcc_context, op, output_file.getValue());
+  int result = Fcc_run(fcc_context, op, output_file.getValue(), include_file.getValue());
   Fcc_release_context(fcc_context);
   return result;
 }

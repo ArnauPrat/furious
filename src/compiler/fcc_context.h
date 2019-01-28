@@ -4,18 +4,18 @@
 
 #include <string>
 
+//#include <clang/Frontend/ASTUnit.h>
+//#include <clang/Driver/Options.h>
+//#include <clang/AST/AST.h>
+//#include <clang/AST/ASTConsumer.h>
+//#include <clang/Rewrite/Core/Rewriter.h>
+
 #include <clang/Frontend/ASTUnit.h>
-#include <clang/AST/RecursiveASTVisitor.h>
-#include <clang/Driver/Options.h>
 #include <clang/AST/AST.h>
-#include <clang/AST/ASTContext.h>
-#include <clang/AST/ASTConsumer.h>
 #include <clang/Tooling/CommonOptionsParser.h>
-#include <clang/Tooling/Tooling.h>
-#include <clang/Rewrite/Core/Rewriter.h>
 
 using namespace clang;
-using namespace clang::driver;
+//using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 
@@ -242,13 +242,15 @@ Fcc_release_context(FccContext* context);
  * \param context The context to run the compiler with
  * \param op The options to run the compiler with
  * \param output_file The output file to generate 
+ * \param include_file The furious include file path 
  *
  * \return Returns the exit code of the compilation. 0 if successful.
  */
 int 
 Fcc_run(FccContext* context, 
         CommonOptionsParser& op,
-        const std::string& output_file);
+        const std::string& output_file,
+        const std::string& include_file);
 
 } /* furious */ 
 

@@ -3,6 +3,7 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
+#include "macros.h"
 #include "table.h"
 #include "table_view.h"
 #include "common.h"
@@ -37,22 +38,24 @@ public:
   //////////////////////////////////////////////
 
   /**
-   * Adds an existing table to the database
+   * Adds a table to the database
    */
   template <typename T>
-  TableView<T> add_table();
+  TableView<T>
+  create_table(const std::string& tablename);
 
   /**
    * Drops an existing table
    */
   template <typename T>
-  void remove_table();
+  void 
+  remove_table(const std::string& tablename);
 
   /**
    * Gets the table from type 
    * */
   template <typename T>
-  TableView<T> find_table();
+  TableView<T> find_table(const std::string& tablename);
 
   /**
    * @brief Finds the table for the specified component or adds it to the
@@ -63,18 +66,8 @@ public:
    * @return A TableView of the table
    */
   template <typename T>
-  TableView<T> find_or_add_table();
-
-  /**
-   * @brief Gets the id of a table
-   *
-   * @tparam TComponent
-   *
-   * @return 
-   */
-  template<typename TComponent>
-    int64_t get_table_id();
-
+  TableView<T> 
+  find_or_create_table(const std::string& tablename);
 
   /**
    * @brief Tests whether a Table exists or not
@@ -84,7 +77,19 @@ public:
    * @return Returns True if the table exists. False otherwise
    */
   template<typename TComponent>
-    bool exists_table();
+  bool 
+  exists_table(const std::string& tablename);
+
+  /**
+   * \brief Gets the id of a table 
+   *
+   * \param tablename The name of a table
+   *
+   * \return Returns the id of the table
+   */
+  template <typename T>
+  int64_t
+  get_table_id(const std::string& tablename);
 
   /**
    * Clears and removes all the tables from the database

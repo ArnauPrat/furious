@@ -236,7 +236,7 @@ generate_code(const FccExecPlan* exec_plan,
                    base_name.begin(), ::tolower);
     std::string table_varname = base_name+"_table";
     fprintf(fd,
-            "%s  = database->find_or_add_table<%s>();\n",
+            "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
             table_varname.c_str(),
             table.c_str());
   }

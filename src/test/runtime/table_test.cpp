@@ -6,7 +6,8 @@
 
 namespace furious {
 
-struct Component {
+struct Component 
+{
   int32_t field1_;
   float field2_;
 
@@ -16,9 +17,10 @@ struct Component {
 
 TEST(TableTest,TableWorks) {
 
-  Database database{};
-  database.add_table<Component>();
-  TableView<Component> table = database.find_table<Component>();
+  Database* database = new Database();
+  FURIOUS_CREATE_TABLE(database, Component);
+  //database.add_table<Component>();
+  TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
   int32_t num_elements = TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_elements; ++i) {
@@ -77,7 +79,9 @@ TEST(TableTest,TableWorks) {
   table.clear();
   ASSERT_EQ(table.size(),0);
 
-  database.remove_table<Component>();
+  //FURIOUS_REMOVE_TABLE(database, Component);
+  database->remove_table<Component>("Component");
+  delete database;
 }
 }
 

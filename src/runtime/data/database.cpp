@@ -21,6 +21,9 @@ Database::~Database()
   }
 }
 
+
+
+
 void Database::clear() {
   for (auto i : m_tables) 
   {

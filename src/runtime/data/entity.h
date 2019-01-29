@@ -24,13 +24,14 @@ public:
 public:
 
   template<typename TComponent, typename...Args>
-  void add_component(Args&&...args);
+  void add_component(const std::string& component, 
+                     Args&&...args);
 
   template<typename TComponent>
-  void remove_component();
+  void remove_component(const std::string& component);
 
   template<typename TComponent> 
-  TComponent* get_component();
+  TComponent* get_component(const std::string& component);
 
   void add_tag(const std::string& tag);
 

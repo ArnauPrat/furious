@@ -1,5 +1,5 @@
 
-#include "furious.h"
+#include "lang/lang.h"
 #include "filter_func_test_header.h"
 
 BEGIN_FURIOUS_SCRIPT

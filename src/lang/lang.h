@@ -3,6 +3,7 @@
 #ifndef _FURIOUS_LANG_H_
 #define _FURIOUS_LANG_H_
 
+#include "macros.h"
 #include "../common/common.h"
 #include "../runtime/data/context.h"
 

@@ -57,8 +57,7 @@ TableView<T> Database::find_or_create_table(const std::string& tablename)
   if(it != m_tables.end()) {
     return TableView<T>{it->second};
   }
-  std::string table_name = type_name<T>::name();
-  auto table =  new Table(table_name, hash_value, sizeof(T), &destructor<T>);
+  auto table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
   m_tables.insert(std::make_pair(hash_value,table));
   return TableView<T>(table); 
 }

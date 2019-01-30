@@ -1,17 +1,60 @@
 
 include_directories(./)
-add_subdirectory(./common/)
-add_subdirectory(./runtime/)
-add_subdirectory(./runtime/memory/)
-add_subdirectory(./runtime/data/)
-add_subdirectory(./compiler)
+
+set (COMMON_SRC
+  common/common.h
+  common/platform.cpp
+  common/platform.h
+  common/reference.h
+  common/traits.h
+  common/types.h
+  common/utils.cpp
+  common/utils.h
+  )
+
+set (RUNTIME_SRC
+  runtime/data/bit_table.cpp
+  runtime/data/bit_table.h
+  runtime/data/block_cluster.cpp
+  runtime/data/block_cluster.h
+  runtime/data/btree.h
+  runtime/data/btree.inl
+  runtime/data/common.h
+  runtime/data/context.cpp
+  runtime/data/context.h
+  runtime/data/data.h
+  runtime/data/database.cpp
+  runtime/data/database.h
+  runtime/data/database.inl
+  runtime/data/entity.cpp
+  runtime/data/entity.h
+  runtime/data/entity.inl
+  runtime/data/impl/btree_impl.cpp
+  runtime/data/impl/btree_impl.h
+  runtime/data/macros.h
+  runtime/data/table.cpp
+  runtime/data/table.h
+  runtime/data/table.inl
+  runtime/data/table_view.h
+  runtime/data/table_view.inl
+  runtime/memory/memory.h
+  runtime/memory/numa_alloc.cpp
+  runtime/memory/numa_alloc.h
+  runtime/runtime.h
+  runtime/system_wrapper.h
+  runtime/system_wrapper.inl
+  )
+
+
 
 add_library(furious SHARED
   furious.h
   furious.cpp
+  ${COMMON_SRC}
+  ${RUNTIME_SRC}
   )  
 
-target_link_libraries(furious common memory data runtime)
+set_property(TARGET furious PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(furious 
   PROPERTIES
@@ -21,44 +64,27 @@ set_target_properties(furious
 )
 
 ######################
+#### FCC COMPILER ####
+######################
 
-add_library(furious_runtime SHARED
-  furious_runtime.h
-  furious_runtime.cpp
-  )  
+add_subdirectory(./compiler)
 
-target_link_libraries(furious_runtime furious)
-
-set_target_properties(furious_runtime
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-  LIBRARY_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-  ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-)
-
-add_executable( mvp_test 
-  mvp_test.cpp
-  )
-
-add_executable( bitset_test
-  bitset_test.cpp 
-  )
-
-add_executable( lang_test 
-  lang_test.cpp
-  )
+#######################
+#######  TESTS  #######
+#######################
 
 add_subdirectory(./test/runtime)
 add_subdirectory(./test/compiler)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+add_executable( lang_test 
+  lang_test.cpp
+  )
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 
 install (TARGETS furious 
-          RUNTIME DESTINATION bin
-          LIBRARY DESTINATION lib)
-
-install (TARGETS furious_runtime
           RUNTIME DESTINATION bin
           LIBRARY DESTINATION lib)
 

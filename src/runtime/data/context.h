@@ -6,25 +6,28 @@
 #include "../../common/common.h"
 #include <vector>
 
-namespace furious {
+namespace furious 
+{
 
 class Database;
 
-struct IdComponentPair{
+struct IdComponentPair
+{
   int32_t id;
   int64_t table_id;
 };
 
-class Context {
+class Context 
+{
 public:
   Context(float dt, Database* database);
   ~Context() = default;
 
   template<typename TComponent>
-    void enable_component(int32_t id);
+    void enable_component(const std::string& component_name, int32_t id);
 
   template<typename TComponent>
-    void disable_component(int32_t id);
+    void disable_component(const std::string& component_name, int32_t id);
 
   const float m_dt;                 
 

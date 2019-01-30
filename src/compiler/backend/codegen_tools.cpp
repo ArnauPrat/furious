@@ -43,7 +43,7 @@ consume(FILE* fd,
   context_iter it = contexts.find(op);
   if( it == contexts.end())
   {
-    contexts[op] = std::make_unique<CodeGenContext>(fd);
+    contexts[op] = std::unique_ptr<CodeGenContext>( new CodeGenContext(fd));
   }  
 
   CodeGenContext* context = contexts[op].get();
@@ -60,7 +60,7 @@ produce(FILE* fd,
   context_iter it = contexts.find(op);
   if( it == contexts.end())
   {
-    contexts[op] = std::make_unique<CodeGenContext>(fd);
+    contexts[op] = std::unique_ptr<CodeGenContext>(new CodeGenContext(fd));
   }  
   CodeGenContext* context = contexts[op].get();
   op->accept(context->p_producer);

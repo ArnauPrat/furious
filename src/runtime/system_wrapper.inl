@@ -49,14 +49,16 @@ SystemWrapper<T, Components...>* create_system(T* system,
 }
 
 template<typename TSystem, typename...TArgs>
-auto create_system(TArgs&&...args) 
+auto 
+create_system(TArgs&&...args) -> decltype(create_system(new TSystem(std::forward<TArgs>(args)...), &TSystem::run))
 {
   TSystem* system_object = new TSystem(std::forward<TArgs>(args)...);
-  return create_system(system_object, &TSystem::run );
+  return create_system(system_object, &TSystem::run);
 }
 
 template<typename TSystem, typename...Components>
-void destroy_system(SystemWrapper<TSystem,Components...>* system) 
+void 
+destroy_system(SystemWrapper<TSystem,Components...>* system) 
 {
   delete system;
 }

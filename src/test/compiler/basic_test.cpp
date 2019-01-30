@@ -1,5 +1,5 @@
 
-#include "furious_runtime.h"
+#include "furious.h"
 #include "basic_test_header.h"
 
 #include <gtest/gtest.h>
@@ -10,8 +10,8 @@
 
 TEST(BasicTest, BasicTest ) 
 {
-  furious::init();
-  furious::Database* database = furious::get_database();
+  furious::Database* database = new furious::Database();
+  furious::__furious_init(database);
 
   std::vector<furious::Entity> entities;
   for(int i = 0; i < 1000; ++i)
@@ -22,7 +22,7 @@ TEST(BasicTest, BasicTest )
     entities.push_back(entity);
   }
 
-  furious::update(0.1);
+  furious::__furious_frame(0.1,database);
 
   for(furious::Entity& entity : entities)
   {
@@ -31,7 +31,8 @@ TEST(BasicTest, BasicTest )
     ASSERT_TRUE(position->m_y == 0.1f);
     ASSERT_TRUE(position->m_z == 0.1f);
   }
-  furious::release();
+  furious::__furious_release();
+  delete database;
 }
 
 int main(int argc, char *argv[])

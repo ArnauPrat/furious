@@ -1,5 +1,5 @@
 
-#include "furious_runtime.h"
+#include "furious.h"
 #include "filter_func_test_header.h"
 
 #include <gtest/gtest.h>
@@ -10,8 +10,8 @@
 
 TEST(FilterLambdaTest, FilterLambdaTest ) 
 {
-  furious::init();
-  furious::Database* database = furious::get_database();
+  furious::Database* database = new furious::Database();
+  furious::__furious_init(database);
 
   std::vector<furious::Entity> entities;
   for(int i = 0; i < 1000; ++i)
@@ -29,7 +29,7 @@ TEST(FilterLambdaTest, FilterLambdaTest )
     entities.push_back(entity);
   }
 
-  furious::update(0.1f);
+  furious::__furious_frame(0.1f, database);
 
   for(furious::Entity& entity : entities)
   {
@@ -47,7 +47,8 @@ TEST(FilterLambdaTest, FilterLambdaTest )
       ASSERT_EQ(position->m_z, 0.0f);
     }
   }
-  furious::release();
+  furious::__furious_release();
+  delete database;
 }
 
 int main(int argc, char *argv[])

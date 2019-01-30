@@ -1,7 +1,8 @@
 
 #include "furious.h"
 
-namespace furious {
+namespace furious 
+{
 
 
 

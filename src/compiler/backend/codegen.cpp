@@ -289,7 +289,7 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd,"\n\n\n");
   fprintf(fd,"void __furious_frame(float delta, Database* database)\n{\n");
 
-  fprintf(fd, "Context context{delta,database};\n");
+  fprintf(fd, "Context context(delta,database);\n");
 
   for(uint32_t i = 0; i < exec_plan->m_num_roots; ++i)
   {

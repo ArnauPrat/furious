@@ -16,7 +16,7 @@ template<typename T>
 void
 FccOperatorTmplt<T>::accept(FccExecPlanVisitor* visitor) const 
 {
-  visitor->visit(dynamic_cast<const T*>(this));
+  visitor->visit((const T*)(this));
 }
 
 template<typename T>

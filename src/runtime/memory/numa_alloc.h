@@ -5,7 +5,8 @@
 
 #include "../../common/types.h"
 
-namespace furious  {
+namespace furious  
+{
 
 constexpr int32_t ALIGNMENT = 64; 
 

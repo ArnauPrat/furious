@@ -1,7 +1,7 @@
 
 
-#ifndef _FURIOUS_MACROS_H_
-#define _FURIOUS_MACROS_H_
+#ifndef _FURIOUS_DATA_MACROS_H_
+#define _FURIOUS_DATA_MACROS_H_
 
 #define FURIOUS_CREATE_TABLE(database, Component) \
    database->create_table<Component>(#Component)

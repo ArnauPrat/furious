@@ -29,13 +29,13 @@ void BTree<T>::clear() {
 }
 
 template<typename T>
-void BTree<T>::insert(uint8_t key, T* element) {
+void BTree<T>::insert(uint32_t key, T* element) {
   m_size++;
   btree_insert_root(&p_root, key, static_cast<void*>(element));
 }
 
 template<typename T>
-T* BTree<T>::remove(uint8_t key) {
+T* BTree<T>::remove(uint32_t key) {
   T* value = static_cast<T*>(btree_remove(&p_root, key));
   if (value != nullptr) {
     m_size--;
@@ -44,12 +44,12 @@ T* BTree<T>::remove(uint8_t key) {
 }
 
 template<typename T>
-T* BTree<T>::get(uint8_t key){
+T* BTree<T>::get(uint32_t key){
   return static_cast<T*>(btree_get(p_root, key));
 }
 
 template<typename T>
-bool BTree<T>::exists(uint8_t key){
+bool BTree<T>::exists(uint32_t key){
   return get(key) != nullptr;
 }
 

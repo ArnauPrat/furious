@@ -52,7 +52,7 @@ public:
    *
    * @return Returns a pointer to the replaced element. nullptr otherwise.
    */
-  void insert(uint8_t key, T* element);
+  void insert(uint32_t key, T* element);
   
 
   /**
@@ -62,7 +62,7 @@ public:
    *
    * @return Returns a pointer to the removed element
    */
-  T* remove(uint8_t key);
+  T* remove(uint32_t key);
 
   /**
    * @brief Gets the element with the given key
@@ -72,7 +72,7 @@ public:
    * @return Returns a pointer to the element with the given key. nullptr if it
    * does not exist
    */
-  T* get(uint8_t key);
+  T* get(uint32_t key);
 
   /**
    * @brief Checks if an element exists
@@ -81,7 +81,7 @@ public:
    *
    * @return Retursn true if the element exists. false otherwise
    */
-  bool exists(uint8_t key);
+  bool exists(uint32_t key);
 
   /**
    * @brief Gets the size of the btree (i.e. the number of elements)

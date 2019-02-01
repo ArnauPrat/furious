@@ -1,7 +1,7 @@
 
 #include "impl/btree_impl.h"
 #include <string.h>
-#include <cassert>
+#include <assert.h>
 
 namespace furious {
 
@@ -59,27 +59,26 @@ size_t BTree<T>::size() {
 }
 
 template<typename T>
-typename BTree<T>::Iterator* BTree<T>::iterator() {
-  return new Iterator{p_root};
+typename BTree<T>::Iterator BTree<T>::iterator() const
+{
+  return Iterator(p_root);
 }
 
 template<typename T>
-BTree<T>::Iterator::Iterator(BTNode* root) : m_iterator(new BTIterator{root}) {
+BTree<T>::Iterator::Iterator(BTNode* root) : 
+m_iterator(root) 
+{
 }
 
 template<typename T>
-BTree<T>::Iterator::~Iterator() {
-  delete m_iterator;
-}
-
-template<typename T>
-bool BTree<T>::Iterator::has_next() {
-  return m_iterator->has_next();
+bool BTree<T>::Iterator::has_next() const 
+{
+  return m_iterator.has_next();
 }
 
 template<typename T>
 T* BTree<T>::Iterator::next() {
-  return static_cast<T*>(m_iterator->next());
+  return static_cast<T*>(m_iterator.next());
 }
 
 } /* furious */ 

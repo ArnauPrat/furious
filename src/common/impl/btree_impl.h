@@ -3,9 +3,10 @@
 #ifndef _FURIOUS_BTREE_IMPL_H_
 #define _FURIOUS_BTREE_IMPL_H_ 
 
-#include "../../../common/types.h"
+#include "../types.h"
 
-namespace furious {
+namespace furious 
+{
 
 /**
  * \brief This is the arity of the BTree. The number 7 is purposely choosen,
@@ -61,7 +62,7 @@ struct BTIterator
    *
    * \return Returns true if there are more elements in the iterator
    */
-  bool has_next();
+  bool has_next() const;
 
   /**
    * \brief Gets the next element in the btree

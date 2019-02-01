@@ -13,9 +13,10 @@ namespace furious {
  * @brief Represents a decoded id, split into the block id and the offset
  * within the block
  */
-struct DecodedId {
-  const int32_t m_block_id;
-  const int32_t m_block_offset;
+struct DecodedId 
+{
+  const uint32_t m_block_id;
+  const uint32_t m_block_offset;
 };
 
 /**
@@ -25,14 +26,12 @@ struct DecodedId {
  *
  * @return 
  */
-static DecodedId decode_id(int32_t id) { 
-
+static DecodedId 
+decode_id(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
-  
-  int32_t block_id  = id / TABLE_BLOCK_SIZE;
-
-  int32_t block_offset = id % TABLE_BLOCK_SIZE; 
-
+  uint32_t block_id  = id / TABLE_BLOCK_SIZE;
+  uint32_t block_offset = id % TABLE_BLOCK_SIZE; 
   return DecodedId{block_id, block_offset};
 }
 
@@ -44,8 +43,10 @@ static DecodedId decode_id(int32_t id) {
  *
  * @return true if the block contains the given id enabled. false otherwise
  */
-bool has_element(const TBlock* block, 
-                 int32_t id) {
+bool 
+has_element(const TBlock* block, 
+                 uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   return get_element(block, id).p_data != nullptr;
@@ -59,10 +60,11 @@ bool has_element(const TBlock* block,
  *
  * @return The row of the table containing the retrieved element 
  */
-TRow get_element(const TBlock* block, 
-                 int32_t id) {
+TRow
+get_element(const TBlock* block, 
+                 uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
-
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
   if(block->m_exists[decoded_id.m_block_offset]) {
@@ -73,8 +75,10 @@ TRow get_element(const TBlock* block,
   return TRow{0,nullptr,false};
 }
 
-TBlockIterator::TBlockIterator(TBlock* block) : p_block(block),
-m_next_position(0) {
+TBlockIterator::TBlockIterator(TBlock* block) : 
+p_block(block),
+m_next_position(0) 
+{
   if(p_block != nullptr) {
     while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
       m_next_position++;
@@ -82,11 +86,15 @@ m_next_position(0) {
   }
 }
 
-bool TBlockIterator::has_next() const {
+bool 
+TBlockIterator::has_next() const 
+{
   return p_block != nullptr && m_next_position < TABLE_BLOCK_SIZE;
 }
 
-TRow TBlockIterator::next() {
+TRow 
+TBlockIterator::next() 
+{
   TRow row = get_element(p_block, p_block->m_start+m_next_position);
   m_next_position++; 
   while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
@@ -95,7 +103,9 @@ TRow TBlockIterator::next() {
   return row;
 }
 
-void TBlockIterator::reset(TBlock* block) {
+void 
+TBlockIterator::reset(TBlock* block) 
+{
   p_block = block;
   m_next_position = 0;
   if(p_block != nullptr) {
@@ -105,21 +115,24 @@ void TBlockIterator::reset(TBlock* block) {
   }
 }
 
-Table::Iterator::Iterator(const std::map<int32_t, 
-                          TBlock*>& blocks) : 
-  m_blocks(blocks),
-  m_it(blocks.cbegin())
+Table::Iterator::Iterator(const BTree<TBlock>* blocks) : 
+  p_blocks(blocks),
+  m_it(p_blocks->iterator())
 {
 }
 
 
-bool Table::Iterator::has_next() const { 
-  return m_it != m_blocks.cend();
+
+bool 
+Table::Iterator::has_next() const 
+{ 
+  return m_it.has_next();
 }
 
-TBlock* Table::Iterator::next() {
-  TBlock* next = m_it->second;
-  m_it++;
+TBlock* 
+Table::Iterator::next() 
+{
+  TBlock* next = m_it.next();
   return next;
 }
 
@@ -127,35 +140,41 @@ Table::Table(const std::string& name,
              int64_t id, 
              size_t esize, 
              void (*destructor)(void* ptr)) :
-  m_name(name),
-  m_id(id),
-  m_esize(esize),
-  m_num_elements(0),
-  m_destructor(destructor) {
-  }
+m_name(name),
+m_id(id),
+m_esize(esize),
+m_num_elements(0),
+m_destructor(destructor) 
+{
+}
 
 Table::Table(std::string&& name, 
              int64_t id, 
              size_t esize, 
              void (*destructor)(void* ptr)) :
-  m_name(name),
-  m_id(id),
-  m_esize(esize),
-  m_num_elements(0),
-  m_destructor(destructor){
-  }
+m_name(name),
+m_id(id),
+m_esize(esize),
+m_num_elements(0),
+m_destructor(destructor)
+{
+}
 
 Table::~Table() {
   clear();
 }
 
-size_t Table::size() const {
+size_t
+Table::size() const {
   return m_num_elements;
 }
 
-void Table::clear() {
-  Iterator iterator(m_blocks);
-  while(iterator.has_next()) {
+void 
+Table::clear() 
+{
+  Iterator iterator(&m_blocks);
+  while(iterator.has_next()) 
+  {
     TBlock* block = iterator.next();
     TBlockIterator b_iterator{block};
     while(b_iterator.has_next()) {
@@ -169,27 +188,33 @@ void Table::clear() {
 }
 
 
-void* Table::get_element(int32_t id) const {
+void* 
+Table::get_element(uint32_t id) const 
+{
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  if(it == m_blocks.end()) {
+  void* element = m_blocks.get(decoded_id.m_block_id);
+  if(element == nullptr) 
+  {
     return nullptr;
   }
-  TBlock* block = it->second;
-  if(block->m_exists[decoded_id.m_block_offset]) {
+  TBlock* block = (TBlock*)element;
+  if(block->m_exists[decoded_id.m_block_offset]) 
+  {
     return &block->p_data[decoded_id.m_block_offset*m_esize];
   }
   return nullptr;
 }
 
-void* Table::alloc_element(int32_t id) {
+void* 
+Table::alloc_element(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  TBlock* block = nullptr;
-  if (it == m_blocks.end()) {
+  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  if (block == nullptr) 
+  {
     block = new TBlock();
     block->p_data = static_cast<int8_t*>(numa_alloc(0, m_esize*TABLE_BLOCK_SIZE ));
     block->m_start = (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE;
@@ -198,12 +223,11 @@ void* Table::alloc_element(int32_t id) {
     block->m_esize = m_esize;
     block->m_enabled.reset();
     block->m_exists.reset();
-    m_blocks.insert(std::make_pair(decoded_id.m_block_id, block));
-  } else {
-    block = it->second;
+    m_blocks.insert(decoded_id.m_block_id, block);
   }
 
-  if(!block->m_exists[decoded_id.m_block_offset]) {
+  if(!block->m_exists[decoded_id.m_block_offset]) 
+  {
     m_num_elements++;
     block->m_num_elements++;
     block->m_num_enabled_elements++;
@@ -213,17 +237,19 @@ void* Table::alloc_element(int32_t id) {
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
-void  Table::remove_element(int32_t id) {
+void  
+Table::remove_element(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  if(it == m_blocks.end()) {
+  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  if(block == nullptr) {
     return;
   }
 
-  TBlock* block = it->second; 
-  if(block->m_exists[decoded_id.m_block_offset]) {
+  if(block->m_exists[decoded_id.m_block_offset]) 
+  {
     m_num_elements--;
     block->m_num_elements--;
     block->m_num_enabled_elements--;
@@ -234,57 +260,69 @@ void  Table::remove_element(int32_t id) {
   memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
 }
 
-void Table::enable_element(int32_t id) {
+void 
+Table::enable_element(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  if(it == m_blocks.end()) {
+  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  if(block == nullptr)
+  {
     return;
   }
-  TBlock* block = it->second; 
   block->m_enabled[decoded_id.m_block_offset] = 1;
   block->m_num_enabled_elements++;
 }
 
-void Table::disable_element(int32_t id) {
+void 
+Table::disable_element(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  if(it == m_blocks.end()) {
+  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  if(block == nullptr)
+  {
     return;
   }
-  TBlock* block = it->second; 
   block->m_enabled[decoded_id.m_block_offset] = false;
   block->m_num_enabled_elements--;
 }
 
-bool Table::is_enabled(int32_t id) {
+bool 
+Table::is_enabled(uint32_t id) 
+{
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  auto it = m_blocks.find(decoded_id.m_block_id);
-  if(it == m_blocks.end()) {
+  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  if(block == nullptr) 
+  {
     return false;
   }
-  TBlock* block = it->second; 
   return block->m_enabled[decoded_id.m_block_offset] == true;
 }
 
-Table::Iterator Table::iterator() {
-  return Iterator{m_blocks};
+Table::Iterator 
+Table::iterator() 
+{
+  return Iterator(&m_blocks);
 }
 
-std::string Table::name() const {
+std::string 
+Table::name() const 
+{
   return m_name;
 }
 
-TBlock* Table::get_block(int32_t block_id) {
+TBlock* 
+Table::get_block(uint32_t block_id) 
+{
   assert(block_id != FURIOUS_INVALID_ID);
-  auto it = m_blocks.find(block_id);
-  assert(it != m_blocks.end());
-  return it->second;
+  TBlock* block = m_blocks.get(block_id);
+  assert(block != nullptr);
+  return block;
 }
   
 } /* furious */ 

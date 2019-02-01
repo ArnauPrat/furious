@@ -31,9 +31,9 @@ public:
   ////////////////////////////////////////////////
   
   TBlock*                         m_blocks[FURIOUS_MAX_CLUSTER_SIZE]; 
-  size_t                          m_num_elements = 0;
+  size_t                          m_num_elements;
   std::bitset<TABLE_BLOCK_SIZE>   m_enabled;
-  int32_t                         m_start = -1;
+  uint32_t                        m_start;
 };
 
 

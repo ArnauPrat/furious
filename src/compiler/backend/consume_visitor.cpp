@@ -209,7 +209,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   }
 
   fprintf(p_context->p_fd,
-          "for(int32_t i = 0; i < TABLE_BLOCK_SIZE && %s.m_enabled.any(); ++i) \n{\n",
+          "for(uint32_t i = 0; i < TABLE_BLOCK_SIZE && %s.m_enabled.any(); ++i) \n{\n",
           p_context->m_source.c_str());
   fprintf(p_context->p_fd,
           "%s.m_enabled[i] = %s.m_enabled[i] && %s(",

@@ -2,34 +2,33 @@
 
 #ifndef _FURIOUS_BTREE_H_
 #define _FURIOUS_BTREE_H_ value
-#include "../../common/types.h"
+
+#include "types.h"
+#include "impl/btree_impl.h"
+
 #include <stdlib.h>
 
-namespace furious {
-
-struct BTNode;
-class BTIterator;
-
+namespace furious 
+{
 
 template<typename T>
-class BTree {
-
-public:
-  class Iterator {
+struct BTree 
+{
+  struct Iterator 
+  {
   public:
     Iterator(BTNode* root);
-    virtual ~Iterator();
-    bool has_next();
-    T* next();
+    virtual ~Iterator() = default;
 
-    Iterator(const Iterator& it) = delete;
-    void operator=(const Iterator& it) = delete;
+    bool 
+    has_next() const;
+
+    T* next();
     
   private:
-    BTIterator* m_iterator;
+    BTIterator m_iterator;
   };
 
-public: 
   BTree();
   BTree(const BTree&) = delete;
   BTree(BTree&&) = delete;
@@ -52,7 +51,8 @@ public:
    *
    * @return Returns a pointer to the replaced element. nullptr otherwise.
    */
-  void insert(uint32_t key, T* element);
+  void 
+  insert(uint32_t key, T* element);
   
 
   /**
@@ -62,7 +62,8 @@ public:
    *
    * @return Returns a pointer to the removed element
    */
-  T* remove(uint32_t key);
+  T*
+  remove(uint32_t key);
 
   /**
    * @brief Gets the element with the given key
@@ -72,7 +73,8 @@ public:
    * @return Returns a pointer to the element with the given key. nullptr if it
    * does not exist
    */
-  T* get(uint32_t key);
+  T*
+  get(uint32_t key);
 
   /**
    * @brief Checks if an element exists
@@ -81,21 +83,24 @@ public:
    *
    * @return Retursn true if the element exists. false otherwise
    */
-  bool exists(uint32_t key);
+  bool 
+  exists(uint32_t key);
 
   /**
    * @brief Gets the size of the btree (i.e. the number of elements)
    *
    * @return Returns the size of the btree
    */
-  size_t size();
+  size_t
+  size();
 
   /**
    * @brief Gets an iterator to the btree
    *
    * @return Returns an iterator to the btree
    */
-  Iterator* iterator();
+  Iterator 
+  iterator() const;
 
   /**
    * @brief Clears the btree

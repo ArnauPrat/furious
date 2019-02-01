@@ -2,24 +2,22 @@
 #ifndef _FURIOUS_TABLE_IMPL_H_
 #define _FURIOUS_TABLE_IMPL_H_
 
-#include "common.h"
+#include "../../common/btree.h"
 
 #include <bitset>
-#include <map>
-#include <set>
 #include <string>
 
 namespace furious
 {
 
-constexpr int32_t FURIOUS_INVALID_ID = 0xffffffff;
+constexpr uint32_t FURIOUS_INVALID_ID = 0xffffffff;
 
 /**
  * @brief The number of elements per block. The current number, 16 is not
  * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte elements
  * can be stored in a line.
  */
-constexpr int32_t TABLE_BLOCK_SIZE = 512;
+constexpr uint32_t TABLE_BLOCK_SIZE = 512;
 
 /**
  * @brief Represents a block of data in a table
@@ -27,10 +25,10 @@ constexpr int32_t TABLE_BLOCK_SIZE = 512;
 struct TBlock
 {
   int8_t *p_data;                          // The pointer to the block data
-  int32_t m_start;                         // The id of the first element in the block
+  uint32_t m_start;                         // The id of the first element in the block
   size_t m_num_elements;                   // The number of elements in the block
   size_t m_num_enabled_elements;           // The number of elements in the block
-  int32_t m_esize;                         // The size of the elements contained in the block
+  uint32_t m_esize;                         // The size of the elements contained in the block
   std::bitset<TABLE_BLOCK_SIZE> m_exists;  // A vector of bits used to test whether an element is in the block or not
   std::bitset<TABLE_BLOCK_SIZE> m_enabled; // A vector of bits used to mark components that are enabled/disabled
 };
@@ -41,7 +39,7 @@ struct TBlock
  */
 struct TRow
 {
-  const int32_t m_id;
+  const uint32_t m_id;
   int8_t *const p_data;
   const bool m_enabled;
 };
@@ -63,7 +61,7 @@ public:
 
 private:
   TBlock *p_block;
-  int32_t m_next_position;
+  uint32_t m_next_position;
 };
 
 /**
@@ -74,7 +72,7 @@ private:
  *
  * @return Returns true if the block contains such element
  */
-bool has_element(const TBlock *block, int32_t id);
+bool has_element(const TBlock *block, uint32_t id);
 
 /**
  * @brief Gets the element of a block
@@ -84,7 +82,7 @@ bool has_element(const TBlock *block, int32_t id);
  * @return Returns a pointer to the element. Returns nullptr if the element does
  * not exist in the block
  */
-TRow get_element(const TBlock *block, int32_t id);
+TRow get_element(const TBlock *block, uint32_t id);
 
 class Table
 {
@@ -93,7 +91,7 @@ public:
   class Iterator
   {
   public:
-    Iterator(const std::map<int32_t, TBlock *> &blocks);
+    Iterator(const BTree<TBlock>* blocks);
     virtual ~Iterator() = default;
 
     /**
@@ -112,8 +110,8 @@ public:
     TBlock *next();
 
   private:
-    const std::map<int32_t, TBlock *> &m_blocks;
-    std::map<int32_t, TBlock *>::const_iterator m_it;
+    const BTree<TBlock>*            p_blocks;
+    BTree<TBlock>::Iterator         m_it;
   };
 
 public:
@@ -124,7 +122,8 @@ public:
   /**
    * @brief Clears the table
    */
-  void clear();
+  void 
+  clear();
 
   /**
    * @brief Gets the element with the given id
@@ -134,7 +133,8 @@ public:
    * @return Returns a pointer to the element. Returns nullptr if the element
    * does not exist in the table
    */
-  void *get_element(int32_t id) const;
+  void* 
+  get_element(uint32_t id) const;
 
   /**
    * @brief Cre 
@@ -145,28 +145,32 @@ public:
    * @param ...args
    */
   template <typename TComponent, typename... Args>
-  void insert_element(int32_t id, Args &&... args);
+  void 
+  insert_element(uint32_t id, Args &&... args);
 
   /**
    * @brief Drops the element with the given id
    *
    * @param id
    */
-  void remove_element(int32_t id);
+  void 
+  remove_element(uint32_t id);
 
   /**
    * @brief Enables an element of the table, only it it exists 
    *
    * @param id The id of the element to enable 
    */
-  void enable_element(int32_t id);
+  void 
+  enable_element(uint32_t id);
 
   /**
    * @brief Disables an element of the table
    *
    * @param id The if of the element to disable 
    */
-  void disable_element(int32_t id);
+  void 
+  disable_element(uint32_t id);
 
   /**
    * @brief Tells if an element is enabled or not
@@ -175,23 +179,27 @@ public:
    *
    * @return True if the element is enabled. False if it is not 
    */
-  bool is_enabled(int32_t id);
+  bool 
+  is_enabled(uint32_t id);
 
   /**
    * @brief Gets an iterator of the table
    *
    * @return Returns an iterator of the table.
    */
-  Iterator iterator();
+  Iterator 
+  iterator();
 
   /**
    * @brief Gets the name of the table
    *
    * @return Returns the name of the able
    */
-  std::string name() const;
+  std::string 
+  name() const;
 
-  size_t size() const;
+  size_t 
+  size() const;
 
   /**
    * @brief Gets the given block
@@ -200,7 +208,8 @@ public:
    *
    * @return A pointer to the block
    */
-  TBlock *get_block(int32_t block_id);
+  TBlock* 
+  get_block(uint32_t block_id);
 
 private:
   /**
@@ -213,7 +222,8 @@ private:
    *
    * @return 
    */
-  void *alloc_element(int32_t id);
+  void* 
+  alloc_element(uint32_t id);
 
   /**
    * @brief This is a helper function that virtually deallocates the space of an element and
@@ -225,12 +235,13 @@ private:
    *
    * @return 
    */
-  void *dealloc_element(int32_t id);
+  void* 
+  dealloc_element(uint32_t id);
 
   std::string m_name; // The name of the table
-  int64_t m_id;
+  uint64_t m_id;
   size_t m_esize; // The size of each element in bytes
-  mutable std::map<int32_t, TBlock *> m_blocks;
+  mutable BTree<TBlock> m_blocks;
   size_t m_num_elements;
   void (*m_destructor)(void *ptr);
 };

@@ -1,7 +1,6 @@
 
 #include <gtest/gtest.h>
-#include "../../runtime/data/btree.h"
-#include "../../common/common.h"
+#include "../../common/btree.h"
 #include <iostream>
 
 namespace furious 
@@ -430,11 +429,11 @@ TEST(BTreeTest, BTree)
     ASSERT_EQ(value, values[i]);
   }
 
-  BTree<TestValue>::Iterator* iterator = btree->iterator();
+  BTree<TestValue>::Iterator iterator = btree->iterator();
   uint32_t val = 0;
-  while (iterator->has_next()) 
+  while (iterator.has_next()) 
   {
-    TestValue* value = iterator->next();
+    TestValue* value = iterator.next();
     ASSERT_EQ(value->m_val, val);
     ASSERT_EQ(value, values[val]);
     val++;
@@ -464,13 +463,11 @@ TEST(BTreeTest, BTree)
   }
 
 
-  delete iterator;
-
   iterator = btree->iterator();
   val = 0;
-  while (iterator->has_next()) 
+  while (iterator.has_next()) 
   {
-    TestValue* value = static_cast<TestValue*>(iterator->next());
+    TestValue* value = static_cast<TestValue*>(iterator.next());
     ASSERT_EQ(value->m_val, val);
     ASSERT_EQ(value, values[val]);
     val+=2;
@@ -485,7 +482,6 @@ TEST(BTreeTest, BTree)
   }
 
   ASSERT_EQ(btree->size(), 0);
-  delete iterator;
   delete btree;
 
   ASSERT_EQ(btree_num_allocations, 0);

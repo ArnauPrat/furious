@@ -10,6 +10,12 @@ set (COMMON_SRC
   common/types.h
   common/utils.cpp
   common/utils.h
+  common/btree.h
+  common/btree.inl
+  common/impl/btree_impl.cpp
+  common/impl/btree_impl.h
+  common/hash_dict.h
+  common/hash_dict.inl
   )
 
 set (RUNTIME_SRC
@@ -17,10 +23,6 @@ set (RUNTIME_SRC
   runtime/data/bit_table.h
   runtime/data/block_cluster.cpp
   runtime/data/block_cluster.h
-  runtime/data/btree.h
-  runtime/data/btree.inl
-  runtime/data/impl/btree_impl.cpp
-  runtime/data/impl/btree_impl.h
   runtime/data/common.h
   runtime/data/context.cpp
   runtime/data/context.h
@@ -31,8 +33,6 @@ set (RUNTIME_SRC
   runtime/data/entity.cpp
   runtime/data/entity.h
   runtime/data/entity.inl
-  runtime/data/impl/btree_impl.cpp
-  runtime/data/impl/btree_impl.h
   runtime/data/macros.h
   runtime/data/table.cpp
   runtime/data/table.h

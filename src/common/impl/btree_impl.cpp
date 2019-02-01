@@ -20,7 +20,7 @@ m_index(0)
 }
 
 bool 
-BTIterator::has_next() 
+BTIterator::has_next() const
 {
   if(m_leaf == nullptr) 
   {

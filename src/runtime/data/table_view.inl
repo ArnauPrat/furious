@@ -5,32 +5,42 @@
 namespace furious {
 
 template<typename TComponent>
-TableView<TComponent>::Block::Block(TBlock* block) : p_tblock{block} {
+TableView<TComponent>::Block::Block(TBlock* block) : p_tblock{block} 
+{
 
 }
 
 template<typename TComponent>
-  TComponent* TableView<TComponent>::Block::get_data() const {
-    return reinterpret_cast<TComponent*>(p_tblock->p_data);
-  }
-
-template<typename TComponent>
-  size_t TableView<TComponent>::Block::get_num_elements() const {
-    return p_tblock->m_num_elements;
-  }
-
-template<typename TComponent>
-  size_t TableView<TComponent>::Block::get_size() const {
-    return TABLE_BLOCK_SIZE;
-  }
-
-template<typename TComponent>
-const std::bitset<TABLE_BLOCK_SIZE>&   TableView<TComponent>::Block::get_enabled() const {
-  return p_tblock->m_enabled;
+TComponent* 
+TableView<TComponent>::Block::get_data() const 
+{
+  return reinterpret_cast<TComponent*>(p_tblock->p_data);
 }
 
 template<typename TComponent>
-TBlock* TableView<TComponent>::Block::get_raw() const {
+size_t 
+TableView<TComponent>::Block::get_num_elements() const 
+{
+  return p_tblock->m_num_elements;
+}
+
+template<typename TComponent>
+size_t TableView<TComponent>::Block::get_size() const 
+{
+  return TABLE_BLOCK_SIZE;
+}
+
+template<typename TComponent>
+const Bitmap*   
+TableView<TComponent>::Block::get_enabled() const 
+{
+  return p_tblock->p_enabled;
+}
+
+template<typename TComponent>
+TBlock* 
+TableView<TComponent>::Block::get_raw() const 
+{
   return p_tblock;
 }
 
@@ -40,16 +50,22 @@ TBlock* TableView<TComponent>::Block::get_raw() const {
 
 
 template<typename TComponent>
-  TableView<TComponent>::BlockIterator::BlockIterator(Table::Iterator iter ) : m_iterator(iter) {
-  }
+TableView<TComponent>::BlockIterator::BlockIterator(Table::Iterator iter ) : 
+m_iterator(iter) 
+{
+}
 
 template<typename TComponent>
-bool TableView<TComponent>::BlockIterator::has_next() const {
+bool 
+TableView<TComponent>::BlockIterator::has_next() const 
+{
   return m_iterator.has_next();
 }
 
 template<typename TComponent>
-typename TableView<TComponent>::Block TableView<TComponent>::BlockIterator::next() {
+typename TableView<TComponent>::Block 
+TableView<TComponent>::BlockIterator::next() 
+{
   return Block{m_iterator.next()};
 }
 

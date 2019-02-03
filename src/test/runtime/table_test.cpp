@@ -15,7 +15,8 @@ struct Component
 
 };
 
-TEST(TableTest,TableWorks) {
+TEST(TableTest,TableWorks) 
+{
 
   Database* database = new Database();
   FURIOUS_CREATE_TABLE(database, Component);
@@ -23,7 +24,8 @@ TEST(TableTest,TableWorks) {
   TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
   int32_t num_elements = TABLE_BLOCK_SIZE*2048;
 
-  for(int32_t i = 0; i < num_elements; ++i) {
+  for(int32_t i = 0; i < num_elements; ++i) 
+  {
     table.insert_element(i,i,static_cast<float>(i));
   }
 
@@ -31,12 +33,14 @@ TEST(TableTest,TableWorks) {
 
   TableView<Component>::BlockIterator iterator = table.iterator();
   int32_t counter = 0;
-  while (iterator.has_next()) {
+  while (iterator.has_next()) 
+  {
     TableView<Component>::Block block = iterator.next();
     Component* data = block.get_data();
-    const std::bitset<TABLE_BLOCK_SIZE>& mask = block.get_enabled();
-    for (size_t i = 0; i < block.get_size(); ++i) {
-      ASSERT_TRUE(mask[i]);
+    const Bitmap* mask = block.get_enabled();
+    for (size_t i = 0; i < block.get_size(); ++i) 
+    {
+      ASSERT_TRUE(mask->is_set(i));
       ASSERT_EQ(data[i].field1_, counter);
       ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
       counter++;
@@ -60,13 +64,16 @@ TEST(TableTest,TableWorks) {
   counter = 0;
   while (iterator2.has_next()) {
     TableView<Component>::Block block = iterator2.next();
-    const std::bitset<TABLE_BLOCK_SIZE>& mask = block.get_enabled();
+    const Bitmap* mask = block.get_enabled();
     Component* data = block.get_data();
     for (size_t i = 0; i < block.get_size(); ++i) {
-      if(i % 2 == 0) {
-        ASSERT_FALSE(mask[i]);
-      } else {
-        ASSERT_TRUE(mask[i]);
+      if(i % 2 == 0) 
+      {
+        ASSERT_FALSE(mask->is_set(i));
+      } 
+      else 
+      {
+        ASSERT_TRUE(mask->is_set(i));
         ASSERT_EQ(data[i].field1_, counter);
         ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
         num_real++;

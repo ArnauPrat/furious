@@ -5,27 +5,35 @@
 
 #include "table.h"
 
-namespace furious {
+namespace furious 
+{
 
 template<typename TComponent> 
-class TableView final  {
+class TableView final  
+{
 public:
 
-    class Block {
+    class Block 
+    {
     public:
       typedef TComponent type;
       Block(TBlock* block);
       ~Block() = default;
 
-      TComponent* get_data() const;
+      TComponent* 
+      get_data() const;
 
-      size_t      get_num_elements() const;
+      size_t      
+      get_num_elements() const;
 
-      size_t      get_size() const;
+      size_t      
+      get_size() const;
 
-      int32_t     get_start() const;
+      int32_t     
+      get_start() const;
 
-      const std::bitset<TABLE_BLOCK_SIZE>&  get_enabled() const;
+      const Bitmap* 
+      get_enabled() const;
 
       TBlock*     get_raw() const;
 
@@ -33,7 +41,8 @@ public:
       TBlock* p_tblock;
     };
 
-    class BlockIterator {
+    class BlockIterator 
+    {
     public:
 
       BlockIterator(Table::Iterator iter);

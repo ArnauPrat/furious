@@ -67,10 +67,11 @@ get_element(const TBlock* block,
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
-  if(block->m_exists[decoded_id.m_block_offset]) {
+  if(block->p_enabled->is_set(decoded_id.m_block_offset)) 
+  {
     return TRow{block->m_start + decoded_id.m_block_offset, 
                &block->p_data[decoded_id.m_block_offset*block->m_esize], 
-               (block->m_enabled[decoded_id.m_block_offset])};
+               (block->p_enabled->is_set(decoded_id.m_block_offset))};
   }
   return TRow{0,nullptr,false};
 }
@@ -181,6 +182,8 @@ Table::clear()
       m_destructor(b_iterator.next().p_data);
     }
     numa_free(block->p_data);
+    delete block->p_enabled;
+    delete block->p_exists;
     delete block;
   }
   m_blocks.clear();
@@ -199,7 +202,7 @@ Table::get_element(uint32_t id) const
     return nullptr;
   }
   TBlock* block = (TBlock*)element;
-  if(block->m_exists[decoded_id.m_block_offset]) 
+  if(block->p_exists->is_set(decoded_id.m_block_offset))
   {
     return &block->p_data[decoded_id.m_block_offset*m_esize];
   }
@@ -221,19 +224,19 @@ Table::alloc_element(uint32_t id)
     block->m_num_elements = 0;
     block->m_num_enabled_elements = 0;
     block->m_esize = m_esize;
-    block->m_enabled.reset();
-    block->m_exists.reset();
+    block->p_enabled = new Bitmap(TABLE_BLOCK_SIZE);
+    block->p_exists = new Bitmap(TABLE_BLOCK_SIZE);
     m_blocks.insert(decoded_id.m_block_id, block);
   }
 
-  if(!block->m_exists[decoded_id.m_block_offset]) 
+  if(!block->p_exists->is_set(decoded_id.m_block_offset)) 
   {
     m_num_elements++;
     block->m_num_elements++;
     block->m_num_enabled_elements++;
   }
-  block->m_exists[decoded_id.m_block_offset] = true;
-  block->m_enabled[decoded_id.m_block_offset] = true;
+  block->p_exists->set(decoded_id.m_block_offset);
+  block->p_enabled->set(decoded_id.m_block_offset);
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
@@ -248,14 +251,14 @@ Table::remove_element(uint32_t id)
     return;
   }
 
-  if(block->m_exists[decoded_id.m_block_offset]) 
+  if(block->p_exists->is_set(decoded_id.m_block_offset)) 
   {
     m_num_elements--;
     block->m_num_elements--;
     block->m_num_enabled_elements--;
   }
-  block->m_exists[decoded_id.m_block_offset] = false;
-  block->m_enabled[decoded_id.m_block_offset] = false;
+  block->p_exists->unset(decoded_id.m_block_offset);
+  block->p_enabled->unset(decoded_id.m_block_offset);
   m_destructor(&block->p_data[decoded_id.m_block_offset*m_esize]);
   memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
 }
@@ -271,7 +274,7 @@ Table::enable_element(uint32_t id)
   {
     return;
   }
-  block->m_enabled[decoded_id.m_block_offset] = 1;
+  block->p_enabled->set(decoded_id.m_block_offset);
   block->m_num_enabled_elements++;
 }
 
@@ -286,7 +289,7 @@ Table::disable_element(uint32_t id)
   {
     return;
   }
-  block->m_enabled[decoded_id.m_block_offset] = false;
+  block->p_enabled->unset(decoded_id.m_block_offset);
   block->m_num_enabled_elements--;
 }
 
@@ -301,7 +304,7 @@ Table::is_enabled(uint32_t id)
   {
     return false;
   }
-  return block->m_enabled[decoded_id.m_block_offset] == true;
+  return block->p_enabled->is_set(decoded_id.m_block_offset);
 }
 
 Table::Iterator 

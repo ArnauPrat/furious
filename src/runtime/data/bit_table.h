@@ -3,9 +3,8 @@
 #ifndef _FURIOUS_BIT_TABLE_H_
 #define _FURIOUS_BIT_TABLE_H_
 
-#include "../../common/common.h"
-#include "table.h"
-#include <bitset>
+#include "../../common/types.h"
+#include "../../common/bitmap.h"
 #include <unordered_map>
 
 //#include <bitset>
@@ -16,7 +15,7 @@ namespace furious
 class BitTable {
 public:
   BitTable () = default;
-  virtual ~BitTable () = default;
+  ~BitTable ();
 
   /**
    * @brief Tests if an element exists in the bit table
@@ -26,7 +25,7 @@ public:
    * @return Returns true if the element exists. false otherwise.
    */
   bool
-  exists(int32_t id) const;
+  exists(uint32_t id) const;
 
   /**
    * @brief Adds an element to the bit table 
@@ -34,7 +33,7 @@ public:
    * @param id
    */
   void
-  add(int32_t id);
+  add(uint32_t id);
 
   /**
    * @brief Removes an element from the bit table
@@ -42,20 +41,20 @@ public:
    * @param id The id of the element to remove
    */
   void
-  remove(int32_t id);
+  remove(uint32_t id);
 
   /**
-   * @brief Gets the bitset of the bit table for a specific bitsetid.
+   * @brief Gets the bitmap of the bit table for a specific bitmapid.
    *
-   * @param bitset_id The bitset id to retrieve. 
+   * @param bitset_id The bitmap id to retrieve. 
    *
-   * @return Returns a reference to the bitset
+   * @return Returns a pointer to the bitmap
    */
-  const std::bitset<TABLE_BLOCK_SIZE>&
-  get_bitset(int32_t bitset_id) const;
+  const Bitmap* 
+  get_bitmap(uint32_t bitset_id) const;
 
 private:
-  mutable std::unordered_map<int32_t, std::bitset<TABLE_BLOCK_SIZE>> m_bitsets;
+  mutable std::unordered_map<uint32_t, Bitmap*> m_bitsets;
 };
   
 } /* furious

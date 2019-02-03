@@ -3,8 +3,8 @@
 #define _FURIOUS_TABLE_IMPL_H_
 
 #include "../../common/btree.h"
+#include "../../common/bitmap.h"
 
-#include <bitset>
 #include <string>
 
 namespace furious
@@ -24,13 +24,13 @@ constexpr uint32_t TABLE_BLOCK_SIZE = 512;
  */
 struct TBlock
 {
-  int8_t *p_data;                          // The pointer to the block data
-  uint32_t m_start;                         // The id of the first element in the block
-  size_t m_num_elements;                   // The number of elements in the block
-  size_t m_num_enabled_elements;           // The number of elements in the block
-  uint32_t m_esize;                         // The size of the elements contained in the block
-  std::bitset<TABLE_BLOCK_SIZE> m_exists;  // A vector of bits used to test whether an element is in the block or not
-  std::bitset<TABLE_BLOCK_SIZE> m_enabled; // A vector of bits used to mark components that are enabled/disabled
+  int8_t *p_data;                         // The pointer to the block data
+  uint32_t m_start;                       // The id of the first element in the block
+  size_t m_num_elements;                  // The number of elements in the block
+  size_t m_num_enabled_elements;          // The number of elements in the block
+  uint32_t m_esize;                       // The size of the elements contained in the block
+  Bitmap* p_exists;                       // A bitmap used to test whether an element is in the block or not
+  Bitmap* p_enabled;                      // A bitmap used to mark components that are enabled/disabled
 };
 
 /**

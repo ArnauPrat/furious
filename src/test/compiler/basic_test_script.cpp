@@ -14,7 +14,7 @@ struct UpdatePosition
   UpdatePosition(float speed) : m_speed{speed} {}
 
   void run(furious::Context* context,
-           int32_t id,
+           uint32_t id,
            Position* position,
            const Velocity* velocity)
   {

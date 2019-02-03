@@ -17,12 +17,13 @@ SystemWrapper<T,Components...>::~SystemWrapper()
 }
 
 template<typename T, typename...Components>
-inline void SystemWrapper<T,Components...>::apply_block(Context* context, 
-                                                 int32_t block_start,
-                                                 const std::bitset<TABLE_BLOCK_SIZE>& mask,
+inline 
+void SystemWrapper<T,Components...>::apply_block(Context* context, 
+                                                 uint32_t block_start,
+                                                 const Bitmap* mask,
                                                  Components* __restrict__ ...components) 
 {
-  if(mask.all()) 
+  if(mask->num_set() == TABLE_BLOCK_SIZE) 
   {
     for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) 
     {
@@ -32,7 +33,7 @@ inline void SystemWrapper<T,Components...>::apply_block(Context* context,
   {
     for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) 
     {
-      if(mask[i]) 
+      if(mask->is_set(i)) 
       {
         p_system_object->run(context, block_start+i, &components[i]...);
       }
@@ -42,8 +43,9 @@ inline void SystemWrapper<T,Components...>::apply_block(Context* context,
 
 
 template<typename T, typename...Components> 
-SystemWrapper<T, Components...>* create_system(T* system, 
-                                               void (T::*)(Context*, int32_t id, Components*...)  ) 
+SystemWrapper<T, Components...>* 
+create_system(T* system, 
+              void (T::*)(Context*, uint32_t id, Components*...)  ) 
 {
   return new SystemWrapper<T,Components...>(system);
 }

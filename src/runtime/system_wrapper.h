@@ -6,9 +6,8 @@
 #include "data/context.h"
 #include "../common/traits.h"
 
-#include <bitset>
-
-namespace furious {
+namespace furious 
+{
 
 template<typename T, typename...Components>
 class SystemWrapper final 
@@ -33,8 +32,8 @@ public:
    */
 
   void apply_block(Context* __restrict__ context, 
-                   int32_t block_start, 
-                   const std::bitset<TABLE_BLOCK_SIZE>& mask,
+                   uint32_t block_start, 
+                   const Bitmap* mask,
                    Components* __restrict__ ...components);
 
   T* p_system_object;

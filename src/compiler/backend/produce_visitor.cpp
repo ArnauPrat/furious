@@ -6,7 +6,6 @@
 #include "../clang_tools.h"
 #include "codegen_tools.h"
 
-#include <time.h>
 #include <stdlib.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <string>
@@ -44,7 +43,7 @@ ProduceVisitor::visit(const Scan* scan)
 
   fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());
   fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
-  fprintf(p_context->p_fd, "BlockCluster %s{%s.next().get_raw()};\n", block_varname.c_str(), iter_varname.c_str());
+  fprintf(p_context->p_fd, "BlockCluster* %s = new BlockCluster(%s.next().get_raw());\n", block_varname.c_str(), iter_varname.c_str());
 
   consume(p_context->p_fd,
           scan->p_parent,
@@ -58,11 +57,18 @@ ProduceVisitor::visit(const Scan* scan)
 void
 ProduceVisitor::visit(const Join* join)
 {
-  p_context->m_join_id = std::to_string((uint32_t)rand());
+  static uint32_t id = 0;
+  p_context->m_join_id = std::to_string((uint32_t)id);
+  id++;
   std::string hashtable = "hashtable_" + p_context->m_join_id;
-  fprintf(p_context->p_fd,"std::unordered_map<int32_t,BlockCluster> %s;\n", hashtable.c_str());
+  fprintf(p_context->p_fd,"std::unordered_map<uint32_t,BlockCluster*> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,join->p_left);
   produce(p_context->p_fd,join->p_right);
+  fprintf(p_context->p_fd,"for(std::unordered_map<uint32_t,BlockCluster*>::iterator it = hashtable_%s.begin();", p_context->m_join_id.c_str());
+  fprintf(p_context->p_fd," it != hashtable_%s.end();", p_context->m_join_id.c_str());
+  fprintf(p_context->p_fd," ++it)\n{\n");
+  fprintf(p_context->p_fd," delete it->second;\n");
+  fprintf(p_context->p_fd,"}\n");
 }
 
 void 

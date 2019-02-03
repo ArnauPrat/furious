@@ -63,7 +63,7 @@ struct RegisterSystemInfo
 template <typename T, typename... TComponents>
 typename std::enable_if<(std::is_pointer<TComponents>::value && ...), RegisterSystemInfo<T, TComponents...>>::type
 __register_foreach(T *system,
-      void (T::*)(Context *, int32_t id, TComponents...))
+      void (T::*)(Context *, uint32_t id, TComponents...))
 {
   return RegisterSystemInfo<T,TComponents...>();
 }

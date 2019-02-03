@@ -25,6 +25,7 @@ function(create_test NAME)
 endfunction(create_test)
 
 SET(TESTS 
+  bitmap_test
   btree_test
   memory_test
   table_test

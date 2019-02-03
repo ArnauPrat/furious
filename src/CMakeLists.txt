@@ -14,8 +14,10 @@ set (COMMON_SRC
   common/btree.inl
   common/impl/btree_impl.cpp
   common/impl/btree_impl.h
-  common/hash_dict.h
-  common/hash_dict.inl
+  common/hash_map.h
+  common/hash_map.inl
+  common/bitmap.h
+  common/bitmap.cpp
   )
 
 set (RUNTIME_SRC

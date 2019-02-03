@@ -1,6 +1,7 @@
 
 #include <gtest/gtest.h>
 #include "../../common/btree.h"
+#include "../../common/types.h"
 #include <iostream>
 
 namespace furious 

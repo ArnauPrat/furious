@@ -1,15 +1,15 @@
 
 
-#include <cassert>
-#include <utility>
 #include "../memory/memory.h"
+#include <assert.h>
+#include <utility>
 
 namespace furious {
 
 template<typename TComponent, typename...Args>
-  void  Table::insert_element(uint32_t id, Args&&...args) 
-  {
-    new (alloc_element(id)) TComponent{std::forward<Args>(args)...};
-  }
+void  Table::insert_element(uint32_t id, Args&&...args) 
+{
+  new (alloc_element(id)) TComponent{std::forward<Args>(args)...};
+}
 
 } /* furious  */ 

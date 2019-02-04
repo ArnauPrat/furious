@@ -1,13 +1,8 @@
 
 
 #include "table.h"
-#include <cmath>
-#include <cstring>
 
 namespace furious {
-
-  
-
 
 /**
  * @brief Represents a decoded id, split into the block id and the offset

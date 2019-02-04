@@ -4,8 +4,6 @@
 
 #include "table.h"
 
-#include <bitset>
-
 #define FURIOUS_MAX_CLUSTER_SIZE 16
 
 namespace furious

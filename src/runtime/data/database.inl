@@ -1,4 +1,6 @@
-namespace furious {
+#include "../../common/utils.h"
+namespace furious 
+{
 
 template<typename T>
   void destructor(void *ptr) 
@@ -11,13 +13,16 @@ template <typename T>
 TableView<T> 
 Database::create_table(const std::string& tablename) 
 {
-  assert(m_tables.find(get_table_id<T>(tablename)) == m_tables.end());
-  int64_t hash_value = get_table_id<T>(tablename); 
-  if(m_tables.find(hash_value) != m_tables.end()) {
+  
+  uint32_t hash_value = get_table_id<T>(tablename);
+  assert(m_tables.get(hash_value) == nullptr);
+  Table* table = m_tables.get(hash_value);
+  if(table != nullptr)
+  {
     return TableView<T>(nullptr);
   }
-  auto table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
-  m_tables.insert(std::make_pair(hash_value,table));
+  table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
+  m_tables.insert(hash_value,table);
   return TableView<T>(table); 
 }
 
@@ -25,15 +30,15 @@ template <typename T>
 void 
 Database::remove_table(const std::string& tablename) 
 {
-  int64_t hash_value = get_table_id<T>(tablename);
-  auto table = m_tables.find(hash_value);
-  assert(table != m_tables.end());
-  delete table->second;
-  m_tables.erase(table);
+  uint32_t hash_value = get_table_id<T>(tablename);
+  Table* table = m_tables.get(hash_value);
+  assert(table != nullptr);
+  delete table;
+  m_tables.remove(hash_value);
 }
 
 template <typename T>
-int64_t
+uint32_t
 Database::get_table_id(const std::string& tablename)
 {
   return hash(tablename);
@@ -41,32 +46,34 @@ Database::get_table_id(const std::string& tablename)
 
 
 template <typename T>
-TableView<T> Database::find_table(const std::string& tablename) 
+TableView<T> 
+Database::find_table(const std::string& tablename) 
 {
-  int64_t hash_value = get_table_id<T>(tablename);
-  auto table = m_tables.find(hash_value);
-  assert(table != m_tables.end());
-  return TableView<T>(static_cast<Table*>(table->second));
+  uint32_t hash_value = get_table_id<T>(tablename);
+  Table* table = m_tables.get(hash_value);
+  assert(table != nullptr);
+  return TableView<T>(static_cast<Table*>(table));
 }
 
 template <typename T>
-TableView<T> Database::find_or_create_table(const std::string& tablename)
+TableView<T> 
+Database::find_or_create_table(const std::string& tablename)
 {
-  int64_t hash_value = get_table_id<T>(tablename); 
-  auto it = m_tables.find(hash_value);
-  if(it != m_tables.end()) {
-    return TableView<T>{it->second};
+  uint32_t hash_value = get_table_id<T>(tablename); 
+  Table* table = m_tables.get(hash_value);
+  if(table != nullptr) {
+    return TableView<T>(table);
   }
-  auto table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
-  m_tables.insert(std::make_pair(hash_value,table));
+  table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
+  m_tables.insert(hash_value,table);
   return TableView<T>(table); 
 }
 
 template <typename T>
 bool Database::exists_table(const std::string& tablename) 
 {
-  int64_t table_id = get_table_id<T>(tablename);
-  return m_tables.find(table_id) != m_tables.end();
+  uint32_t table_id = get_table_id<T>(tablename);
+  return m_tables.get(table_id) != nullptr;
 }
 
 } /* furious */ 

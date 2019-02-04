@@ -3,24 +3,20 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
-#include "macros.h"
 #include "table.h"
+#include "bit_table.h"
+#include "macros.h"
 #include "table_view.h"
-#include "common.h"
-#include "../../common/traits.h"
+#include "../../common/types.h"
+#include "../../common/hash_map.h"
 
-#include <bitset>
-#include <cassert>
-#include <iostream>
-#include <map>
-#include <memory>
+#include <assert.h>
 #include <string>
-#include <typeinfo>
 
 
-namespace furious {
+namespace furious 
+{
 
-class BitTable;
 
 class Database final {
 public:
@@ -88,20 +84,22 @@ public:
    * \return Returns the id of the table
    */
   template <typename T>
-  int64_t
+  uint32_t
   get_table_id(const std::string& tablename);
 
   /**
    * Clears and removes all the tables from the database
    * */
-  void clear();
+  void 
+  clear();
 
   /**
    * Clears all the rows of a given element 
    *
    * @param id The id of the element to remove
    */
-  void clear_element(int32_t id);
+  void
+  clear_element(int32_t id);
 
 
   /**
@@ -109,7 +107,8 @@ public:
    *
    * @return Returns the next free entity id
    */
-  int32_t get_next_entity_id();
+  uint32_t 
+  get_next_entity_id();
 
   /**
    * @brief Tags an entity with the given tag
@@ -117,7 +116,8 @@ public:
    * @param entity_id The id of the entity to tag
    * @param tag The tag to tag the entity with
    */
-  void tag_entity(int32_t entity_id, const std::string& tag);
+  void 
+  tag_entity(int32_t entity_id, const std::string& tag);
 
   /**
    * @brief Untags an entity from a given tag
@@ -125,7 +125,8 @@ public:
    * @param entity_id The entity to untag
    * @param tag The tag to remove from the entity
    */
-  void untag_entity(int32_t entity_id, const std::string& tag);
+  void 
+  untag_entity(int32_t entity_id, const std::string& tag);
 
   /**
    * @brief Gets a bitset with the entities with a given tag
@@ -145,7 +146,8 @@ public:
    * @param tail The origin entity of the reference
    * @param head The destination entity of the reference
    */
-  void add_reference( const std::string& type, 
+  void 
+  add_reference( const std::string& type, 
                       int32_t tail, 
                       int32_t head);
 
@@ -156,16 +158,17 @@ public:
    * @param tail The origin entity of the reference
    * @param head The destination entity of the reference
    */
-  void remove_reference( const std::string& type, 
+  void 
+  remove_reference( const std::string& type, 
                           int32_t tail, 
                           int32_t head);
 
 private:
 
-  std::map<std::string, BitTable*>          m_tags;
-  std::map<int64_t, Table*>                 m_tables;           /** Holds a map between component types and their tables **/
-  std::map<std::string, Table*>             m_references;
-  int32_t                                   m_next_entity_id;
+  BTree<BitTable>            m_tags;
+  BTree<Table>               m_tables;           /** Holds a map between component types and their tables **/
+  BTree<Table>               m_references;
+  int32_t                    m_next_entity_id;
 };
 
 }

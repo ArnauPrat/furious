@@ -6,7 +6,8 @@
 #include <string>
 #include "types.h"
 
-namespace furious {
+namespace furious 
+{
 
 /**
  * @brief Computes a hash on the given string
@@ -15,7 +16,8 @@ namespace furious {
  *
  * @return Returns the hash of the given string
  */
-int64_t  hash(const std::string& str);
+uint32_t
+hash(const std::string& str);
 
 }
 

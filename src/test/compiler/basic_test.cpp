@@ -27,9 +27,9 @@ TEST(BasicTest, BasicTest )
   for(furious::Entity& entity : entities)
   {
     Position* position = FURIOUS_GET_COMPONENT((&entity), Position);
-    ASSERT_TRUE(position->m_x == 0.1f);
-    ASSERT_TRUE(position->m_y == 0.1f);
-    ASSERT_TRUE(position->m_z == 0.1f);
+    ASSERT_EQ(position->m_x,0.1f);
+    ASSERT_EQ(position->m_y,0.1f);
+    ASSERT_EQ(position->m_z,0.1f);
   }
   furious::__furious_release();
   delete database;

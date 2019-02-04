@@ -61,13 +61,12 @@ ProduceVisitor::visit(const Join* join)
   p_context->m_join_id = std::to_string((uint32_t)id);
   id++;
   std::string hashtable = "hashtable_" + p_context->m_join_id;
-  fprintf(p_context->p_fd,"std::unordered_map<uint32_t,BlockCluster*> %s;\n", hashtable.c_str());
+  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,join->p_left);
   produce(p_context->p_fd,join->p_right);
-  fprintf(p_context->p_fd,"for(std::unordered_map<uint32_t,BlockCluster*>::iterator it = hashtable_%s.begin();", p_context->m_join_id.c_str());
-  fprintf(p_context->p_fd," it != hashtable_%s.end();", p_context->m_join_id.c_str());
-  fprintf(p_context->p_fd," ++it)\n{\n");
-  fprintf(p_context->p_fd," delete it->second;\n");
+  fprintf(p_context->p_fd,"BTree<BlockCluster>::Iterator it = %s.iterator();\n", hashtable.c_str());
+  fprintf(p_context->p_fd,"while(it.has_next())\n{\n");
+  fprintf(p_context->p_fd,"delete it.next();\n");
   fprintf(p_context->p_fd,"}\n");
 }
 

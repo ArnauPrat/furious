@@ -18,12 +18,13 @@ struct BTree
   {
   public:
     Iterator(BTNode* root);
-    virtual ~Iterator() = default;
+    ~Iterator() = default;
 
     bool 
     has_next() const;
 
-    T* next();
+    T* 
+    next();
     
   private:
     BTIterator m_iterator;

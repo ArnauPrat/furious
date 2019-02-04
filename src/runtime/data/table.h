@@ -47,9 +47,8 @@ struct TRow
 /**
  * @brief Iterator to iterate over the elements of a table block. 
  */
-class TBlockIterator final
+struct TBlockIterator final
 {
-public:
   TBlockIterator(TBlock *block);
   ~TBlockIterator() = default;
 
@@ -84,15 +83,12 @@ bool has_element(const TBlock *block, uint32_t id);
  */
 TRow get_element(const TBlock *block, uint32_t id);
 
-class Table
+struct Table
 {
-
-public:
-  class Iterator
+  struct Iterator
   {
-  public:
     Iterator(const BTree<TBlock>* blocks);
-    virtual ~Iterator() = default;
+    ~Iterator() = default;
 
     /**
      * @brief Checks whether there is a another block in the table.
@@ -114,10 +110,9 @@ public:
     BTree<TBlock>::Iterator         m_it;
   };
 
-public:
   Table(const std::string &name, int64_t id, size_t esize, void (*destructor)(void *ptr));
   Table(std::string &&name, int64_t id, size_t esize, void (*destructor)(void *ptr));
-  virtual ~Table();
+  ~Table();
 
   /**
    * @brief Clears the table

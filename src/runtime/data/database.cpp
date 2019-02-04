@@ -10,29 +10,27 @@ namespace furious
 
 Database::~Database() 
 {
-  for (auto i : m_tables) 
-  {
-    delete i.second;
-  }
-
-  for (auto i : m_tags) 
-  {
-    delete i.second;
-  }
+  clear();
 }
-
-
-
 
 void Database::clear() {
-  for (auto i : m_tables) 
+
+  BTree<Table>::Iterator it_tables = m_tables.iterator();
+  while (it_tables.has_next()) 
   {
-    delete i.second;
+    delete it_tables.next();
   }
   m_tables.clear();
+
+  BTree<BitTable>::Iterator it_tags = m_tags.iterator();
+  while (it_tags.has_next()) 
+  {
+    delete it_tags.next();
+  }
+  m_tags.clear();
 }
 
-int32_t Database::get_next_entity_id() 
+uint32_t Database::get_next_entity_id() 
 {
   int32_t next_id = m_next_entity_id;
   m_next_entity_id++;
@@ -41,43 +39,49 @@ int32_t Database::get_next_entity_id()
 
 void Database::clear_element(int32_t id) 
 {
-  for(auto table : m_tables) 
+  BTree<Table>::Iterator it = m_tables.iterator();
+  while(it.has_next()) 
   {
-    table.second->remove_element(id);
+    Table* table = it.next();
+    table->remove_element(id);
   }
 }
 
 void Database::tag_entity(int32_t entity_id, 
                           const std::string& tag) 
 {
-  auto it = m_tags.find(tag);
-  if(it == m_tags.end()) 
+  uint32_t hash_value = hash(tag);
+  BitTable* bit_table = m_tags.get(hash_value);
+  if(bit_table == nullptr) 
   {
-    it = m_tags.insert(std::make_pair(tag, new BitTable())).first;
+    bit_table = new BitTable();
+    m_tags.insert(hash_value, bit_table);
   }
-  (*it).second->add(entity_id);
+  bit_table->add(entity_id);
 }
 
 void Database::untag_entity(int32_t entity_id, 
                           const std::string& tag) 
 {
-  auto it = m_tags.find(tag);
-  if(it != m_tags.end()) 
+  uint32_t hash_value = hash(tag);
+  BitTable* bit_table = m_tags.get(hash_value);
+  if(bit_table != nullptr) 
   {
-    it->second->remove(entity_id);
+    bit_table->remove(entity_id);
   }
 }
 
 BitTable* 
 Database::get_tagged_entities(const std::string& tag) 
 {
-  auto it = m_tags.find(tag);
-  if(it != m_tags.end()) 
+  uint32_t hash_value = hash(tag);
+  BitTable* bit_table = m_tags.get(hash_value);
+  if(bit_table != nullptr) 
   {
-    return it->second;
+    return bit_table;
   }
-  BitTable* bit_table = new BitTable();
-  m_tags[tag] = bit_table;
+  bit_table = new BitTable();
+  m_tags.insert(hash_value, bit_table);
   return bit_table;
 }
 

@@ -8,19 +8,20 @@
 namespace furious
 {
 
-template typename<K,V>
+template <typename K, typename V>
 struct HashMap
 {
-  typedef HASH_FUNC uint32_t (*hash_func)(const K* item);
-  HashMap(uint32_t );
+  typedef uint32_t (*HASH_FUNC)(const K* item);
+  HashMap() = default;
+  ~HashMap() = default;
 
   void 
-  insert(const K* key, T* element);
+  insert(const K* key, V* element);
 
-  T*
+  V*
   remove(const K* key);
 
-  T*
+  V*
   get(const K* key);
 
   bool 

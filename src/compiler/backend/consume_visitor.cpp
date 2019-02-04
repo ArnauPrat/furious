@@ -24,7 +24,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
   for(const std::string& type : p_context->m_types) 
   {
       fprintf(p_context->p_fd,
-              "%s* data_%d = reinterpret_cast<%s*>(%s->m_blocks[%d]->p_data);\n", 
+              "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n", 
               type.c_str(), 
               param_index, 
               type.c_str(), 
@@ -74,7 +74,7 @@ ConsumeVisitor::visit(const Join* join)
   {
 
     fprintf(p_context->p_fd, 
-            "%s[%s->m_start] = %s;\n", 
+            "%s.insert(%s->m_start, %s);\n", 
             hashtable.c_str(), 
             p_context->m_source.c_str(), 
             p_context->m_source.c_str()); 
@@ -87,14 +87,12 @@ ConsumeVisitor::visit(const Join* join)
   {
     std::string clustername = "cluster_"+p_context->m_join_id;
     fprintf(p_context->p_fd,
-            "auto it = %s.find(%s->m_start);\n", 
-            hashtable.c_str(), 
+            "BlockCluster* %s = %s.get(%s->m_start);\n",
+            clustername.c_str(),
+            hashtable.c_str(),
             p_context->m_source.c_str());
     fprintf(p_context->p_fd,
-            "if(it != %s.end())\n{\n",
-            hashtable.c_str());
-    fprintf(p_context->p_fd,
-            "BlockCluster* %s = it->second;\n",
+            "if(%s != nullptr)\n{\n",
             clustername.c_str());
     fprintf(p_context->p_fd,
             "%s->append(%s);\n", 
@@ -188,7 +186,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   for(const std::string& type : p_context->m_types) 
   {
       fprintf(p_context->p_fd,
-              "%s* data_%d = reinterpret_cast<%s*>(%s->m_blocks[%d]->p_data);\n",
+              "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n",
               type.c_str(),
               param_index,
               type.c_str(),

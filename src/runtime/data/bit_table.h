@@ -5,14 +5,15 @@
 
 #include "../../common/types.h"
 #include "../../common/bitmap.h"
-#include <unordered_map>
+#include "../../common/btree.h"
 
 //#include <bitset>
 
 namespace furious
 {
 
-class BitTable {
+class BitTable 
+{
 public:
   BitTable () = default;
   ~BitTable ();
@@ -54,7 +55,7 @@ public:
   get_bitmap(uint32_t bitset_id) const;
 
 private:
-  mutable std::unordered_map<uint32_t, Bitmap*> m_bitsets;
+  mutable BTree<Bitmap> m_bitmaps;
 };
   
 } /* furious

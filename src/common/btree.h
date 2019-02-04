@@ -75,7 +75,7 @@ struct BTree
    * does not exist
    */
   T*
-  get(uint32_t key);
+  get(uint32_t key) const;
 
   /**
    * @brief Checks if an element exists

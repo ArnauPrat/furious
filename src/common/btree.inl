@@ -14,7 +14,8 @@ BTree<T>::BTree() : p_root(btree_create_internal()),
 }
 
 template<typename T>
-BTree<T>::~BTree() {
+BTree<T>::~BTree() 
+{
   if(p_root != nullptr) {
     btree_destroy_node(p_root);
     p_root = nullptr;
@@ -22,20 +23,26 @@ BTree<T>::~BTree() {
 }
 
 template<typename T>
-void BTree<T>::clear() {
+void 
+BTree<T>::clear() 
+{
   btree_destroy_node(p_root);
   p_root = btree_create_internal();
   m_size = 0;
 }
 
 template<typename T>
-void BTree<T>::insert(uint32_t key, T* element) {
+void 
+BTree<T>::insert(uint32_t key, T* element) 
+{
   m_size++;
   btree_insert_root(&p_root, key, static_cast<void*>(element));
 }
 
 template<typename T>
-T* BTree<T>::remove(uint32_t key) {
+T* 
+BTree<T>::remove(uint32_t key) 
+{
   T* value = static_cast<T*>(btree_remove(&p_root, key));
   if (value != nullptr) {
     m_size--;
@@ -44,22 +51,27 @@ T* BTree<T>::remove(uint32_t key) {
 }
 
 template<typename T>
-T* BTree<T>::get(uint32_t key){
+T*
+BTree<T>::get(uint32_t key) const
+{
   return static_cast<T*>(btree_get(p_root, key));
 }
 
 template<typename T>
-bool BTree<T>::exists(uint32_t key){
+bool 
+BTree<T>::exists(uint32_t key){
   return get(key) != nullptr;
 }
 
 template<typename T>
-size_t BTree<T>::size() {
+size_t 
+BTree<T>::size() {
   return m_size;
 }
 
 template<typename T>
-typename BTree<T>::Iterator BTree<T>::iterator() const
+typename BTree<T>::Iterator 
+BTree<T>::iterator() const
 {
   return Iterator(p_root);
 }
@@ -71,13 +83,15 @@ m_iterator(root)
 }
 
 template<typename T>
-bool BTree<T>::Iterator::has_next() const 
+bool 
+BTree<T>::Iterator::has_next() const 
 {
   return m_iterator.has_next();
 }
 
 template<typename T>
-T* BTree<T>::Iterator::next() {
+T* 
+BTree<T>::Iterator::next() {
   return static_cast<T*>(m_iterator.next());
 }
 

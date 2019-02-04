@@ -143,7 +143,10 @@ btree_get(BTNode* node,
   else 
   { // LEAF NODE
     uint32_t i = btree_next_leaf(node, ekey);
-    return node->m_leaf.m_leafs[i];
+    if(node->m_leaf.m_keys[i] == ekey)
+    {
+      return node->m_leaf.m_leafs[i];
+    }
   }
   return nullptr;
 }

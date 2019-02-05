@@ -1,6 +1,6 @@
 
 #include "database.h"
-#include <cassert>
+#include <assert.h>
 #include <utility>
 
 namespace furious  {

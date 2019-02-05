@@ -1,5 +1,4 @@
 
-
 #include "../../common/utils.h"
 namespace furious 
 {

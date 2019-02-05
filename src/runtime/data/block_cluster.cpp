@@ -2,7 +2,7 @@
 
 #include "block_cluster.h"
 
-#include <cassert>
+#include <assert.h>
 
 namespace furious
 {

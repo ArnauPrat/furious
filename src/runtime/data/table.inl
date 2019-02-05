@@ -1,7 +1,6 @@
 
 
 #include "../memory/memory.h"
-#include <assert.h>
 #include <utility>
 
 namespace furious {

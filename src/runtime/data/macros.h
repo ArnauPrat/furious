@@ -18,8 +18,8 @@
 #define FURIOUS_EXISTS_TABLE(database, Component)\
   database->exists_table<Component>(#Component)
 
-#define FURIOUS_ADD_COMPONENT(entity, Component, ...) \
-  entity->add_component<Component>(#Component, __VA_ARGS__)
+#define FURIOUS_ADD_COMPONENT(entity,Component, ...) \
+  entity->add_component<Component>(#Component, ##__VA_ARGS__)
 
 #define FURIOUS_REMOVE_COMPONENT(entity, Component) \
   entity->remove_component<Component>(#Component)

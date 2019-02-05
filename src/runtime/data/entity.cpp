@@ -17,15 +17,15 @@ Entity::Entity(Database* database) :
 Entity 
 Entity::create_entity(Database* database) 
 {
-  Entity entity{database};
+  Entity entity(database);
   return entity;
 }
 
 void 
-Entity::remove_entity(Entity* entity) 
+Entity::remove_entity(Entity entity) 
 {
-  entity->get_database()->clear_element(entity->m_id);
-  entity->m_id = FURIOUS_INVALID_ID;
+  entity.get_database()->clear_element(entity.m_id);
+  entity.m_id = FURIOUS_INVALID_ID;
 }
 
 void 
@@ -59,7 +59,7 @@ create_entity(Database* database)
 }
 
 void 
-destroy_entity(Entity* entity) 
+destroy_entity(Entity entity) 
 {
   Entity::remove_entity(entity);
 }

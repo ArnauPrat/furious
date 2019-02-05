@@ -44,9 +44,9 @@ TEST(TagTests,TagWorks)
   ASSERT_FALSE(entity2.has_tag("selected"));
   ASSERT_TRUE(entity3.has_tag("selected"));
 
-  destroy_entity(&entity1);
-  destroy_entity(&entity2);
-  destroy_entity(&entity3);
+  destroy_entity(entity1);
+  destroy_entity(entity2);
+  destroy_entity(entity3);
   delete database;
 }
 }

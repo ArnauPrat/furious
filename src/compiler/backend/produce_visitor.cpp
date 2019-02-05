@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <string>
+#include <algorithm>
 
 using namespace clang;
 
@@ -36,6 +37,10 @@ ProduceVisitor::visit(const Scan* scan)
   std::transform(base_name.begin(), 
                  base_name.end(), 
                  base_name.begin(), ::tolower);
+  std::replace(base_name.begin(),
+                    base_name.end(),
+                    ':',
+                    '_');
 
   std::string table_varname = base_name+"_table";
   std::string iter_varname = base_name+"_iter";

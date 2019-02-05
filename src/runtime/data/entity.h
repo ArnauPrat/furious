@@ -4,16 +4,18 @@
 
 #include "../../common/common.h"
 
-namespace furious {
+namespace furious 
+{
 
 class Database;
 
 using entity_id_t = int32_t;
 
-class Entity final {
+class Entity final 
+{
 public: 
   Entity( Database* database  );
-  virtual ~Entity() = default;
+  ~Entity() = default;
 
   Entity( const Entity& entity) = default;
 
@@ -51,7 +53,7 @@ public:
    *
    * @param The entity to remove
    */
-  static void remove_entity( Entity* entity);
+  static void remove_entity(Entity entity);
 
   Database* get_database();
 
@@ -70,14 +72,16 @@ private:
  *
  * @return A newly created entity
  */
-Entity create_entity(Database* database);
+Entity 
+create_entity(Database* database);
 
 /**
  * @brief Removes the given entity
  *
  * @param entiy The entity to remove. 
  */
-void destroy_entity(Entity* entiy);
+void 
+destroy_entity(Entity entity);
   
 } /* furious */ 
 

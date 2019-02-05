@@ -196,6 +196,12 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
+
+    std::replace(base_name.begin(),
+                 base_name.end(),
+                 ':',
+                 '_');
+
     std::string table_varname = base_name+"_table";
     fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
   }
@@ -234,6 +240,12 @@ generate_code(const FccExecPlan* exec_plan,
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
+
+    std::replace(base_name.begin(),
+                 base_name.end(),
+                 ':',
+                 '_');
+
     std::string table_varname = base_name+"_table";
     fprintf(fd,
             "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",

@@ -17,7 +17,7 @@ struct BTree
   struct Iterator 
   {
   public:
-    Iterator(BTNode* root);
+    Iterator(BTRoot* root);
     ~Iterator() = default;
 
     bool 
@@ -44,72 +44,71 @@ struct BTree
   
 
   /**
-   * @brief Inserts an element to the btree. Replaces the element if this
+   * \brief Inserts an element to the btree. Replaces the element if this
    * already existed
    *
-   * @param key The key of the element to add 
-   * @param element A pointer to the element to insert
+   * \param key The key of the element to add 
+   * \param element A pointer to the element to insert
    *
-   * @return Returns a pointer to the replaced element. nullptr otherwise.
+   * \return Returns a pointer to the replaced element. nullptr otherwise.
    */
   void 
-  insert(uint32_t key, T* element);
+  insert(uint32_t key, const T* element);
   
 
   /**
-   * @brief Removes an element from the tree
+   * \brief Removes an element from the tree
    *
-   * @param key The key of the element to remove 
+   * \param key The key of the element to remove 
    *
-   * @return Returns a pointer to the removed element
    */
-  T*
+  void 
   remove(uint32_t key);
 
   /**
-   * @brief Gets the element with the given key
+   * \brief Gets the element with the given key
    *
-   * @param key The key of the element to search for
+   * \param key The key of the element to search for
    *
-   * @return Returns a pointer to the element with the given key. nullptr if it
+   * \return Returns a pointer to the element with the given key. nullptr if it
    * does not exist
    */
-  T*
+  T* 
   get(uint32_t key) const;
 
   /**
-   * @brief Checks if an element exists
+   * \brief Checks if an element exists
    *
-   * @param key The key to of the element to look for
+   * \param key The key to of the element to look for
    *
-   * @return Retursn true if the element exists. false otherwise
+   * \return Retursn true if the element exists. false otherwise
    */
   bool 
   exists(uint32_t key);
 
   /**
-   * @brief Gets the size of the btree (i.e. the number of elements)
+   * \brief Gets the size of the btree (i.e. the number of elements)
    *
-   * @return Returns the size of the btree
+   * \return Returns the size of the btree
    */
   size_t
   size();
 
   /**
-   * @brief Gets an iterator to the btree
+   * \brief Gets an iterator to the btree
    *
-   * @return Returns an iterator to the btree
+   * \return Returns an iterator to the btree
    */
   Iterator 
   iterator() const;
 
   /**
-   * @brief Clears the btree
+   * brief Clears the btree
    */
   void clear();
 
 private:
-   BTNode*    p_root;
+   BTRoot*    p_root;
    size_t     m_size;
 };
 

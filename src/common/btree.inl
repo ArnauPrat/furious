@@ -7,7 +7,7 @@ namespace furious {
 
 
 template<typename T>
-BTree<T>::BTree() : p_root(btree_create_internal()),
+BTree<T>::BTree() : p_root(btree_create_root()),
                  m_size(0)
 {
 
@@ -16,8 +16,17 @@ BTree<T>::BTree() : p_root(btree_create_internal()),
 template<typename T>
 BTree<T>::~BTree() 
 {
-  if(p_root != nullptr) {
-    btree_destroy_node(p_root);
+  if(p_root != nullptr) 
+  {
+    BTree<T>::Iterator it = iterator();
+    while(it.has_next())
+    {
+      T* value = (T*)it.next();
+      value->~T();
+      free(value);
+      m_size--;
+    }
+    btree_destroy_root(p_root);
     p_root = nullptr;
   }
 }
@@ -26,35 +35,49 @@ template<typename T>
 void 
 BTree<T>::clear() 
 {
-  btree_destroy_node(p_root);
-  p_root = btree_create_internal();
+  BTree<T>::Iterator it = iterator();
+  while(it.has_next())
+  {
+    T* value = (T*)it.next();
+    value->~T();
+    free(value);
+  }
+  btree_destroy_root(p_root);
+  p_root = btree_create_root();
   m_size = 0;
 }
 
 template<typename T>
 void 
-BTree<T>::insert(uint32_t key, T* element) 
+BTree<T>::insert(uint32_t key, const T* element) 
 {
-  m_size++;
-  btree_insert_root(&p_root, key, static_cast<void*>(element));
+  void** ptr = btree_insert_root(p_root, key);
+  if(ptr != nullptr)
+  {
+    *ptr = malloc(sizeof(T));
+    new (*ptr) T(*element);
+    m_size++;
+  }
 }
 
 template<typename T>
-T* 
+void
 BTree<T>::remove(uint32_t key) 
 {
-  T* value = static_cast<T*>(btree_remove(&p_root, key));
-  if (value != nullptr) {
+  T* value = static_cast<T*>(btree_remove_root(p_root, key));
+  if (value != nullptr) 
+  {
+    value->~T();
+    free(value);
     m_size--;
   }
-  return value;
 }
 
 template<typename T>
 T*
 BTree<T>::get(uint32_t key) const
 {
-  return static_cast<T*>(btree_get(p_root, key));
+  return static_cast<T*>(btree_get_root(p_root, key));
 }
 
 template<typename T>
@@ -77,7 +100,7 @@ BTree<T>::iterator() const
 }
 
 template<typename T>
-BTree<T>::Iterator::Iterator(BTNode* root) : 
+BTree<T>::Iterator::Iterator(BTRoot* root) : 
 m_iterator(root) 
 {
 }

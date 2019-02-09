@@ -208,14 +208,28 @@ struct FccContext
   insert_ast_unit(std::unique_ptr<ASTUnit>& unit);
 
 
+  /**
+   * \brief Inserts a using declaration to this context
+   *
+   * \param decl The using declaration to add
+   */
+  void
+  insert_using_decl(const UsingDirectiveDecl* using_decl);
+
+
   FCC_PARSING_ERROR_CALLBACK  p_pecallback;             // Pointer to function handling parsing errors
   FCC_COMP_ERROR_CALLBACK     p_cecallback;             // Pointer to the function handling compilation errors
 
   uint32_t                    m_num_translation_units;  // The number of translation units in this context
   uint32_t                    m_num_exec_infos;         // The number of execution info structures
 
+  uint32_t                    m_num_using_decls;        // The number of using decls
+  uint32_t                    m_max_using_decls;        // The maximum number of using decls
+
   std::unique_ptr<ASTUnit>    m_asts[FCC_MAX_TRANSLATION_UNITS];    // Vector with the ASTs of all the translation units
-  FccExecInfo**               m_exec_infos;                         // The furious execution infos extracted from the input code
+  FccExecInfo**               p_exec_infos;                         // The furious execution infos extracted from the input code
+  const UsingDirectiveDecl**        p_using_decls;
+
 };
 
 /**

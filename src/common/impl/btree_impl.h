@@ -4,22 +4,20 @@
 #define _FURIOUS_BTREE_IMPL_H_ 
 
 #include "../types.h"
+#include "stdlib.h"
 
 namespace furious 
 {
 
 /**
- * \brief This is the arity of the BTree. The number 7 is purposely choosen,
- * because we assume a cache line of size 64 bytes and we want a node to fit in it.
- * In a line of cache we can fit up to 8
- * pointers of size 8 bytes (8x8=64bytes). Since we need room for the keys,
- * which we assume of size 1 byte, and we want both pointers and keys to fit in
- * a line of cache, we choose 7 pointers and leave the last 8 bytes to store the
- * 6 needed keys, leaving 2 bytes for other stuff. 
- * This btree has a max capacity of 65K objects
- */
-constexpr uint32_t BTREE_MAX_ARITY=7;
-constexpr uint32_t BTREE_MIN_ARITY=(BTREE_MAX_ARITY+2-1)/2;
+ * \brief This is the arity of the BTree. The arity is choosen in order to make
+ * the tree nodes to be close to multiples of cache lines (assuming lines of 64
+ * bytes)*/
+constexpr uint32_t BTREE_INTERNAL_MAX_ARITY=10;
+constexpr uint32_t BTREE_INTERNAL_MIN_ARITY=(BTREE_INTERNAL_MAX_ARITY+2-1)/2;
+
+constexpr uint32_t BTREE_LEAF_MAX_ARITY=9;
+constexpr uint32_t BTREE_LEAF_MIN_ARITY=(BTREE_LEAF_MAX_ARITY+2-1)/2;
 
 enum class BTNodeType : uint8_t 
 {
@@ -33,28 +31,42 @@ struct BTNode
   {
     struct 
     {
-      BTNode*     m_children[BTREE_MAX_ARITY]; // 7*8 = 56 bytes
-      uint32_t    m_keys[BTREE_MAX_ARITY-1];   // 6 bytes
-      uint32_t    m_nchildren;                   // 1 byte
-    } m_internal; 
+      BTNode*     m_children[BTREE_INTERNAL_MAX_ARITY]; // 10*8 = 80 bytes
+      uint32_t    m_keys[BTREE_INTERNAL_MAX_ARITY-1];   // 9*4 = 36 bytes
+      uint16_t    m_nchildren;                          // 2 byte
+    } m_internal;                                       // total = 120 bytes
 
     struct 
     {
-      void*     m_leafs[BTREE_MIN_ARITY];  // 4*8 = 32 bytes
-      BTNode*   m_next;                    // 8 bytes
-      uint32_t  m_keys[BTREE_MIN_ARITY];   // 4 bytes
-      uint32_t  m_nleafs;                  // 1 byte
-    } m_leaf; 
+      void*     m_leafs[BTREE_LEAF_MAX_ARITY];  // 9*8 = 72 bytes
+      BTNode*   m_next;                         // 8 bytes
+      uint32_t  m_keys[BTREE_LEAF_MAX_ARITY];   // 9*4 = 36 bytes
+      uint16_t  m_nleafs;                       // 2 byte
+    } m_leaf;                                   // total 118 bytes
   };
 
   BTNodeType    m_type;                      // 1 byte
-
 };
+
+struct BTRoot
+{
+  BTNode* p_root;                 // The root of the tree
+};
+
+/**
+ * \brief Allocates memory for one element
+ *
+ * \param root The BTRoot to allocate memory for
+ *
+ * \return Returns the pointer to the newly allocated memory
+ */
+void*
+alloc(BTRoot* root);
 
 struct BTIterator 
 {
-  BTIterator(BTNode* root);
-  virtual ~BTIterator() = default;
+  BTIterator(BTRoot* root);
+  ~BTIterator() = default;
 
 
   /**
@@ -62,20 +74,40 @@ struct BTIterator
    *
    * \return Returns true if there are more elements in the iterator
    */
-  bool has_next() const;
+  bool 
+  has_next() const;
 
   /**
    * \brief Gets the next element in the btree
    *
    * \return Returns the next elemnet in the btree
    */
-  void* next();
+  void* 
+  next();
 
 private:
-  BTNode* m_root;
-  BTNode* m_leaf;
-  uint32_t m_index;
+  BTRoot*   m_root;
+  BTNode*   m_leaf;
+  uint32_t  m_index;
 };
+
+/**
+ * \brief Creates a btree root
+ *
+ * \param element_size The size of the elements to store
+ *
+ * \return Returns an instance of a btree root
+ */
+BTRoot*
+btree_create_root();
+
+/**
+ * \brief Destroys an btree root instance
+ *
+ * \param root The root instance to destroy
+ */
+void
+btree_destroy_root(BTRoot* root);
 
 /**
  * \brief Creates a new instance of an internal node 
@@ -128,17 +160,31 @@ btree_next_leaf(BTNode* node,
                 uint32_t key);
 
 /**
+ * \brief Gets the index to the data buffer where the element with the
+ * the given key resides
+ *
+ * \param node The node to look for the key at
+ * \param ekey The key of the value to look for
+ *
+ * \return Returns a pointer the memory region where element resides.
+ * nullptr if the element does not exist
+ */
+void* 
+btree_get(BTNode* node, 
+          uint32_t ekey);
+
+/**
  * \brief Gets the pointer to the value associated with the given key
  *
  * \param node The node to look for the key at
  * \param ekey The key of the value to look for
  *
- * \return Returns the pointer to the value associated with the given key.
- * Returns nullptr if the key does not exist
+ * \return Returns a pointer to the element with the given key.
+ * Returns nullptr if the element does not exist
  */
 void* 
-btree_get(BTNode* node, 
-          uint32_t ekey);
+btree_get_root(BTRoot* root, 
+               uint32_t ekey);
 
 /**
  * \brief Splits an internal node into two nodes.
@@ -189,12 +235,14 @@ btree_shift_insert_internal(BTNode* node,
  * \param idx The index of the position to start shifting
  * \param child A pointer to the child to add at the given position
  * \param key The key of the child to add
+ *
+ * \return Returns a pointer to the reserved memory for the inserted element 
  */
 void 
-btree_shift_insert_leaf(BTNode* node, 
+btree_shift_insert_leaf(BTRoot* root,
+                        BTNode* node, 
                         uint32_t idx, 
-                        void* element, 
-                        uint32_t key );
+                        uint32_t key);
 
 
 /**
@@ -204,11 +252,14 @@ btree_shift_insert_leaf(BTNode* node,
  * \param node A pointer to the node to insert the element to
  * \param key The key of the element to insert
  * \param element The element to insert
+ *
+ * \return Returns a pointer to where the pointer to the reserved memory for the element needs to be stored.
+ * nullptr if this already exists.
  */
-void 
-btree_insert(BTNode* node, 
-             uint32_t key, 
-             void* element);
+void** 
+btree_insert(BTRoot* root,
+             BTNode* node, 
+             uint32_t key);
 
 /**
  * \brief Inserts a given element to the given node. This method assumes that a
@@ -219,12 +270,13 @@ btree_insert(BTNode* node,
  *
  * \param node A pointer to a pointer to an internal node
  * \param key The key of the element to add
- * \param element A pointer to the element to add
+ *
+ * \return Returns a pointer to where the pointer to the reserved memory for the element needs to be stored.
+ * nullptr if this already exists.
  */
-void 
-btree_insert_root(BTNode** node, 
-                  uint32_t key, 
-                  void* element);
+void** 
+btree_insert_root(BTRoot* node, 
+                  uint32_t key);
 
 /**
  * \brief Removes the element at position idx and shifts the rest of elements to
@@ -245,8 +297,9 @@ btree_remove_shift_internal(BTNode* node,
  * \param node The leaf node to remove the element from
  * \param idx The position of the element to remove
  *
+ * \return Returns a pointer to the removed element. 
  */
-void 
+void* 
 btree_remove_shift_leaf(BTNode* node, 
                         uint32_t idx);
 
@@ -269,9 +322,10 @@ btree_merge_internal(BTNode* node,
  * \param idx1 The index of the first node to merge
  * \param idx2 The index of the second node to merge
  */
-void btree_merge_internal(BTNode* node, 
-                          uint32_t idx1, 
-                          uint32_t idx2);
+void 
+btree_merge_internal(BTNode* node, 
+                     uint32_t idx1, 
+                     uint32_t idx2);
 
 /**
  * \brief Removes an element with the given key
@@ -282,9 +336,10 @@ void btree_merge_internal(BTNode* node,
  * in the subtree changed or not 
  * \param new_key Pointer to store the new minum value of that node 
  *
- * \return Returns a pointer to the removed element
+ * \return Returns a pointer to the memory region where the element is stored.
+ * nullptr if this does not exist
  */
-void* 
+void*
 btree_remove(BTNode* node, 
              uint32_t key, 
              bool* min_changed, 
@@ -298,12 +353,12 @@ btree_remove(BTNode* node,
  * internal node pointer by node is replaced.
  * \param key The key of the element to remove
  *
- * \return Returns a pointer to the removed element. Returns nullptr if the
- * element was not found.
+ * \return Returns a pointer to the memory region where the element is stored.
+ * nullptr if this does not exist
  */
 void* 
-btree_remove(BTNode** node, 
-             uint32_t key);
+btree_remove_root(BTRoot* root,
+                  uint32_t key);
   
 } /* btree_impl */ 
 

@@ -178,6 +178,12 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             {
               // OK
             } 
+            else if(isa<UsingDirectiveDecl>(decl))
+            {
+              // OK
+              const UsingDirectiveDecl* using_decl = cast<UsingDirectiveDecl>(decl);
+              p_fcc_context->insert_using_decl(using_decl);
+            }
             else 
             {
               SourceLocation location = decl->getLocStart();

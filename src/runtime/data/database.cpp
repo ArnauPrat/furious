@@ -15,17 +15,17 @@ Database::~Database()
 
 void Database::clear() {
 
-  BTree<Table>::Iterator it_tables = m_tables.iterator();
+  BTree<Table*>::Iterator it_tables = m_tables.iterator();
   while (it_tables.has_next()) 
   {
-    delete it_tables.next();
+    delete *it_tables.next();
   }
   m_tables.clear();
 
-  BTree<BitTable>::Iterator it_tags = m_tags.iterator();
+  BTree<BitTable*>::Iterator it_tags = m_tags.iterator();
   while (it_tags.has_next()) 
   {
-    delete it_tags.next();
+    delete *it_tags.next();
   }
   m_tags.clear();
 }
@@ -39,10 +39,10 @@ uint32_t Database::get_next_entity_id()
 
 void Database::clear_element(int32_t id) 
 {
-  BTree<Table>::Iterator it = m_tables.iterator();
+  BTree<Table*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
   {
-    Table* table = it.next();
+    Table* table = *it.next();
     table->remove_element(id);
   }
 }
@@ -51,23 +51,28 @@ void Database::tag_entity(int32_t entity_id,
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag);
-  BitTable* bit_table = m_tags.get(hash_value);
+  BitTable** bit_table = m_tags.get(hash_value);
+  BitTable* bit_table_ptr = nullptr;
   if(bit_table == nullptr) 
   {
-    bit_table = new BitTable();
-    m_tags.insert(hash_value, bit_table);
+    bit_table_ptr = new BitTable();
+    m_tags.insert(hash_value, &bit_table_ptr);
   }
-  bit_table->add(entity_id);
+  else
+  {
+    bit_table_ptr = *bit_table;
+  }
+  bit_table_ptr->add(entity_id);
 }
 
 void Database::untag_entity(int32_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag);
-  BitTable* bit_table = m_tags.get(hash_value);
+  BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
-    bit_table->remove(entity_id);
+    (*bit_table)->remove(entity_id);
   }
 }
 
@@ -75,19 +80,20 @@ BitTable*
 Database::get_tagged_entities(const std::string& tag) 
 {
   uint32_t hash_value = hash(tag);
-  BitTable* bit_table = m_tags.get(hash_value);
+  BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
-    return bit_table;
+    return *bit_table;
   }
-  bit_table = new BitTable();
-  m_tags.insert(hash_value, bit_table);
-  return bit_table;
+  BitTable* bit_table_ptr = new BitTable();
+  m_tags.insert(hash_value, &bit_table_ptr);
+  return bit_table_ptr;
 }
 
-void Database::add_reference( const std::string& type, 
-                              int32_t tail, 
-                              int32_t head) 
+void 
+Database::add_reference( const std::string& type, 
+                         int32_t tail, 
+                         int32_t head) 
 {
   /*auto it = m_references.find(type);
   if (it == m_references.end()) {
@@ -100,9 +106,10 @@ void Database::add_reference( const std::string& type,
   */
 }
 
-void Database::remove_reference( const std::string& type, 
-                                 int32_t tail, 
-                                 int32_t head) 
+void 
+Database::remove_reference( const std::string& type, 
+                            int32_t tail, 
+                            int32_t head) 
 {
   /*auto it = m_references.find(type);
   if (it != m_references.end()) {

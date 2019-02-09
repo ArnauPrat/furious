@@ -55,7 +55,7 @@ public:
   get_bitmap(uint32_t bitset_id) const;
 
 private:
-  mutable BTree<Bitmap> m_bitmaps;
+  mutable BTree<Bitmap*> m_bitmaps;
 };
   
 } /* furious

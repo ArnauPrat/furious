@@ -13,6 +13,8 @@
 
 #include <clang/Tooling/Tooling.h>
 
+#define FCC_CONTEXT_USING_GROWTH_FACTOR 8
+
 namespace furious 
 {
 
@@ -153,24 +155,32 @@ FccContext::FccContext():
 p_pecallback(nullptr),
 p_cecallback(nullptr),
 m_num_translation_units(0),
-m_num_exec_infos(0)
+m_num_exec_infos(0),
+m_num_using_decls(0),
+m_max_using_decls(0),
+p_using_decls(nullptr)
 {
-  m_exec_infos = new FccExecInfo*[FCC_MAX_OPERATIONS];
-  memset(m_exec_infos, '0', sizeof(FccExecInfo*)*FCC_MAX_OPERATIONS);
+  p_exec_infos = new FccExecInfo*[FCC_MAX_OPERATIONS];
+  memset(p_exec_infos, 0, sizeof(FccExecInfo*)*FCC_MAX_OPERATIONS);
 }
 
 FccContext::~FccContext()
 {
   for(uint32_t i = 0; i < m_num_exec_infos; ++i)
   {
-    if(m_exec_infos[i] != nullptr)
+    if(p_exec_infos[i] != nullptr)
     {
-      delete m_exec_infos[i];
-      m_exec_infos[i] = nullptr;
+      delete p_exec_infos[i];
+      p_exec_infos[i] = nullptr;
     }
   }
 
-  delete [] m_exec_infos;
+  delete [] p_exec_infos;
+
+  if(p_using_decls != nullptr)
+  {
+    free(p_using_decls);
+  }
 
 }
 
@@ -184,9 +194,9 @@ FccContext::create_exec_info(ASTContext* ast_context)
                          0,
                          0);
   }
-  m_exec_infos[m_num_exec_infos] = new FccExecInfo(ast_context, this);
+  p_exec_infos[m_num_exec_infos] = new FccExecInfo(ast_context, this);
   m_num_exec_infos++;
-  return m_exec_infos[m_num_exec_infos-1];
+  return p_exec_infos[m_num_exec_infos-1];
 }
 
 void
@@ -201,6 +211,18 @@ FccContext::insert_ast_unit(std::unique_ptr<ASTUnit>& unit)
   }
   m_asts[m_num_translation_units] = std::move(unit);
   m_num_translation_units++;
+}
+
+void
+FccContext::insert_using_decl(const UsingDirectiveDecl* using_decl)
+{
+  if(m_num_using_decls == m_max_using_decls)
+  {
+    m_max_using_decls+=FCC_CONTEXT_USING_GROWTH_FACTOR;
+    p_using_decls = (const UsingDirectiveDecl**)realloc(p_using_decls, sizeof(UsingDirectiveDecl*)*m_max_using_decls);
+  }
+  p_using_decls[m_num_using_decls]=using_decl;
+  m_num_using_decls++;
 }
 
 ////////////////////////////////////////////////
@@ -385,7 +407,7 @@ Fcc_run(FccContext* context,
   FccExecPlan exec_plan(context);
   for(uint32_t i = 0; i < context->m_num_exec_infos; ++i)
   {
-    FccExecInfo* info = context->m_exec_infos[i];
+    FccExecInfo* info = context->p_exec_infos[i];
     FccOperator* next_root = bootstrap_subplan(info);
     exec_plan.insert_root(info->p_ast_context, next_root);
   }

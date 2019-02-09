@@ -52,15 +52,15 @@ public:
 class FccASTVisitor : public RecursiveASTVisitor<FccASTVisitor>
 {
 private:
-  ASTContext *p_ast_context; // used for getting additional AST info
-  FccContext *p_fcc_context;
+  ASTContext* p_ast_context; // used for getting additional AST info
+  FccContext* p_fcc_context;
 
 public:
-  explicit FccASTVisitor(ASTContext *ast_context,
-                         FccContext *fcc_context);
+  explicit FccASTVisitor(ASTContext* ast_context,
+                         FccContext* fcc_context);
 
   virtual 
-  bool VisitFunctionDecl(FunctionDecl *func);
+  bool VisitFunctionDecl(FunctionDecl* func);
 };
 
 } // namespace furious

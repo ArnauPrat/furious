@@ -165,10 +165,10 @@ public:
 
 private:
 
-  BTree<BitTable>            m_tags;
-  BTree<Table>               m_tables;           /** Holds a map between component types and their tables **/
-  BTree<Table>               m_references;
-  int32_t                    m_next_entity_id;
+  BTree<BitTable*>            m_tags;
+  BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
+  BTree<Table*>               m_references;
+  int32_t                     m_next_entity_id;
 };
 
 }

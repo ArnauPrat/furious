@@ -111,7 +111,7 @@ TBlockIterator::reset(TBlock* block)
   }
 }
 
-Table::Iterator::Iterator(const BTree<TBlock>* blocks) : 
+Table::Iterator::Iterator(const BTree<TBlock*>* blocks) : 
   p_blocks(blocks),
   m_it(p_blocks->iterator())
 {
@@ -128,8 +128,8 @@ Table::Iterator::has_next() const
 TBlock* 
 Table::Iterator::next() 
 {
-  TBlock* next = m_it.next();
-  return next;
+  TBlock** next = m_it.next();
+  return *next;
 }
 
 Table::Table(const std::string& name, 
@@ -210,29 +210,34 @@ Table::alloc_element(uint32_t id)
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  TBlock** block = m_blocks.get(decoded_id.m_block_id);
+  TBlock* block_ptr = nullptr;
   if (block == nullptr) 
   {
-    block = new TBlock();
-    block->p_data = static_cast<int8_t*>(numa_alloc(0, m_esize*TABLE_BLOCK_SIZE ));
-    block->m_start = (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE;
-    block->m_num_elements = 0;
-    block->m_num_enabled_elements = 0;
-    block->m_esize = m_esize;
-    block->p_enabled = new Bitmap(TABLE_BLOCK_SIZE);
-    block->p_exists = new Bitmap(TABLE_BLOCK_SIZE);
-    m_blocks.insert(decoded_id.m_block_id, block);
+    block_ptr = new TBlock();
+    block_ptr->p_data = static_cast<int8_t*>(numa_alloc(0, m_esize*TABLE_BLOCK_SIZE ));
+    block_ptr->m_start = (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE;
+    block_ptr->m_num_elements = 0;
+    block_ptr->m_num_enabled_elements = 0;
+    block_ptr->m_esize = m_esize;
+    block_ptr->p_enabled = new Bitmap(TABLE_BLOCK_SIZE);
+    block_ptr->p_exists = new Bitmap(TABLE_BLOCK_SIZE);
+    m_blocks.insert(decoded_id.m_block_id, &block_ptr);
+  }
+  else
+  {
+    block_ptr = *block;
   }
 
-  if(!block->p_exists->is_set(decoded_id.m_block_offset)) 
+  if(!block_ptr->p_exists->is_set(decoded_id.m_block_offset)) 
   {
     m_num_elements++;
-    block->m_num_elements++;
-    block->m_num_enabled_elements++;
+    block_ptr->m_num_elements++;
+    block_ptr->m_num_enabled_elements++;
   }
-  block->p_exists->set(decoded_id.m_block_offset);
-  block->p_enabled->set(decoded_id.m_block_offset);
-  return &block->p_data[decoded_id.m_block_offset*m_esize];
+  block_ptr->p_exists->set(decoded_id.m_block_offset);
+  block_ptr->p_enabled->set(decoded_id.m_block_offset);
+  return &block_ptr->p_data[decoded_id.m_block_offset*m_esize];
 }
 
 void  
@@ -241,21 +246,23 @@ Table::remove_element(uint32_t id)
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  TBlock** block = m_blocks.get(decoded_id.m_block_id);
   if(block == nullptr) {
     return;
   }
 
-  if(block->p_exists->is_set(decoded_id.m_block_offset)) 
+  TBlock* block_ptr = *block;
+
+  if(block_ptr->p_exists->is_set(decoded_id.m_block_offset)) 
   {
     m_num_elements--;
-    block->m_num_elements--;
-    block->m_num_enabled_elements--;
+    block_ptr->m_num_elements--;
+    block_ptr->m_num_enabled_elements--;
   }
-  block->p_exists->unset(decoded_id.m_block_offset);
-  block->p_enabled->unset(decoded_id.m_block_offset);
-  m_destructor(&block->p_data[decoded_id.m_block_offset*m_esize]);
-  memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
+  block_ptr->p_exists->unset(decoded_id.m_block_offset);
+  block_ptr->p_enabled->unset(decoded_id.m_block_offset);
+  m_destructor(&block_ptr->p_data[decoded_id.m_block_offset*m_esize]);
+  memset(&block_ptr->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
 }
 
 void 
@@ -264,13 +271,14 @@ Table::enable_element(uint32_t id)
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  TBlock** block = m_blocks.get(decoded_id.m_block_id);
   if(block == nullptr)
   {
     return;
   }
-  block->p_enabled->set(decoded_id.m_block_offset);
-  block->m_num_enabled_elements++;
+  TBlock* block_ptr = *block;
+  block_ptr->p_enabled->set(decoded_id.m_block_offset);
+  block_ptr->m_num_enabled_elements++;
 }
 
 void 
@@ -279,13 +287,14 @@ Table::disable_element(uint32_t id)
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  TBlock** block = m_blocks.get(decoded_id.m_block_id);
   if(block == nullptr)
   {
     return;
   }
-  block->p_enabled->unset(decoded_id.m_block_offset);
-  block->m_num_enabled_elements--;
+  TBlock* block_ptr = *block;
+  block_ptr->p_enabled->unset(decoded_id.m_block_offset);
+  block_ptr->m_num_enabled_elements--;
 }
 
 bool 
@@ -294,12 +303,12 @@ Table::is_enabled(uint32_t id)
   assert(id != FURIOUS_INVALID_ID);
 
   DecodedId decoded_id = decode_id(id);
-  TBlock* block = m_blocks.get(decoded_id.m_block_id);
+  TBlock** block = m_blocks.get(decoded_id.m_block_id);
   if(block == nullptr) 
   {
     return false;
   }
-  return block->p_enabled->is_set(decoded_id.m_block_offset);
+  return (*block)->p_enabled->is_set(decoded_id.m_block_offset);
 }
 
 Table::Iterator 
@@ -318,9 +327,9 @@ TBlock*
 Table::get_block(uint32_t block_id) 
 {
   assert(block_id != FURIOUS_INVALID_ID);
-  TBlock* block = m_blocks.get(block_id);
+  TBlock** block = m_blocks.get(block_id);
   assert(block != nullptr);
-  return block;
+  return *block;
 }
   
 } /* furious */ 

@@ -171,6 +171,16 @@ generate_code(const FccExecPlan* exec_plan,
 
   fprintf(fd, "\n\n\n");
 
+  for(uint32_t i = 0; i < exec_plan->p_context->m_num_using_decls; ++i)
+  {
+    const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
+    const SourceManager& sm = decl->getASTContext().getSourceManager();
+    SourceLocation start = decl->clang::Decl::getSourceRange().getBegin();
+    SourceLocation end = decl->clang::Decl::getSourceRange().getEnd();
+    std::string code = get_code(sm, start, end);
+    fprintf(fd,"using namespace %s;\n",code.c_str());
+  }
+
   for(const Decl* decl : deps_visitor.m_declarations)
   {
     const SourceManager& sm = decl->getASTContext().getSourceManager();
@@ -181,6 +191,7 @@ generate_code(const FccExecPlan* exec_plan,
                                 end);
     fprintf(fd,"%s;\n\n", code.c_str());
   }
+
 
 
   fprintf(fd,"namespace furious \n{\n");
@@ -214,7 +225,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos;++i)
   {
-    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
@@ -263,7 +274,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
   {
-    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
@@ -320,7 +331,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
   {
-    FccExecInfo* info = exec_plan->p_context->m_exec_infos[i];
+    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 

@@ -74,7 +74,7 @@ ConsumeVisitor::visit(const Join* join)
   {
 
     fprintf(p_context->p_fd, 
-            "%s.insert(%s->m_start, %s);\n", 
+            "%s.insert_copy(%s.m_start, &%s);\n", 
             hashtable.c_str(), 
             p_context->m_source.c_str(), 
             p_context->m_source.c_str()); 
@@ -87,7 +87,7 @@ ConsumeVisitor::visit(const Join* join)
   {
     std::string clustername = "cluster_"+p_context->m_join_id;
     fprintf(p_context->p_fd,
-            "BlockCluster* %s = %s.get(%s->m_start);\n",
+            "BlockCluster* %s = %s.get(%s.m_start);\n",
             clustername.c_str(),
             hashtable.c_str(),
             p_context->m_source.c_str());
@@ -95,7 +95,7 @@ ConsumeVisitor::visit(const Join* join)
             "if(%s != nullptr)\n{\n",
             clustername.c_str());
     fprintf(p_context->p_fd,
-            "%s->append(%s);\n", 
+            "%s->append(&%s);\n", 
             clustername.c_str(), 
             p_context->m_source.c_str());
     fprintf(p_context->p_fd,
@@ -114,7 +114,6 @@ ConsumeVisitor::visit(const Join* join)
             join);
 
     fprintf(p_context->p_fd,"}\n");
-    fprintf(p_context->p_fd,"delete %s;\n", p_context->m_source.c_str());
     fprintf(p_context->p_fd,"}\n");
   }
 }

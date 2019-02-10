@@ -60,11 +60,7 @@ public:
   entity_id_t m_id;
 
 private:
-
   Database*   p_database;
-
-  static entity_id_t m_next_id;
-  
 };
 
 /**

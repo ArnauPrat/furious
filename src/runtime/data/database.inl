@@ -21,7 +21,7 @@ Database::create_table(const std::string& tablename)
     return TableView<T>(nullptr);
   }
   Table* table =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
-  m_tables.insert(hash_value,&table);
+  m_tables.insert_copy(hash_value,&table);
   return TableView<T>(table); 
 }
 
@@ -66,7 +66,7 @@ Database::find_or_create_table(const std::string& tablename)
     return TableView<T>(*table);
   }
   Table* table_ptr =  new Table(tablename, hash_value, sizeof(T), &destructor<T>);
-  m_tables.insert(hash_value,&table_ptr);
+  m_tables.insert_copy(hash_value,&table_ptr);
   return TableView<T>(table_ptr); 
 }
 

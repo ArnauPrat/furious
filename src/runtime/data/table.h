@@ -24,6 +24,9 @@ constexpr uint32_t TABLE_BLOCK_SIZE = 512;
  */
 struct TBlock
 {
+  TBlock(uint32_t start, size_t esize);
+  ~TBlock();
+  
   int8_t *p_data;                         // The pointer to the block data
   uint32_t m_start;                       // The id of the first element in the block
   size_t m_num_elements;                  // The number of elements in the block
@@ -87,7 +90,7 @@ struct Table
 {
   struct Iterator
   {
-    Iterator(const BTree<TBlock*>* blocks);
+    Iterator(const BTree<TBlock>* blocks);
     ~Iterator() = default;
 
     /**
@@ -106,12 +109,19 @@ struct Table
     TBlock *next();
 
   private:
-    const BTree<TBlock*>*            p_blocks;
-    BTree<TBlock*>::Iterator         m_it;
+    const BTree<TBlock>*          p_blocks;
+    BTree<TBlock>::Iterator      m_it;
   };
 
-  Table(const std::string &name, int64_t id, size_t esize, void (*destructor)(void *ptr));
-  Table(std::string &&name, int64_t id, size_t esize, void (*destructor)(void *ptr));
+  Table(const std::string &name, 
+        int64_t id, 
+        size_t esize, 
+        void (*destructor)(void *ptr));
+
+  Table(std::string &&name, 
+        int64_t id, 
+        size_t esize, 
+        void (*destructor)(void *ptr));
   ~Table();
 
   /**
@@ -236,7 +246,7 @@ private:
   std::string m_name; // The name of the table
   uint64_t m_id;
   size_t m_esize; // The size of each element in bytes
-  mutable BTree<TBlock*> m_blocks;
+  mutable BTree<TBlock> m_blocks;
   size_t m_num_elements;
   void (*m_destructor)(void *ptr);
 };

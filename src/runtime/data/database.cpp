@@ -56,7 +56,7 @@ void Database::tag_entity(int32_t entity_id,
   if(bit_table == nullptr) 
   {
     bit_table_ptr = new BitTable();
-    m_tags.insert(hash_value, &bit_table_ptr);
+    m_tags.insert_copy(hash_value, &bit_table_ptr);
   }
   else
   {
@@ -86,7 +86,7 @@ Database::get_tagged_entities(const std::string& tag)
     return *bit_table;
   }
   BitTable* bit_table_ptr = new BitTable();
-  m_tags.insert(hash_value, &bit_table_ptr);
+  m_tags.insert_copy(hash_value, &bit_table_ptr);
   return bit_table_ptr;
 }
 

@@ -48,7 +48,7 @@ ProduceVisitor::visit(const Scan* scan)
 
   fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());
   fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
-  fprintf(p_context->p_fd, "BlockCluster* %s = new BlockCluster(%s.next().get_raw());\n", block_varname.c_str(), iter_varname.c_str());
+  fprintf(p_context->p_fd, "BlockCluster %s(%s.next().get_raw());\n", block_varname.c_str(), iter_varname.c_str());
 
   consume(p_context->p_fd,
           scan->p_parent,
@@ -69,10 +69,6 @@ ProduceVisitor::visit(const Join* join)
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,join->p_left);
   produce(p_context->p_fd,join->p_right);
-  fprintf(p_context->p_fd,"BTree<BlockCluster>::Iterator it = %s.iterator();\n", hashtable.c_str());
-  fprintf(p_context->p_fd,"while(it.has_next())\n{\n");
-  fprintf(p_context->p_fd,"delete it.next();\n");
-  fprintf(p_context->p_fd,"}\n");
 }
 
 void 

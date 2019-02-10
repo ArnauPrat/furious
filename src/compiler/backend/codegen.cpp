@@ -27,7 +27,7 @@ class DependenciesExtr : public FccExecPlanVisitor
 public:
 
   std::set<std::string> m_include_files;
-  std::set<Decl*>       m_declarations;
+  std::set<const Decl*>       m_declarations;
 
   void
   extract_dependencies(const std::vector<Dependency>& deps)

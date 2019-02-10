@@ -276,11 +276,23 @@ TEST(BTreeTest, btree_shift_insert_internal)
 TEST(BTreeTest, btree_insert_root) 
 {
   BTRoot* root = btree_create_root();
-  void** ptr = btree_insert_root(root, 0);
-  ASSERT_NE(ptr, nullptr);
+  TestValue val1;
+  TestValue val2;
+  BTInsert insert =btree_insert_root(root, 0); 
+  ASSERT_EQ(insert.m_inserted, true);
+  *insert.p_place = &val1;
 
-  void** ptr2 = btree_insert_root(root, 1);
-  ASSERT_NE(ptr2, nullptr);
+  insert =btree_insert_root(root, 1); 
+  ASSERT_EQ(insert.m_inserted, true);
+  *insert.p_place = &val2;
+
+  insert =btree_insert_root(root, 0); 
+  ASSERT_EQ(insert.m_inserted, false);
+  ASSERT_EQ(*insert.p_place, &val1);
+
+  insert =btree_insert_root(root, 1); 
+  ASSERT_EQ(insert.m_inserted, false);
+  ASSERT_EQ(*insert.p_place, &val2);
 
   btree_destroy_root(root);
 }
@@ -357,7 +369,7 @@ TEST(BTreeTest, BTree)
   for (uint32_t i = 0; i <= BTREE_MAX_KEY; ++i) 
   {
     values[i] = new TestValue{static_cast<uint32_t>(i)};
-    btree->insert(static_cast<uint32_t>(i), &values[i]);
+    btree->insert_copy(static_cast<uint32_t>(i), &values[i]);
   }
 
   for (uint32_t i = 0; i <= BTREE_MAX_KEY; ++i) 
@@ -388,7 +400,7 @@ TEST(BTreeTest, BTree)
   for (uint32_t i = 0; i <= BTREE_MAX_KEY; i+=2) 
   {
     values[i] = new TestValue{static_cast<uint32_t>(i)};
-    btree->insert(static_cast<uint32_t>(i), &values[i]);
+    btree->insert_copy(static_cast<uint32_t>(i), &values[i]);
   }
 
   for (uint32_t i = 0; i <= BTREE_MAX_KEY; i+=2) 

@@ -38,7 +38,7 @@ get_code(const SourceManager &sm,
 struct Dependency 
 {
   std::string m_include_file = "";
-  Decl*       p_decl         = nullptr;
+  const Decl*       p_decl         = nullptr;
 };
 
 /**
@@ -59,6 +59,9 @@ get_type_name(QualType type);
 
 std::string 
 get_qualified_type_name(QualType type);
+
+const Decl*
+get_type_decl(const QualType& type);
   
 } /* furious
  */ 

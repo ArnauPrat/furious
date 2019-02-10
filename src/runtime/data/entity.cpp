@@ -4,9 +4,6 @@
 
 namespace furious  {
 
-entity_id_t Entity::m_next_id = 0;
-
-
 Entity::Entity(Database* database) : 
   m_id(database->get_next_entity_id()),
   p_database(database)

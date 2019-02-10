@@ -53,6 +53,12 @@ struct BTRoot
   BTNode* p_root;                 // The root of the tree
 };
 
+struct BTInsert
+{
+  bool    m_inserted;
+  void**  p_place;
+};
+
 /**
  * \brief Allocates memory for one element
  *
@@ -252,11 +258,12 @@ btree_shift_insert_leaf(BTRoot* root,
  * \param node A pointer to the node to insert the element to
  * \param key The key of the element to insert
  * \param element The element to insert
+ * \param place A pointer to the location where the pointer to the element to
+ * insert should be written 
  *
- * \return Returns a pointer to where the pointer to the reserved memory for the element needs to be stored.
- * nullptr if this already exists.
+ * \return Returns a BTInsert structure.
  */
-void** 
+BTInsert 
 btree_insert(BTRoot* root,
              BTNode* node, 
              uint32_t key);
@@ -271,10 +278,9 @@ btree_insert(BTRoot* root,
  * \param node A pointer to a pointer to an internal node
  * \param key The key of the element to add
  *
- * \return Returns a pointer to where the pointer to the reserved memory for the element needs to be stored.
- * nullptr if this already exists.
+ * \return Returns a BTInsert structure.
  */
-void** 
+BTInsert 
 btree_insert_root(BTRoot* node, 
                   uint32_t key);
 

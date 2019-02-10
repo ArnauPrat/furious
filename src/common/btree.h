@@ -33,7 +33,7 @@ struct BTree
   BTree();
   BTree(const BTree&) = delete;
   BTree(BTree&&) = delete;
-  virtual ~BTree();
+  ~BTree();
   
   void operator=(const BTree&) = delete;
   void operator=(BTree&&) = delete;
@@ -50,10 +50,15 @@ struct BTree
    * \param key The key of the element to add 
    * \param element A pointer to the element to insert
    *
-   * \return Returns a pointer to the replaced element. nullptr otherwise.
+   * \return Returns a pointer to the inserted element or nullptr otherwise.
    */
-  void 
-  insert(uint32_t key, const T* element);
+  T* 
+  insert_copy(uint32_t key, const T* element);
+
+
+  template <typename...Args>
+  T* 
+  insert_new(uint32_t key, Args &&... args);
   
 
   /**

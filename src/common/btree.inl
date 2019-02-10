@@ -2,6 +2,7 @@
 #include "impl/btree_impl.h"
 #include <string.h>
 #include <assert.h>
+#include <utility>
 
 namespace furious {
 
@@ -48,16 +49,34 @@ BTree<T>::clear()
 }
 
 template<typename T>
-void 
-BTree<T>::insert(uint32_t key, const T* element) 
+T* 
+BTree<T>::insert_copy(uint32_t key, const T* element) 
 {
-  void** ptr = btree_insert_root(p_root, key);
-  if(ptr != nullptr)
+  BTInsert insert = btree_insert_root(p_root, key);
+  if(insert.m_inserted)
   {
-    *ptr = malloc(sizeof(T));
-    new (*ptr) T(*element);
+    *insert.p_place = malloc(sizeof(T));
+    new (*insert.p_place) T(*element);
     m_size++;
+    return (T*)*insert.p_place;
   }
+  return nullptr;
+}
+
+template<typename T>
+template <typename...Args>
+T* 
+BTree<T>::insert_new(uint32_t key, Args &&... args)
+{
+  BTInsert insert = btree_insert_root(p_root, key);
+  if(insert.m_inserted)
+  {
+    *insert.p_place = malloc(sizeof(T));
+    new (*insert.p_place) T(std::forward<Args>(args)...);
+    m_size++;
+    return (T*)*insert.p_place;
+  }
+  return nullptr;
 }
 
 template<typename T>

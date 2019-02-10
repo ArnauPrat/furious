@@ -121,11 +121,12 @@ p_fcc_context(fcc_context)
 
 bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 {
+
   if (func->getNameAsString() == "furious_script")
   {
+    func->dump();
     if (func->hasBody())
     {
-      func->dump();
       for(auto stmt : func->getBody()->children()) 
       {
         if(isa<Expr>(stmt))

@@ -44,36 +44,93 @@ public:
 
   }
 
-  bool process_decl(Decl* decl) 
+  bool process_decl(const Decl* decl) 
   {
     const SourceManager& sm = p_ast_context->getSourceManager();
-    std::string filename = sm.getFilename(decl->getLocStart());
-    std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
+    if(decl->getSourceRange().isValid())
+    {
+      std::string filename = sm.getFilename(decl->getLocStart());
+      std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
 
-    Dependency dependency;
-    if( file_extension != "cpp" && file_extension != "c")
-    {
-      dependency.m_include_file = filename;
-    } else 
-    {
-      dependency.p_decl = decl;
+      Dependency dependency;
+      if( file_extension != "cpp" && 
+          file_extension != "c" &&
+          file_extension != "inl")
+      {
+        dependency.m_include_file = filename;
+      } else 
+      {
+        dependency.p_decl = decl;
+      }
+      m_dependencies.push_back(dependency);
     }
-    m_dependencies.push_back(dependency);
+    return true;
+  }
+
+
+  virtual
+  bool VisitExpr(Expr* expr)
+  {
+    if(expr->getReferencedDeclOfCallee())
+    {
+      return process_decl(expr->getReferencedDeclOfCallee());
+    }
+    const QualType& qtype = expr->getType();
+    const Decl* vdecl = get_type_decl(qtype);
+    if(vdecl)
+    {
+      return process_decl(vdecl);
+    }
     return true;
   }
 
   virtual
-  bool VisitFunctionDecl(FunctionDecl* decl) 
+  bool VisitDecl(Decl* decl) 
   {
-    return process_decl(decl);
-  }
-
-  virtual
-  bool VisitCXXRecordDecl(CXXRecordDecl* decl) 
-  {
-    return process_decl(decl);
+      return process_decl(decl);
   }
 };
+
+const Decl*
+get_type_decl(const QualType& type)
+{
+
+  printf("PROCESING %s\n", get_type_name(type).c_str());
+  SplitQualType unqual = type.getSplitUnqualifiedType();
+  const Type* t = unqual.Ty;
+
+  if(t->isAnyPointerType()) 
+  {
+    t = t->getPointeeType().getTypePtr();
+    printf("Is Pointer Type %s\n", get_type_name(type).c_str());
+    //return t->getPointeeCXXRecordDecl();
+  } 
+
+  if(t->isCanonicalUnqualified())
+  {
+    printf("Processed Type %s\n", get_type_name(type).c_str());
+    return t->getAsTagDecl();
+  }
+  else
+  {
+    const TypedefType* tdef = t->getAs<TypedefType>();
+    if(tdef)
+    {
+      printf("Non Cannonical but found typedef %s\n", get_type_name(type).c_str());
+      return tdef->getDecl();
+    }
+
+    if(t->isFunctionType())
+    {
+      return t->getAsTagDecl();
+      printf("Non Cannonical Function Type %s\n", get_type_name(type).c_str());
+    }
+  }
+
+  printf("NOT PROCESSED Type %s\n", get_type_name(type).c_str());
+    
+  return nullptr;
+}
 
 std::vector<Dependency> 
 get_dependencies(const Decl* decl)
@@ -87,17 +144,9 @@ get_dependencies(const Decl* decl)
 std::vector<Dependency> 
 get_dependencies(const QualType& type)
 {
-  const Type* ptr = type.getTypePtrOrNull();
-  if(ptr)
+  const Decl* decl = get_type_decl(type);
+  if(decl)
   {
-    const Decl* decl = nullptr;
-    if(type->isAnyPointerType()) 
-    {
-      decl = type->getPointeeCXXRecordDecl();
-    } else 
-    {
-      decl = type->getAsCXXRecordDecl();
-    }
     return get_dependencies(decl);
   }
   return {};//std::vector<Dependency>();

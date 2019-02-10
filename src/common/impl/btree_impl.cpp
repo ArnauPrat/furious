@@ -308,7 +308,7 @@ btree_split_child_full(BTNode* node, uint32_t child_idx, uint32_t key)
 }
 
 
-void** 
+BTInsert 
 btree_insert(BTRoot* root, 
              BTNode* node, 
              uint32_t key) 
@@ -338,7 +338,6 @@ btree_insert(BTRoot* root,
 
     child = btree_split_child_full(node, child_idx, key);
     return btree_insert(root, child, key);
-
   } 
   else 
   { 
@@ -347,13 +346,14 @@ btree_insert(BTRoot* root,
        node->m_leaf.m_leafs[pos] == nullptr)
     {
       btree_shift_insert_leaf(root, node, pos, key);
-      return &node->m_leaf.m_leafs[pos];
+      return BTInsert{true, &node->m_leaf.m_leafs[pos]};
     }
+    return BTInsert{false, &node->m_leaf.m_leafs[pos]};
   }
-  return nullptr;
+  return BTInsert{false, nullptr};
 }
 
-void** 
+BTInsert 
 btree_insert_root(BTRoot* bt_root, 
                   uint32_t key) 
 {
@@ -393,8 +393,7 @@ btree_insert_root(BTRoot* bt_root,
     root->m_internal.m_nchildren++;
   }
   child = btree_split_child_full(root, child_idx, key);
-  void** value =  btree_insert(bt_root,child, key);
-  return value;
+  return btree_insert(bt_root,child, key);
 }
 
 void 

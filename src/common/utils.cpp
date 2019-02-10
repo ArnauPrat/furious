@@ -1,5 +1,6 @@
 
 #include "utils.h"
+#include "string.h"
 
 namespace furious  
 {
@@ -18,7 +19,7 @@ namespace furious
 // 2. It will not produce the same results on little-endian and big-endian          
 //    machines.  
 uint32_t 
-hash(const std::string& str) 
+hash(const char* str) 
 {
   // 'm' and 'r' are mixing constants generated offline.                            
   // They're not really 'magic', they just happen to work well.                     
@@ -26,7 +27,7 @@ hash(const std::string& str)
   constexpr uint32_t seed = 123456;
   const uint32_t m = 0x5bd1e995;                                                
   const int32_t r = 24;                                                                 
-  uint32_t len = str.size();
+  uint32_t len = strlen(str);
                                                                                     
   // Initialize the hash to a 'random' value                                        
                                                                                     
@@ -34,7 +35,7 @@ hash(const std::string& str)
                                                                                     
   // Mix 4 bytes at a time into the hash                                            
                                                                                     
-  const unsigned char * data = (const unsigned char *)str.c_str();                          
+  const unsigned char * data = (const unsigned char*)str;                     
                                                                                     
   while(len >= 4)                                                                   
   {                                                                                 

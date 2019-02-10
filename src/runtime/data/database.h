@@ -38,20 +38,20 @@ public:
    */
   template <typename T>
   TableView<T>
-  create_table(const std::string& tablename);
+  create_table();
 
   /**
    * Drops an existing table
    */
   template <typename T>
   void 
-  remove_table(const std::string& tablename);
+  remove_table();
 
   /**
    * Gets the table from type 
    * */
   template <typename T>
-  TableView<T> find_table(const std::string& tablename);
+  TableView<T> find_table();
 
   /**
    * @brief Finds the table for the specified component or adds it to the
@@ -63,7 +63,7 @@ public:
    */
   template <typename T>
   TableView<T> 
-  find_or_create_table(const std::string& tablename);
+  find_or_create_table();
 
   /**
    * @brief Tests whether a Table exists or not
@@ -74,7 +74,7 @@ public:
    */
   template<typename TComponent>
   bool 
-  exists_table(const std::string& tablename);
+  exists_table();
 
   /**
    * \brief Gets the id of a table 
@@ -85,7 +85,7 @@ public:
    */
   template <typename T>
   uint32_t
-  get_table_id(const std::string& tablename);
+  get_table_id();
 
   /**
    * Clears and removes all the tables from the database

@@ -4,7 +4,10 @@
 
 namespace furious {
 
-struct Component {
+struct Component 
+{
+  FURIOUS_COMPONENT(Component);
+
   uint32_t field1_;
   double field2_;
   Component(uint32_t field1, double field2) : 
@@ -12,7 +15,7 @@ struct Component {
     field2_(field2)
   {}
 
-  static std::string name() { return "Component"; }
+  static const char* name() { return "Component"; }
 };
 
 TEST(DatabaseTest, CreateAndRemoveTable) {

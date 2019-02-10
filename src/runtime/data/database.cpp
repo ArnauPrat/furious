@@ -50,7 +50,7 @@ void Database::clear_element(int32_t id)
 void Database::tag_entity(int32_t entity_id, 
                           const std::string& tag) 
 {
-  uint32_t hash_value = hash(tag);
+  uint32_t hash_value = hash(tag.c_str());
   BitTable** bit_table = m_tags.get(hash_value);
   BitTable* bit_table_ptr = nullptr;
   if(bit_table == nullptr) 
@@ -68,7 +68,7 @@ void Database::tag_entity(int32_t entity_id,
 void Database::untag_entity(int32_t entity_id, 
                           const std::string& tag) 
 {
-  uint32_t hash_value = hash(tag);
+  uint32_t hash_value = hash(tag.c_str());
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
@@ -79,7 +79,7 @@ void Database::untag_entity(int32_t entity_id,
 BitTable* 
 Database::get_tagged_entities(const std::string& tag) 
 {
-  uint32_t hash_value = hash(tag);
+  uint32_t hash_value = hash(tag.c_str());
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {

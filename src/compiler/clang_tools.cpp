@@ -52,17 +52,21 @@ public:
       std::string filename = sm.getFilename(decl->getLocStart());
       std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
 
-      Dependency dependency;
-      if( file_extension != "cpp" && 
-          file_extension != "c" &&
-          file_extension != "inl")
+      if(filename != "")
       {
-        dependency.m_include_file = filename;
-      } else 
-      {
-        dependency.p_decl = decl;
+        Dependency dependency;
+        if( file_extension != "cpp" && 
+            file_extension != "c" &&
+            file_extension != "inl")
+        {
+          dependency.m_include_file = filename;
+        } 
+        else 
+        {
+          dependency.p_decl = decl;
+        }
+        m_dependencies.push_back(dependency);
       }
-      m_dependencies.push_back(dependency);
     }
     return true;
   }
@@ -87,7 +91,8 @@ public:
   virtual
   bool VisitDecl(Decl* decl) 
   {
-      return process_decl(decl);
+    //printf("PROCESSING Declaration\n");
+    return process_decl(decl);
   }
 };
 
@@ -95,20 +100,19 @@ const Decl*
 get_type_decl(const QualType& type)
 {
 
-  printf("PROCESING %s\n", get_type_name(type).c_str());
+  //printf("PROCESING %s\n", get_type_name(type).c_str());
   SplitQualType unqual = type.getSplitUnqualifiedType();
   const Type* t = unqual.Ty;
 
   if(t->isAnyPointerType()) 
   {
     t = t->getPointeeType().getTypePtr();
-    printf("Is Pointer Type %s\n", get_type_name(type).c_str());
-    //return t->getPointeeCXXRecordDecl();
+    //printf("Is Pointer Type %s\n", get_type_name(type).c_str());
   } 
 
   if(t->isCanonicalUnqualified())
   {
-    printf("Processed Type %s\n", get_type_name(type).c_str());
+    //printf("Processed Type %s\n", get_type_name(type).c_str());
     return t->getAsTagDecl();
   }
   else
@@ -116,18 +120,18 @@ get_type_decl(const QualType& type)
     const TypedefType* tdef = t->getAs<TypedefType>();
     if(tdef)
     {
-      printf("Non Cannonical but found typedef %s\n", get_type_name(type).c_str());
+      //printf("Non Cannonical but found typedef %s\n", get_type_name(type).c_str());
       return tdef->getDecl();
     }
 
     if(t->isFunctionType())
     {
+      //printf("Non Cannonical Function Type %s\n", get_type_name(type).c_str());
       return t->getAsTagDecl();
-      printf("Non Cannonical Function Type %s\n", get_type_name(type).c_str());
     }
   }
 
-  printf("NOT PROCESSED Type %s\n", get_type_name(type).c_str());
+  //printf("NOT PROCESSED Type %s\n", get_type_name(type).c_str());
     
   return nullptr;
 }

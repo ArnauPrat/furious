@@ -4,12 +4,28 @@
 
 namespace furious {
 
-struct ComponentA {
+struct ComponentA 
+{
+  FURIOUS_COMPONENT(ComponentA);
+
   int32_t m_field;
+
+  static const char* name()
+  {
+    return "ComponentA";
+  }
 };
 
-struct ComponentB {
+struct ComponentB 
+{
+  FURIOUS_COMPONENT(ComponentB);
+
   int32_t m_field;
+
+  static const char* name()
+  {
+    return "ComponentB";
+  }
 };
 
 

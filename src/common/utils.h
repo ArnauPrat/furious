@@ -3,7 +3,6 @@
 #ifndef _FURIOUS_UTILS_H_
 #define _FURIOUS_UTILS_H_ value
 
-#include <string>
 #include "types.h"
 
 namespace furious 
@@ -17,7 +16,7 @@ namespace furious
  * @return Returns the hash of the given string
  */
 uint32_t
-hash(const std::string& str);
+hash(const char* str);
 
 }
 

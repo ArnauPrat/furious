@@ -8,6 +8,8 @@ namespace furious {
 
 struct Component 
 {
+  FURIOUS_COMPONENT(Component);
+
   int32_t field1_;
   float field2_;
 
@@ -87,7 +89,7 @@ TEST(TableTest,TableWorks)
   ASSERT_EQ(table.size(),0);
 
   //FURIOUS_REMOVE_TABLE(database, Component);
-  database->remove_table<Component>("Component");
+  database->remove_table<Component>();
   delete database;
 }
 }

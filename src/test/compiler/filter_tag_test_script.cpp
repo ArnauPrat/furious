@@ -1,11 +1,12 @@
 
-#include "lang/lang.h"
 #include "filter_tag_test_header.h"
+#include "lang/lang.h"
 
 BEGIN_FURIOUS_SCRIPT
 
 struct UpdatePosition
 {
+
   UpdatePosition(float speed) : m_speed{speed} {}
 
   void run(furious::Context* context,

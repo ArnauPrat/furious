@@ -5,11 +5,13 @@
 
 #include "common/common.h"
 
-struct ComponentA {
+struct ComponentA 
+{
   int32_t m_field;
 };
 
-struct ComponentB {
+struct ComponentB 
+{
   int32_t m_field;
 };
 

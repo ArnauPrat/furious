@@ -17,10 +17,12 @@
 namespace furious 
 {
 
+struct WebServer;
 
-class Database final {
-public:
-  Database() = default;
+
+struct Database 
+{
+  Database();
   Database( const Database& ) = delete;
   Database( Database&& ) = delete;
 
@@ -99,7 +101,7 @@ public:
    * @param id The id of the element to remove
    */
   void
-  clear_element(int32_t id);
+  clear_element(uint32_t id);
 
 
   /**
@@ -117,7 +119,7 @@ public:
    * @param tag The tag to tag the entity with
    */
   void 
-  tag_entity(int32_t entity_id, const std::string& tag);
+  tag_entity(uint32_t entity_id, const std::string& tag);
 
   /**
    * @brief Untags an entity from a given tag
@@ -126,7 +128,7 @@ public:
    * @param tag The tag to remove from the entity
    */
   void 
-  untag_entity(int32_t entity_id, const std::string& tag);
+  untag_entity(uint32_t entity_id, const std::string& tag);
 
   /**
    * @brief Gets a bitset with the entities with a given tag
@@ -148,8 +150,8 @@ public:
    */
   void 
   add_reference( const std::string& type, 
-                      int32_t tail, 
-                      int32_t head);
+                      uint32_t tail, 
+                      uint32_t head);
 
   /**
    * @brief Removes a reference between two entities
@@ -160,15 +162,26 @@ public:
    */
   void 
   remove_reference( const std::string& type, 
-                          int32_t tail, 
-                          int32_t head);
+                          uint32_t tail, 
+                          uint32_t head);
+
+  /**
+   * \brief Starts a webserver to listen to the given address and port
+   */
+  void
+  start_webserver(const std::string& address, 
+                  const std::string& port);
+
+  void
+  stop_webserver();
 
 private:
 
   BTree<BitTable*>            m_tags;
   BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
   BTree<Table*>               m_references;
-  int32_t                     m_next_entity_id;
+  uint32_t                    m_next_entity_id;
+  WebServer*                  p_webserver;
 };
 
 }

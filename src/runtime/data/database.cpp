@@ -1,15 +1,23 @@
 
 
 
+#include "../../common/utils.h"
 #include "bit_table.h"
 #include "database.h"
-#include "../../common/utils.h"
+#include "webserver/webserver.h"
 
 namespace furious 
 {
 
+Database::Database() : 
+m_next_entity_id(0),
+p_webserver(nullptr)
+{
+}
+
 Database::~Database() 
 {
+  stop_webserver();
   clear();
 }
 
@@ -32,12 +40,12 @@ void Database::clear() {
 
 uint32_t Database::get_next_entity_id() 
 {
-  int32_t next_id = m_next_entity_id;
+  uint32_t next_id = m_next_entity_id;
   m_next_entity_id++;
   return next_id;
 }
 
-void Database::clear_element(int32_t id) 
+void Database::clear_element(uint32_t id) 
 {
   BTree<Table*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
@@ -47,7 +55,7 @@ void Database::clear_element(int32_t id)
   }
 }
 
-void Database::tag_entity(int32_t entity_id, 
+void Database::tag_entity(uint32_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
@@ -65,7 +73,7 @@ void Database::tag_entity(int32_t entity_id,
   bit_table_ptr->add(entity_id);
 }
 
-void Database::untag_entity(int32_t entity_id, 
+void Database::untag_entity(uint32_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
@@ -92,8 +100,8 @@ Database::get_tagged_entities(const std::string& tag)
 
 void 
 Database::add_reference( const std::string& type, 
-                         int32_t tail, 
-                         int32_t head) 
+                         uint32_t tail, 
+                         uint32_t head) 
 {
   /*auto it = m_references.find(type);
   if (it == m_references.end()) {
@@ -108,13 +116,33 @@ Database::add_reference( const std::string& type,
 
 void 
 Database::remove_reference( const std::string& type, 
-                            int32_t tail, 
-                            int32_t head) 
+                            uint32_t tail, 
+                            uint32_t head) 
 {
   /*auto it = m_references.find(type);
   if (it != m_references.end()) {
     it->second->remove_element(tail);
   }*/
+}
+
+void
+Database::start_webserver(const std::string& address, 
+                          const std::string& port)
+{
+  p_webserver = new WebServer();
+  p_webserver->start(this,
+                     address,
+                     port);
+}
+
+void
+Database::stop_webserver()
+{
+  if(p_webserver != nullptr)
+  {
+    p_webserver->stop();
+    p_webserver = nullptr;
+  }
 }
 
   

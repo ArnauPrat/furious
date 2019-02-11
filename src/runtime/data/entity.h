@@ -9,8 +9,6 @@ namespace furious
 
 class Database;
 
-using entity_id_t = int32_t;
-
 class Entity final 
 {
 public: 
@@ -56,7 +54,7 @@ public:
 
   Database* get_database();
 
-  entity_id_t m_id;
+  uint32_t m_id;
 
 private:
   Database*   p_database;

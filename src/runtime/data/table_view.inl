@@ -19,9 +19,9 @@ TableView<TComponent>::Block::get_data() const
 
 template<typename TComponent>
 size_t 
-TableView<TComponent>::Block::get_num_elements() const 
+TableView<TComponent>::Block::get_num_components() const 
 {
-  return p_tblock->m_num_elements;
+  return p_tblock->m_num_components;
 }
 
 template<typename TComponent>
@@ -92,33 +92,33 @@ void TableView<TComponent>::clear() {
 }
 
 template<typename TComponent>
-TComponent* TableView<TComponent>::get_element(int32_t id) const  {
-  return static_cast<TComponent*>(p_table->get_element(id));
+TComponent* TableView<TComponent>::get_component(entity_id_t id) const  {
+  return static_cast<TComponent*>(p_table->get_component(id));
 }
 
 template<typename TComponent>
 template<typename...Args>
-void TableView<TComponent>::insert_element(int32_t id, Args&&...args){
-  p_table->insert_element<TComponent>(id, std::forward<Args>(args)...);
+void TableView<TComponent>::insert_component(entity_id_t id, Args&&...args){
+  p_table->insert_component<TComponent>(id, std::forward<Args>(args)...);
 }
 
 template<typename TComponent>
-void  TableView<TComponent>::remove_element(int32_t id){
-  p_table->remove_element(id);
+void  TableView<TComponent>::remove_component(entity_id_t id){
+  p_table->remove_component(id);
 }
 
 template<typename TComponent>
-void  TableView<TComponent>::enable_element(int32_t id){
-  p_table->enable_element(id);
+void  TableView<TComponent>::enable_component(entity_id_t id){
+  p_table->enable_component(id);
 }
 
 template<typename TComponent>
-void TableView<TComponent>::disable_element(int32_t id){
-  p_table->disable_element(id);
+void TableView<TComponent>::disable_component(entity_id_t id){
+  p_table->disable_component(id);
 }
 
 template<typename TComponent>
-bool TableView<TComponent>::is_enabled(int32_t id){
+bool TableView<TComponent>::is_enabled(entity_id_t id){
  return p_table->is_enabled(id);
 }
 

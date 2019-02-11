@@ -22,7 +22,7 @@ struct DecodedId
  * @return 
  */
 static DecodedId 
-decode_id(uint32_t id) 
+decode_id(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
   uint32_t block_id  = id / TABLE_BLOCK_SIZE;
@@ -31,27 +31,27 @@ decode_id(uint32_t id)
 }
 
 /**
- * @brief Tests if a given block contains the given element enabled
+ * @brief Tests if a given block contains the given component enabled
  *
  * @param block The block to check at
- * @param id The id of the element to check for
+ * @param id The id of the component to check for
  *
  * @return true if the block contains the given id enabled. false otherwise
  */
 bool 
-has_element(const TBlock* block, 
-                 uint32_t id) 
+has_component(const TBlock* block, 
+                 entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
-  return get_element(block, id).p_data != nullptr;
+  return get_component(block, id).p_data != nullptr;
 }
 
-TBlock::TBlock(uint32_t start, size_t esize) :
-    p_data(static_cast<int8_t*>(numa_alloc(0, esize*TABLE_BLOCK_SIZE ))),
+TBlock::TBlock(entity_id_t start, size_t esize) :
+    p_data(static_cast<char*>(numa_alloc(0, esize*TABLE_BLOCK_SIZE ))),
     m_start(start),
-    m_num_elements(0),
-    m_num_enabled_elements(0),
+    m_num_components(0),
+    m_num_enabled_components(0),
     m_esize(esize),
     p_exists(new Bitmap(TABLE_BLOCK_SIZE)),
     p_enabled(new Bitmap(TABLE_BLOCK_SIZE))
@@ -66,16 +66,16 @@ TBlock::~TBlock()
 }
 
 /**
- * @brief Gets an element from the given block, if it exists
+ * @brief Gets an component from the given block, if it exists
  *
- * @param block The block to get the element from
+ * @param block The block to get the component from
  * @param id The id to get
  *
- * @return The row of the table containing the retrieved element 
+ * @return The row of the table containing the retrieved component 
  */
 TRow
-get_element(const TBlock* block, 
-                 uint32_t id) 
+get_component(const TBlock* block, 
+                 entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
@@ -94,7 +94,7 @@ p_block(block),
 m_next_position(0) 
 {
   if(p_block != nullptr) {
-    while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+    while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
       m_next_position++;
     }
   }
@@ -109,9 +109,9 @@ TBlockIterator::has_next() const
 TRow 
 TBlockIterator::next() 
 {
-  TRow row = get_element(p_block, p_block->m_start+m_next_position);
+  TRow row = get_component(p_block, p_block->m_start+m_next_position);
   m_next_position++; 
-  while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+  while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
     m_next_position++;
   }
   return row;
@@ -123,7 +123,7 @@ TBlockIterator::reset(TBlock* block)
   p_block = block;
   m_next_position = 0;
   if(p_block != nullptr) {
-    while(m_next_position < TABLE_BLOCK_SIZE && !has_element(p_block, p_block->m_start+m_next_position) ) {
+    while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
       m_next_position++;
     }
   }
@@ -157,7 +157,7 @@ Table::Table(const std::string& name,
 m_name(name),
 m_id(id),
 m_esize(esize),
-m_num_elements(0),
+m_num_components(0),
 m_destructor(destructor) 
 {
 }
@@ -169,7 +169,7 @@ Table::Table(std::string&& name,
 m_name(name),
 m_id(id),
 m_esize(esize),
-m_num_elements(0),
+m_num_components(0),
 m_destructor(destructor)
 {
 }
@@ -180,7 +180,7 @@ Table::~Table() {
 
 size_t
 Table::size() const {
-  return m_num_elements;
+  return m_num_components;
 }
 
 void 
@@ -196,21 +196,21 @@ Table::clear()
     }
   }
   m_blocks.clear();
-  m_num_elements = 0;
+  m_num_components = 0;
 }
 
 
 void* 
-Table::get_element(uint32_t id) const 
+Table::get_component(entity_id_t id) const 
 {
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
-  void* element = m_blocks.get(decoded_id.m_block_id);
-  if(element == nullptr) 
+  void* component = m_blocks.get(decoded_id.m_block_id);
+  if(component == nullptr) 
   {
     return nullptr;
   }
-  TBlock* block = (TBlock*)element;
+  TBlock* block = (TBlock*)component;
   if(block->p_exists->is_set(decoded_id.m_block_offset))
   {
     return &block->p_data[decoded_id.m_block_offset*m_esize];
@@ -219,7 +219,7 @@ Table::get_element(uint32_t id) const
 }
 
 void* 
-Table::alloc_element(uint32_t id) 
+Table::alloc_component(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
@@ -234,9 +234,9 @@ Table::alloc_element(uint32_t id)
 
   if(!block->p_exists->is_set(decoded_id.m_block_offset)) 
   {
-    m_num_elements++;
-    block->m_num_elements++;
-    block->m_num_enabled_elements++;
+    m_num_components++;
+    block->m_num_components++;
+    block->m_num_enabled_components++;
   }
   block->p_exists->set(decoded_id.m_block_offset);
   block->p_enabled->set(decoded_id.m_block_offset);
@@ -244,7 +244,7 @@ Table::alloc_element(uint32_t id)
 }
 
 void  
-Table::remove_element(uint32_t id) 
+Table::remove_component(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
@@ -256,9 +256,9 @@ Table::remove_element(uint32_t id)
 
   if(block->p_exists->is_set(decoded_id.m_block_offset)) 
   {
-    m_num_elements--;
-    block->m_num_elements--;
-    block->m_num_enabled_elements--;
+    m_num_components--;
+    block->m_num_components--;
+    block->m_num_enabled_components--;
   }
   block->p_exists->unset(decoded_id.m_block_offset);
   block->p_enabled->unset(decoded_id.m_block_offset);
@@ -267,7 +267,7 @@ Table::remove_element(uint32_t id)
 }
 
 void 
-Table::enable_element(uint32_t id) 
+Table::enable_component(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
@@ -278,11 +278,11 @@ Table::enable_element(uint32_t id)
     return;
   }
   block->p_enabled->set(decoded_id.m_block_offset);
-  block->m_num_enabled_elements++;
+  block->m_num_enabled_components++;
 }
 
 void 
-Table::disable_element(uint32_t id) 
+Table::disable_component(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
@@ -293,11 +293,11 @@ Table::disable_element(uint32_t id)
     return;
   }
   block->p_enabled->unset(decoded_id.m_block_offset);
-  block->m_num_enabled_elements--;
+  block->m_num_enabled_components--;
 }
 
 bool 
-Table::is_enabled(uint32_t id) 
+Table::is_enabled(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
 
@@ -323,7 +323,7 @@ Table::name() const
 }
 
 TBlock* 
-Table::get_block(uint32_t block_id) 
+Table::get_block(entity_id_t block_id) 
 {
   assert(block_id != FURIOUS_INVALID_ID);
   TBlock* block = m_blocks.get(block_id);

@@ -24,14 +24,14 @@ TEST(TableTest,TableWorks)
   FURIOUS_CREATE_TABLE(database, Component);
   //database.add_table<Component>();
   TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
-  int32_t num_elements = TABLE_BLOCK_SIZE*2048;
+  int32_t num_components = TABLE_BLOCK_SIZE*2048;
 
-  for(int32_t i = 0; i < num_elements; ++i) 
+  for(int32_t i = 0; i < num_components; ++i) 
   {
-    table.insert_element(i,i,static_cast<float>(i));
+    table.insert_component(i,i,static_cast<float>(i));
   }
 
-  ASSERT_EQ(table.size(), num_elements);
+  ASSERT_EQ(table.size(), num_components);
 
   TableView<Component>::BlockIterator iterator = table.iterator();
   int32_t counter = 0;
@@ -48,18 +48,18 @@ TEST(TableTest,TableWorks)
       counter++;
     }
   }
-  ASSERT_EQ(counter, num_elements);
-  ASSERT_EQ(table.size(), num_elements);
+  ASSERT_EQ(counter, num_components);
+  ASSERT_EQ(table.size(), num_components);
 
-  table.disable_element(num_elements-1);
-  ASSERT_FALSE(table.is_enabled(num_elements-1));
-  table.enable_element(num_elements-1);
-  ASSERT_TRUE(table.is_enabled(num_elements-1));
+  table.disable_component(num_components-1);
+  ASSERT_FALSE(table.is_enabled(num_components-1));
+  table.enable_component(num_components-1);
+  ASSERT_TRUE(table.is_enabled(num_components-1));
 
-  for(int32_t i = 0; i < num_elements; i+=2) {
-    table.remove_element(i);
+  for(int32_t i = 0; i < num_components; i+=2) {
+    table.remove_component(i);
   }
-  ASSERT_EQ(table.size(), num_elements/2);
+  ASSERT_EQ(table.size(), num_components/2);
 
   TableView<Component>::BlockIterator iterator2 = table.iterator();
   int32_t num_real = 0;
@@ -83,7 +83,7 @@ TEST(TableTest,TableWorks)
         counter++;
     }
   }
-  ASSERT_EQ(num_real, num_elements/2);
+  ASSERT_EQ(num_real, num_components/2);
 
   table.clear();
   ASSERT_EQ(table.size(),0);

@@ -101,7 +101,7 @@ struct Database
    * @param id The id of the element to remove
    */
   void
-  clear_element(uint32_t id);
+  clear_entity(entity_id_t id);
 
 
   /**
@@ -109,7 +109,7 @@ struct Database
    *
    * @return Returns the next free entity id
    */
-  uint32_t 
+  entity_id_t 
   get_next_entity_id();
 
   /**
@@ -119,7 +119,7 @@ struct Database
    * @param tag The tag to tag the entity with
    */
   void 
-  tag_entity(uint32_t entity_id, const std::string& tag);
+  tag_entity(entity_id_t entity_id, const std::string& tag);
 
   /**
    * @brief Untags an entity from a given tag
@@ -128,7 +128,7 @@ struct Database
    * @param tag The tag to remove from the entity
    */
   void 
-  untag_entity(uint32_t entity_id, const std::string& tag);
+  untag_entity(entity_id_t entity_id, const std::string& tag);
 
   /**
    * @brief Gets a bitset with the entities with a given tag
@@ -150,8 +150,8 @@ struct Database
    */
   void 
   add_reference( const std::string& type, 
-                      uint32_t tail, 
-                      uint32_t head);
+                      entity_id_t tail, 
+                      entity_id_t head);
 
   /**
    * @brief Removes a reference between two entities
@@ -162,8 +162,8 @@ struct Database
    */
   void 
   remove_reference( const std::string& type, 
-                          uint32_t tail, 
-                          uint32_t head);
+                          entity_id_t tail, 
+                          entity_id_t head);
 
   /**
    * \brief Starts a webserver to listen to the given address and port
@@ -180,7 +180,7 @@ private:
   BTree<BitTable*>            m_tags;
   BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
   BTree<Table*>               m_references;
-  uint32_t                    m_next_entity_id;
+  entity_id_t                 m_next_entity_id;
   WebServer*                  p_webserver;
 };
 

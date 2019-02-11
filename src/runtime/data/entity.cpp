@@ -21,7 +21,7 @@ Entity::create_entity(Database* database)
 void 
 Entity::remove_entity(Entity entity) 
 {
-  entity.get_database()->clear_element(entity.m_id);
+  entity.get_database()->clear_entity(entity.m_id);
   entity.m_id = FURIOUS_INVALID_ID;
 }
 

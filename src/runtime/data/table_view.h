@@ -24,12 +24,12 @@ public:
       get_data() const;
 
       size_t      
-      get_num_elements() const;
+      get_num_components() const;
 
       size_t      
       get_size() const;
 
-      int32_t     
+      entity_id_t     
       get_start() const;
 
       const Bitmap* 
@@ -71,14 +71,14 @@ public:
   void clear();
 
   /**
-   * @brief Gets the element with the given id
+   * @brief Gets the component with the given id
    *
-   * @param id The id of the element to get
+   * @param id The id of the component to get
    *
-   * @return Returns a pointer to the element. Returns nullptr if the element
+   * @return Returns a pointer to the component. Returns nullptr if the component
    * does not exist in the table
    */
-  TComponent* get_element(int32_t id) const ;
+  TComponent* get_component(entity_id_t id) const ;
 
   /**
    * @brief Cre 
@@ -89,37 +89,37 @@ public:
    * @param ...args
    */
   template<typename...Args>
-  void  insert_element(int32_t id, Args&&...args);
+  void  insert_component(entity_id_t id, Args&&...args);
 
   /**
-   * @brief Drops the element with the given id
+   * @brief Drops the component with the given id
    *
    * @param id
    */
-  void remove_element(int32_t id);
+  void remove_component(entity_id_t id);
 
   /**
-   * @brief Enables an element of the table, only it it exists 
+   * @brief Enables an component of the table, only it it exists 
    *
-   * @param id The id of the element to enable 
+   * @param id The id of the component to enable 
    */
-  void enable_element(int32_t id);
+  void enable_component(entity_id_t id);
 
   /**
-   * @brief Disables an element of the table
+   * @brief Disables an component of the table
    *
-   * @param id The if of the element to disable 
+   * @param id The if of the component to disable 
    */
-  void disable_element(int32_t id);
+  void disable_component(entity_id_t id);
 
   /**
-   * @brief Tells if an element is enabled or not
+   * @brief Tells if an component is enabled or not
    *
-   * @param id The element to test if it is enabled or not
+   * @param id The component to test if it is enabled or not
    *
-   * @return True if the element is enabled. False if it is not 
+   * @return True if the component is enabled. False if it is not 
    */
-  bool is_enabled(int32_t id);
+  bool is_enabled(entity_id_t id);
 
 
   /**

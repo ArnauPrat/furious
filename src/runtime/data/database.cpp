@@ -38,24 +38,26 @@ void Database::clear() {
   m_tags.clear();
 }
 
-uint32_t Database::get_next_entity_id() 
+entity_id_t 
+Database::get_next_entity_id() 
 {
-  uint32_t next_id = m_next_entity_id;
+  entity_id_t next_id = m_next_entity_id;
   m_next_entity_id++;
   return next_id;
 }
 
-void Database::clear_element(uint32_t id) 
+void 
+Database::clear_entity(entity_id_t id) 
 {
   BTree<Table*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
   {
     Table* table = *it.next();
-    table->remove_element(id);
+    table->remove_component(id);
   }
 }
 
-void Database::tag_entity(uint32_t entity_id, 
+void Database::tag_entity(entity_id_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
@@ -73,7 +75,7 @@ void Database::tag_entity(uint32_t entity_id,
   bit_table_ptr->add(entity_id);
 }
 
-void Database::untag_entity(uint32_t entity_id, 
+void Database::untag_entity(entity_id_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
@@ -100,8 +102,8 @@ Database::get_tagged_entities(const std::string& tag)
 
 void 
 Database::add_reference( const std::string& type, 
-                         uint32_t tail, 
-                         uint32_t head) 
+                         entity_id_t tail, 
+                         entity_id_t head) 
 {
   /*auto it = m_references.find(type);
   if (it == m_references.end()) {
@@ -110,18 +112,18 @@ Database::add_reference( const std::string& type,
     it = m_references.insert( std::make_pair(type, table)).first;
   }
 
-  it->second->insert_element<int32_t>(tail, head);
+  it->second->insert_component<int32_t>(tail, head);
   */
 }
 
 void 
 Database::remove_reference( const std::string& type, 
-                            uint32_t tail, 
-                            uint32_t head) 
+                            entity_id_t tail, 
+                            entity_id_t head) 
 {
   /*auto it = m_references.find(type);
   if (it != m_references.end()) {
-    it->second->remove_element(tail);
+    it->second->remove_component(tail);
   }*/
 }
 

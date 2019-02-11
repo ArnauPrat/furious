@@ -10,11 +10,11 @@
 namespace furious
 {
 
-constexpr uint32_t FURIOUS_INVALID_ID = 0xffffffff;
+constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 
 /**
- * @brief The number of elements per block. The current number, 16 is not
- * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte elements
+ * @brief The number of components per block. The current number, 16 is not
+ * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
  * can be stored in a line.
  */
 constexpr uint32_t TABLE_BLOCK_SIZE = 512;
@@ -24,15 +24,15 @@ constexpr uint32_t TABLE_BLOCK_SIZE = 512;
  */
 struct TBlock
 {
-  TBlock(uint32_t start, size_t esize);
+  TBlock(entity_id_t start, size_t esize);
   ~TBlock();
   
-  int8_t *p_data;                         // The pointer to the block data
-  uint32_t m_start;                       // The id of the first element in the block
-  size_t m_num_elements;                  // The number of elements in the block
-  size_t m_num_enabled_elements;          // The number of elements in the block
-  uint32_t m_esize;                       // The size of the elements contained in the block
-  Bitmap* p_exists;                       // A bitmap used to test whether an element is in the block or not
+  char *p_data;                         // The pointer to the block data
+  entity_id_t m_start;                       // The id of the first component in the block
+  size_t m_num_components;                  // The number of components in the block
+  size_t m_num_enabled_components;          // The number of components in the block
+  uint32_t m_esize;                       // The size of the components contained in the block
+  Bitmap* p_exists;                       // A bitmap used to test whether an component is in the block or not
   Bitmap* p_enabled;                      // A bitmap used to mark components that are enabled/disabled
 };
 
@@ -42,13 +42,13 @@ struct TBlock
  */
 struct TRow
 {
-  const uint32_t m_id;
-  int8_t *const p_data;
+  const entity_id_t m_id;
+  char *const p_data;
   const bool m_enabled;
 };
 
 /**
- * @brief Iterator to iterate over the elements of a table block. 
+ * @brief Iterator to iterate over the components of a table block. 
  */
 struct TBlockIterator final
 {
@@ -67,24 +67,24 @@ private:
 };
 
 /**
- * @brief Tests if a block contains element with the given id
+ * @brief Tests if a block contains component with the given id
  *
- * @param block The block to check the element
- * @param id The id of the element to check
+ * @param block The block to check the component
+ * @param id The id of the component to check
  *
- * @return Returns true if the block contains such element
+ * @return Returns true if the block contains such component
  */
-bool has_element(const TBlock *block, uint32_t id);
+bool has_component(const TBlock *block, entity_id_t id);
 
 /**
- * @brief Gets the element of a block
+ * @brief Gets the component of a block
  *
- * @param block The block to get the element from
+ * @param block The block to get the component from
  *
- * @return Returns a pointer to the element. Returns nullptr if the element does
+ * @return Returns a pointer to the component. Returns nullptr if the component does
  * not exist in the block
  */
-TRow get_element(const TBlock *block, uint32_t id);
+TRow get_component(const TBlock *block, entity_id_t id);
 
 struct Table
 {
@@ -131,15 +131,15 @@ struct Table
   clear();
 
   /**
-   * @brief Gets the element with the given id
+   * @brief Gets the component with the given id
    *
-   * @param id The id of the element to get
+   * @param id The id of the component to get
    *
-   * @return Returns a pointer to the element. Returns nullptr if the element
+   * @return Returns a pointer to the component. Returns nullptr if the component
    * does not exist in the table
    */
   void* 
-  get_element(uint32_t id) const;
+  get_component(entity_id_t id) const;
 
   /**
    * @brief Cre 
@@ -151,41 +151,41 @@ struct Table
    */
   template <typename TComponent, typename... Args>
   void 
-  insert_element(uint32_t id, Args &&... args);
+  insert_component(entity_id_t id, Args &&... args);
 
   /**
-   * @brief Drops the element with the given id
+   * @brief Drops the component with the given id
    *
    * @param id
    */
   void 
-  remove_element(uint32_t id);
+  remove_component(entity_id_t id);
 
   /**
-   * @brief Enables an element of the table, only it it exists 
+   * @brief Enables an component of the table, only it it exists 
    *
-   * @param id The id of the element to enable 
+   * @param id The id of the component to enable 
    */
   void 
-  enable_element(uint32_t id);
+  enable_component(entity_id_t id);
 
   /**
-   * @brief Disables an element of the table
+   * @brief Disables an component of the table
    *
-   * @param id The if of the element to disable 
+   * @param id The if of the component to disable 
    */
   void 
-  disable_element(uint32_t id);
+  disable_component(entity_id_t id);
 
   /**
-   * @brief Tells if an element is enabled or not
+   * @brief Tells if an component is enabled or not
    *
-   * @param id The element to test if it is enabled or not
+   * @param id The component to test if it is enabled or not
    *
-   * @return True if the element is enabled. False if it is not 
+   * @return True if the component is enabled. False if it is not 
    */
   bool 
-  is_enabled(uint32_t id);
+  is_enabled(entity_id_t id);
 
   /**
    * @brief Gets an iterator of the table
@@ -218,9 +218,9 @@ struct Table
 
 private:
   /**
-   * @brief This is a helper function that virtually allocates the space of an element and
-   * returns a pointer to the reserved position. The element is marked as if it
-   * was inserted. This method is aimed to be called from insert_element, which
+   * @brief This is a helper function that virtually allocates the space of an component and
+   * returns a pointer to the reserved position. The component is marked as if it
+   * was inserted. This method is aimed to be called from insert_component, which
    * is a templated function. 
    *
    * @param id
@@ -228,12 +228,12 @@ private:
    * @return 
    */
   void* 
-  alloc_element(uint32_t id);
+  alloc_component(entity_id_t id);
 
   /**
-   * @brief This is a helper function that virtually deallocates the space of an element and
-   * returns a pointer to the position where it was deallocated. The element is marked as if it
-   * was removed. This method is aimed to be called from remove_element, which
+   * @brief This is a helper function that virtually deallocates the space of an component and
+   * returns a pointer to the position where it was deallocated. The component is marked as if it
+   * was removed. This method is aimed to be called from remove_component, which
    * is a templated function. 
    *
    * @param id
@@ -241,13 +241,13 @@ private:
    * @return 
    */
   void* 
-  dealloc_element(uint32_t id);
+  dealloc_component(entity_id_t id);
 
   std::string m_name; // The name of the table
   uint64_t m_id;
-  size_t m_esize; // The size of each element in bytes
+  size_t m_esize; // The size of each component in bytes
   mutable BTree<TBlock> m_blocks;
-  size_t m_num_elements;
+  size_t m_num_components;
   void (*m_destructor)(void *ptr);
 };
 

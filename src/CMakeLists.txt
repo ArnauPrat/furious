@@ -41,6 +41,8 @@ set (RUNTIME_SRC
   runtime/data/table.inl
   runtime/data/table_view.h
   runtime/data/table_view.inl
+  runtime/data/webserver/webserver.h
+  runtime/data/webserver/webserver.cpp
   runtime/memory/memory.h
   runtime/memory/numa_alloc.cpp
   runtime/memory/numa_alloc.h

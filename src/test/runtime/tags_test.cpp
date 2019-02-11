@@ -8,7 +8,7 @@ struct ComponentA
 {
   FURIOUS_COMPONENT(ComponentA);
 
-  int32_t m_field;
+  uint32_t m_field;
 
   static const char* name()
   {
@@ -20,7 +20,7 @@ struct ComponentB
 {
   FURIOUS_COMPONENT(ComponentB);
 
-  int32_t m_field;
+  uint32_t m_field;
 
   static const char* name()
   {
@@ -28,21 +28,6 @@ struct ComponentB
   }
 };
 
-
-class TestSystem {
-public:
-  TestSystem(uint32_t val) : m_val{val} {}
-  virtual ~TestSystem() = default;
-
-  void run(Context* context, 
-           int32_t id, 
-           ComponentA* componentA, 
-           const ComponentB* componentB ) {
-    componentA->m_field = componentB->m_field*m_val;
-  }
-
-  uint32_t m_val;
-};
 
 TEST(TagTests,TagWorks) 
 {

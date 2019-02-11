@@ -10,10 +10,11 @@
 TEST(FilterTagTest, FilterTagTest ) 
 {
   furious::Database* database = new furious::Database();
+  database->start_webserver("localhost", "8080");
   furious::__furious_init(database);
 
   std::vector<furious::Entity> entities;
-  for(int i = 0; i < 1000; ++i)
+  for(uint32_t i = 0; i < 1000; ++i)
   {
     furious::Entity entity = furious::create_entity(database);
     FURIOUS_ADD_COMPONENT((&entity), Position, 0.0f, 0.0f, 0.0f);

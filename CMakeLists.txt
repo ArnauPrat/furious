@@ -12,6 +12,7 @@ endif()
 
 #find_package(Clang REQUIRED)
 
+find_package(onion)
 set(CLANG_INCLUDES_DIR "/usr/lib/clang/7.0.1/include")
 
 if(NOT CLANG_INCLUDES_DIR)

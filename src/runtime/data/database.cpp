@@ -21,8 +21,9 @@ Database::~Database()
   clear();
 }
 
-void Database::clear() {
-
+void Database::clear() 
+{
+  lock();
   BTree<Table*>::Iterator it_tables = m_tables.iterator();
   while (it_tables.has_next()) 
   {
@@ -36,31 +37,37 @@ void Database::clear() {
     delete *it_tags.next();
   }
   m_tags.clear();
+  release();
 }
 
 entity_id_t 
 Database::get_next_entity_id() 
 {
+  lock();
   entity_id_t next_id = m_next_entity_id;
   m_next_entity_id++;
+  release();
   return next_id;
 }
 
 void 
 Database::clear_entity(entity_id_t id) 
 {
+  lock();
   BTree<Table*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
   {
     Table* table = *it.next();
     table->remove_component(id);
   }
+  release();
 }
 
 void Database::tag_entity(entity_id_t entity_id, 
                           const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
+  lock();
   BitTable** bit_table = m_tags.get(hash_value);
   BitTable* bit_table_ptr = nullptr;
   if(bit_table == nullptr) 
@@ -72,31 +79,37 @@ void Database::tag_entity(entity_id_t entity_id,
   {
     bit_table_ptr = *bit_table;
   }
+  release();
   bit_table_ptr->add(entity_id);
 }
 
 void Database::untag_entity(entity_id_t entity_id, 
                           const std::string& tag) 
 {
+  lock();
   uint32_t hash_value = hash(tag.c_str());
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
     (*bit_table)->remove(entity_id);
   }
+  release();
 }
 
 BitTable* 
 Database::get_tagged_entities(const std::string& tag) 
 {
   uint32_t hash_value = hash(tag.c_str());
+  lock();
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
+    release();
     return *bit_table;
   }
   BitTable* bit_table_ptr = new BitTable();
   m_tags.insert_copy(hash_value, &bit_table_ptr);
+  release();
   return bit_table_ptr;
 }
 
@@ -145,6 +158,44 @@ Database::stop_webserver()
     p_webserver->stop();
     p_webserver = nullptr;
   }
+}
+
+size_t
+Database::num_tables() const
+{
+  lock();
+  size_t size = m_tables.size();
+  release();
+  return size;
+}
+
+size_t 
+Database::meta_data(TableInfo* data, uint32_t capacity)
+{
+  lock();
+  BTree<Table*>::Iterator it = m_tables.iterator();
+  uint32_t count = 0; 
+  while(it.has_next() && count < capacity)
+  {
+    Table* table = *it.next();
+    strncpy(&data[count].m_name[0], table->name().c_str(), _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
+    data[count].m_size = table->size();
+    count++;
+  }
+  release();
+  return count;
+}
+
+void
+Database::lock() const
+{
+  m_mutex.lock();
+}
+
+void
+Database::release() const
+{
+  m_mutex.unlock();
 }
 
   

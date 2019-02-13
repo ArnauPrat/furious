@@ -46,6 +46,7 @@ BTree<T>::clear()
   btree_destroy_root(p_root);
   p_root = btree_create_root();
   m_size = 0;
+  
 }
 
 template<typename T>
@@ -96,19 +97,23 @@ template<typename T>
 T*
 BTree<T>::get(uint32_t key) const
 {
-  return static_cast<T*>(btree_get_root(p_root, key));
+  T* ret =  static_cast<T*>(btree_get_root(p_root, key));
+  return ret;
 }
 
 template<typename T>
 bool 
 BTree<T>::exists(uint32_t key){
-  return get(key) != nullptr;
+  bool res =  get(key) != nullptr;
+  return res;
 }
 
 template<typename T>
 size_t 
-BTree<T>::size() {
-  return m_size;
+BTree<T>::size() const 
+{
+  size_t ret =  m_size;
+  return ret;
 }
 
 template<typename T>
@@ -133,7 +138,8 @@ BTree<T>::Iterator::has_next() const
 
 template<typename T>
 T* 
-BTree<T>::Iterator::next() {
+BTree<T>::Iterator::next() 
+{
   return static_cast<T*>(m_iterator.next());
 }
 

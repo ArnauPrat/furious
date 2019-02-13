@@ -6,6 +6,7 @@
 #include "../../common/bitmap.h"
 
 #include <string>
+#include <mutex>
 
 namespace furious
 {
@@ -13,14 +14,14 @@ namespace furious
 constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 
 /**
- * @brief The number of components per block. The current number, 16 is not
+ * \brief The number of components per block. The current number, 16 is not
  * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
  * can be stored in a line.
  */
 constexpr uint32_t TABLE_BLOCK_SIZE = 512;
 
 /**
- * @brief Represents a block of data in a table
+ * \brief Represents a block of data in a table
  */
 struct TBlock
 {
@@ -37,7 +38,7 @@ struct TBlock
 };
 
 /**
- * @brief A row of a table block. This is used to conveniently access the
+ * \brief A row of a table block. This is used to conveniently access the
  * information of a row, eventhough data is not stored in rows in the block  
  */
 struct TRow
@@ -48,7 +49,7 @@ struct TRow
 };
 
 /**
- * @brief Iterator to iterate over the components of a table block. 
+ * \brief Iterator to iterate over the components of a table block. 
  */
 struct TBlockIterator final
 {
@@ -67,24 +68,26 @@ private:
 };
 
 /**
- * @brief Tests if a block contains component with the given id
+ * \brief Tests if a block contains component with the given id
  *
- * @param block The block to check the component
- * @param id The id of the component to check
+ * \param block The block to check the component
+ * \param id The id of the component to check
  *
- * @return Returns true if the block contains such component
+ * \return Returns true if the block contains such component
  */
-bool has_component(const TBlock *block, entity_id_t id);
+bool 
+has_component(const TBlock *block, entity_id_t id);
 
 /**
- * @brief Gets the component of a block
+ * \brief Gets the component of a block
  *
- * @param block The block to get the component from
+ * \param block The block to get the component from
  *
- * @return Returns a pointer to the component. Returns nullptr if the component does
+ * \return Returns a pointer to the component. Returns nullptr if the component does
  * not exist in the block
  */
-TRow get_component(const TBlock *block, entity_id_t id);
+TRow 
+get_component(const TBlock *block, entity_id_t id);
 
 struct Table
 {
@@ -94,16 +97,16 @@ struct Table
     ~Iterator() = default;
 
     /**
-     * @brief Checks whether there is a another block in the table.
+     * \brief Checks whether there is a another block in the table.
      *
-     * @return Returns true if there is another block in the table.
+     * \return Returns true if there is another block in the table.
      */
     bool has_next() const;
 
     /**
-     * @brief Gets the next block in the table
+     * \brief Gets the next block in the table
      *
-     * @return Returns the next block in the table. Returns nullptr if it does
+     * \return Returns the next block in the table. Returns nullptr if it does
      * not exist
      */
     TBlock *next();
@@ -125,120 +128,137 @@ struct Table
   ~Table();
 
   /**
-   * @brief Clears the table
+   * \brief Clears the table
    */
   void 
   clear();
 
   /**
-   * @brief Gets the component with the given id
+   * \brief Gets the component with the given id
    *
-   * @param id The id of the component to get
+   * \param id The id of the component to get
    *
-   * @return Returns a pointer to the component. Returns nullptr if the component
+   * \return Returns a pointer to the component. Returns nullptr if the component
    * does not exist in the table
    */
   void* 
   get_component(entity_id_t id) const;
 
   /**
-   * @brief Cre 
+   * \brief Cre 
    *
-   * @tparam TComponent
-   * @tparam typename...Args
-   * @param id
-   * @param ...args
+   * \tparam TComponent
+   * \tparam typename...Args
+   * \param id
+   * \param ...args
    */
   template <typename TComponent, typename... Args>
   void 
   insert_component(entity_id_t id, Args &&... args);
 
   /**
-   * @brief Drops the component with the given id
+   * \brief Drops the component with the given id
    *
-   * @param id
+   * \param id
    */
   void 
   remove_component(entity_id_t id);
 
   /**
-   * @brief Enables an component of the table, only it it exists 
+   * \brief Enables an component of the table, only it it exists 
    *
-   * @param id The id of the component to enable 
+   * \param id The id of the component to enable 
    */
   void 
   enable_component(entity_id_t id);
 
   /**
-   * @brief Disables an component of the table
+   * \brief Disables an component of the table
    *
-   * @param id The if of the component to disable 
+   * \param id The if of the component to disable 
    */
   void 
   disable_component(entity_id_t id);
 
   /**
-   * @brief Tells if an component is enabled or not
+   * \brief Tells if an component is enabled or not
    *
-   * @param id The component to test if it is enabled or not
+   * \param id The component to test if it is enabled or not
    *
-   * @return True if the component is enabled. False if it is not 
+   * \return True if the component is enabled. False if it is not 
    */
   bool 
   is_enabled(entity_id_t id);
 
   /**
-   * @brief Gets an iterator of the table
+   * \brief Gets an iterator of the table
    *
-   * @return Returns an iterator of the table.
+   * \return Returns an iterator of the table.
    */
   Iterator 
   iterator();
 
   /**
-   * @brief Gets the name of the table
+   * \brief Gets the name of the table
    *
-   * @return Returns the name of the able
+   * \return Returns the name of the able
    */
   std::string 
   name() const;
 
+  /**
+   * \brief Gets the size of the table
+   *
+   * \return Returns the size of the table
+   */
   size_t 
   size() const;
 
   /**
-   * @brief Gets the given block
+   * \brief Gets the given block
    *
-   * @param block_id The id of the block to retrieve
+   * \param block_id The id of the block to retrieve
    *
-   * @return A pointer to the block
+   * \return A pointer to the block
    */
   TBlock* 
   get_block(uint32_t block_id);
 
+  /**
+   * \brief Locks the table
+   */
+  void
+  lock() const;
+
+  /**
+   * \brief Releases the table
+   */
+  void
+  release() const;
+
 private:
   /**
-   * @brief This is a helper function that virtually allocates the space of an component and
+   * \brief This is a helper function that virtually allocates the space of an component and
    * returns a pointer to the reserved position. The component is marked as if it
    * was inserted. This method is aimed to be called from insert_component, which
    * is a templated function. 
    *
-   * @param id
+   * \param id
    *
-   * @return 
+   * \return 
    */
   void* 
   alloc_component(entity_id_t id);
 
   /**
-   * @brief This is a helper function that virtually deallocates the space of an component and
+   * \brief This is a helper function that virtually deallocates the space of an component and
    * returns a pointer to the position where it was deallocated. The component is marked as if it
    * was removed. This method is aimed to be called from remove_component, which
    * is a templated function. 
    *
-   * @param id
+   * \param id
    *
-   * @return 
+   * \return 
    */
   void* 
   dealloc_component(entity_id_t id);
@@ -249,6 +269,7 @@ private:
   mutable BTree<TBlock> m_blocks;
   size_t m_num_components;
   void (*m_destructor)(void *ptr);
+  mutable std::mutex  m_mutex;
 };
 
 } // namespace furious

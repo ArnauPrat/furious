@@ -8,6 +8,8 @@
 
 #include <stdlib.h>
 
+#include <mutex>
+
 namespace furious 
 {
 
@@ -97,7 +99,7 @@ struct BTree
    * \return Returns the size of the btree
    */
   size_t
-  size();
+  size() const;
 
   /**
    * \brief Gets an iterator to the btree
@@ -115,9 +117,9 @@ struct BTree
 private:
    BTRoot*    p_root;
    size_t     m_size;
+   std::mutex m_mutex;
 };
 
-  
 } /* furious */ 
 
 #include "btree.inl"

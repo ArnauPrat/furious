@@ -12,12 +12,20 @@
 
 #include <assert.h>
 #include <string>
+#include <mutex>
 
 
 namespace furious 
 {
 
 struct WebServer;
+
+#define _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH 128
+struct TableInfo
+{
+  char        m_name[_FURIOUS_TABLE_INFO_MAX_NAME_LENGTH];
+  uint32_t    m_size;
+};
 
 
 struct Database 
@@ -167,13 +175,35 @@ struct Database
 
   /**
    * \brief Starts a webserver to listen to the given address and port
+   *
    */
   void
   start_webserver(const std::string& address, 
                   const std::string& port);
 
+  /**
+   * \brief Stops the web server
+   */
   void
   stop_webserver();
+
+  /**
+   * \brief locks the database for insertions and removal of tables
+   */
+  void
+  lock() const;
+
+  /**
+   * \brief unlocks the database for insertions and removal of tables
+   */
+  void
+  release() const;
+
+  size_t 
+  meta_data(TableInfo* data, uint32_t capacity);
+
+  size_t
+  num_tables() const;
 
 private:
 
@@ -182,6 +212,7 @@ private:
   BTree<Table*>               m_references;
   entity_id_t                 m_next_entity_id;
   WebServer*                  p_webserver;
+  mutable std::mutex                  m_mutex;
 };
 
 }

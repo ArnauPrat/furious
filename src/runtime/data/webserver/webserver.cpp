@@ -1,18 +1,21 @@
 
 
 
+
+#include "../database.h"
 #include "webserver.h"
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
+
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <string.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
+#include <unistd.h>
 
 #include <thread>
 
@@ -22,8 +25,54 @@ namespace furious
 
 bool keep_running = true;
 
+bool
+generate_json_from_infos(WebServer* webserver, uint32_t num_infos)
+{
+
+
+  return true;
+}
+
 void
-server_thread_handler(Database* database,
+generate_json(WebServer* webserver)
+{
+  uint32_t num_tables = webserver->p_database->num_tables();
+  if(num_tables > webserver->m_table_infos_capacity)
+  {
+    webserver->m_table_infos_capacity += num_tables;
+    if(webserver->m_table_infos != nullptr)
+    {
+      delete [] webserver->m_table_infos;
+    }
+    webserver->m_table_infos = new TableInfo[webserver->m_table_infos_capacity];
+  }
+  uint32_t num_infos = webserver->p_database->meta_data(webserver->m_table_infos, 
+                                                        webserver->m_table_infos_capacity);
+  // generate json here
+  char headers[] = "HTTP/1.1 200 OK\r\nServer: CPi\r\nContent-type: application/json\r\n\r\n";
+  
+  webserver->m_builder.clear();
+  webserver->m_builder.append("%s { \"tables\" : [", 
+                               headers);
+
+  uint32_t i = 0;
+  for(; i < num_infos; ++i)
+  {
+
+    webserver->m_builder.append("{\"name\" : \"%s\",\"size\" : \"%u\"},",
+                               webserver->m_table_infos[i].m_name, 
+                               webserver->m_table_infos[i].m_size);
+  }
+
+  if (i > 0)
+  {
+    webserver->m_builder.m_pos-=1; // removing the trailing comma
+  }
+  webserver->m_builder.append("]}");
+}
+
+void
+server_thread_handler(WebServer* webserver, 
                       const std::string& address,
                       const std::string& port)
 {
@@ -50,12 +99,6 @@ server_thread_handler(Database* database,
 
   listen(socket_fd, 10);
 
-  char headers[] = "HTTP/1.1 200 OK\r\nServer: CPi\r\nContent-type: application/json\r\n\r\n";
-
-  char html[] = "{\"name\" : \"Arnau\"}\r\n";
-  char data[2048] = {0};
-  snprintf(data, sizeof data, "%s %s", headers, html);
-
 
   while(keep_running)
   {
@@ -67,17 +110,35 @@ server_thread_handler(Database* database,
     if(client_fd > 0)
     {
       char buffer[2048];
+      memset(buffer,0,sizeof(char)*2048);
       read(client_fd, buffer, 2048);
       printf("%s", buffer);
       fflush(stdout);
-      write(client_fd, data, strlen(data));
+      generate_json(webserver);
+      write(client_fd, webserver->m_builder.p_buffer, strlen(webserver->m_builder.p_buffer));
       shutdown (client_fd, SHUT_RDWR);      
       close(client_fd);
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   close(socket_fd);
   freeaddrinfo(server);
+}
+
+WebServer::WebServer() : 
+p_database(nullptr),
+p_thread(nullptr),
+m_table_infos_capacity(0),
+m_table_infos(nullptr)
+{
+}
+
+WebServer::~WebServer()
+{
+  if(p_thread != nullptr)
+  {
+    stop(); 
+  }
 }
 
 void
@@ -87,7 +148,7 @@ WebServer::start(Database* database,
 {
   p_database = database;
   p_thread = new std::thread(server_thread_handler, 
-                             p_database,
+                             this,
                              address,
                              port);
 }
@@ -98,6 +159,13 @@ WebServer::stop()
   keep_running = false;
   p_thread->join();
   delete p_thread;
+  p_thread = nullptr;
+  if(m_table_infos != nullptr)
+  {
+    delete [] m_table_infos;
+    m_table_infos = nullptr;
+    m_table_infos_capacity = 0;
+  }
 }
   
 } /* furious

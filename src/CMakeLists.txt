@@ -2,22 +2,24 @@
 include_directories(./)
 
 set (COMMON_SRC
+  common/bitmap.cpp
+  common/bitmap.h
+  common/btree.h
+  common/btree.inl
   common/common.h
+  common/hash_map.h
+  common/hash_map.inl
+  common/impl/btree_impl.cpp
+  common/impl/btree_impl.h
   common/platform.cpp
   common/platform.h
   common/reference.h
+  common/string_builder.cpp
+  common/string_builder.h
   common/traits.h
   common/types.h
   common/utils.cpp
   common/utils.h
-  common/btree.h
-  common/btree.inl
-  common/impl/btree_impl.cpp
-  common/impl/btree_impl.h
-  common/hash_map.h
-  common/hash_map.inl
-  common/bitmap.h
-  common/bitmap.cpp
   )
 
 set (RUNTIME_SRC
@@ -82,13 +84,12 @@ add_subdirectory(./compiler)
 add_subdirectory(./test/runtime)
 add_subdirectory(./test/compiler)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-add_executable( lang_test 
-  lang_test.cpp
-  )
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+#add_executable( lang_test 
+#  lang_test.cpp
+#  )
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-
 
 install (TARGETS furious 
           RUNTIME DESTINATION bin

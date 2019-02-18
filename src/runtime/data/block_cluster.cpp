@@ -19,6 +19,18 @@ m_start(block->m_start)
   m_blocks[0] = block;
 }
 
+BlockCluster::BlockCluster(const BlockCluster& block) : 
+m_num_elements(block.m_num_elements),
+m_start(block.m_start)
+{
+  p_enabled = new Bitmap(block.p_enabled->max_bits());
+  p_enabled->set_bitmap(block.p_enabled);
+  for(uint32_t i = 0; i < block.m_num_elements; ++i)
+  {
+    m_blocks[i] = block.m_blocks[i];
+  }
+}
+
 BlockCluster::~BlockCluster()
 {
   delete p_enabled;

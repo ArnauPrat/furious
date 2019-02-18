@@ -14,6 +14,7 @@ class BlockCluster final
 public:
   BlockCluster() = default;
   BlockCluster(TBlock* block);
+  BlockCluster(const BlockCluster& block);
 
   ~BlockCluster();
 

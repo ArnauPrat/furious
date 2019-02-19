@@ -52,7 +52,7 @@ ProduceVisitor::visit(const Scan* scan)
 
   consume(p_context->p_fd,
           scan->p_parent,
-          block_varname,
+          "(&"+block_varname+")",
           {q_ctype},
           scan);
 

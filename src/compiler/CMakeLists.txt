@@ -2,6 +2,7 @@
 include_directories(./)
 
 add_executable( fcc 
+  ${COMMON_SRC}
   backend/codegen.cpp
   backend/codegen.h
   backend/codegen_tools.cpp

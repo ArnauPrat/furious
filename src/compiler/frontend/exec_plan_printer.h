@@ -3,9 +3,11 @@
 #define _FURIOUS_COMPILER_PRITER_H_
 
 #include "execution_plan.h"
-#include <sstream>
+#include "../common/string_builder.h"
+#include "../common/dyn_array.h"
 
-namespace furious {
+namespace furious 
+{
   
 class ExecPlanPrinter : public FccExecPlanVisitor 
 {
@@ -45,8 +47,8 @@ public:
   print(const std::string& str);
 
   int32_t m_indents = 0;
-  std::stringstream   m_string_builder;
-  std::vector<char>   m_offsets;
+  StringBuilder       m_string_builder;
+  DynArray<char>      m_offsets;
 };
 
 } /* furious */ 

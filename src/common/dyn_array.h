@@ -28,6 +28,9 @@ struct DynArray
   append(const T&);
 
   void
+  pop();
+
+  void
   append(T&&);
 
   T&

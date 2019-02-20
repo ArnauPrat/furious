@@ -2,26 +2,26 @@
 include_directories(./)
 
 set (COMMON_SRC
-  common/dyn_array.h
-  common/dyn_array.inl
-  common/bitmap.cpp
-  common/bitmap.h
-  common/btree.h
-  common/btree.inl
-  common/common.h
-  common/hash_map.h
-  common/hash_map.inl
-  common/impl/btree_impl.cpp
-  common/impl/btree_impl.h
-  common/platform.cpp
-  common/platform.h
-  common/reference.h
-  common/string_builder.cpp
-  common/string_builder.h
-  common/traits.h
-  common/types.h
-  common/utils.cpp
-  common/utils.h
+  ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
+  ${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
+  ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/bitmap.h
+  ${CMAKE_SOURCE_DIR}/src/common/btree.h
+  ${CMAKE_SOURCE_DIR}/src/common/btree.inl
+  ${CMAKE_SOURCE_DIR}/src/common/common.h
+  ${CMAKE_SOURCE_DIR}/src/common/hash_map.h
+  ${CMAKE_SOURCE_DIR}/src/common/hash_map.inl
+  ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.h
+  ${CMAKE_SOURCE_DIR}/src/common/platform.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/platform.h
+  ${CMAKE_SOURCE_DIR}/src/common/reference.h
+  ${CMAKE_SOURCE_DIR}/src/common/string_builder.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/string_builder.h
+  ${CMAKE_SOURCE_DIR}/src/common/traits.h
+  ${CMAKE_SOURCE_DIR}/src/common/types.h
+  ${CMAKE_SOURCE_DIR}/src/common/utils.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/utils.h
   )
 
 set (RUNTIME_SRC

@@ -94,6 +94,16 @@ DynArray<T>::append(T&& item)
 }
 
 template<typename T>
+void
+DynArray<T>::pop()
+{
+  if(m_num_elements > 0)
+  {
+    m_num_elements--;
+  }
+}
+
+template<typename T>
 T&
 DynArray<T>::get(uint32_t index)
 {
@@ -113,5 +123,6 @@ DynArray<T>::operator[](std::size_t index) const
 {
   return p_data[index];
 }
+
   
 }  

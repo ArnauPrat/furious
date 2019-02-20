@@ -173,14 +173,14 @@ handle_compilation_error(FccContext* context,
                      FccCompilationErrorType type,
                      const FccOperator* op)
 {
-  std::stringstream ss;
+  StringBuilder str_builder;
   switch(type) 
   {
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
-      ss << "Unknown error";
+      str_builder.append("Unknown error");
       break;
   }
-  llvm::errs() << ss.str();
+  llvm::errs() << str_builder.p_buffer;
 }
 
 ////////////////////////////////////////////////
@@ -297,7 +297,7 @@ Fcc_run(FccContext* context,
 
   ExecPlanPrinter printer;
   printer.traverse(&exec_plan);
-  llvm::errs() << printer.m_string_builder.str() << "\n";
+  llvm::errs() << printer.m_string_builder.p_buffer << "\n";
   generate_code(&exec_plan,
                 output_file,
                 include_file);

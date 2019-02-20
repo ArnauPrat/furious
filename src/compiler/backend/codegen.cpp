@@ -322,7 +322,7 @@ generate_code(const FccExecPlan* exec_plan,
     const FccOperator* root = exec_plan->m_roots[i];
     ExecPlanPrinter printer{true};
     root->accept(&printer);
-    fprintf(fd,"%s", printer.m_string_builder.str().c_str());
+    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
     produce(fd,root);
     fprintf(fd,"}\n");

@@ -2,6 +2,8 @@
 include_directories(./)
 
 set (COMMON_SRC
+  common/dyn_array.h
+  common/dyn_array.inl
   common/bitmap.cpp
   common/bitmap.h
   common/btree.h

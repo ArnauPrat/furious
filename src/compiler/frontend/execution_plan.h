@@ -2,7 +2,8 @@
 #ifndef _FURIOUS_EXECUTION_PLAN_H_
 #define _FURIOUS_EXECUTION_PLAN_H_
 
-#include "../common/common.h"
+#include "../common/types.h"
+#include "../common/dyn_array.h"
 
 #include <clang/AST/AST.h>
 
@@ -144,13 +145,13 @@ struct ComponentFilter : public Filter<ComponentFilter>
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
   Foreach(FccOperator* child, 
-          const std::vector<FccSystemInfo>& systems);
+          const DynArray<const FccSystemInfo*>& systems);
 
   virtual 
   ~Foreach();
 
-  std::vector<FccSystemInfo>  m_systems;
-  FccOperator*                p_child;
+  DynArray<const FccSystemInfo*>  m_systems;
+  FccOperator*                    p_child;
 };
 
 ////////////////////////////////////////////////

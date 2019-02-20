@@ -35,10 +35,12 @@ ConsumeVisitor::visit(const Foreach* foreach)
   }
   fprintf(p_context->p_fd, "\n");
 
-  for(const FccSystemInfo& info : foreach->m_systems)
+  uint32_t size = foreach->m_systems.size();
+  for(uint32_t i = 0; i < size; ++i)
   {
 
-    std::string system_name = get_type_name(info.m_system_type);
+    const FccSystemInfo* info = foreach->m_systems[i];
+    std::string system_name = get_type_name(info->m_system_type);
     std::string base_name = system_name;
 
     std::transform(base_name.begin(), 
@@ -48,7 +50,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
     fprintf(p_context->p_fd,
             "%s_%d->apply_block(&context,\n%s->m_start,\n%s->p_enabled", 
             base_name.c_str(), 
-            info.m_id, 
+            info->m_id, 
             p_context->m_source.c_str(), 
             p_context->m_source.c_str());
 

@@ -31,7 +31,7 @@ to_string(const FccSystemInfo* info)
 {
   std::stringstream ss;
   ss << info->m_system_type->getAsCXXRecordDecl()->getNameAsString() << "(";
-  if(info->m_num_ctor_params > 0)
+  if(info->m_ctor_params.size() > 0)
   {
     const ASTContext& context = info->m_system_type->getAsCXXRecordDecl()->getASTContext();
     const SourceManager& sm = context.getSourceManager();
@@ -39,7 +39,7 @@ to_string(const FccSystemInfo* info)
     SourceLocation end = info->m_ctor_params[0]->getLocEnd();
     ss << get_code(sm, start, end); 
 
-    for (int32_t i = 1; i < (int32_t)info->m_num_ctor_params; ++i) 
+    for (int32_t i = 1; i < (int32_t)info->m_ctor_params.size(); ++i) 
     {
       SourceLocation start = info->m_ctor_params[i]->getLocStart();
       SourceLocation end = info->m_ctor_params[i]->getLocEnd();
@@ -55,8 +55,9 @@ void
 ExecPlanPrinter::visit(const Foreach* foreach) 
 {
   std::stringstream ss;
+  const FccSystemInfo* info = foreach->m_systems[0];
   ss << "foreach ("<< foreach <<  ") - " 
-     << "\"" << to_string(&foreach->m_systems[0]) << "\"";
+     << "\"" << to_string(info) << "\"";
   print(ss.str());
   incr_level(false);
   foreach->p_child->accept(this);

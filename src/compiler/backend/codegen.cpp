@@ -52,9 +52,11 @@ public:
   virtual void 
   visit(const Foreach* foreach)
   {
-    for(const FccSystemInfo& info : foreach->m_systems)
+    uint32_t size = foreach->m_systems.size();
+    for(uint32_t i = 0; i < size; ++i)
     {
-      extract_dependencies(get_dependencies(info.m_system_type));
+      const FccSystemInfo* info = foreach->m_systems[i];
+      extract_dependencies(get_dependencies(info->m_system_type));
     }
     foreach->p_child->accept(this);
   }
@@ -171,7 +173,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   fprintf(fd, "\n\n\n");
 
-  for(uint32_t i = 0; i < exec_plan->p_context->m_num_using_decls; ++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_using_decls.size(); ++i)
   {
     const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
     const SourceManager& sm = decl->getASTContext().getSourceManager();
@@ -223,19 +225,19 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "BitTable* tagged_%s;\n", tag.c_str());
   }
 
-  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos;++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size();++i)
   {
-    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
+    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     fprintf(fd, "SystemWrapper<%s", system_name.c_str());
-    for(uint32_t j = 0; j < info->m_num_basic_component_types; ++j)
+    for(uint32_t j = 0; j < info->m_basic_component_types.size(); ++j)
 		{
-      QualType* component = &info->m_basic_component_types[j];
-      std::string q_ctype = get_qualified_type_name(*component);
+      QualType component = info->m_basic_component_types[j];
+      std::string q_ctype = get_qualified_type_name(component);
       fprintf(fd,",%s",q_ctype.c_str());
 		}
     fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info->m_system.m_id);
@@ -272,9 +274,9 @@ generate_code(const FccExecPlan* exec_plan,
             tag.c_str());
   }
 
-  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size(); ++i)
   {
-    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
+    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
@@ -286,7 +288,7 @@ generate_code(const FccExecPlan* exec_plan,
             info->m_system.m_id,
             system_name.c_str());
 
-    size_t num_params = info->m_system.m_num_ctor_params;
+    size_t num_params = info->m_system.m_ctor_params.size();
     if( num_params > 0) 
     {
       const Expr* param = info->m_system.m_ctor_params[0];
@@ -332,9 +334,9 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 
-  for(uint32_t i = 0; i < exec_plan->p_context->m_num_exec_infos; ++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size(); ++i)
   {
-    FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
+    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
     std::string system_name = get_type_name(info->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 

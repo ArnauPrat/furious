@@ -91,10 +91,10 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 
 Foreach::Foreach(FccOperator* child,
-                 const std::vector<FccSystemInfo>& systems) :
-  FccOperatorTmplt<Foreach>{FccOperatorType::E_FOREACH}, 
-  m_systems{systems}, 
-  p_child{child} 
+                 const DynArray<const FccSystemInfo*>& systems) :
+  FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH), 
+  m_systems(systems), 
+  p_child(child) 
 {
   p_child->p_parent = this;
 }

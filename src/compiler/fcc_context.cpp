@@ -13,30 +13,24 @@
 
 #include <clang/Tooling/Tooling.h>
 
-#define FCC_CONTEXT_USING_GROWTH_FACTOR 8
+#define FCC_CONTEXT_ARRAY_GROWTH_FACTOR 8
 
 namespace furious 
 {
 
 FccSystemInfo::FccSystemInfo(FccContext* fcc_context) :
-p_fcc_context(fcc_context),
-m_num_ctor_params(0)
+p_fcc_context(fcc_context)
+{
+}
+
+FccSystemInfo::~FccSystemInfo()
 {
 }
 
 void
 FccSystemInfo::insert_ctor_param(const Expr* param)
 {
-  if(m_num_ctor_params == FCC_MAX_SYSTEM_CTOR_PARAMS)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_SYSTEM_CTOR_PARAMS,
-                                        "",
-                                        0,
-                                        0);
-  }
-
-  m_ctor_params[m_num_ctor_params] = param;
-  m_num_ctor_params++;
+  m_ctor_params.append(param);
 }
 
 ////////////////////////////////////////////////
@@ -48,102 +42,49 @@ FccExecInfo::FccExecInfo(ASTContext* p_ast_context,
 p_ast_context(p_ast_context),
 p_fcc_context(p_fcc_context),
 m_operation_type(FccOperationType::E_UNKNOWN),
-m_system(p_fcc_context),
-m_num_basic_component_types(0),
-m_num_has_components(0),
-m_num_has_not_components(0),
-m_num_has_tags(0),
-m_num_has_not_tags(0),
-m_num_func_filters(0)
+m_system(p_fcc_context)
 {
   
+}
+
+FccExecInfo::~FccExecInfo()
+{
 }
 
 void
 FccExecInfo::insert_component_type(const QualType* q_type)
 {
-  if(m_num_basic_component_types == FCC_MAX_EXEC_INFO_CTYPES)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_CTYPES,
-                                        "",
-                                        0,
-                                        0);
-  }
-
-  m_basic_component_types[m_num_basic_component_types] = *q_type;
-  m_num_basic_component_types++;
+  m_basic_component_types.append(*q_type);
 }
 
 void
 FccExecInfo::insert_has_compponent(const QualType* q_type)
 {
-  if(m_num_has_components == FCC_MAX_EXEC_INFO_HAS)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_HAS,
-                                        "",
-                                        0,
-                                        0);
-  }
-  m_has_components[m_num_has_components] = *q_type;
-  m_num_has_components++;
+  m_has_components.append(*q_type);
 }
 
 void
 FccExecInfo::insert_has_not_component(const QualType* q_type)
 {
-  if(m_num_has_not_components == FCC_MAX_EXEC_INFO_HAS)
-  {
-  p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_HAS,
-                                      "",
-                                      0,
-                                      0);
-  }
-  m_has_not_components[m_num_has_not_components] = *q_type;
-  m_num_has_not_components++;
+  m_has_not_components.append(*q_type);
 }
 
 void
 FccExecInfo::insert_has_tag(const std::string& tag)
 {
-  if(m_num_has_tags == FCC_MAX_EXEC_INFO_HAS)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_HAS,
-                                        "",
-                                        0,
-                                        0);
-  }
-  m_has_tags[m_num_has_tags] = tag;
-  m_num_has_tags++;
+  m_has_tags.append(tag);
 }
 
 void
 FccExecInfo::insert_has_not_tag(const std::string& tag)
 {
-  if(m_num_has_not_tags == FCC_MAX_EXEC_INFO_HAS)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_HAS,
-                                        "",
-                                        0,
-                                        0);
-  }
-
-  m_has_not_tags[m_num_has_not_tags] = tag;
-  m_num_has_not_tags++;
+  m_has_not_tags.append(tag);
 }
 
 void
 FccExecInfo::insert_filter_func(const FunctionDecl* decl)
 {
-  if(m_num_func_filters == FCC_MAX_EXEC_INFO_FILTER)
-  {
-    p_fcc_context->report_parsing_error(FccParsingErrorType::E_MAX_EXEC_INFO_FILTER,
-                                        "",
-                                        0,
-                                        0);
-  }
-
-  m_filter_func[m_num_func_filters] = decl;
-  m_num_func_filters++;
+  p_filter_func.append(decl);
 }
 
 
@@ -153,76 +94,36 @@ FccExecInfo::insert_filter_func(const FunctionDecl* decl)
 
 FccContext::FccContext(): 
 p_pecallback(nullptr),
-p_cecallback(nullptr),
-m_num_translation_units(0),
-m_num_exec_infos(0),
-m_num_using_decls(0),
-m_max_using_decls(0),
-p_using_decls(nullptr)
+p_cecallback(nullptr)
 {
-  p_exec_infos = new FccExecInfo*[FCC_MAX_OPERATIONS];
-  memset(p_exec_infos, 0, sizeof(FccExecInfo*)*FCC_MAX_OPERATIONS);
 }
 
 FccContext::~FccContext()
 {
-  for(uint32_t i = 0; i < m_num_exec_infos; ++i)
+  for(uint32_t i = 0; i < p_exec_infos.size(); ++i)
   {
-    if(p_exec_infos[i] != nullptr)
-    {
       delete p_exec_infos[i];
-      p_exec_infos[i] = nullptr;
-    }
   }
-
-  delete [] p_exec_infos;
-
-  if(p_using_decls != nullptr)
-  {
-    free(p_using_decls);
-  }
-
 }
 
 FccExecInfo*
 FccContext::create_exec_info(ASTContext* ast_context)
 {
-  if(m_num_exec_infos == FCC_MAX_OPERATIONS)
-  {
-    report_parsing_error(FccParsingErrorType::E_MAX_OPERATION,
-                         "",
-                         0,
-                         0);
-  }
-  p_exec_infos[m_num_exec_infos] = new FccExecInfo(ast_context, this);
-  m_num_exec_infos++;
-  return p_exec_infos[m_num_exec_infos-1];
+  FccExecInfo* info = new FccExecInfo(ast_context, this);
+  p_exec_infos.append(info); 
+  return info;
 }
 
 void
 FccContext::insert_ast_unit(std::unique_ptr<ASTUnit>& unit)
 {
-  if(m_num_translation_units == FCC_MAX_TRANSLATION_UNITS)
-  {
-    report_parsing_error(FccParsingErrorType::E_MAX_TRANSLATION_UNIT,
-                         "",
-                         0,
-                         0);
-  }
-  m_asts[m_num_translation_units] = std::move(unit);
-  m_num_translation_units++;
+  p_asts.append(std::move(unit));
 }
 
 void
 FccContext::insert_using_decl(const UsingDirectiveDecl* using_decl)
 {
-  if(m_num_using_decls == m_max_using_decls)
-  {
-    m_max_using_decls+=FCC_CONTEXT_USING_GROWTH_FACTOR;
-    p_using_decls = (const UsingDirectiveDecl**)realloc(p_using_decls, sizeof(UsingDirectiveDecl*)*m_max_using_decls);
-  }
-  p_using_decls[m_num_using_decls]=using_decl;
-  m_num_using_decls++;
+  p_using_decls.append(using_decl);
 }
 
 ////////////////////////////////////////////////
@@ -243,24 +144,6 @@ handle_parsing_error(FccContext* context,
   {
     case FccParsingErrorType::E_UNKNOWN_ERROR:
       message = "Unknown error";
-      break;
-    case FccParsingErrorType::E_MAX_SYSTEM_CTOR_PARAMS:
-      message = "Maximum number of ctor params achieved";
-      break;
-    case FccParsingErrorType::E_MAX_EXEC_INFO_CTYPES:
-      message = "Maximum number of basic components achieved.";
-      break;
-    case FccParsingErrorType::E_MAX_EXEC_INFO_HAS:
-      message = "Maximum number of has filter types achieved.";
-      break;
-    case FccParsingErrorType::E_MAX_EXEC_INFO_FILTER:
-      message = "Maximum number of function filter types achieved.";
-      break;
-    case FccParsingErrorType::E_MAX_TRANSLATION_UNIT:
-      message = "Maximum number of translation units achieved.";
-      break;
-    case FccParsingErrorType::E_MAX_OPERATION:
-      message = "Maximum number of operations achieved.";
       break;
     case FccParsingErrorType::E_UNKNOWN_FURIOUS_OPERATION:
       message = "Unknown furious operation"; 
@@ -388,9 +271,9 @@ Fcc_run(FccContext* context,
 #endif
 
     // Parse and visit all compilation units (furious scripts)
-    for(uint32_t i = 0; i < context->m_num_translation_units; ++i) 
+    for(uint32_t i = 0; i < context->p_asts.size(); ++i) 
     {
-      ASTUnit* ast = context->m_asts[i].get();
+      ASTUnit* ast = context->p_asts[i].get();
       ASTContext& ast_context = ast->getASTContext();
       FccASTVisitor visitor(&ast_context,
                             context);
@@ -405,9 +288,9 @@ Fcc_run(FccContext* context,
 
   // Build initial execution plan
   FccExecPlan exec_plan(context);
-  for(uint32_t i = 0; i < context->m_num_exec_infos; ++i)
+  for(uint32_t i = 0; i < context->p_exec_infos.size(); ++i)
   {
-    FccExecInfo* info = context->p_exec_infos[i];
+    const FccExecInfo* info = context->p_exec_infos[i];
     FccOperator* next_root = bootstrap_subplan(info);
     exec_plan.insert_root(info->p_ast_context, next_root);
   }

@@ -2,13 +2,9 @@
 #ifndef _FURIOUS_COMPILER_STRUCTS_H_
 #define _FURIOUS_COMPILER_STRUCTS_H_
 
-#include <string>
+#include "../common/dyn_array.h"
 
-//#include <clang/Frontend/ASTUnit.h>
-//#include <clang/Driver/Options.h>
-//#include <clang/AST/AST.h>
-//#include <clang/AST/ASTConsumer.h>
-//#include <clang/Rewrite/Core/Rewriter.h>
+#include <string>
 
 #include <clang/Frontend/ASTUnit.h>
 #include <clang/AST/AST.h>
@@ -24,15 +20,8 @@ namespace furious {
 struct FccOperator;
 struct FccContext;
 
-#define FCC_MAX_TRANSLATION_UNITS   1024
-#define FCC_MAX_OPERATIONS          2024
-#define FCC_MAX_SYSTEM_CTOR_PARAMS  16
-#define FCC_MAX_EXEC_INFO_CTYPES    8
-#define FCC_MAX_EXEC_INFO_HAS       8
-#define FCC_MAX_EXEC_INFO_FILTER    8 
-
-
-enum class FccOperationType {
+enum class FccOperationType 
+{
   E_UNKNOWN,
   E_FOREACH
 };
@@ -43,14 +32,21 @@ enum class FccOperationType {
 struct FccSystemInfo 
 {
   FccSystemInfo(FccContext* fcc_context);
+  FccSystemInfo(const FccSystemInfo&) = delete;
 
+  ~FccSystemInfo();
+
+  /**
+   * \brief Inserts a new constructor parameter expression
+   *
+   * \param param The expression to insert
+   */
   void
   insert_ctor_param(const Expr* param);
 
   FccContext*               p_fcc_context;
-  QualType                  m_system_type;                              // The type of the system
-  uint32_t                  m_num_ctor_params;
-  const Expr*               m_ctor_params[FCC_MAX_SYSTEM_CTOR_PARAMS];  // The expressions of the system's constructor parameters 
+  QualType                  m_system_type;        // The type of the system
+  DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
   int32_t                   m_id;
 };
 
@@ -63,42 +59,70 @@ struct FccExecInfo
 {
   FccExecInfo(ASTContext* ast_context,
               FccContext* fcc_context);
+
+  FccExecInfo(const FccExecInfo&) = delete;
+
+  ~FccExecInfo();
+
+  /**
+   * \brief Inserts a component type to this execution info
+   *
+   * \param q_type The component type to add
+   */
   void
   insert_component_type(const QualType* q_type);
 
+  /**
+   * \brief Inerts a has component predicate to this execution info
+   *
+   * \param q_type The component of the predicate 
+   */
   void
   insert_has_compponent(const QualType* q_type);
 
+  /**
+   * \brief Inserts a has not component predicate to this execution info
+   *
+   * \param q_type The component of the predicate 
+   */
   void
   insert_has_not_component(const QualType* q_type);
 
+  /**
+   * \brief Inserts a has tag predicate to this execution info
+   *
+   * \param q_type The tag of the predicate
+   */
   void
   insert_has_tag(const std::string& q_type);
 
+  /**
+   * \brief Inserts a has not tag predicate to this execution info
+   *
+   * \param q_type The tag of the predicate
+   */
   void
   insert_has_not_tag(const std::string& q_type);
 
+  /**
+   * \brief Inserts a filter function predicate to this execution info
+   *
+   * \param decl The function declaration to add
+   */
   void
   insert_filter_func(const FunctionDecl* decl);
 
-  ASTContext*           p_ast_context;                                  // clang ast context
-  FccContext*           p_fcc_context;                                  // the fcc context this exec info belongs to
-  FccOperationType      m_operation_type;                               // The type of operations
-  FccSystemInfo         m_system;                                       // The system to execute
+  ASTContext*           p_ast_context;                 // clang ast context
+  FccContext*           p_fcc_context;                 // the fcc context this exec info belongs to
+  FccOperationType      m_operation_type;              // The type of operations
+  FccSystemInfo         m_system;                      // The system to execute
 
-  uint32_t              m_num_basic_component_types;                    // Number of basic component types
-  uint32_t              m_num_has_components;                           // Number of has components filters
-  uint32_t              m_num_has_not_components;                       // Number of has not component filters
-  uint32_t              m_num_has_tags;                                 // Number of has tag filters
-  uint32_t              m_num_has_not_tags;                             // Number of has not tag filters
-  uint32_t              m_num_func_filters;                             // Numbner of function based filters
-
-  QualType              m_basic_component_types[FCC_MAX_EXEC_INFO_CTYPES];  // The types of the components of the system
-  QualType              m_has_components[FCC_MAX_EXEC_INFO_HAS];            // The types of the "has" components
-  QualType              m_has_not_components[FCC_MAX_EXEC_INFO_HAS];        // The types of the "has_not" components
-  std::string           m_has_tags[FCC_MAX_EXEC_INFO_HAS];                  // The "with" tags  
-  std::string           m_has_not_tags[FCC_MAX_EXEC_INFO_HAS];              // The "has_not" tags
-  const FunctionDecl*   m_filter_func[FCC_MAX_EXEC_INFO_FILTER];            // The filter function
+  DynArray<QualType>            m_basic_component_types;       // The types of the components of the system
+  DynArray<QualType>            m_has_components;              // The types of the "has" components
+  DynArray<QualType>            m_has_not_components;          // The types of the "has_not" components
+  DynArray<std::string>         m_has_tags;                    // The "with" tags  
+  DynArray<std::string>         m_has_not_tags;                // The "has_not" tags
+  DynArray<const FunctionDecl*> p_filter_func;                 // The filter function
 };
 
 ////////////////////////////////////////////////
@@ -112,12 +136,6 @@ struct FccExecInfo
 enum class FccParsingErrorType
 {
   E_UNKNOWN_ERROR,
-  E_MAX_SYSTEM_CTOR_PARAMS,
-  E_MAX_EXEC_INFO_CTYPES,
-  E_MAX_EXEC_INFO_HAS,
-  E_MAX_EXEC_INFO_FILTER,
-  E_MAX_TRANSLATION_UNIT,
-  E_MAX_OPERATION,
   E_UNKNOWN_FURIOUS_OPERATION,
   E_INCOMPLETE_FURIOUS_STATEMENT,
   E_UNSUPPORTED_VAR_DECLARATIONS,
@@ -220,15 +238,9 @@ struct FccContext
   FCC_PARSING_ERROR_CALLBACK  p_pecallback;             // Pointer to function handling parsing errors
   FCC_COMP_ERROR_CALLBACK     p_cecallback;             // Pointer to the function handling compilation errors
 
-  uint32_t                    m_num_translation_units;  // The number of translation units in this context
-  uint32_t                    m_num_exec_infos;         // The number of execution info structures
-
-  uint32_t                    m_num_using_decls;        // The number of using decls
-  uint32_t                    m_max_using_decls;        // The maximum number of using decls
-
-  std::unique_ptr<ASTUnit>    m_asts[FCC_MAX_TRANSLATION_UNITS];    // Vector with the ASTs of all the translation units
-  FccExecInfo**               p_exec_infos;                         // The furious execution infos extracted from the input code
-  const UsingDirectiveDecl**        p_using_decls;
+  DynArray<std::unique_ptr<ASTUnit>>  p_asts;                   // Vector with the ASTs of all the translation units
+  DynArray<const FccExecInfo*>        p_exec_infos;             // The furious execution infos extracted from the input code
+  DynArray<const UsingDirectiveDecl*> p_using_decls;
 
 };
 

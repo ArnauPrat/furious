@@ -10,10 +10,10 @@ FccOperator*
 bootstrap_subplan(const FccExecInfo* exec_info)
 {
   FccOperator* root = nullptr;
-  if(exec_info->m_num_basic_component_types > 1)
+  if(exec_info->m_basic_component_types.size() > 1)
   {
     // We need to build joins
-    int32_t size = exec_info->m_num_basic_component_types;
+    int32_t size = exec_info->m_basic_component_types.size();
     FccOperator* left = new Scan(exec_info->m_basic_component_types[size-2]);
     FccOperator* right = new Scan(exec_info->m_basic_component_types[size-1]);
     root = new Join(left, right);
@@ -32,7 +32,7 @@ bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create without Tag Filters
-  for(uint32_t i = 0; i < exec_info->m_num_has_not_tags; ++i)
+  for(uint32_t i = 0; i < exec_info->m_has_not_tags.size(); ++i)
   {
     root = new TagFilter(root, 
                          exec_info->m_has_not_tags[i],
@@ -40,7 +40,7 @@ bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create with tag filters
-  for(uint32_t i = 0; i < exec_info->m_num_has_tags; ++i)
+  for(uint32_t i = 0; i < exec_info->m_has_tags.size(); ++i)
   {
     root = new TagFilter(root, 
                          exec_info->m_has_tags[i],
@@ -48,7 +48,7 @@ bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < exec_info->m_num_has_not_components; ++i)
+  for(uint32_t i = 0; i < exec_info->m_has_not_components.size(); ++i)
   {
     root = new ComponentFilter(root, 
                                exec_info->m_has_not_components[i],
@@ -56,7 +56,7 @@ bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < exec_info->m_num_has_components; ++i)
+  for(uint32_t i = 0; i < exec_info->m_has_components.size(); ++i)
   {
     root = new ComponentFilter(root, 
                                exec_info->m_has_components[i],
@@ -64,10 +64,10 @@ bootstrap_subplan(const FccExecInfo* exec_info)
   }
 
   // Create predicate filters
-  for(uint32_t i = 0; i < exec_info->m_num_func_filters; ++i)
+  for(uint32_t i = 0; i < exec_info->p_filter_func.size(); ++i)
   {
     root = new PredicateFilter(root, 
-                               exec_info->m_filter_func[i]);
+                               exec_info->p_filter_func[i]);
   }
 
   // Create Operation operator
@@ -82,7 +82,9 @@ bootstrap_subplan(const FccExecInfo* exec_info)
       // * Create filters for with_component, without_component, with_tag,
       //  without_tag and filter predicate.
       // * Create Foreach operator
-      root = new Foreach(root, std::vector<FccSystemInfo>{exec_info->m_system});
+      DynArray<const FccSystemInfo*> arr;
+      arr.append(&exec_info->m_system);
+      root = new Foreach(root, arr);
       break;
   };
   return root;

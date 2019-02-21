@@ -21,17 +21,19 @@ void
 ConsumeVisitor::visit(const Foreach* foreach)
 {
   int param_index = 0;
-  for(const std::string& type : p_context->m_types) 
+  for(uint32_t i = 0; i < p_context->m_types.size(); ++i) 
   {
-      fprintf(p_context->p_fd,
-              "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n", 
-              type.c_str(), 
-              param_index, 
-              type.c_str(), 
-              p_context->m_source.c_str(), 
-              param_index);
+    const std::string& type = p_context->m_types[i];
 
-      param_index++;
+    fprintf(p_context->p_fd,
+            "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n", 
+            type.c_str(), 
+            param_index, 
+            type.c_str(), 
+            p_context->m_source.c_str(), 
+            param_index);
+
+    param_index++;
   }
   fprintf(p_context->p_fd, "\n");
 
@@ -81,9 +83,7 @@ ConsumeVisitor::visit(const Join* join)
             p_context->m_source.c_str(), 
             p_context->m_source.c_str()); 
 
-    p_context->m_left_types.insert(p_context->m_left_types.end(), 
-                                   p_context->m_types.begin(),
-                                   p_context->m_types.end());
+    p_context->m_left_types.append(p_context->m_types);
   }
   else 
   {
@@ -104,10 +104,8 @@ ConsumeVisitor::visit(const Join* join)
             "if(%s->p_enabled->num_set() != 0)\n{\n", 
             clustername.c_str());
 
-    std::vector<std::string> joined_types{p_context->m_left_types};
-    joined_types.insert(joined_types.end(),
-                        p_context->m_types.begin(),
-                        p_context->m_types.end());
+    DynArray<std::string> joined_types(p_context->m_left_types);
+    joined_types.append(p_context->m_types);
 
     consume(p_context->p_fd,
             join->p_parent,
@@ -184,16 +182,17 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   // if ...
   fprintf(p_context->p_fd,"\n");
   int param_index = 0;
-  for(const std::string& type : p_context->m_types) 
+  for(uint32_t i = 0; i < p_context->m_types.size(); ++i)  
   {
-      fprintf(p_context->p_fd,
-              "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n",
-              type.c_str(),
-              param_index,
-              type.c_str(),
-              p_context->m_source.c_str(),
-              param_index);
-      param_index++;
+    const std::string& type = p_context->m_types[i];
+    fprintf(p_context->p_fd,
+            "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n",
+            type.c_str(),
+            param_index,
+            type.c_str(),
+            p_context->m_source.c_str(),
+            param_index);
+    param_index++;
   }
   std::string func_name = "";
   if(!predicate_filter->p_func_decl->isCXXClassMember())

@@ -14,6 +14,10 @@ add_executable( fcc
   clang_tools.cpp
   clang_tools.h
   fcc.cpp
+  fcc_context.cpp
+  fcc_context.h
+  frontend/dep_graph.cpp
+  frontend/dep_graph.h
   frontend/exec_plan_printer.cpp
   frontend/exec_plan_printer.h
   frontend/execution_plan.cpp
@@ -23,8 +27,6 @@ add_executable( fcc
   frontend/fccASTVisitor.h
   frontend/parsing.cpp
   frontend/parsing.h
-  fcc_context.cpp
-  fcc_context.h
   frontend/transforms.cpp
   frontend/transforms.h
   )

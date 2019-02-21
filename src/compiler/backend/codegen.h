@@ -5,14 +5,13 @@
 
 #include <string>
 
-namespace furious {
+namespace furious 
+{
 
 struct FccExecPlan;
 class ProduceVisitor;
 class ConsumeVisitor;
 class FccOperator;
-
-
 
 /**
  * \brief This function generates the code for a given execution plan and prints

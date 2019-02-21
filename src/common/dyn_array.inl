@@ -14,14 +14,35 @@ m_num_elements(0)
 }
 
 template<typename T>
-DynArray<T>::DynArray(const DynArray& other)
+DynArray<T>::DynArray(const DynArray& other) : 
+p_data(nullptr),
+m_capacity(0),
+m_num_elements(0)
 {
-  p_data = new T[other.m_capacity];
-  m_capacity = other.m_capacity;
-  m_num_elements = other.m_num_elements;
-  for(uint32_t i = 0; i < other.m_num_elements; ++i)
+  *this = other;
+}
+
+template<typename T>
+DynArray<T>::DynArray(DynArray&& other) : 
+p_data(nullptr),
+m_capacity(0),
+m_num_elements(0)
+
+{
+  *this = std::move(other);
+}
+
+template<typename T>
+DynArray<T>::DynArray(std::initializer_list<T> init) :
+p_data(nullptr),
+m_capacity(0),
+m_num_elements(0)
+{
+  for(auto it = init.begin();
+      it != init.end();
+      ++it)
   {
-    p_data[i] = other.p_data[i];
+    this->append(*it);
   }
 }
 
@@ -95,6 +116,16 @@ DynArray<T>::append(T&& item)
 
 template<typename T>
 void
+DynArray<T>::append(const DynArray<T>& other)
+{
+  for(uint32_t i = 0; i < other.size(); ++i)
+  {
+    this->append(other[i]);
+  }
+}
+
+template<typename T>
+void
 DynArray<T>::pop()
 {
   if(m_num_elements > 0)
@@ -124,5 +155,32 @@ DynArray<T>::operator[](std::size_t index) const
   return p_data[index];
 }
 
+
+template<typename T>
+DynArray<T>&
+DynArray<T>::operator=(const DynArray& other)
+{
+  p_data = new T[other.m_capacity];
+  m_capacity = other.m_capacity;
+  m_num_elements = other.m_num_elements;
+  for(uint32_t i = 0; i < other.m_num_elements; ++i)
+  {
+    p_data[i] = other.p_data[i];
+  }
+  return *this;
+}
+
+template<typename T>
+DynArray<T>&
+DynArray<T>::operator=(DynArray&& other)
+{
+  p_data = other.p_data;
+  m_capacity = other.m_capacity;
+  m_num_elements = other.m_num_elements;
+  other.p_data = nullptr;
+  other.m_capacity = 0;
+  other.m_num_elements = 0;
+  return *this;
+}
   
 }  

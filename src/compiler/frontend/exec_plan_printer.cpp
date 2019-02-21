@@ -57,7 +57,7 @@ ExecPlanPrinter::visit(const Foreach* foreach)
 {
   StringBuilder str_builder;
   const FccSystemInfo* info = foreach->m_systems[0];
-  str_builder.append("foreach (%lu) - \" %s \"",
+  str_builder.append("foreach (%lu) - \"%s\"",
                      foreach, 
                      to_string(info).c_str());
   print(str_builder.p_buffer);
@@ -70,7 +70,7 @@ void
 ExecPlanPrinter::visit(const Scan* scan) 
 {
   StringBuilder str_builder;
-  str_builder.append("scan (%lu) - \"\"",
+  str_builder.append("scan (%lu) - \"%s\"",
                      scan, 
                      scan->m_component->getAsCXXRecordDecl()->getNameAsString().c_str());
   print(str_builder.p_buffer);

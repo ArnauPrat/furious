@@ -1,5 +1,6 @@
 
 #include "clang_tools.h"
+#include "../common/dyn_array.h"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/Lex/Lexer.h>
@@ -36,7 +37,7 @@ class DependenciesVisitor : public RecursiveASTVisitor<DependenciesVisitor>
 {
 public:
   const ASTContext*             p_ast_context;
-  std::vector<Dependency>       m_dependencies;
+  DynArray<Dependency>       m_dependencies;
 
   DependenciesVisitor(const ASTContext* context) :
   p_ast_context(context)
@@ -65,7 +66,7 @@ public:
         {
           dependency.p_decl = decl;
         }
-        m_dependencies.push_back(dependency);
+        m_dependencies.append(dependency);
       }
     }
     return true;
@@ -136,7 +137,7 @@ get_type_decl(const QualType& type)
   return nullptr;
 }
 
-std::vector<Dependency> 
+DynArray<Dependency> 
 get_dependencies(const Decl* decl)
 {
   const ASTContext& ast_context = decl->getASTContext();
@@ -145,7 +146,7 @@ get_dependencies(const Decl* decl)
   return dep_visitor.m_dependencies;
 }
 
-std::vector<Dependency> 
+DynArray<Dependency> 
 get_dependencies(const QualType& type)
 {
   const Decl* decl = get_type_decl(type);
@@ -153,7 +154,7 @@ get_dependencies(const QualType& type)
   {
     return get_dependencies(decl);
   }
-  return {};//std::vector<Dependency>();
+  return DynArray<Dependency>();
 }
 
 std::string 

@@ -2,12 +2,10 @@
 #ifndef _FURIOUS_COMPILER_CLANG_TOOLS_H_
 #define _FURIOUS_COMPILER_CLANG_TOOLS_H_ value
 
-#include <vector>
+#include "../common/dyn_array.h"
 #include <string>
 #include <clang/Basic/SourceManager.h>
 #include <clang/AST/Type.h>
-
-
 
 using namespace clang;
 
@@ -48,10 +46,10 @@ struct Dependency
  *
  * @return Returns a vector with the dependencies of a given declaration
  */
-std::vector<Dependency> 
+DynArray<Dependency> 
 get_dependencies(const Decl* decl);
 
-std::vector<Dependency> 
+DynArray<Dependency> 
 get_dependencies(const QualType& type);
 
 std::string 

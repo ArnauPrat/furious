@@ -1,16 +1,17 @@
 
 
-#include "../common/common.h"
+#include "../common/types.h"
+#include "../common/dyn_array.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
 
 #include "codegen.h"
 #include "codegen_tools.h"
 
-#include <unordered_map>
-#include <memory>
+namespace furious 
+{
 
-namespace furious {
+extern CodeGenRegistry* p_registry;
 
 CodeGenContext::CodeGenContext(FILE* fd) :
 p_fd(fd)
@@ -29,24 +30,48 @@ CodeGenContext::~CodeGenContext()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-static 
-std::unordered_map<const FccOperator*, std::unique_ptr<CodeGenContext>> contexts; 
-typedef std::unordered_map<const FccOperator*, std::unique_ptr<CodeGenContext>>::iterator context_iter;
+
+CodeGenRegistry::CodeGenRegistry()
+{
+}
+
+CodeGenRegistry::~CodeGenRegistry()
+{
+  for(uint32_t i = 0; i < m_contexts.size(); ++i)
+  {
+    delete m_contexts[i].p_context;
+  }
+}
+
+CodeGenContext* 
+CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
+{
+  for(uint32_t i = 0; i < m_contexts.size(); ++i)
+  {
+    if(m_contexts[i].p_operator == op)
+    {
+      return m_contexts[i].p_context;
+    }
+  }
+
+  Entry entry = {op,new CodeGenContext(fd)};
+  m_contexts.append(entry);
+  return entry.p_context;
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
 void 
 consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
-        const std::vector<std::string>& types,
+        const DynArray<std::string>& types,
         const FccOperator* caller)
 {
-  context_iter it = contexts.find(op);
-  if( it == contexts.end())
-  {
-    contexts[op] = std::unique_ptr<CodeGenContext>( new CodeGenContext(fd));
-  }  
 
-  CodeGenContext* context = contexts[op].get();
+  CodeGenContext* context = p_registry->find_or_create(op,fd);
   context->m_types = types;
   context->m_source = source;
   context->p_caller = caller;
@@ -57,12 +82,7 @@ void
 produce(FILE* fd,
         const FccOperator* op)
 {
-  context_iter it = contexts.find(op);
-  if( it == contexts.end())
-  {
-    contexts[op] = std::unique_ptr<CodeGenContext>(new CodeGenContext(fd));
-  }  
-  CodeGenContext* context = contexts[op].get();
+  CodeGenContext* context = p_registry->find_or_create(op,fd);
   op->accept(context->p_producer);
 }
 

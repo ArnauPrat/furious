@@ -6,17 +6,24 @@
 #include "types.h"
 #include "stdlib.h"
 
+#include <initializer_list>
+
 namespace furious
 {
 
 template <typename T>
-
 struct DynArray
 {
   DynArray();
+  DynArray(const DynArray&);
+  DynArray(DynArray&&);
+  DynArray(std::initializer_list<T>);
+
   ~DynArray();
 
-  DynArray(const DynArray&);
+  ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
 
   uint32_t
   size() const;
@@ -28,10 +35,13 @@ struct DynArray
   append(const T&);
 
   void
-  pop();
+  append(const DynArray<T>&);
 
   void
   append(T&&);
+
+  void
+  pop();
 
   T&
   get(uint32_t index);
@@ -42,6 +52,11 @@ struct DynArray
   const T& 
   operator[](std::size_t index) const;
 
+  DynArray<T>&
+  operator=(const DynArray&);
+
+  DynArray<T>&
+  operator=(DynArray&&);
 
 private:
   T*        p_data;

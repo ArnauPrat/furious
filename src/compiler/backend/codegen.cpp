@@ -1,6 +1,7 @@
 
 
 #include "../clang_tools.h"
+#include "../common/dyn_array.h"
 #include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
 #include "../frontend/execution_plan.h"
@@ -12,11 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <vector>
+namespace furious 
+{
 
-
-namespace furious {
-
+CodeGenRegistry* p_registry = nullptr;;
 
 /**
  * @brief Visitor used to extract the dependencies of an execution plan, which
@@ -26,14 +26,15 @@ class DependenciesExtr : public FccExecPlanVisitor
 {
 public:
 
-  std::set<std::string> m_include_files;
-  std::set<const Decl*>       m_declarations;
+  std::set<std::string>   m_include_files;
+  std::set<const Decl*>   m_declarations;
 
   void
-  extract_dependencies(const std::vector<Dependency>& deps)
+  extract_dependencies(const DynArray<Dependency>& deps)
   {
-      for(const Dependency& dep : deps) 
+      for(uint32_t i = 0; i < deps.size(); ++i) 
       {
+        const Dependency& dep = deps[i];
         if(dep.p_decl != nullptr) 
         {
           const Decl* decl = dep.p_decl;
@@ -317,6 +318,7 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "database->lock();\n");
   fprintf(fd, "Context context(delta,database);\n");
 
+  p_registry = new CodeGenRegistry();
   for(uint32_t i = 0; i < exec_plan->m_num_roots; ++i)
   {
     const FccOperator* root = exec_plan->m_roots[i];
@@ -327,6 +329,7 @@ generate_code(const FccExecPlan* exec_plan,
     produce(fd,root);
     fprintf(fd,"}\n");
   }
+  delete p_registry;
 
   fprintf(fd, "database->release();\n");
   fprintf(fd, "}\n");

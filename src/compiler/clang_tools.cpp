@@ -103,7 +103,7 @@ get_type_decl(const QualType& type)
 
   //printf("PROCESING %s\n", get_type_name(type).c_str());
   SplitQualType unqual = type.getSplitUnqualifiedType();
-  const Type* t = unqual.Ty;
+  const clang::Type* t = unqual.Ty;
 
   if(t->isAnyPointerType()) 
   {
@@ -158,20 +158,32 @@ get_dependencies(const QualType& type)
 }
 
 std::string 
-get_type_name(QualType type)
+get_type_name(const QualType& type)
 {
-  type.removeLocalConst();
+  QualType aux = type;
+  aux.removeLocalConst();
+  PrintingPolicy policy{{}};
+  policy.SuppressTagKeyword = true;
+  return QualType::getAsString(aux.split(), policy);
+}
+
+std::string 
+get_qualified_type_name(const QualType& type) 
+{
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
   return QualType::getAsString(type.split(), policy);
 }
 
-std::string 
-get_qualified_type_name(QualType type) 
+
+AccessMode
+get_access_mode(const QualType& type)
 {
-  PrintingPolicy policy{{}};
-  policy.SuppressTagKeyword = true;
-  return QualType::getAsString(type.split(), policy);
+  if(type.isConstQualified())
+  {
+    return AccessMode::E_READ;
+  }
+  return AccessMode::E_WRITE;
 }
 
 } /* furious*/

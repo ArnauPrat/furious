@@ -15,7 +15,7 @@ struct DGNode
   ~DGNode();
 
   const FccExecInfo*  p_info;
-  DGNode*             p_parent;
+  DynArray<DGNode*>   p_parents;
   DynArray<DGNode*>   p_children;
 };
 
@@ -28,7 +28,10 @@ struct DependencyGraph
   void 
   insert(const FccExecInfo* exec_info);
 
-  DynArray<DGNode*>   p_roots;
+  DynArray<const FccExecInfo*>
+  get_roots();
+
+  DynArray<DGNode*>   p_nodes;
 };
   
 } /* furious

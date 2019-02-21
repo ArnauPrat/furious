@@ -11,11 +11,11 @@
 #include <clang/Tooling/CommonOptionsParser.h>
 
 using namespace clang;
-//using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 
-namespace furious {
+namespace furious 
+{
 
 struct FccOperator;
 struct FccContext;
@@ -24,6 +24,13 @@ enum class FccOperationType
 {
   E_UNKNOWN,
   E_FOREACH
+};
+
+enum class AccessMode
+{
+  E_READ,
+  E_READ_WRITE,
+  E_WRITE
 };
 
 /**

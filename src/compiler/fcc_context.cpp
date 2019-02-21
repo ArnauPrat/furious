@@ -1,12 +1,15 @@
 
 
 
+#include "frontend/dep_graph.h"
 #include "fcc_context.h"
 #include "frontend/fccASTVisitor.h"
 #include "frontend/transforms.h"
 #include "frontend/execution_plan.h"
 #include "frontend/exec_plan_printer.h"
 #include "backend/codegen.h"
+
+#include "stdlib.h"
 
 #include <stdio.h>
 #include <vector>
@@ -162,10 +165,10 @@ handle_parsing_error(FccContext* context,
       break;
   }
 
-  uint32_t BUFFER_SIZE=512;
-  char buffer[BUFFER_SIZE];
-  snprintf(buffer, BUFFER_SIZE, "%s found in %s:%d:%d\n", message.c_str(), filename.c_str(), line, column);
-  llvm::errs() << buffer;
+  StringBuilder str_builder;
+  str_builder.append("%s found in %s:%d:%d\n", message.c_str(), filename.c_str(), line, column);
+  llvm::errs() << str_builder.p_buffer;
+  abort();
 }
 
 void 
@@ -179,8 +182,13 @@ handle_compilation_error(FccContext* context,
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
       str_builder.append("Unknown error");
       break;
+
+    case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
+      str_builder.append("Cyclic dependency graph");
+      break;
   }
   llvm::errs() << str_builder.p_buffer;
+  abort();
 }
 
 ////////////////////////////////////////////////
@@ -284,6 +292,21 @@ Fcc_run(FccContext* context,
     llvm::errs() << "\n";
     llvm::errs() << "Building Query Plan" << "\n";
 #endif
+  }
+
+  DependencyGraph dep_graph;
+  uint32_t size = context->p_exec_infos.size();
+  for(uint32_t i = 0; i < size; ++i)
+  {
+    dep_graph.insert(context->p_exec_infos[i]);
+  }
+
+  DynArray<const FccExecInfo*> roots = dep_graph.get_roots();
+  if(roots.size() == 0)
+  {
+    handle_compilation_error(context, 
+                             FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH, 
+                             nullptr);
   }
 
   // Build initial execution plan

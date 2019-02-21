@@ -153,6 +153,7 @@ enum class FccParsingErrorType
 enum class FccCompilationErrorType
 {
   E_UNKNOWN_ERROR,
+  E_CYCLIC_DEPENDENCY_GRAPH
 };
 
 typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*, 

@@ -25,9 +25,20 @@ struct DependencyGraph
   DependencyGraph(const DependencyGraph&) = delete;
   ~DependencyGraph();
 
+  /**
+   * \brief Inserts a FccExecInfo to the dependency graph
+   *
+   * \param exec_info The FccExecInfo to add
+   */
   void 
   insert(const FccExecInfo* exec_info);
 
+  /**
+   * \brief Gets the roots of the dependency graph (FccExecInfos without
+   * parents)
+   *
+   * \return Returns a dynamic array with the roots.
+   */
   DynArray<const FccExecInfo*>
   get_roots();
 

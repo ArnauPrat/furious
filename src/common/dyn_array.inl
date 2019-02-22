@@ -160,6 +160,7 @@ template<typename T>
 DynArray<T>&
 DynArray<T>::operator=(const DynArray& other)
 {
+  clear();
   p_data = new T[other.m_capacity];
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
@@ -174,6 +175,7 @@ template<typename T>
 DynArray<T>&
 DynArray<T>::operator=(DynArray&& other)
 {
+  clear();
   p_data = other.p_data;
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;

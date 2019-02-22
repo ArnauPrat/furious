@@ -19,7 +19,15 @@ struct FccOperator;
  * @return Retorns the root operator of the generated plan
  */
 FccOperator* 
-bootstrap_subplan(const FccExecInfo* exec_info);
+create_subplan(const FccExecInfo* exec_info);
+
+/**
+ * \brief Destroys the given subplan
+ *
+ * \param operator The root of the subplan to destroy
+ */
+void 
+destroy_subplan(FccOperator* root);
 
 /**
  * @brief  Merges two Foreach operators into a new one. The new Foreach operator

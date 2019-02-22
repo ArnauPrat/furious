@@ -1,10 +1,8 @@
 
 
 
-#include "frontend/dep_graph.h"
 #include "fcc_context.h"
 #include "frontend/fccASTVisitor.h"
-#include "frontend/transforms.h"
 #include "frontend/execution_plan.h"
 #include "frontend/exec_plan_printer.h"
 #include "backend/codegen.h"
@@ -294,28 +292,16 @@ Fcc_run(FccContext* context,
 #endif
   }
 
-  DependencyGraph dep_graph;
-  uint32_t size = context->p_exec_infos.size();
-  for(uint32_t i = 0; i < size; ++i)
-  {
-    dep_graph.insert(context->p_exec_infos[i]);
-  }
 
-  DynArray<const FccExecInfo*> roots = dep_graph.get_roots();
-  if(roots.size() == 0)
+
+  // Build initial execution plan
+  FccExecPlan exec_plan(context);
+
+  if(!exec_plan.bootstrap())
   {
     handle_compilation_error(context, 
                              FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH, 
                              nullptr);
-  }
-
-  // Build initial execution plan
-  FccExecPlan exec_plan(context);
-  for(uint32_t i = 0; i < context->p_exec_infos.size(); ++i)
-  {
-    const FccExecInfo* info = context->p_exec_infos[i];
-    FccOperator* next_root = bootstrap_subplan(info);
-    exec_plan.insert_root(info->p_ast_context, next_root);
   }
 
   ExecPlanPrinter printer;

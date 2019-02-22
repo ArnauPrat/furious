@@ -162,11 +162,14 @@ generate_code(const FccExecPlan* exec_plan,
 {
   FILE* fd = fopen(filename.c_str(), "w");
   fprintf(fd, "\n\n\n");
-  // add basic includes
+  // ADDING FURIOUS INCLUDE 
   fprintf(fd, "#include <%s> \n", include_file.c_str());
-  /// Find dependencies
+
+  // LOOKING FOR DEPENDENCIES 
   DependenciesExtr deps_visitor;
   deps_visitor.traverse(exec_plan);
+
+  // ADDING REQUIRED INCLUDES
   for(const std::string& incl : deps_visitor.m_include_files)
   {
     fprintf(fd, "#include \"%s\"\n", incl.c_str());
@@ -174,6 +177,8 @@ generate_code(const FccExecPlan* exec_plan,
 
   fprintf(fd, "\n\n\n");
 
+  // ADDING REQUIRED "USING NAMESPACE DIRECTIVES TODO: Add support for other
+  // using clauses"
   for(uint32_t i = 0; i < exec_plan->p_context->p_using_decls.size(); ++i)
   {
     const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
@@ -184,6 +189,7 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"using namespace %s;\n",code.c_str());
   }
 
+  // ADDING DECLARATIONS FOUND IN FURIOUS SCRIPTS
   for(const Decl* decl : deps_visitor.m_declarations)
   {
     const SourceManager& sm = decl->getASTContext().getSourceManager();
@@ -195,17 +201,18 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"%s;\n\n", code.c_str());
   }
 
-
-
+  // STARTING CODE GENERATION
   fprintf(fd,"namespace furious \n{\n");
-  /// Declare variables (e.g. tableviews, tag sets, etc.)
+
+  /// DECLARE VARIABLES (e.g. TABLEVIEWS, BITTABLES, etc.)
   fprintf(fd, "\n\n\n");
   fprintf(fd,"// Variable declarations \n");
   VarsExtr vars_extr;
   vars_extr.traverse(exec_plan);
+
+  // TABLEVIEWS
   for(const std::string& table : vars_extr.m_components)
   {
-    // TableViews
     std::string base_name = table;
     std::transform(base_name.begin(), 
                    base_name.end(), 
@@ -220,12 +227,13 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
   }
 
+  // BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
-    // TagSets
     fprintf(fd, "BitTable* tagged_%s;\n", tag.c_str());
   }
 
+  // SYSTEMWRAPPERS
   for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size();++i)
   {
     const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
@@ -244,10 +252,12 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info->m_system.m_id);
   }
 
-  /// Initialize variables
+  /// GENERATING __furious__init  
   fprintf(fd, "\n\n\n");
   fprintf(fd, "// Variable initializations \n");
   fprintf(fd, "void __furious_init(Database* database)\n{\n");
+
+  // INITIALIZING TABLEVIEWS 
   for(const std::string& table : vars_extr.m_components)
   {
     std::string base_name = table;
@@ -267,6 +277,7 @@ generate_code(const FccExecPlan* exec_plan,
             table.c_str());
   }
 
+  // INITIALIZING BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
     fprintf(fd,
@@ -275,6 +286,7 @@ generate_code(const FccExecPlan* exec_plan,
             tag.c_str());
   }
 
+  // INITIALIZING SYSTEM WRAPPERS
   for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size(); ++i)
   {
     const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
@@ -311,17 +323,18 @@ generate_code(const FccExecPlan* exec_plan,
   }
   fprintf(fd,"}\n");
 
-  /// Generate execution code
+  /// GENERATING __furious_frame CODE
   fprintf(fd,"\n\n\n");
   fprintf(fd,"void __furious_frame(float delta, Database* database)\n{\n");
 
   fprintf(fd, "database->lock();\n");
   fprintf(fd, "Context context(delta,database);\n");
 
+  // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
   p_registry = new CodeGenRegistry();
-  for(uint32_t i = 0; i < exec_plan->m_num_roots; ++i)
+  for(uint32_t i = 0; i < exec_plan->p_roots.size(); ++i)
   {
-    const FccOperator* root = exec_plan->m_roots[i];
+    const FccOperator* root = exec_plan->p_roots[i];
     ExecPlanPrinter printer{true};
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
@@ -334,6 +347,7 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "database->release();\n");
   fprintf(fd, "}\n");
 
+  // GENERATING __furious_release CODE
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 

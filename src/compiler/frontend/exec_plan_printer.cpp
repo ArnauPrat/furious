@@ -21,9 +21,9 @@ ExecPlanPrinter::ExecPlanPrinter(bool add_comments)
 void
 ExecPlanPrinter::traverse(const FccExecPlan* plan) 
 {
-  for(uint32_t i = 0; i < plan->m_num_roots; ++i)
+  for(uint32_t i = 0; i < plan->p_roots.size(); ++i)
   {
-    plan->m_roots[i]->accept(this);
+    plan->p_roots[i]->accept(this);
   }
 }
 

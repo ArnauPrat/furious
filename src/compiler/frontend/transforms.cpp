@@ -7,7 +7,7 @@
 namespace furious {
 
 FccOperator* 
-bootstrap_subplan(const FccExecInfo* exec_info)
+create_subplan(const FccExecInfo* exec_info)
 {
   FccOperator* root = nullptr;
   if(exec_info->m_basic_component_types.size() > 1)
@@ -88,6 +88,12 @@ bootstrap_subplan(const FccExecInfo* exec_info)
       break;
   };
   return root;
+}
+
+void 
+destroy_subplan(FccOperator* root)
+{
+  delete root;
 }
 
 Foreach* 

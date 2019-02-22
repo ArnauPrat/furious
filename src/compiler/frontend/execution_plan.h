@@ -163,6 +163,9 @@ struct FccExecPlan
   FccExecPlan(FccContext* context);
   ~FccExecPlan();
 
+  bool
+  bootstrap();
+
   /**
    * \brief Inserts a new root to the execution plan
    *
@@ -170,15 +173,12 @@ struct FccExecPlan
    * \param FccOperator The root operator
    */
   void
-  insert_root(ASTContext* ast_context, const FccOperator*);
+  insert_root(ASTContext* ast_context, 
+              FccOperator*);
 
-  FccContext*                     p_context;
-  uint32_t                        m_num_asts;
-  uint32_t                        m_max_asts;
-  uint32_t                        m_num_roots;
-  uint32_t                        m_max_roots;
-  ASTContext**                    m_asts;
-  const FccOperator**             m_roots; 
+  FccContext*               p_context;
+  DynArray<ASTContext*>     p_asts;
+  DynArray<FccOperator*>    p_roots; 
 };
 
 ////////////////////////////////////////////////

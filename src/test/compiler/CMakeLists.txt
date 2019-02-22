@@ -40,6 +40,7 @@ SET(TESTS
     filter_tag_test
     filter_func_test
     filter_lambda_test
+    dependency_test
   )
 
 foreach( TEST ${TESTS} )

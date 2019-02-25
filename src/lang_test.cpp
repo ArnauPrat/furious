@@ -46,11 +46,35 @@ furious::select<ComponentA,ComponentC,ComponentB>()
 
 furious::select<ComponentA,ComponentC,ComponentB>().foreach<TestSystem1>(10,0.2);
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+struct TestSystem2
+{
+  TestSystem2(float val) : m_val{val} {}
+
+  void run(furious::Context* context,
+           uint32_t id,
+           ComponentA* componentA,
+           const ComponentB *componentB)
+  {
+    componentA->m_field = componentB->m_field * m_val;
+  };
+
+  float m_val;
+};
+
+//furious::match<ComponentA, ComponentB>("edge name").foreach<TestSystem2>(1.0);
+
 
 END_FURIOUS_SCRIPT
 
+// This is just to not let the compiler and linker complain with warnings or
+// errors
 int main(int argc,
          char **argv)
 {
+  furious_script();
   return 0;
 }

@@ -86,10 +86,10 @@ add_subdirectory(./compiler)
 add_subdirectory(./test/runtime)
 add_subdirectory(./test/compiler)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-#add_executable( lang_test 
-#  lang_test.cpp
-#  )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+add_executable( lang_test 
+  lang_test.cpp
+  )
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 

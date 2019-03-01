@@ -21,7 +21,7 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::select<Position,Velocity>().filter([](const Position* pos, const Velocity* vel){
+furious::match<Position,Velocity>().filter([](const Position* pos, const Velocity* vel){
                                             return vel->m_x < 2.0f && vel->m_y < 2.0f && vel->m_z < 2.0f;
                                             })
                                     .foreach<UpdatePosition>(1.0f);

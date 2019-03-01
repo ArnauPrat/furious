@@ -18,9 +18,11 @@
 namespace furious 
 {
 
+#define _FURIOUS_INVALID_ENTITY_ID 0xffffffff
+#define _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH 128
+
 struct WebServer;
 
-#define _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH 128
 struct TableInfo
 {
   char        m_name[_FURIOUS_TABLE_INFO_MAX_NAME_LENGTH];
@@ -111,7 +113,6 @@ struct Database
   void
   clear_entity(entity_id_t id);
 
-
   /**
    * @brief Gets the next free entity id
    *
@@ -148,6 +149,15 @@ struct Database
   BitTable*
   get_tagged_entities(const std::string& tag);
 
+  /**
+   * \brief Gets a reference table
+   *
+   * \param ref_name The reference name
+   *
+   * \return Returns a TableView of the reference table
+   */
+  TableView<uint32_t>
+  get_references(const std::string& ref_name);
 
   /**
    * @brief Adds a reference between two entities
@@ -158,20 +168,18 @@ struct Database
    */
   void 
   add_reference( const std::string& type, 
-                      entity_id_t tail, 
-                      entity_id_t head);
+                 entity_id_t tail, 
+                 entity_id_t head);
 
   /**
    * @brief Removes a reference between two entities
    *
    * @param type The type of the reference
    * @param tail The origin entity of the reference
-   * @param head The destination entity of the reference
    */
   void 
   remove_reference( const std::string& type, 
-                          entity_id_t tail, 
-                          entity_id_t head);
+                    entity_id_t tail);
 
   /**
    * \brief Starts a webserver to listen to the given address and port

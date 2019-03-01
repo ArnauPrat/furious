@@ -26,7 +26,7 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::select<Position,Velocity>().filter(predicate)
+furious::match<Position,Velocity>().filter(predicate)
                                     .foreach<UpdatePosition>(1.0f);
 
 END_FURIOUS_SCRIPT

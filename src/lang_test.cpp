@@ -31,7 +31,7 @@ struct TestSystem1
   int32_t m_val;
 };
 
-furious::select<ComponentA,ComponentC,ComponentB>()
+furious::match<ComponentA,ComponentC,ComponentB>()
   .has_component<ComponentA>()
   .has_not_component<ComponentB>()
   .has_tag("Affected")
@@ -44,7 +44,7 @@ furious::select<ComponentA,ComponentC,ComponentB>()
   .filter(test1).foreach<TestSystem1>(10,0.2);
 
 
-furious::select<ComponentA,ComponentC,ComponentB>().foreach<TestSystem1>(10,0.2);
+//furious::select<ComponentA,ComponentC,ComponentB>().foreach<TestSystem1>(10,0.2);
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -65,7 +65,7 @@ struct TestSystem2
   float m_val;
 };
 
-//furious::match<ComponentA, ComponentB>("edge name").foreach<TestSystem2>(1.0);
+furious::match<ComponentA, ComponentB>().expand<ComponentC>("edge name").foreach<TestSystem2>(1.0);
 
 
 END_FURIOUS_SCRIPT

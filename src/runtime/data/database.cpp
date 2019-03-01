@@ -37,6 +37,13 @@ void Database::clear()
     delete *it_tags.next();
   }
   m_tags.clear();
+
+  BTree<Table*>::Iterator it_references = m_references.iterator();
+  while (it_references.has_next()) 
+  {
+    delete *it_references.next();
+  }
+  m_references.clear();
   release();
 }
 
@@ -113,31 +120,63 @@ Database::get_tagged_entities(const std::string& tag)
   return bit_table_ptr;
 }
 
-void 
-Database::add_reference( const std::string& type, 
-                         entity_id_t tail, 
-                         entity_id_t head) 
+TableView<uint32_t>
+Database::get_references(const std::string& ref_name)
 {
-  /*auto it = m_references.find(type);
-  if (it == m_references.end()) {
-    int64_t hash_value = get_table_id(type);
-    auto table = new Table(type, hash_value, sizeof(int32_t), &destructor<int32_t>);
-    it = m_references.insert( std::make_pair(type, table)).first;
+  uint32_t hash_value = hash(ref_name.c_str());
+  lock();
+  Table* table_ptr = nullptr;
+  Table** ref_table = m_references.get(hash_value);
+  if (ref_table == nullptr) 
+  {
+    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), &destructor<uint32_t>);
+    m_references.insert_copy( hash_value, &table_ptr);
+  } 
+  else
+  {
+    table_ptr = *ref_table;
   }
-
-  it->second->insert_component<int32_t>(tail, head);
-  */
+  release();
+  return TableView<uint32_t>(table_ptr);
 }
 
 void 
-Database::remove_reference( const std::string& type, 
-                            entity_id_t tail, 
-                            entity_id_t head) 
+Database::add_reference( const std::string& ref_name, 
+                         entity_id_t tail, 
+                         entity_id_t head) 
 {
-  /*auto it = m_references.find(type);
-  if (it != m_references.end()) {
-    it->second->remove_component(tail);
-  }*/
+  uint32_t hash_value = hash(ref_name.c_str());
+  lock();
+  Table* table_ptr = nullptr;
+  Table** ref_table = m_references.get(hash_value);
+  if (ref_table == nullptr) 
+  {
+    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), &destructor<uint32_t>);
+    m_references.insert_copy( hash_value, &table_ptr);
+  } 
+  else
+  {
+    table_ptr = *ref_table;
+  }
+  table_ptr->insert_component<uint32_t>(tail, head);
+  release();
+  return;
+}
+
+void 
+Database::remove_reference( const std::string& ref_name, 
+                            entity_id_t tail) 
+{
+  uint32_t hash_value = hash(ref_name.c_str());
+  lock();
+  Table** ref_table = m_references.get(hash_value);
+  if (ref_table != nullptr) 
+  {
+    Table* table_ptr = *ref_table;
+    table_ptr->remove_component(tail);
+  }
+  release();
+  return;
 }
 
 void

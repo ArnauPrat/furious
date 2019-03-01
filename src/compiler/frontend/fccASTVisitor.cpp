@@ -1,5 +1,4 @@
 
-
 #include "fccASTVisitor.h"
 #include "fcc_context.h"
 #include "parsing.h"
@@ -47,7 +46,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
 
     // Check if the declaration is a valid furious api call 
     if (ret_type->isStructureOrClassType() &&
-        (ret_type->getAsCXXRecordDecl()->getNameAsString() == "SelectQueryBuilder" ||
+        (ret_type->getAsCXXRecordDecl()->getNameAsString() == "MatchQueryBuilder" ||
          ret_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo") &&
         isa<ClassTemplateSpecializationDecl>(ret_decl))
     {

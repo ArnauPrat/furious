@@ -32,6 +32,7 @@ SET(TESTS
   database_test
   tags_test
   traits_test
+  refs_test
   )
 
 foreach( TEST ${TESTS} )

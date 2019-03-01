@@ -34,7 +34,7 @@ struct UpdatePosition
   float m_speed = 1.0;
 };
 
-furious::select<Position,Velocity>().foreach<UpdatePosition>(1.0);
-furious::select<Velocity>().foreach<UpdateVelocity>();
+furious::match<Position,Velocity>().foreach<UpdatePosition>(1.0);
+furious::match<Velocity>().foreach<UpdateVelocity>();
 
 END_FURIOUS_SCRIPT

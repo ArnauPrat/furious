@@ -60,6 +60,7 @@ struct RegisterSystemInfo
  *
  * @return 
  */
+
 template <typename T, typename ... TComponents>
 typename std::enable_if<(std::is_pointer<TComponents>::value && ...), RegisterSystemInfo<T, TComponents ...> >::type
 __register_foreach(T *system,
@@ -69,7 +70,7 @@ __register_foreach(T *system,
 }
 
 template<typename...TComponents>
-struct SelectQueryBuilder
+struct MatchQueryBuilder
 {
   /**
    * @brief Executes the system on the entities that qualify the given
@@ -79,7 +80,7 @@ struct SelectQueryBuilder
    *
    * @return This RegisterSystemInfo
    */
-  SelectQueryBuilder<TComponents...> &
+  MatchQueryBuilder<TComponents...>
   filter(bool (*)(const typename std::remove_pointer<TComponents>::type *...))
   {
     return *this;
@@ -90,9 +91,9 @@ struct SelectQueryBuilder
    *
    * @param tag The tag to qualify
    *
-   * @return This SelectQueryBuilder
+   * @return This MatchQueryBuilder
    */
-  SelectQueryBuilder<TComponents...> &
+  MatchQueryBuilder<TComponents...>
   has_tag(const char *tag)
   {
     return *this;
@@ -103,9 +104,9 @@ struct SelectQueryBuilder
    *
    * @param tag The tag to qualify
    *
-   * @return This SelectQueryBuilder
+   * @return This MatchQueryBuilder
    */
-  SelectQueryBuilder<TComponents...> &
+  MatchQueryBuilder<TComponents...>
   has_not_tag(const char *tag)
   {
     return *this;
@@ -116,10 +117,10 @@ struct SelectQueryBuilder
    *
    * @tparam TComponent The component to qualify
    *
-   * @return This SelectQueryBuilder
+   * @return This MatchQueryBuilder
    */
-  template <typename TComponent>
-  SelectQueryBuilder<TComponents...> &
+  template<typename TComponent>
+  MatchQueryBuilder<TComponents...>
   has_component()
   {
     return *this;
@@ -130,13 +131,20 @@ struct SelectQueryBuilder
    *
    * @tparam TComponent The component to qualify
    *
-   * @return This SelectQueryBuilder
+   * @return This MatchQueryBuilder
    */
-  template <typename TComponent>
-  SelectQueryBuilder<TComponents...> &
+  template<typename TComponent>
+  MatchQueryBuilder<TComponents...>
   has_not_component()
   {
     return *this;
+  }
+
+  template<typename...QComponents>
+  MatchQueryBuilder<TComponents..., QComponents...>
+  expand(const std::string& str)
+  {
+    return MatchQueryBuilder<TComponents..., QComponents...>();
   }
 
   /**
@@ -164,42 +172,12 @@ struct SelectQueryBuilder
  *
  * @tparam typename...TComponents The components to select
  *
- * @return Returns a SelectQueryBuilder 
+ * @return Returns a MatchQueryBuilder 
  */
 template<typename...TComponents>
-SelectQueryBuilder<TComponents...> select() 
+MatchQueryBuilder<TComponents...> match() 
 {
-  return SelectQueryBuilder<TComponents...>{};
-}
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-template <typename Tail, typename Head>
-struct MatchQueryBuilder
-{
-  MatchQueryBuilder(const std::string& name) : 
-  m_name(name) 
-  {
-  }
-
-  template <typename TSystem, typename...TArgs>
-  auto
-  foreach(TArgs&&...args)
-  {
-    TSystem *system_object = new TSystem(std::forward<TArgs>(args)...);
-    return __register_foreach(system_object, &TSystem::run);
-  }
-
-  const std::string m_name;
-};
-
-
-template<typename Tail, typename Head>
-MatchQueryBuilder<Tail,Head> match(const std::string& edge_name)
-{
-  return MatchQueryBuilder<Tail,Head>(edge_name);
+  return MatchQueryBuilder<TComponents...>();
 }
 
 

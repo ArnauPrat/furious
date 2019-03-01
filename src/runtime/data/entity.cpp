@@ -2,7 +2,15 @@
 #include "entity.h"
 #include "bit_table.h"
 
-namespace furious  {
+namespace furious  
+{
+
+Entity::Entity(Database* database,
+               entity_id_t id) :
+m_id(id),
+p_database(database)
+{
+}
 
 Entity::Entity(Database* database) : 
   m_id(database->get_next_entity_id()),
@@ -44,9 +52,44 @@ Entity::has_tag(const std::string& tag)
   return bit_table->exists(m_id);
 }
 
-Database* Entity::get_database() 
+void
+Entity::add_reference(const std::string& ref_name,
+                      Entity other)
+{
+  p_database->add_reference(ref_name, 
+                            m_id, 
+                            other.m_id);
+}
+
+void
+Entity::remove_reference(const std::string& ref_name)
+{
+  p_database->remove_reference(ref_name, 
+                               m_id);
+}
+
+Entity
+Entity::get_reference(const std::string& ref_name)
+{
+  TableView<uint32_t> ref_table = p_database->get_references(ref_name);
+  uint32_t* other = ref_table.get_component(m_id);
+  if(other != nullptr)
+  {
+    return Entity(p_database,*other);
+  }
+  return Entity(p_database,_FURIOUS_INVALID_ENTITY_ID);
+}
+
+Database* 
+Entity::get_database() 
 {
   return p_database;
+}
+
+bool
+Entity::is_valid()
+{
+  return m_id != _FURIOUS_INVALID_ENTITY_ID;
 }
 
 Entity 

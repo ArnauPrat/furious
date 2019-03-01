@@ -22,7 +22,7 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::select<Position,Velocity>().has_tag("affected")
+furious::match<Position,Velocity>().has_tag("affected")
                                     .has_not_tag("not_affected")
                                     .foreach<UpdatePosition>(1.0f);
 

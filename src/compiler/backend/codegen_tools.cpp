@@ -67,12 +67,10 @@ void
 consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
-        const DynArray<std::string>& types,
         const FccOperator* caller)
 {
 
   CodeGenContext* context = p_registry->find_or_create(op,fd);
-  context->m_types = types;
   context->m_source = source;
   context->p_caller = caller;
   op->accept(context->p_consumer);

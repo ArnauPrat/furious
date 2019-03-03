@@ -72,7 +72,7 @@ ExecPlanPrinter::visit(const Scan* scan)
   StringBuilder str_builder;
   str_builder.append("scan (%lu) - \"%s\"",
                      scan, 
-                     scan->m_component->getAsCXXRecordDecl()->getNameAsString().c_str());
+                     scan->m_component_types[0]->getAsCXXRecordDecl()->getNameAsString().c_str());
   print(str_builder.p_buffer);
   incr_level(false);
   decr_level();
@@ -134,7 +134,7 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
   str_builder.append("component_filter (%lu) - %s - \"%s\"", 
                      component_filter, 
                      type, 
-                     component_filter->m_component_type->getAsCXXRecordDecl()->getNameAsString().c_str());
+                     component_filter->m_filter_type->getAsCXXRecordDecl()->getNameAsString().c_str());
   print(str_builder.p_buffer);
   incr_level(false);
   component_filter->p_child.get()->accept(this);

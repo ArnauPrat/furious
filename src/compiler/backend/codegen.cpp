@@ -65,7 +65,7 @@ public:
   virtual void 
   visit(const Scan* scan) 
   {
-    extract_dependencies(get_dependencies(scan->m_component));
+    extract_dependencies(get_dependencies(scan->m_component_types[0]));
   }
 
   virtual void
@@ -84,7 +84,7 @@ public:
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
-    extract_dependencies(get_dependencies(component_filter->m_component_type));
+    extract_dependencies(get_dependencies(component_filter->m_filter_type));
     component_filter->p_child.get()->accept(this);
   }
 
@@ -126,7 +126,7 @@ public:
   virtual void 
   visit(const Scan* scan) 
   {
-    m_components.insert(get_type_name(scan->m_component));
+    m_components.insert(get_type_name(scan->m_component_types[0]));
   }
 
   virtual void
@@ -146,7 +146,7 @@ public:
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
-    m_components.insert(get_type_name(component_filter->m_component_type));
+    m_components.insert(get_type_name(component_filter->m_filter_type));
     component_filter->p_child.get()->accept(this);
   }
 

@@ -71,5 +71,4 @@ RefCountPtr<T>::operator=(const RefCountPtr<T>& other)
   lock();
 }
 
-
 } /* furious */ 

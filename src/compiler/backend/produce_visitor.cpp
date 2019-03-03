@@ -31,8 +31,8 @@ void
 ProduceVisitor::visit(const Scan* scan)
 {
   static uint32_t id = 0;
-  std::string ctype = get_type_name(scan->m_component);
-  std::string q_ctype = get_qualified_type_name(scan->m_component);
+  std::string ctype = get_type_name(scan->m_component_types[0]);
+  std::string q_ctype = get_qualified_type_name(scan->m_component_types[0]);
   std::string base_name = ctype;
 
   std::transform(base_name.begin(), 
@@ -55,7 +55,6 @@ ProduceVisitor::visit(const Scan* scan)
   consume(p_context->p_fd,
           scan->p_parent,
           "(&"+block_varname+")",
-          {q_ctype},
           scan);
 
   fprintf(p_context->p_fd,"}\n\n");
@@ -64,10 +63,7 @@ ProduceVisitor::visit(const Scan* scan)
 void
 ProduceVisitor::visit(const Join* join)
 {
-  static uint32_t id = 0;
-  p_context->m_join_id = std::to_string((uint32_t)id);
-  id++;
-  std::string hashtable = "hashtable_" + p_context->m_join_id;
+  std::string hashtable = "hashtable_" + std::to_string(join->m_id);
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,join->p_left.get());
   produce(p_context->p_fd,join->p_right.get());

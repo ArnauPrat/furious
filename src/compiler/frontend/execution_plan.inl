@@ -26,6 +26,7 @@ FccOperatorTmplt<T>(FccOperatorType::E_FILTER),
 p_child(child) 
 {
   p_child.get()->p_parent = this;
+  this->m_component_types.append(p_child.get()->m_component_types);
 }
 
 template<typename T>

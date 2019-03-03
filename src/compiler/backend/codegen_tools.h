@@ -28,16 +28,9 @@ struct CodeGenContext
   ProduceVisitor* p_producer;
   ConsumeVisitor* p_consumer;
 
-  // Generic state
   std::string m_source;
   FILE*                   p_fd;
-  DynArray<std::string>   m_types;
   const FccOperator*      p_caller;
-
-  // Join related state
-  DynArray<std::string>   m_left_types;
-  std::string             m_join_id;
-
 };
 
 struct CodeGenRegistry
@@ -62,7 +55,6 @@ void
 consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
-        const DynArray<std::string>& types,
         const FccOperator* caller);
 
 void 

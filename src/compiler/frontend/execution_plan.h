@@ -39,8 +39,10 @@ public:
   virtual void
   accept(FccExecPlanVisitor* visitor) const = 0;  
 
-  FccOperatorType m_type;
-  const FccOperator*  p_parent;
+  FccOperatorType       m_type;
+  const FccOperator*    p_parent;
+  DynArray<QualType>    m_component_types;
+  uint32_t              m_id;
 };
 
 /**
@@ -69,7 +71,6 @@ struct Scan : public FccOperatorTmplt<Scan>
   virtual 
   ~Scan() = default;
 
-  QualType  m_component;
 };
 
 /**
@@ -82,6 +83,7 @@ struct Join : public FccOperatorTmplt<Join>
   virtual 
   ~Join();
 
+  uint32_t m_split_point;
   RefCountPtr<FccOperator> p_left;
   RefCountPtr<FccOperator> p_right;
 };
@@ -98,6 +100,7 @@ struct Filter : public FccOperatorTmplt<T>
   ~Filter();
 
   RefCountPtr<FccOperator> p_child;
+
 };
 
 struct PredicateFilter : public Filter<PredicateFilter>
@@ -138,7 +141,7 @@ struct ComponentFilter : public Filter<ComponentFilter>
   virtual 
   ~ComponentFilter() = default;
 
-  QualType          m_component_type;
+  QualType          m_filter_type;
   FccFilterOpType   m_op_type;
 };
 

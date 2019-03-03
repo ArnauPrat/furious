@@ -10,6 +10,9 @@ FccOperator::FccOperator(FccOperatorType type) :
 m_type(type),
 p_parent(nullptr)
 {
+  static uint32_t id = 0;
+  m_id = id;
+  ++id;
 }
 
 
@@ -18,10 +21,9 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 
 Scan::Scan(QualType component) : 
-  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN), 
-  m_component(component) 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN) 
 {
-
+  m_component_types.append(component);
 }
 
 ////////////////////////////////////////////////
@@ -36,9 +38,13 @@ p_right(right)
 {
   p_left.get()->p_parent = this;
   p_right.get()->p_parent = this;
+  m_component_types.append(p_left.get()->m_component_types);
+  m_split_point = m_component_types.size();
+  m_component_types.append(p_right.get()->m_component_types);
 }
 
-Join::~Join() {
+Join::~Join() 
+{
 }
 
 ////////////////////////////////////////////////
@@ -64,7 +70,6 @@ Filter(child),
 m_tag(tag),
 m_op_type(op_type)
 {
-
 }
 
 ////////////////////////////////////////////////
@@ -75,10 +80,9 @@ ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
                                  QualType component_type,
                                  FccFilterOpType op_type) :
 Filter<ComponentFilter>(child),
-m_component_type(component_type),
+m_filter_type(component_type),
 m_op_type(op_type)
 {
-
 }
 
 ////////////////////////////////////////////////
@@ -92,6 +96,7 @@ Foreach::Foreach(RefCountPtr<FccOperator> child,
   p_child(child) 
 {
   p_child.get()->p_parent = this;
+  m_component_types.append(child.get()->m_component_types);
 }
 
 Foreach::~Foreach() 
@@ -109,6 +114,7 @@ FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER),
 p_child(child),
 m_ref_name(ref_name)
 {
+  m_component_types.append(child.get()->m_component_types);
 }
 
 Gather::~Gather()

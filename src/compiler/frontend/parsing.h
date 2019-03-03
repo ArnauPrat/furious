@@ -14,86 +14,129 @@ namespace furious
 
 struct FccContext;
 struct FccMatch;
-struct FccEntityMatch;
-struct FccSystem;
 enum class FccParsingErrorType;
 
 /**
- * @brief Provess a furious entry point call
+ * \brief Process a match call
  *
- * @param ast_context The ast context of the call to process
- * @param exec_info The FccExecInfo where the result must be stored
- * @param call The CallExpr representing the call
+ * \param ast_context The ast context of the expand call
+ * \param fcc_context The fcc context of the expand call
+ * \param fcc_match The fcc_match of the expand call
+ * \param call The call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
-process_entry_point(ASTContext* ast_context,
-                    FccContext* fcc_context,
-                    FccSystem*  fcc_system,
-                    const CallExpr* call);
+process_match(ASTContext* ast_context,
+              FccContext *fcc_context,
+              FccMatch* fcc_match,
+              const CallExpr* call);
 
 /**
- * @brief Process a with_tag call
+ * \brief Process an expand call
  *
- * @param ast_context The ast context of the with_tag call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
+ * \param ast_context The ast context of the expand call
+ * \param fcc_context The fcc context of the expand call
+ * \param fcc_match The fcc_match of the expand call
+ * \param call The call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
+ */
+bool 
+process_expand(ASTContext* ast_context,
+               FccContext *fcc_context,
+               FccMatch* fcc_match,
+               const CallExpr* call);
+
+
+/**
+ * \brief Provess a furious entry point call
+ *
+ * \param ast_context The ast context of the call to process
+ * \param fcc_system The FccExecInfo where the result must be stored
+ * \param call The CallExpr representing the call
+ *
+ * \return True of the parsing was correct. False otherwise.
+ */
+bool 
+process_foreach(ASTContext* ast_context,
+                FccContext* fcc_context,
+                FccMatch*   fcc_match,
+                const CallExpr* call);
+
+/**
+ * \brief Process a with_tag call
+ *
+ * \param ast_context The ast context of the with_tag call
+ * \param fcc_match The exec info where the result is going to be stored
+ * \param call The AST call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
 process_has_tag(ASTContext* ast_context,
                  FccContext *fcc_context,
-                 FccEntityMatch* entity_match,
+                 FccMatch* fcc_match,
                  const CallExpr* call);
 
 /**
- * @brief Process a has_not_tag call
+ * \brief Process a has_not_tag call
  *
- * @param ast_context The ast context of the has_not_tag call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
+ * \param ast_context The ast context of the has_not_tag call
+ * \param fcc_match The exec info where the result is going to be stored
+ * \param call The AST call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
 process_has_not_tag(ASTContext* ast_context,
                     FccContext *fcc_context,
-                    FccEntityMatch* entity_match,
+                    FccMatch* fcc_match,
                     const CallExpr* call);
 
 /**
- * @brief Process a with_component call
+ * \brief Process a with_component call
  *
- * @param ast_context The ast context of the with_component call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
+ * \param ast_context The ast context of the with_component call
+ * \param fcc_match The exec info where the result is going to be stored
+ * \param call The AST call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
 process_has_component(ASTContext* ast_context,
                        FccContext *fcc_context,
-                       FccEntityMatch* entity_match,
+                       FccMatch* fcc_match,
                        const CallExpr* call);
 
 /**
- * @brief Process a without_component call
+ * \brief Process a without_component call
  *
- * @param ast_context The ast context of the has_not_component call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
+ * \param ast_context The ast context of the has_not_component call
+ * \param fcc_match The exec info where the result is going to be stored
+ * \param call The AST call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
 process_has_not_component(ASTContext* ast_context,
                           FccContext *fcc_context,
-                          FccEntityMatch* entity_match,
+                          FccMatch* fcc_match,
                           const CallExpr* call);
 
 /**
- * @brief Process a filter call
+ * \brief Process a filter call
  *
- * @param ast_context The ast context of the filter call
- * @param exec_info The exec info where the result is going to be stored
- * @param call The AST call expression to process
+ * \param ast_context The ast context of the filter call
+ * \param fcc_match The exec info where the result is going to be stored
+ * \param call The AST call expression to process
+ *
+ * \return True of the parsing was correct. False otherwise.
  */
 bool 
 process_filter(ASTContext* ast_context,
                FccContext *fcc_context,
-               FccEntityMatch* exec_info,
+               FccMatch* fcc_match,
                const CallExpr* call);
 
 

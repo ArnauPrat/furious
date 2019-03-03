@@ -104,6 +104,17 @@ get_type_decl(const QualType& type);
 AccessMode
 get_access_mode(const QualType& type);
 
+
+/**
+ * \brief Gets the string literal of an expression
+ *
+ * \param expr The expression to get the string literal from
+ *
+ * \return Returns the string literal. Empty string if string literal cannot be
+ * found
+ */
+std::string
+get_string_literal(const Expr* expr);
   
 } /* furious
  */ 

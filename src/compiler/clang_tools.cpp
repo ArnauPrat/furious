@@ -72,7 +72,6 @@ public:
     return true;
   }
 
-
   virtual
   bool VisitExpr(Expr* expr)
   {
@@ -184,6 +183,34 @@ get_access_mode(const QualType& type)
     return AccessMode::E_READ;
   }
   return AccessMode::E_WRITE;
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+class StringLiteralVisitor : public RecursiveASTVisitor<StringLiteralVisitor>
+{
+public:
+
+  std::string str;
+
+  StringLiteralVisitor() {}
+
+  virtual
+  bool VisitStringLiteral(clang::StringLiteral* string_literal)
+  {
+    str = string_literal->getString(); 
+    return true;
+  }
+
+};
+std::string
+get_string_literal(const Expr* expr)
+{
+  StringLiteralVisitor visitor;
+  visitor.TraverseStmt(const_cast<Expr*>(expr));
+  return visitor.str;
 }
 
 } /* furious*/

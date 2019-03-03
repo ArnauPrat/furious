@@ -55,18 +55,17 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       {
         p_fcc_match->m_operation_type = FccOperationType::E_FOREACH;
         p_fcc_match->p_ast_context = p_ast_context;
-        p_fcc_match->create_entity_match();
-        return process_entry_point(p_ast_context,
-                                   p_fcc_context,
-                                   &p_fcc_match->m_system,
-                                   call);
+        return process_foreach(p_ast_context,
+                               p_fcc_context,
+                               p_fcc_match,
+                               call);
       }
 
       if(func_name == "has_tag" ) 
       {
         return process_has_tag(p_ast_context,
                                p_fcc_context,
-                               p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
+                               p_fcc_match,
                                call);
       }
 
@@ -74,7 +73,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       {
         return process_has_not_tag(p_ast_context,
                                    p_fcc_context,
-                                   p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
+                                   p_fcc_match,
                                    call);
       }
 
@@ -82,7 +81,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       {
         return process_has_component(p_ast_context,
                                      p_fcc_context,
-                                     p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
+                                     p_fcc_match,
                                      call);
       }
 
@@ -90,7 +89,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       {
         return process_has_not_component(p_ast_context,
                                          p_fcc_context,
-                                         p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
+                                         p_fcc_match,
                                          call);
       }
 
@@ -98,8 +97,26 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       {
         return process_filter(p_ast_context,
                               p_fcc_context,
-                              p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
+                              p_fcc_match,
                               call);
+      }
+
+      if(func_name == "match" ) 
+      {
+        bool res = process_match(p_ast_context,
+                                 p_fcc_context,
+                                 p_fcc_match,
+                                 call);
+        return res;
+      }
+
+      if(func_name == "expand" ) 
+      {
+        bool res = process_expand(p_ast_context,
+                                  p_fcc_context,
+                                  p_fcc_match,
+                                  call);
+        return res;
       }
     } 
   }

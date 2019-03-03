@@ -2,6 +2,7 @@
 
 #include "parsing.h"
 #include "fcc_context.h"
+#include "clang_tools.h"
 
 namespace furious 
 {
@@ -64,10 +65,10 @@ report_parsing_error(ASTContext* ast_context,
  *
  * @return Returns a std::vector with the extracted QualTypes
  */
-std::vector<QualType> 
+DynArray<QualType> 
 get_tmplt_types(const TemplateArgumentList& arg_list) 
 {
-  std::vector<QualType> ret;
+  DynArray<QualType> ret;
 
   for (auto arg : arg_list.asArray())
   {
@@ -75,7 +76,7 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
       case TemplateArgument::ArgKind::Null:
         break;
       case TemplateArgument::ArgKind::Type:
-        ret.push_back(arg.getAsType());
+        ret.append(arg.getAsType());
         break;
       case TemplateArgument::ArgKind::Declaration:
         break;
@@ -92,7 +93,7 @@ get_tmplt_types(const TemplateArgumentList& arg_list)
       case TemplateArgument::ArgKind::Pack:
         for (auto arg2 : arg.getPackAsArray())
         {
-          ret.push_back(arg2.getAsType());
+          ret.append(arg2.getAsType());
         }
         break;
     }
@@ -114,37 +115,97 @@ print_debug_info(const ASTContext* ast_context,
                << get_column_number(sm, location)<< "\n";
 }
 
-
 bool 
-process_entry_point(ASTContext* ast_context,
-                    FccContext* fcc_contex,
-                    FccSystem*  fcc_system,
-                    const CallExpr* call)
+process_match(ASTContext* ast_context,
+                FccContext* fcc_context,
+                FccMatch*   fcc_match,
+                const CallExpr* call)
 {
 #ifndef NDEBUG
   SourceLocation location = call->getLocStart();
   print_debug_info(ast_context,
-                   "Found furious entry point",
+                   "Found match",
                    location);
 #endif
 
-  static int32_t system_id = 0;
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
 
+  const FunctionDecl* function_decl = call->getDirectCallee();
+  const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
+  DynArray<QualType> tmplt_types = get_tmplt_types(*arg_list);
+
+  for (size_t i = 1; i < tmplt_types.size(); ++i) 
+  {
+    QualType type = tmplt_types[i]->getPointeeType();
+    entity_match->insert_component_type(&type);
+  }
+  return true;
+}
+
+bool 
+process_expand(ASTContext* ast_context,
+                FccContext* fcc_context,
+                FccMatch*   fcc_match,
+                const CallExpr* call)
+{
+#ifndef NDEBUG
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found expand",
+                   location);
+#endif
+
+  uint32_t num_args = call->getNumArgs();
+  if(num_args != 1)
+  {
+    return false;
+  }
+
+  const Expr* param_expr = call->getArg(0);
+  std::string str = get_string_literal(param_expr);
+  fcc_match->insert_expand(str);
+
+  bool res = process_match(ast_context,
+                           fcc_context,
+                           fcc_match,
+                           call);
+  fcc_match->create_entity_match();
+  return res;
+}
+
+
+bool 
+process_foreach(ASTContext* ast_context,
+                FccContext* fcc_context,
+                FccMatch*   fcc_match,
+                const CallExpr* call)
+{
+#ifndef NDEBUG
+  SourceLocation location = call->getLocStart();
+  print_debug_info(ast_context,
+                   "Found foreach",
+                   location);
+#endif
+  static int32_t system_id = 0;
   const FunctionDecl* func_decl = call->getDirectCallee();
+
+  // Initialize entity_match
+  fcc_match->create_entity_match();
 
   // Extract Basic Components and System from function return type
   QualType ret_type = func_decl->getReturnType();
   const RecordDecl* ret_decl = ret_type.getTypePtr()->getAsCXXRecordDecl();
   const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(ret_decl);
   const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
-  std::vector<QualType> tmplt_types = get_tmplt_types(arg_list);
+  DynArray<QualType> tmplt_types = get_tmplt_types(arg_list);
 
-  fcc_system->m_id = system_id;
-  fcc_system->m_system_type = tmplt_types[0];
+  FccSystem* system = &fcc_match->m_system;
+  system->m_id = system_id;
+  system->m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
     QualType type = tmplt_types[i]->getPointeeType();
-    fcc_system->insert_component_type(&type);
+    system->insert_component_type(&type);
   }
 
   // Extract System constructor parameter expressions
@@ -152,7 +213,7 @@ process_entry_point(ASTContext* ast_context,
   for(uint32_t i = 0; i < num_args; ++i)
   {
     const Expr* arg_expr = call->getArg(i);
-    fcc_system->insert_ctor_param(arg_expr);
+    system->insert_ctor_param(arg_expr);
   }
   system_id++;
   return true;
@@ -194,7 +255,7 @@ const T* find_first_dfs(const Stmt* expr)
 bool 
 process_filter(ASTContext* ast_context,
                FccContext* fcc_context,
-               FccEntityMatch* entity_match,
+               FccMatch* fcc_match,
                const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -207,6 +268,7 @@ process_filter(ASTContext* ast_context,
   const Expr* argument = call->getArg(0);
   const FunctionDecl* func_decl = nullptr;
   const LambdaExpr* lambda = nullptr;
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
@@ -238,7 +300,7 @@ process_filter(ASTContext* ast_context,
 bool 
 process_has_tag(ASTContext* ast_context,
                  FccContext* fcc_context,
-                 FccEntityMatch* entity_match,
+                 FccMatch*   fcc_match,
                  const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -247,6 +309,8 @@ process_has_tag(ASTContext* ast_context,
                    "Found has tag",
                    location);
 #endif
+
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
 
   uint32_t num_args = call->getNumArgs();
   for(uint32_t i = 0; i < num_args; ++i)
@@ -274,7 +338,7 @@ process_has_tag(ASTContext* ast_context,
 bool 
 process_has_not_tag(ASTContext* ast_context,
                     FccContext* fcc_context,
-                    FccEntityMatch* entity_match,
+                    FccMatch* fcc_match,
                     const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -283,6 +347,7 @@ process_has_not_tag(ASTContext* ast_context,
                    "Found has not tag",
                    location);
 #endif
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
   uint32_t num_args = call->getNumArgs();
   for(uint32_t i = 0; i < num_args; ++i)
   {
@@ -309,7 +374,7 @@ process_has_not_tag(ASTContext* ast_context,
 bool 
 process_has_component(ASTContext* ast_context,
                        FccContext* fcc_contex,
-                       FccEntityMatch* entity_match,
+                       FccMatch*  fcc_match,
                        const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -318,6 +383,7 @@ process_has_component(ASTContext* ast_context,
                    "Found has component",
                    location);
 #endif
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) 
@@ -332,7 +398,7 @@ process_has_component(ASTContext* ast_context,
 bool 
 process_has_not_component(ASTContext* ast_context,
                           FccContext* fcc_contex,
-                          FccEntityMatch* entity_match,
+                          FccMatch*   fcc_match,
                           const CallExpr* call)
 {
 
@@ -343,6 +409,7 @@ process_has_not_component(ASTContext* ast_context,
                    location);
 #endif
 
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {

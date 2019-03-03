@@ -36,10 +36,10 @@ namespace furious
 {
 
 /**
- * @brief Object used to tune the set of entities the system runs on
+ * \brief Object used to tune the set of entities the system runs on
  *
- * @tparam TSystem
- * @tparam typename...Components
+ * \tparam TSystem
+ * \tparam typename...Components
  */
 template <typename TSystem, typename... TComponents>
 struct RegisterSystemInfo
@@ -48,17 +48,17 @@ struct RegisterSystemInfo
 };
 
 /**
- * @brief Helper function used to extract the Component types of the run method
+ * \brief Helper function used to extract the Component types of the run method
  * of the system. These Component types are then used to parametrize the
  * RegisterSystemInfo structure, specially methods such as filter in order to make sure
  * that these have the required parameters, namely the components.
  *
- * @tparam T The type of the system object
- * @tparam typename...Components The component types of the run method
- * @param system A pointer to the system object
- * @param T::* The function of the system object, which will always be "run".
+ * \tparam T The type of the system object
+ * \tparam typename...Components The component types of the run method
+ * \param system A pointer to the system object
+ * \param T::* The function of the system object, which will always be "run".
  *
- * @return 
+ * \return 
  */
 
 template <typename T, typename ... TComponents>
@@ -73,12 +73,12 @@ template<typename...TComponents>
 struct MatchQueryBuilder
 {
   /**
-   * @brief Executes the system on the entities that qualify the given
+   * \brief Executes the system on the entities that qualify the given
    * predicate
    *
-   * @param  The predicate 
+   * \param  The predicate 
    *
-   * @return This RegisterSystemInfo
+   * \return This RegisterSystemInfo
    */
   MatchQueryBuilder<TComponents...>
   filter(bool (*)(const typename std::remove_pointer<TComponents>::type *...))
@@ -87,11 +87,11 @@ struct MatchQueryBuilder
   }
 
   /**
-   * @brief Executes the system on those entities with the given tag
+   * \brief Executes the system on those entities with the given tag
    *
-   * @param tag The tag to qualify
+   * \param tag The tag to qualify
    *
-   * @return This MatchQueryBuilder
+   * \return This MatchQueryBuilder
    */
   MatchQueryBuilder<TComponents...>
   has_tag(const char *tag)
@@ -100,11 +100,11 @@ struct MatchQueryBuilder
   }
 
   /**
-   * @brief Executes the system on those entities that do not have the given tag
+   * \brief Executes the system on those entities that do not have the given tag
    *
-   * @param tag The tag to qualify
+   * \param tag The tag to qualify
    *
-   * @return This MatchQueryBuilder
+   * \return This MatchQueryBuilder
    */
   MatchQueryBuilder<TComponents...>
   has_not_tag(const char *tag)
@@ -113,11 +113,11 @@ struct MatchQueryBuilder
   }
 
   /**
-   * @brief Executes the system on those entities with the given component
+   * \brief Executes the system on those entities with the given component
    *
-   * @tparam TComponent The component to qualify
+   * \tparam TComponent The component to qualify
    *
-   * @return This MatchQueryBuilder
+   * \return This MatchQueryBuilder
    */
   template<typename TComponent>
   MatchQueryBuilder<TComponents...>
@@ -127,11 +127,11 @@ struct MatchQueryBuilder
   }
 
   /**
-   * @brief Executes the system on those entities that do not have the given component
+   * \brief Executes the system on those entities that do not have the given component
    *
-   * @tparam TComponent The component to qualify
+   * \tparam TComponent The component to qualify
    *
-   * @return This MatchQueryBuilder
+   * \return This MatchQueryBuilder
    */
   template<typename TComponent>
   MatchQueryBuilder<TComponents...>
@@ -148,13 +148,13 @@ struct MatchQueryBuilder
   }
 
   /**
-   * @brief Applies a system for each selected element
+   * \brief Applies a system for each selected element
    *
-   * @tparam TSystem The type of the system to apply
-   * @tparam typename...TArgs The type arguments for the system constructor
-   * @param TArgs...args The arguments for the system constructor
+   * \tparam TSystem The type of the system to apply
+   * \tparam typename...TArgs The type arguments for the system constructor
+   * \param TArgs...args The arguments for the system constructor
    *
-   * @return 
+   * \return 
    */
   template <typename TSystem, typename...TArgs>
   auto
@@ -167,12 +167,12 @@ struct MatchQueryBuilder
 };
 
 /**
- * @brief Method use to start a query in a furious script by selecting those
+ * \brief Method use to start a query in a furious script by selecting those
  * entitties with the given components
  *
- * @tparam typename...TComponents The components to select
+ * \tparam typename...TComponents The components to select
  *
- * @return Returns a MatchQueryBuilder 
+ * \return Returns a MatchQueryBuilder 
  */
 template<typename...TComponents>
 MatchQueryBuilder<TComponents...> match() 

@@ -30,6 +30,7 @@ ProduceVisitor::visit(const Foreach* foreach)
 void 
 ProduceVisitor::visit(const Scan* scan)
 {
+  static uint32_t id = 0;
   std::string ctype = get_type_name(scan->m_component);
   std::string q_ctype = get_qualified_type_name(scan->m_component);
   std::string base_name = ctype;
@@ -43,7 +44,8 @@ ProduceVisitor::visit(const Scan* scan)
                     '_');
 
   std::string table_varname = base_name+"_table";
-  std::string iter_varname = base_name+"_iter";
+  std::string iter_varname = base_name+"_iter_" + std::to_string(id);
+  id++;
   std::string block_varname = base_name+"_block"; 
 
   fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());

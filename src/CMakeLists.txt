@@ -2,6 +2,8 @@
 include_directories(./)
 
 set (COMMON_SRC
+  ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
+  ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp

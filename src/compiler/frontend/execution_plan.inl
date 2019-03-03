@@ -21,20 +21,16 @@ FccOperatorTmplt<T>::accept(FccExecPlanVisitor* visitor) const
 }
 
 template<typename T>
-Filter<T>::Filter(FccOperator* child) :
+Filter<T>::Filter(RefCountPtr<FccOperator> child) :
 FccOperatorTmplt<T>(FccOperatorType::E_FILTER),
 p_child(child) 
 {
-  p_child->p_parent = this;
-
+  p_child.get()->p_parent = this;
 }
 
 template<typename T>
 Filter<T>::~Filter() 
 {
-  if(p_child != nullptr) {
-    delete p_child;
-  }
 }
 
 } /* furious */ 

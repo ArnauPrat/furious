@@ -4,6 +4,7 @@
 
 #include "../common/types.h"
 #include "../common/dyn_array.h"
+#include "../common/refcount_ptr.h"
 
 #include <clang/AST/AST.h>
 
@@ -22,7 +23,9 @@ enum class FccOperatorType
   E_FILTER,
   E_SCAN,
   E_FOREACH,
+  E_GATHER,
 };
+
 
 class FccOperator
 {
@@ -74,13 +77,13 @@ struct Scan : public FccOperatorTmplt<Scan>
  */
 struct Join : public FccOperatorTmplt<Join> 
 {
-  Join(FccOperator* left, 
-       FccOperator* right);
+  Join(RefCountPtr<FccOperator> left, 
+       RefCountPtr<FccOperator> right);
   virtual 
   ~Join();
 
-  FccOperator * p_left;
-  FccOperator * p_right;
+  RefCountPtr<FccOperator> p_left;
+  RefCountPtr<FccOperator> p_right;
 };
 
 /**
@@ -89,17 +92,17 @@ struct Join : public FccOperatorTmplt<Join>
 template<typename T>
 struct Filter : public FccOperatorTmplt<T> 
 {
-  Filter(FccOperator* child);
+  Filter(RefCountPtr<FccOperator> child);
 
   virtual 
   ~Filter();
 
-  FccOperator* p_child;
+  RefCountPtr<FccOperator> p_child;
 };
 
 struct PredicateFilter : public Filter<PredicateFilter>
 {
-  PredicateFilter(FccOperator* child,
+  PredicateFilter(RefCountPtr<FccOperator> child,
                   const FunctionDecl* func_decl);
   virtual 
   ~PredicateFilter() = default;
@@ -115,7 +118,7 @@ enum class FccFilterOpType
 
 struct TagFilter : public Filter<TagFilter> 
 {
-  TagFilter(FccOperator* child,
+  TagFilter(RefCountPtr<FccOperator> child,
             const std::string& tag,
             FccFilterOpType op_type);
 
@@ -128,7 +131,7 @@ struct TagFilter : public Filter<TagFilter>
 
 struct ComponentFilter : public Filter<ComponentFilter>
 {
-  ComponentFilter(FccOperator* child,
+  ComponentFilter(RefCountPtr<FccOperator> child,
                   QualType component_type,
                   FccFilterOpType op_type);
 
@@ -145,14 +148,29 @@ struct ComponentFilter : public Filter<ComponentFilter>
  */
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
-  Foreach(FccOperator* child, 
+  Foreach(RefCountPtr<FccOperator> child, 
           const DynArray<const FccSystem*>& systems);
 
   virtual 
   ~Foreach();
 
   DynArray<const FccSystem*>      p_systems;
-  FccOperator*                    p_child;
+  RefCountPtr<FccOperator>        p_child;
+};
+
+/**
+ * @brief Foreach operator. Applies a system for each table row
+ */
+struct Gather : public FccOperatorTmplt<Gather>  
+{
+  Gather(RefCountPtr<FccOperator> child, 
+         const std::string& ref_name);
+
+  virtual 
+  ~Gather();
+
+  RefCountPtr<FccOperator> p_child;
+  std::string              m_ref_name;
 };
 
 ////////////////////////////////////////////////
@@ -210,6 +228,9 @@ public:
 
   virtual void
   visit(const PredicateFilter* predicate_filter) = 0;
+
+  virtual void
+  visit(const Gather* gather) = 0;
 };
 
 }  

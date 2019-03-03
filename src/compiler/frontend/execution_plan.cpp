@@ -28,34 +28,27 @@ Scan::Scan(QualType component) :
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Join::Join(FccOperator* left, 
-           FccOperator* right) :
+Join::Join(RefCountPtr<FccOperator> left, 
+           RefCountPtr<FccOperator> right) :
 FccOperatorTmplt<Join>(FccOperatorType::E_JOIN), 
 p_left(left),
 p_right(right) 
 {
-  p_left->p_parent = this;
-  p_right->p_parent = this;
+  p_left.get()->p_parent = this;
+  p_right.get()->p_parent = this;
 }
 
 Join::~Join() {
-  if(p_left != nullptr) {
-    delete p_left;
-  }
-
-  if(p_right != nullptr) {
-    delete p_right;
-  }
 }
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-PredicateFilter::PredicateFilter(FccOperator* child,
+PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
                                  const FunctionDecl* func_decl) :
-Filter<PredicateFilter>{child},
-p_func_decl{func_decl}
+Filter<PredicateFilter>(child),
+p_func_decl(func_decl)
 {
 }
 
@@ -64,12 +57,12 @@ p_func_decl{func_decl}
 ////////////////////////////////////////////////
 
 
-TagFilter::TagFilter(FccOperator* child,
+TagFilter::TagFilter(RefCountPtr<FccOperator> child,
                      const std::string& tag,
                      FccFilterOpType op_type) :
-Filter{child},
-m_tag{tag},
-m_op_type{op_type}
+Filter(child),
+m_tag(tag),
+m_op_type(op_type)
 {
 
 }
@@ -78,12 +71,12 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-ComponentFilter::ComponentFilter(FccOperator* child,
+ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
                                  QualType component_type,
                                  FccFilterOpType op_type) :
-Filter<ComponentFilter>{child},
-m_component_type{component_type},
-m_op_type{op_type}
+Filter<ComponentFilter>(child),
+m_component_type(component_type),
+m_op_type(op_type)
 {
 
 }
@@ -92,25 +85,35 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Foreach::Foreach(FccOperator* child,
+Foreach::Foreach(RefCountPtr<FccOperator> child,
                  const DynArray<const FccSystem*>& systems) :
   FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH), 
   p_systems(systems), 
   p_child(child) 
 {
-  p_child->p_parent = this;
+  p_child.get()->p_parent = this;
 }
 
-Foreach::~Foreach() {
-  if(p_child != nullptr) {
-    delete p_child;
-  }
+Foreach::~Foreach() 
+{
 }
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
+
+Gather::Gather(RefCountPtr<FccOperator> child, 
+               const std::string& ref_name) :
+FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER),
+p_child(child),
+m_ref_name(ref_name)
+{
+}
+
+Gather::~Gather()
+{
+}
 
 FccExecPlan::FccExecPlan(FccContext* context) :
 p_context(context)

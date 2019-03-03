@@ -74,7 +74,7 @@ ConsumeVisitor::visit(const Join* join)
 {
 
   std::string hashtable = "hashtable_"+p_context->m_join_id;
-  if(p_context->p_caller == join->p_left) 
+  if(p_context->p_caller == join->p_left.get()) 
   {
 
     fprintf(p_context->p_fd, 
@@ -242,6 +242,11 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
           p_context->m_types,
           predicate_filter);
   fprintf(p_context->p_fd, "}\n");
+}
+
+void
+ConsumeVisitor::visit(const Gather* gather)
+{
 }
 
 } /* furious */ 

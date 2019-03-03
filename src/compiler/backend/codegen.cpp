@@ -59,7 +59,7 @@ public:
       const FccSystem* system = foreach->p_systems[i];
       extract_dependencies(get_dependencies(system->m_system_type));
     }
-    foreach->p_child->accept(this);
+    foreach->p_child.get()->accept(this);
   }
 
   virtual void 
@@ -71,28 +71,34 @@ public:
   virtual void
   visit(const Join* join) 
   {
-    join->p_left->accept(this);
-    join->p_right->accept(this);
+    join->p_left.get()->accept(this);
+    join->p_right.get()->accept(this);
   }
 
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
-    tag_filter->p_child->accept(this);
+    tag_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
     extract_dependencies(get_dependencies(component_filter->m_component_type));
-    component_filter->p_child->accept(this);
+    component_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const PredicateFilter* predicate_filter) 
   {
     extract_dependencies(get_dependencies(predicate_filter->p_func_decl));
-    predicate_filter->p_child->accept(this);
+    predicate_filter->p_child.get()->accept(this);
+  }
+
+  virtual void
+  visit(const Gather* gather) 
+  {
+    gather->p_child.get()->accept(this);
   }
 };
 
@@ -114,7 +120,7 @@ public:
   virtual void 
   visit(const Foreach* foreach)
   {
-    foreach->p_child->accept(this);
+    foreach->p_child.get()->accept(this);
   }
 
   virtual void 
@@ -126,28 +132,34 @@ public:
   virtual void
   visit(const Join* join) 
   {
-    join->p_left->accept(this);
-    join->p_right->accept(this);
+    join->p_left.get()->accept(this);
+    join->p_right.get()->accept(this);
   }
 
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
     m_tags.insert(tag_filter->m_tag);
-    tag_filter->p_child->accept(this);
+    tag_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
     m_components.insert(get_type_name(component_filter->m_component_type));
-    component_filter->p_child->accept(this);
+    component_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const PredicateFilter* predicate_filter) 
   {
-    predicate_filter->p_child->accept(this);
+    predicate_filter->p_child.get()->accept(this);
+  }
+
+  virtual void
+  visit(const Gather* gather)
+  {
+    gather->p_child.get()->accept(this);
   }
 };
 

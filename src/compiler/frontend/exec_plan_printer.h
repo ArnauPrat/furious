@@ -37,6 +37,9 @@ public:
   virtual void
   visit(const PredicateFilter* predicate_filter) override;
 
+  virtual void
+  visit(const Gather* gather) override;
+
   void
   incr_level(bool siblings);
 

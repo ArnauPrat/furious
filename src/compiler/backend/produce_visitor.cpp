@@ -24,7 +24,7 @@ p_context{context}
 void 
 ProduceVisitor::visit(const Foreach* foreach)
 {
-  produce(p_context->p_fd,foreach->p_child);
+  produce(p_context->p_fd,foreach->p_child.get());
 }
 
 void 
@@ -69,26 +69,32 @@ ProduceVisitor::visit(const Join* join)
   id++;
   std::string hashtable = "hashtable_" + p_context->m_join_id;
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
-  produce(p_context->p_fd,join->p_left);
-  produce(p_context->p_fd,join->p_right);
+  produce(p_context->p_fd,join->p_left.get());
+  produce(p_context->p_fd,join->p_right.get());
 }
 
 void 
 ProduceVisitor::visit(const TagFilter* tag_filter)
 {
-  produce(p_context->p_fd,tag_filter->p_child);
+  produce(p_context->p_fd,tag_filter->p_child.get());
 }
 
 void
 ProduceVisitor::visit(const ComponentFilter* component_filter)
 {
-  produce(p_context->p_fd,component_filter->p_child);
+  produce(p_context->p_fd,component_filter->p_child.get());
 }
 
 void
 ProduceVisitor::visit(const PredicateFilter* predicate_filter)
 {
-  produce(p_context->p_fd,predicate_filter->p_child);
+  produce(p_context->p_fd,predicate_filter->p_child.get());
+}
+
+void
+ProduceVisitor::visit(const Gather* gather)
+{
+  produce(p_context->p_fd, gather->p_child.get());
 }
 
 } /* furious */ 

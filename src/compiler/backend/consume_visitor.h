@@ -37,6 +37,9 @@ public:
   virtual void
   visit(const PredicateFilter* predicate_filter);
 
+  virtual void
+  visit(const Gather* gather);
+
   CodeGenContext* p_context;
 };
 

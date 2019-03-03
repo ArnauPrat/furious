@@ -62,7 +62,7 @@ ExecPlanPrinter::visit(const Foreach* foreach)
                      to_string(info).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
-  foreach->p_child->accept(this);
+  foreach->p_child.get()->accept(this);
   decr_level();
 }
 
@@ -85,8 +85,8 @@ ExecPlanPrinter::visit(const Join* join)
   str_builder.append("join(%lu)", join);
   print(str_builder.p_buffer);
   incr_level(true);
-  join->p_left->accept(this);
-  join->p_right->accept(this);
+  join->p_left.get()->accept(this);
+  join->p_right.get()->accept(this);
   decr_level();
 }
 
@@ -112,7 +112,7 @@ ExecPlanPrinter::visit(const TagFilter* tag_filter)
                      tag_filter->m_tag.c_str()); 
   print(str_builder.p_buffer);
   incr_level(false);
-  tag_filter->p_child->accept(this);
+  tag_filter->p_child.get()->accept(this);
   decr_level();
 }
 
@@ -137,7 +137,7 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
                      component_filter->m_component_type->getAsCXXRecordDecl()->getNameAsString().c_str());
   print(str_builder.p_buffer);
   incr_level(false);
-  component_filter->p_child->accept(this);
+  component_filter->p_child.get()->accept(this);
   decr_level();
 }
 
@@ -156,7 +156,20 @@ ExecPlanPrinter::visit(const PredicateFilter* predicate_filter)
                      to_string(predicate_filter->p_func_decl).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
-  predicate_filter->p_child->accept(this);
+  predicate_filter->p_child.get()->accept(this);
+  decr_level();
+}
+
+void
+ExecPlanPrinter::visit(const Gather* gather) 
+{
+  StringBuilder str_builder;
+  str_builder.append("gather (%lu) - %s", 
+                     gather, 
+                     gather->m_ref_name.c_str());
+  print(str_builder.p_buffer);
+  incr_level(false);
+  gather->p_child.get()->accept(this);
   decr_level();
 }
 

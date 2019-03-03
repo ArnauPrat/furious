@@ -13,10 +13,11 @@ namespace furious
 {
 
 struct FccContext;
-struct FccSystemInfo;
+struct FccSystem;
 class FccExecPlanVisitor;
 
-enum class FccOperatorType {
+enum class FccOperatorType 
+{
   E_JOIN,
   E_FILTER,
   E_SCAN,
@@ -145,12 +146,12 @@ struct ComponentFilter : public Filter<ComponentFilter>
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
   Foreach(FccOperator* child, 
-          const DynArray<const FccSystemInfo*>& systems);
+          const DynArray<const FccSystem*>& systems);
 
   virtual 
   ~Foreach();
 
-  DynArray<const FccSystemInfo*>  m_systems;
+  DynArray<const FccSystem*>      p_systems;
   FccOperator*                    p_child;
 };
 

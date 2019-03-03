@@ -36,12 +36,20 @@ enum class AccessMode
 /**
  * \brief 
  */
-struct FccSystemInfo 
+struct FccSystem 
 {
-  FccSystemInfo(FccContext* fcc_context);
-  FccSystemInfo(const FccSystemInfo&) = delete;
+  FccSystem(FccContext* fcc_context);
+  FccSystem(const FccSystem&) = delete;
 
-  ~FccSystemInfo();
+  ~FccSystem();
+
+  /**
+   * \brief Inserts a component type to this execution info
+   *
+   * \param q_type The component type to add
+   */
+  void
+  insert_component_type(const QualType* q_type);
 
   /**
    * \brief Inserts a new constructor parameter expression
@@ -54,6 +62,7 @@ struct FccSystemInfo
   FccContext*               p_fcc_context;
   QualType                  m_system_type;        // The type of the system
   DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
+  DynArray<QualType>        m_component_types;       // The types of the components of the system
   int32_t                   m_id;
 };
 
@@ -62,14 +71,13 @@ struct FccSystemInfo
  * including the type of the system, the components the systme needs, the tags
  * the entities must contain and the type of operation to execute.
  */
-struct FccExecInfo 
+struct FccEntityMatch 
 {
-  FccExecInfo(ASTContext* ast_context,
-              FccContext* fcc_context);
+  FccEntityMatch(FccContext* fcc_context);
 
-  FccExecInfo(const FccExecInfo&) = delete;
+  FccEntityMatch(const FccEntityMatch&) = delete;
 
-  ~FccExecInfo();
+  ~FccEntityMatch();
 
   /**
    * \brief Inserts a component type to this execution info
@@ -119,10 +127,7 @@ struct FccExecInfo
   void
   insert_filter_func(const FunctionDecl* decl);
 
-  ASTContext*           p_ast_context;                 // clang ast context
   FccContext*           p_fcc_context;                 // the fcc context this exec info belongs to
-  FccOperationType      m_operation_type;              // The type of operations
-  FccSystemInfo         m_system;                      // The system to execute
 
   DynArray<QualType>            m_basic_component_types;       // The types of the components of the system
   DynArray<QualType>            m_has_components;              // The types of the "has" components
@@ -130,6 +135,30 @@ struct FccExecInfo
   DynArray<std::string>         m_has_tags;                    // The "with" tags  
   DynArray<std::string>         m_has_not_tags;                // The "has_not" tags
   DynArray<const FunctionDecl*> p_filter_func;                 // The filter function
+};
+
+struct FccMatch
+{
+  FccMatch(ASTContext* ast_context,
+           FccContext* fcc_context);
+  ~FccMatch();
+
+  ASTContext*           p_ast_context;          // clang ast context
+  FccContext*           p_fcc_context;          // the fcc context this exec info belongs to
+
+  FccOperationType      m_operation_type;              // The type of operations
+  FccEntityMatch* 
+  create_entity_match();
+
+  void
+  insert_expand(const std::string& ref_name);
+
+  void
+  set_system(const FccSystem* system);
+
+  DynArray<FccEntityMatch*>       p_entity_matches;   // The set of entity matches that conform this query
+  DynArray<std::string>           m_expands;          // The set of expands that conform this query
+  FccSystem                       m_system;           // The system that executes on the results of this match
 };
 
 ////////////////////////////////////////////////
@@ -222,8 +251,8 @@ struct FccContext
    *
    * \return The created FccExecInfo.
    */
-  FccExecInfo*
-  create_exec_info(ASTContext* ast_context);
+  FccMatch*
+  create_match(ASTContext* ast_context);
 
   /**
    * \brief Inserts an ASTUnit to this context.
@@ -247,9 +276,8 @@ struct FccContext
   FCC_COMP_ERROR_CALLBACK     p_cecallback;             // Pointer to the function handling compilation errors
 
   DynArray<std::unique_ptr<ASTUnit>>  p_asts;                   // Vector with the ASTs of all the translation units
-  DynArray<const FccExecInfo*>        p_exec_infos;             // The furious execution infos extracted from the input code
+  DynArray<FccMatch*>                 p_matches;             // The furious execution infos extracted from the input code
   DynArray<const UsingDirectiveDecl*> p_using_decls;
-
 };
 
 /**

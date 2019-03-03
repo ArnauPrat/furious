@@ -14,16 +14,16 @@ FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context,
                                        FccContext *fcc_context) : 
 p_ast_context(ast_context), 
 p_fcc_context(fcc_context),
-p_fcc_exec_info(nullptr)
+p_fcc_match(nullptr)
 {
 }
 
-FccExecInfo*
+FccMatch*
 FuriousExprVisitor::parse_expression(Expr* expr)
 {
-  p_fcc_exec_info = p_fcc_context->create_exec_info(p_ast_context);
+  p_fcc_match = p_fcc_context->create_match(p_ast_context);
   this->TraverseStmt(expr);
-  return p_fcc_exec_info;
+  return p_fcc_match;
 }
 
 bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
@@ -53,46 +53,52 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       // Extracting operation type (e.g. foreach, etc.)
       if(func_name == "foreach") 
       {
-        p_fcc_exec_info->m_operation_type = FccOperationType::E_FOREACH;
-        p_fcc_exec_info->p_ast_context = p_ast_context;
+        p_fcc_match->m_operation_type = FccOperationType::E_FOREACH;
+        p_fcc_match->p_ast_context = p_ast_context;
+        p_fcc_match->create_entity_match();
         return process_entry_point(p_ast_context,
                                    p_fcc_context,
-                                   p_fcc_exec_info,
+                                   &p_fcc_match->m_system,
                                    call);
       }
 
-      if(func_name == "has_tag" ) {
+      if(func_name == "has_tag" ) 
+      {
         return process_has_tag(p_ast_context,
                                p_fcc_context,
-                               p_fcc_exec_info,
+                               p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
                                call);
       }
 
-      if(func_name == "has_not_tag" ) {
+      if(func_name == "has_not_tag" ) 
+      {
         return process_has_not_tag(p_ast_context,
                                    p_fcc_context,
-                                   p_fcc_exec_info,
+                                   p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
                                    call);
       }
 
-      if(func_name == "has_component" ) {
+      if(func_name == "has_component" ) 
+      {
         return process_has_component(p_ast_context,
                                      p_fcc_context,
-                                     p_fcc_exec_info,
+                                     p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
                                      call);
       }
 
-      if(func_name == "has_not_component" ) {
+      if(func_name == "has_not_component" ) 
+      {
         return process_has_not_component(p_ast_context,
                                          p_fcc_context,
-                                         p_fcc_exec_info,
+                                         p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
                                          call);
       }
 
-      if(func_name == "filter" ) {
+      if(func_name == "filter" ) 
+      {
         return process_filter(p_ast_context,
                               p_fcc_context,
-                              p_fcc_exec_info,
+                              p_fcc_match->p_entity_matches[p_fcc_match->p_entity_matches.size()-1],
                               call);
       }
     } 
@@ -143,11 +149,11 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             FuriousExprVisitor visitor(p_ast_context,
                                        p_fcc_context);
 
-            FccExecInfo* info = visitor.parse_expression(expr);
+            FccMatch* match = visitor.parse_expression(expr);
 
             // We register the execution information obtained with the visitor,
             // after checking it is well-formed.
-            if(info->m_operation_type == FccOperationType::E_UNKNOWN) 
+            if(match->m_operation_type == FccOperationType::E_UNKNOWN) 
             {
               SourceLocation location = expr->getLocStart();
               report_parsing_error(p_ast_context,

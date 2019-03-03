@@ -8,7 +8,7 @@ namespace furious
 
 struct Foreach;
 struct FccContext;
-struct FccExecInfo;
+struct FccMatch;
 struct FccOperator;
 
 /**
@@ -19,7 +19,7 @@ struct FccOperator;
  * @return Retorns the root operator of the generated plan
  */
 FccOperator* 
-create_subplan(const FccExecInfo* exec_info);
+create_subplan(const FccMatch* exec_info);
 
 /**
  * \brief Destroys the given subplan

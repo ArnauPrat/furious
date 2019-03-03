@@ -93,9 +93,9 @@ m_op_type{op_type}
 ////////////////////////////////////////////////
 
 Foreach::Foreach(FccOperator* child,
-                 const DynArray<const FccSystemInfo*>& systems) :
+                 const DynArray<const FccSystem*>& systems) :
   FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH), 
-  m_systems(systems), 
+  p_systems(systems), 
   p_child(child) 
 {
   p_child->p_parent = this;
@@ -138,10 +138,10 @@ bool
 FccExecPlan::bootstrap()
 {
   DependencyGraph dep_graph;
-  uint32_t size = p_context->p_exec_infos.size();
+  uint32_t size = p_context->p_matches.size();
   for(uint32_t i = 0; i < size; ++i)
   {
-    dep_graph.insert(p_context->p_exec_infos[i]);
+    dep_graph.insert(p_context->p_matches[i]);
   }
 
   if(!dep_graph.is_acyclic()) 
@@ -149,10 +149,10 @@ FccExecPlan::bootstrap()
     return false;
   }
 
-  DynArray<const FccExecInfo*> seq = dep_graph.get_valid_exec_sequence();
+  DynArray<const FccMatch*> seq = dep_graph.get_valid_exec_sequence();
   for(uint32_t i = 0; i < seq.size(); ++i)
   {
-    const FccExecInfo* info = seq[i];
+    const FccMatch* info = seq[i];
     FccOperator* next_root = create_subplan(info);
     insert_root(info->p_ast_context, next_root);
   }

@@ -8,9 +8,9 @@ namespace furious
 {
 
 DGNode::DGNode(uint32_t id, 
-               const FccExecInfo* info) :
+               const FccMatch* match) :
 m_id(id),
-p_info(info)
+p_match(match)
 {
 }
 
@@ -30,20 +30,20 @@ bool
 is_dependent(DGNode* node_a, DGNode* node_b)
 {
   DynArray<QualType> write_types_b;
-  uint32_t size_b = node_b->p_info->m_basic_component_types.size(); 
+  uint32_t size_b = node_b->p_match->m_system.m_component_types.size(); 
   for(uint32_t i = 0; i < size_b; ++i)
   {
-    const QualType& type = node_b->p_info->m_basic_component_types[i];
+    const QualType& type = node_b->p_match->m_system.m_component_types[i];
     if(get_access_mode(type) == AccessMode::E_WRITE)
     {
       write_types_b.append(type);
     }
   }
 
-  uint32_t size_a = node_a->p_info->m_basic_component_types.size();
+  uint32_t size_a = node_a->p_match->m_system.m_component_types.size();
   for(uint32_t i = 0; i < size_a; ++i)
   {
-    const QualType& type_a = node_a->p_info->m_basic_component_types[i];
+    const QualType& type_a = node_a->p_match->m_system.m_component_types[i];
     std::string name_a = get_type_name(type_a);
 
     size_b = write_types_b.size();
@@ -61,7 +61,7 @@ is_dependent(DGNode* node_a, DGNode* node_b)
 }
 
 void 
-DependencyGraph::insert(const FccExecInfo* exec_info)
+DependencyGraph::insert(const FccMatch* exec_info)
 {
   DGNode* node = new DGNode(p_nodes.size(),
                             exec_info);
@@ -82,16 +82,16 @@ DependencyGraph::insert(const FccExecInfo* exec_info)
   p_nodes.append(node);
 }
 
-DynArray<const FccExecInfo*>
+DynArray<const FccMatch*>
 DependencyGraph::get_roots()
 {
-  DynArray<const FccExecInfo*> ret;
+  DynArray<const FccMatch*> ret;
   uint32_t size = p_nodes.size();
   for(uint32_t i = 0; i < size; ++i)
   {
     if(p_nodes[i]->p_parents.size() == 0)
     {
-      ret.append(p_nodes[i]->p_info);
+      ret.append(p_nodes[i]->p_match);
     }
   }
   return ret;
@@ -169,10 +169,10 @@ DependencyGraph::is_acyclic()
   return true;
 }
 
-DynArray<const FccExecInfo*>
+DynArray<const FccMatch*>
 DependencyGraph::get_valid_exec_sequence()
 {
-  DynArray<const FccExecInfo*> ret;
+  DynArray<const FccMatch*> ret;
   std::set<DGNode*> visited_nodes;
   uint32_t size = p_nodes.size();
   for(uint32_t i = 0; i < size; ++i)
@@ -189,7 +189,7 @@ DependencyGraph::get_valid_exec_sequence()
         for(uint32_t ii = 0; ii < current_frontier.size(); ++ii)
         {
           DGNode* next_root = current_frontier[ii]; 
-          ret.append(next_root->p_info);
+          ret.append(next_root->p_match);
           uint32_t num_children =  next_root->p_children.size();
           for(uint32_t j = 0; j < num_children; ++j)
           {

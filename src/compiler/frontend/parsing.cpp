@@ -118,7 +118,7 @@ print_debug_info(const ASTContext* ast_context,
 bool 
 process_entry_point(ASTContext* ast_context,
                     FccContext* fcc_contex,
-                    FccExecInfo* exec_info,
+                    FccSystem*  fcc_system,
                     const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -139,12 +139,12 @@ process_entry_point(ASTContext* ast_context,
   const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
   std::vector<QualType> tmplt_types = get_tmplt_types(arg_list);
 
-  exec_info->m_system.m_id = system_id;
-  exec_info->m_system.m_system_type = tmplt_types[0];
+  fcc_system->m_id = system_id;
+  fcc_system->m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
     QualType type = tmplt_types[i]->getPointeeType();
-    exec_info->insert_component_type(&type);
+    fcc_system->insert_component_type(&type);
   }
 
   // Extract System constructor parameter expressions
@@ -152,7 +152,7 @@ process_entry_point(ASTContext* ast_context,
   for(uint32_t i = 0; i < num_args; ++i)
   {
     const Expr* arg_expr = call->getArg(i);
-    exec_info->m_system.insert_ctor_param(arg_expr);
+    fcc_system->insert_ctor_param(arg_expr);
   }
   system_id++;
   return true;
@@ -194,7 +194,7 @@ const T* find_first_dfs(const Stmt* expr)
 bool 
 process_filter(ASTContext* ast_context,
                FccContext* fcc_context,
-               FccExecInfo* exec_info,
+               FccEntityMatch* entity_match,
                const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -210,7 +210,7 @@ process_filter(ASTContext* ast_context,
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
-    exec_info->insert_filter_func(func_decl);
+    entity_match->insert_filter_func(func_decl);
   } 
 
   const DeclRefExpr* decl_ref = nullptr;
@@ -220,7 +220,7 @@ process_filter(ASTContext* ast_context,
     if(isa<FunctionDecl>(decl))
     {
       func_decl = cast<FunctionDecl>(decl);
-      exec_info->insert_filter_func(func_decl);
+      entity_match->insert_filter_func(func_decl);
     } else if(isa<VarDecl>(decl))
     {
       // TODO: Report error via callback
@@ -238,7 +238,7 @@ process_filter(ASTContext* ast_context,
 bool 
 process_has_tag(ASTContext* ast_context,
                  FccContext* fcc_context,
-                 FccExecInfo* exec_info,
+                 FccEntityMatch* entity_match,
                  const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -255,7 +255,7 @@ process_has_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->insert_has_tag(literal->getString());
+      entity_match->insert_has_tag(literal->getString());
     } 
     else
     {
@@ -274,7 +274,7 @@ process_has_tag(ASTContext* ast_context,
 bool 
 process_has_not_tag(ASTContext* ast_context,
                     FccContext* fcc_context,
-                    FccExecInfo* exec_info,
+                    FccEntityMatch* entity_match,
                     const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -290,7 +290,7 @@ process_has_not_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      exec_info->insert_has_not_tag(literal->getString());
+      entity_match->insert_has_not_tag(literal->getString());
     } 
     else
     {
@@ -309,7 +309,7 @@ process_has_not_tag(ASTContext* ast_context,
 bool 
 process_has_component(ASTContext* ast_context,
                        FccContext* fcc_contex,
-                       FccExecInfo* exec_info,
+                       FccEntityMatch* entity_match,
                        const CallExpr* call)
 {
 #ifndef NDEBUG
@@ -324,7 +324,7 @@ process_has_component(ASTContext* ast_context,
   {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->insert_has_compponent(&type);
+    entity_match->insert_has_compponent(&type);
   }
   return true;
 }
@@ -332,7 +332,7 @@ process_has_component(ASTContext* ast_context,
 bool 
 process_has_not_component(ASTContext* ast_context,
                           FccContext* fcc_contex,
-                          FccExecInfo* exec_info,
+                          FccEntityMatch* entity_match,
                           const CallExpr* call)
 {
 
@@ -348,7 +348,7 @@ process_has_not_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    exec_info->insert_has_not_component(&type);
+    entity_match->insert_has_not_component(&type);
   }
   return true;
 }

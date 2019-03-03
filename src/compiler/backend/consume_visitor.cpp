@@ -37,11 +37,11 @@ ConsumeVisitor::visit(const Foreach* foreach)
   }
   fprintf(p_context->p_fd, "\n");
 
-  uint32_t size = foreach->m_systems.size();
+  uint32_t size = foreach->p_systems.size();
   for(uint32_t i = 0; i < size; ++i)
   {
 
-    const FccSystemInfo* info = foreach->m_systems[i];
+    const FccSystem* info = foreach->p_systems[i];
     std::string system_name = get_type_name(info->m_system_type);
     std::string base_name = system_name;
 

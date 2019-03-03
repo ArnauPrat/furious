@@ -25,12 +25,12 @@ private:
   FccContext *p_fcc_context;
 
 public:
-  FccExecInfo* p_fcc_exec_info;
+  FccMatch* p_fcc_match;
 
   FuriousExprVisitor(ASTContext *ast_context,
                      FccContext *fcc_context);
 
-  FccExecInfo*  
+  FccMatch*  
   parse_expression(Expr* expr);
 
   virtual 

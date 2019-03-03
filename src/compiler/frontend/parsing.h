@@ -13,7 +13,9 @@ namespace furious
 {
 
 struct FccContext;
-struct FccExecInfo;
+struct FccMatch;
+struct FccEntityMatch;
+struct FccSystem;
 enum class FccParsingErrorType;
 
 /**
@@ -25,8 +27,8 @@ enum class FccParsingErrorType;
  */
 bool 
 process_entry_point(ASTContext* ast_context,
-                    FccContext *fcc_context,
-                    FccExecInfo* exec_info,
+                    FccContext* fcc_context,
+                    FccSystem*  fcc_system,
                     const CallExpr* call);
 
 /**
@@ -39,7 +41,7 @@ process_entry_point(ASTContext* ast_context,
 bool 
 process_has_tag(ASTContext* ast_context,
                  FccContext *fcc_context,
-                 FccExecInfo* exec_info,
+                 FccEntityMatch* entity_match,
                  const CallExpr* call);
 
 /**
@@ -52,7 +54,7 @@ process_has_tag(ASTContext* ast_context,
 bool 
 process_has_not_tag(ASTContext* ast_context,
                     FccContext *fcc_context,
-                    FccExecInfo* exec_info,
+                    FccEntityMatch* entity_match,
                     const CallExpr* call);
 
 /**
@@ -65,7 +67,7 @@ process_has_not_tag(ASTContext* ast_context,
 bool 
 process_has_component(ASTContext* ast_context,
                        FccContext *fcc_context,
-                       FccExecInfo* exec_info,
+                       FccEntityMatch* entity_match,
                        const CallExpr* call);
 
 /**
@@ -78,7 +80,7 @@ process_has_component(ASTContext* ast_context,
 bool 
 process_has_not_component(ASTContext* ast_context,
                           FccContext *fcc_context,
-                          FccExecInfo* exec_info,
+                          FccEntityMatch* entity_match,
                           const CallExpr* call);
 
 /**
@@ -91,7 +93,7 @@ process_has_not_component(ASTContext* ast_context,
 bool 
 process_filter(ASTContext* ast_context,
                FccContext *fcc_context,
-               FccExecInfo* exec_info,
+               FccEntityMatch* exec_info,
                const CallExpr* call);
 
 

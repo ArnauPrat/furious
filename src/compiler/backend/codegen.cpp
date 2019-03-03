@@ -53,11 +53,11 @@ public:
   virtual void 
   visit(const Foreach* foreach)
   {
-    uint32_t size = foreach->m_systems.size();
+    uint32_t size = foreach->p_systems.size();
     for(uint32_t i = 0; i < size; ++i)
     {
-      const FccSystemInfo* info = foreach->m_systems[i];
-      extract_dependencies(get_dependencies(info->m_system_type));
+      const FccSystem* system = foreach->p_systems[i];
+      extract_dependencies(get_dependencies(system->m_system_type));
     }
     foreach->p_child->accept(this);
   }
@@ -234,22 +234,22 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // SYSTEMWRAPPERS
-  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size();++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size();++i)
   {
-    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
-    std::string system_name = get_type_name(info->m_system.m_system_type);
+    const FccMatch* match = exec_plan->p_context->p_matches[i];
+    std::string system_name = get_type_name(match->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
     fprintf(fd, "SystemWrapper<%s", system_name.c_str());
-    for(uint32_t j = 0; j < info->m_basic_component_types.size(); ++j)
+    for(uint32_t j = 0; j < match->m_system.m_component_types.size(); ++j)
 		{
-      QualType component = info->m_basic_component_types[j];
+      QualType component = match->m_system.m_component_types[j];
       std::string q_ctype = get_qualified_type_name(component);
       fprintf(fd,",%s",q_ctype.c_str());
 		}
-    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), info->m_system.m_id);
+    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), match->m_system.m_id);
   }
 
   /// GENERATING __furious__init  
@@ -287,10 +287,10 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // INITIALIZING SYSTEM WRAPPERS
-  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size(); ++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size(); ++i)
   {
-    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
-    std::string system_name = get_type_name(info->m_system.m_system_type);
+    const FccMatch* match = exec_plan->p_context->p_matches[i];
+    std::string system_name = get_type_name(match->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
@@ -298,21 +298,21 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,
             "%s_%d = create_system<%s>(",
             base_name.c_str(),
-            info->m_system.m_id,
+            match->m_system.m_id,
             system_name.c_str());
 
-    size_t num_params = info->m_system.m_ctor_params.size();
+    size_t num_params = match->m_system.m_ctor_params.size();
     if( num_params > 0) 
     {
-      const Expr* param = info->m_system.m_ctor_params[0];
-      const SourceManager& sm = info->p_ast_context->getSourceManager();
+      const Expr* param = match->m_system.m_ctor_params[0];
+      const SourceManager& sm = match->p_ast_context->getSourceManager();
       SourceLocation start = param->getLocStart();
       SourceLocation end = param->getLocEnd();
       std::string code = get_code(sm,start,end);
       fprintf(fd,"%s", code.c_str());
       for(size_t i = 1; i < num_params; ++i)
       {
-        const Expr* param = info->m_system.m_ctor_params[i];
+        const Expr* param = match->m_system.m_ctor_params[i];
         SourceLocation start = param->getLocStart();
         SourceLocation end = param->getLocEnd();
         std::string code = get_code(sm,start,end);
@@ -335,7 +335,7 @@ generate_code(const FccExecPlan* exec_plan,
   for(uint32_t i = 0; i < exec_plan->p_roots.size(); ++i)
   {
     const FccOperator* root = exec_plan->p_roots[i];
-    ExecPlanPrinter printer{true};
+    ExecPlanPrinter printer(true);
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
@@ -351,15 +351,15 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 
-  for(uint32_t i = 0; i < exec_plan->p_context->p_exec_infos.size(); ++i)
+  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size(); ++i)
   {
-    const FccExecInfo* info = exec_plan->p_context->p_exec_infos[i];
-    std::string system_name = get_type_name(info->m_system.m_system_type);
+    const FccMatch* match = exec_plan->p_context->p_matches[i];
+    std::string system_name = get_type_name(match->m_system.m_system_type);
     std::string base_name = system_name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
-    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), info->m_system.m_id);
+    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), match->m_system.m_id);
   }
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");

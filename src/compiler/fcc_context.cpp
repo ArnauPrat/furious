@@ -19,17 +19,23 @@
 namespace furious 
 {
 
-FccSystemInfo::FccSystemInfo(FccContext* fcc_context) :
+FccSystem::FccSystem(FccContext* fcc_context) :
 p_fcc_context(fcc_context)
 {
 }
 
-FccSystemInfo::~FccSystemInfo()
+FccSystem::~FccSystem()
 {
 }
 
 void
-FccSystemInfo::insert_ctor_param(const Expr* param)
+FccSystem::insert_component_type(const QualType* q_type)
+{
+  m_component_types.append(*q_type);
+}
+
+void
+FccSystem::insert_ctor_param(const Expr* param)
 {
   m_ctor_params.append(param);
 }
@@ -38,56 +44,80 @@ FccSystemInfo::insert_ctor_param(const Expr* param)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccExecInfo::FccExecInfo(ASTContext* p_ast_context,
-                         FccContext* p_fcc_context) :
-p_ast_context(p_ast_context),
-p_fcc_context(p_fcc_context),
-m_operation_type(FccOperationType::E_UNKNOWN),
-m_system(p_fcc_context)
+FccEntityMatch::FccEntityMatch(FccContext* p_fcc_context) :
+p_fcc_context(p_fcc_context)
 {
   
 }
 
-FccExecInfo::~FccExecInfo()
+FccEntityMatch::~FccEntityMatch()
 {
 }
 
 void
-FccExecInfo::insert_component_type(const QualType* q_type)
+FccEntityMatch::insert_component_type(const QualType* q_type)
 {
   m_basic_component_types.append(*q_type);
 }
 
 void
-FccExecInfo::insert_has_compponent(const QualType* q_type)
+FccEntityMatch::insert_has_compponent(const QualType* q_type)
 {
   m_has_components.append(*q_type);
 }
 
 void
-FccExecInfo::insert_has_not_component(const QualType* q_type)
+FccEntityMatch::insert_has_not_component(const QualType* q_type)
 {
   m_has_not_components.append(*q_type);
 }
 
 void
-FccExecInfo::insert_has_tag(const std::string& tag)
+FccEntityMatch::insert_has_tag(const std::string& tag)
 {
   m_has_tags.append(tag);
 }
 
 void
-FccExecInfo::insert_has_not_tag(const std::string& tag)
+FccEntityMatch::insert_has_not_tag(const std::string& tag)
 {
   m_has_not_tags.append(tag);
 }
 
 void
-FccExecInfo::insert_filter_func(const FunctionDecl* decl)
+FccEntityMatch::insert_filter_func(const FunctionDecl* decl)
 {
   p_filter_func.append(decl);
 }
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+FccMatch::FccMatch(ASTContext* ast_context,
+         FccContext* fcc_context) :
+p_ast_context(ast_context),
+p_fcc_context(fcc_context),
+m_operation_type(FccOperationType::E_UNKNOWN),
+m_system(fcc_context)
+{
+}
+
+FccMatch::~FccMatch()
+{
+  for(uint32_t i = 0; i < p_entity_matches.size(); ++i)
+  {
+    delete p_entity_matches[i];
+  }
+}
+
+FccEntityMatch*
+FccMatch::create_entity_match()
+{
+ FccEntityMatch* entity_match = new FccEntityMatch(p_fcc_context);
+ p_entity_matches.append(entity_match);
+ return entity_match;
+}
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -101,18 +131,18 @@ p_cecallback(nullptr)
 
 FccContext::~FccContext()
 {
-  for(uint32_t i = 0; i < p_exec_infos.size(); ++i)
+  for(uint32_t i = 0; i < p_matches.size(); ++i)
   {
-      delete p_exec_infos[i];
+      delete p_matches[i];
   }
 }
 
-FccExecInfo*
-FccContext::create_exec_info(ASTContext* ast_context)
+FccMatch*
+FccContext::create_match(ASTContext* ast_context)
 {
-  FccExecInfo* info = new FccExecInfo(ast_context, this);
-  p_exec_infos.append(info); 
-  return info;
+  FccMatch* match = new FccMatch(ast_context, this);
+  p_matches.append(match); 
+  return match;
 }
 
 void

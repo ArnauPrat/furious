@@ -28,7 +28,7 @@ ExecPlanPrinter::traverse(const FccExecPlan* plan)
 }
 
 std::string
-to_string(const FccSystemInfo* info)
+to_string(const FccSystem* info)
 {
   StringBuilder str_builder;
   str_builder.append("%s (", info->m_system_type->getAsCXXRecordDecl()->getNameAsString().c_str());
@@ -56,7 +56,7 @@ void
 ExecPlanPrinter::visit(const Foreach* foreach) 
 {
   StringBuilder str_builder;
-  const FccSystemInfo* info = foreach->m_systems[0];
+  const FccSystem* info = foreach->p_systems[0];
   str_builder.append("foreach (%lu) - \"%s\"",
                      foreach, 
                      to_string(info).c_str());

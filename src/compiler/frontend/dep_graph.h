@@ -7,16 +7,16 @@
 namespace furious
 {
 
-struct FccExecInfo;
+struct FccMatch;
 
 struct DGNode
 {
   DGNode(uint32_t id,
-         const FccExecInfo* info);
+         const FccMatch* info);
   ~DGNode();
 
   uint32_t            m_id;
-  const FccExecInfo*  p_info;
+  const FccMatch*     p_match;
   DynArray<DGNode*>   p_parents;
   DynArray<DGNode*>   p_children;
 };
@@ -28,20 +28,20 @@ struct DependencyGraph
   ~DependencyGraph();
 
   /**
-   * \brief Inserts a FccExecInfo to the dependency graph
+   * \brief Inserts a FccMatch to the dependency graph
    *
-   * \param exec_info The FccExecInfo to add
+   * \param exec_info The FccMatch to add
    */
   void 
-  insert(const FccExecInfo* exec_info);
+  insert(const FccMatch* exec_info);
 
   /**
-   * \brief Gets the roots of the dependency graph (FccExecInfos without
+   * \brief Gets the roots of the dependency graph (FccMatchs without
    * parents)
    *
    * \return Returns a dynamic array with the roots.
    */
-  DynArray<const FccExecInfo*>
+  DynArray<const FccMatch*>
   get_roots();
 
   /**
@@ -58,7 +58,7 @@ struct DependencyGraph
    *
    * \return Returns a dynamic array with the valid sequence of execution info
    */
-  DynArray<const FccExecInfo*>
+  DynArray<const FccMatch*>
   get_valid_exec_sequence();
 
 

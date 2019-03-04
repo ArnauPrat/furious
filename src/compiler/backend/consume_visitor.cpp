@@ -21,9 +21,14 @@ void
 ConsumeVisitor::visit(const Foreach* foreach)
 {
   int param_index = 0;
-  for(uint32_t i = 0; i < foreach->m_component_types.size(); ++i) 
+  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
   {
-    const std::string& type = get_qualified_type_name(foreach->m_component_types[i]);
+    const FccColumn* column = &foreach->m_columns[i];
+    if(column->m_type == FccColumnType::E_REFERENCE)
+    {
+      // TODO:report error
+    }
+    const std::string& type = get_qualified_type_name(column->m_q_type);
 
     fprintf(p_context->p_fd,
             "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n", 
@@ -56,7 +61,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
             p_context->m_source.c_str(), 
             p_context->m_source.c_str());
 
-    for(size_t i = 0; i <  foreach->m_component_types.size(); ++i) 
+    for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
     {
       fprintf(p_context->p_fd,",\ndata_%zu",i);
     }
@@ -175,9 +180,14 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   // if ...
   fprintf(p_context->p_fd,"\n");
   int param_index = 0;
-  for(uint32_t i = 0; i < predicate_filter->m_component_types.size(); ++i)  
+  for(uint32_t i = 0; i < predicate_filter->m_columns.size(); ++i)  
   {
-    const std::string& type = get_qualified_type_name(predicate_filter->m_component_types[i]);
+    const FccColumn* column = &predicate_filter->m_columns[i];
+    if(column->m_type == FccColumnType::E_REFERENCE)
+    {
+      // TODO: report error
+    }
+    const std::string& type = get_qualified_type_name(column->m_q_type);
     fprintf(p_context->p_fd,
             "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n",
             type.c_str(),
@@ -220,7 +230,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
           p_context->m_source.c_str(),
           func_name.c_str());
   fprintf(p_context->p_fd, "&data_0[i]");
-  for(size_t i = 1; i <predicate_filter->m_component_types.size(); ++i)
+  for(size_t i = 1; i <predicate_filter->m_columns.size(); ++i)
   {
     fprintf(p_context->p_fd, ",&data_%zu[i]", i);
   }

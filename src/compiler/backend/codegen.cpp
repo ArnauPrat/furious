@@ -65,8 +65,11 @@ public:
   virtual void 
   visit(const Scan* scan) 
   {
-    extract_dependencies(get_dependencies(scan->m_component_types[0]));
-  }
+    if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+    {
+      extract_dependencies(get_dependencies(scan->m_columns[0].m_q_type));
+    }
+  } 
 
   virtual void
   visit(const Join* join) 
@@ -126,7 +129,10 @@ public:
   virtual void 
   visit(const Scan* scan) 
   {
-    m_components.insert(get_type_name(scan->m_component_types[0]));
+    if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+    {
+      m_components.insert(get_type_name(scan->m_columns[0].m_q_type));
+    }
   }
 
   virtual void

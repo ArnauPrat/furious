@@ -70,9 +70,10 @@ void
 ExecPlanPrinter::visit(const Scan* scan) 
 {
   StringBuilder str_builder;
+  const FccColumn* column = &scan->m_columns[0];
   str_builder.append("scan (%lu) - \"%s\"",
                      scan, 
-                     scan->m_component_types[0]->getAsCXXRecordDecl()->getNameAsString().c_str());
+                     get_type_name(column->m_q_type).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
   decr_level();
@@ -134,7 +135,7 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
   str_builder.append("component_filter (%lu) - %s - \"%s\"", 
                      component_filter, 
                      type, 
-                     component_filter->m_filter_type->getAsCXXRecordDecl()->getNameAsString().c_str());
+                     get_type_name(component_filter->m_filter_type).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
   component_filter->p_child.get()->accept(this);

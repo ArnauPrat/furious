@@ -26,12 +26,26 @@ enum class FccOperatorType
   E_GATHER,
 };
 
+enum class FccColumnType
+{
+  E_COMPONENT,
+  E_REFERENCE
+};
+
+struct FccColumn
+{
+  FccColumnType m_type;
+  QualType      m_q_type;
+  std::string   m_ref_name;
+};
+
 
 class FccOperator
 {
 public:
 
-  FccOperator(FccOperatorType type);
+  FccOperator(FccOperatorType type, 
+              const std::string& name);
 
   virtual
   ~FccOperator() = default;
@@ -40,8 +54,9 @@ public:
   accept(FccExecPlanVisitor* visitor) const = 0;  
 
   FccOperatorType       m_type;
+  std::string           m_name;
   const FccOperator*    p_parent;
-  DynArray<QualType>    m_component_types;
+  DynArray<FccColumn>   m_columns;
   uint32_t              m_id;
 };
 
@@ -52,7 +67,8 @@ template<typename T>
 class FccOperatorTmplt : public FccOperator
 {
 public:
-  FccOperatorTmplt(const FccOperatorType type);
+  FccOperatorTmplt(FccOperatorType type,
+                   const std::string& name);
 
   virtual 
   ~FccOperatorTmplt() = default;
@@ -66,6 +82,7 @@ public:
  */
 struct Scan : public FccOperatorTmplt<Scan> 
 {
+  Scan(const std::string& ref_name);
   Scan(QualType component);
 
   virtual 
@@ -94,7 +111,8 @@ struct Join : public FccOperatorTmplt<Join>
 template<typename T>
 struct Filter : public FccOperatorTmplt<T> 
 {
-  Filter(RefCountPtr<FccOperator> child);
+  Filter(RefCountPtr<FccOperator> child,
+         const std::string& name);
 
   virtual 
   ~Filter();

@@ -6,8 +6,10 @@
 
 namespace furious {
 
-FccOperator::FccOperator(FccOperatorType type) :
+FccOperator::FccOperator(FccOperatorType type, 
+                         const std::string& name) :
 m_type(type),
+m_name(name),
 p_parent(nullptr)
 {
   static uint32_t id = 0;
@@ -21,9 +23,12 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 
 Scan::Scan(QualType component) : 
-  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN) 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
-  m_component_types.append(component);
+  FccColumn column;
+  column.m_type = FccColumnType::E_COMPONENT;
+  column.m_q_type = component;
+  m_columns.append(column);
 }
 
 ////////////////////////////////////////////////
@@ -32,15 +37,15 @@ Scan::Scan(QualType component) :
 
 Join::Join(RefCountPtr<FccOperator> left, 
            RefCountPtr<FccOperator> right) :
-FccOperatorTmplt<Join>(FccOperatorType::E_JOIN), 
+FccOperatorTmplt<Join>(FccOperatorType::E_JOIN, "Join"), 
 p_left(left),
 p_right(right) 
 {
   p_left.get()->p_parent = this;
   p_right.get()->p_parent = this;
-  m_component_types.append(p_left.get()->m_component_types);
-  m_split_point = m_component_types.size();
-  m_component_types.append(p_right.get()->m_component_types);
+  m_columns.append(p_left.get()->m_columns);
+  m_split_point = m_columns.size();
+  m_columns.append(p_right.get()->m_columns);
 }
 
 Join::~Join() 
@@ -53,7 +58,7 @@ Join::~Join()
 
 PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
                                  const FunctionDecl* func_decl) :
-Filter<PredicateFilter>(child),
+Filter<PredicateFilter>(child, "PredicateFilter"),
 p_func_decl(func_decl)
 {
 }
@@ -66,7 +71,7 @@ p_func_decl(func_decl)
 TagFilter::TagFilter(RefCountPtr<FccOperator> child,
                      const std::string& tag,
                      FccFilterOpType op_type) :
-Filter(child),
+Filter(child, "TagFilter"),
 m_tag(tag),
 m_op_type(op_type)
 {
@@ -79,7 +84,7 @@ m_op_type(op_type)
 ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
                                  QualType component_type,
                                  FccFilterOpType op_type) :
-Filter<ComponentFilter>(child),
+Filter<ComponentFilter>(child, "ComponentFilter"),
 m_filter_type(component_type),
 m_op_type(op_type)
 {
@@ -91,12 +96,12 @@ m_op_type(op_type)
 
 Foreach::Foreach(RefCountPtr<FccOperator> child,
                  const DynArray<const FccSystem*>& systems) :
-  FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH), 
+  FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH, "Foreach"), 
   p_systems(systems), 
   p_child(child) 
 {
   p_child.get()->p_parent = this;
-  m_component_types.append(child.get()->m_component_types);
+  m_columns.append(child.get()->m_columns);
 }
 
 Foreach::~Foreach() 
@@ -110,11 +115,11 @@ Foreach::~Foreach()
 
 Gather::Gather(RefCountPtr<FccOperator> child, 
                const std::string& ref_name) :
-FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER),
+FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER, "Gather"),
 p_child(child),
 m_ref_name(ref_name)
 {
-  m_component_types.append(child.get()->m_component_types);
+  m_columns.append(child.get()->m_columns);
 }
 
 Gather::~Gather()

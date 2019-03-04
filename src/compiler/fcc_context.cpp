@@ -207,8 +207,8 @@ handle_parsing_error(FccContext* context,
 
 void 
 handle_compilation_error(FccContext* context,
-                     FccCompilationErrorType type,
-                     const FccOperator* op)
+                         FccCompilationErrorType type,
+                         const FccOperator* op)
 {
   StringBuilder str_builder;
   switch(type) 
@@ -216,9 +216,11 @@ handle_compilation_error(FccContext* context,
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
       str_builder.append("Unknown error");
       break;
-
     case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
       str_builder.append("Cyclic dependency graph");
+      break;
+    case FccCompilationErrorType::E_INVALID_OPERATOR_REFERENCE_TYPE:
+      str_builder.append("Reference type cannot be applied to operator: %s", op->m_name.c_str());
       break;
   }
   llvm::errs() << str_builder.p_buffer;

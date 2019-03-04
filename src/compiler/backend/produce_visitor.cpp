@@ -31,8 +31,9 @@ void
 ProduceVisitor::visit(const Scan* scan)
 {
   static uint32_t id = 0;
-  std::string ctype = get_type_name(scan->m_component_types[0]);
-  std::string q_ctype = get_qualified_type_name(scan->m_component_types[0]);
+  const FccColumn* column = &scan->m_columns[0];
+  std::string ctype = get_type_name(column->m_q_type);
+  std::string q_ctype = get_qualified_type_name(column->m_q_type);
   std::string base_name = ctype;
 
   std::transform(base_name.begin(), 

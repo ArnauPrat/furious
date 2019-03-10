@@ -5,6 +5,8 @@
 #include "frontend/fccASTVisitor.h"
 #include "frontend/execution_plan.h"
 #include "frontend/exec_plan_printer.h"
+#include "frontend/parsing.h"
+#include "clang_tools.h"
 #include "backend/codegen.h"
 
 #include "stdlib.h"
@@ -45,7 +47,8 @@ FccSystem::insert_ctor_param(const Expr* param)
 ////////////////////////////////////////////////
 
 FccEntityMatch::FccEntityMatch(FccContext* p_fcc_context) :
-p_fcc_context(p_fcc_context)
+p_fcc_context(p_fcc_context),
+m_from_expand(false)
 {
   
 }
@@ -90,16 +93,25 @@ FccEntityMatch::insert_filter_func(const FunctionDecl* decl)
   p_filter_func.append(decl);
 }
 
+void
+FccEntityMatch::insert_expand(const std::string& str)
+{
+  m_from_expand = true;
+  m_ref_name = str;
+}
+
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
 FccMatch::FccMatch(ASTContext* ast_context,
-         FccContext* fcc_context) :
+         FccContext* fcc_context,
+         Expr* expr) :
 p_ast_context(ast_context),
 p_fcc_context(fcc_context),
 m_operation_type(FccOperationType::E_UNKNOWN),
-m_system(fcc_context)
+m_system(fcc_context),
+p_expr(expr)
 {
 }
 
@@ -119,11 +131,6 @@ FccMatch::create_entity_match()
  return entity_match;
 }
 
-void
-FccMatch::insert_expand(const std::string& str)
-{
-  m_expands.append(str);
-}
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -144,9 +151,12 @@ FccContext::~FccContext()
 }
 
 FccMatch*
-FccContext::create_match(ASTContext* ast_context)
+FccContext::create_match(ASTContext* ast_context,
+                         Expr* expr)
 {
-  FccMatch* match = new FccMatch(ast_context, this);
+  FccMatch* match = new FccMatch(ast_context, 
+                                 this, 
+                                 expr);
   p_matches.append(match); 
   return match;
 }
@@ -208,19 +218,25 @@ handle_parsing_error(FccContext* context,
 void 
 handle_compilation_error(FccContext* context,
                          FccCompilationErrorType type,
-                         const FccOperator* op)
+                         const std::string& err_msg)
 {
   StringBuilder str_builder;
   switch(type) 
   {
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
-      str_builder.append("Unknown error");
+      str_builder.append("Unknown error: %s", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
-      str_builder.append("Cyclic dependency graph");
+      str_builder.append("Cyclic dependency graph %s", err_msg.c_str());
       break;
-    case FccCompilationErrorType::E_INVALID_OPERATOR_REFERENCE_TYPE:
-      str_builder.append("Reference type cannot be applied to operator: %s", op->m_name.c_str());
+    case FccCompilationErrorType::E_INVALID_COLUMN_TYPE:
+      str_builder.append("Invalid Column Type: %s", err_msg.c_str());
+      break;
+    case FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND:
+      str_builder.append("Invalid access mode: %s", err_msg.c_str());
+      break;
+    case FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS:
+      str_builder.append("System invalid number of components: %s", err_msg.c_str());
       break;
   }
   llvm::errs() << str_builder.p_buffer;
@@ -273,18 +289,20 @@ FccContext::report_parsing_error(FccParsingErrorType error_type,
                  line,
                  column);
   }
+  abort();
 }
 
 void 
 FccContext::report_compilation_error(FccCompilationErrorType error_type,
-                                     const FccOperator* op)
+                                     const std::string& err_msg)
 {
   if(p_cecallback) 
   {
     p_cecallback(this, 
                  error_type,
-                 op);
+                 err_msg);
   }
+  abort();
 }
 
 int 
@@ -330,8 +348,6 @@ Fcc_run(FccContext* context,
 #endif
   }
 
-
-
   // Build initial execution plan
   FccExecPlan exec_plan(context);
 
@@ -339,7 +355,7 @@ Fcc_run(FccContext* context,
   {
     handle_compilation_error(context, 
                              FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH, 
-                             nullptr);
+                             "");
   }
 
   ExecPlanPrinter printer;
@@ -351,5 +367,69 @@ Fcc_run(FccContext* context,
   return result;
 }
 
+void
+Fcc_validate(const FccMatch* match)
+{
+
+  if(match->m_operation_type == FccOperationType::E_UNKNOWN)
+  {
+    SourceLocation location = match->p_expr->getLocStart();
+    report_parsing_error(match->p_ast_context,
+                        match->p_fcc_context,
+                        location,
+                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+  }
+
+  uint32_t num_matches = match->p_entity_matches.size();
+  if( num_matches == 0)
+  {
+    SourceLocation location = match->p_expr->getLocStart();
+    report_parsing_error(match->p_ast_context,
+                        match->p_fcc_context,
+                        location,
+                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+  }
+
+  DynArray<bool> allow_writes;
+
+  FccEntityMatch* e_match = match->p_entity_matches[num_matches - 1];
+  for(uint32_t i = 0; i < e_match->m_basic_component_types.size(); ++i)
+  {
+    allow_writes.append(true);
+  }
+
+  for(int32_t i = num_matches - 2; i >= 0; --i)
+  {
+    e_match = match->p_entity_matches[i];
+    for(uint32_t j = 0; j < e_match->m_basic_component_types.size(); ++j)
+    {
+      allow_writes.append(false);
+    }
+  }
+
+  if(allow_writes.size() != match->m_system.m_component_types.size())
+  {
+      StringBuilder str_builder;
+      str_builder.append("Match: %u, System: %u", allow_writes.size(), match->m_system.m_component_types.size());
+      match->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS,
+                                                     str_builder.p_buffer);
+  }
+
+  for(uint32_t i = 0; i < match->m_system.m_component_types.size(); ++i)
+  {
+    QualType type = match->m_system.m_component_types[i];
+    if(allow_writes[i] == false &&
+       (get_access_mode(type) == FccAccessMode::E_WRITE ||
+        get_access_mode(type) == FccAccessMode::E_READ_WRITE
+       ))
+    {
+      StringBuilder str_builder;
+      str_builder.append("\"%s\" access mode after expand must be read-only", get_type_name(type).c_str());
+      match->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                                     str_builder.p_buffer);
+    }
+  }
+
+}
 
 } /* furious */ 

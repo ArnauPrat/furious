@@ -357,7 +357,7 @@ generate_code(const FccExecPlan* exec_plan,
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
-    produce(fd,root);
+    produce(exec_plan->p_context, fd,root);
     fprintf(fd,"}\n");
   }
   delete p_registry;

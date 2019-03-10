@@ -6,6 +6,8 @@
 #include "../common/dyn_array.h"
 #include "../common/refcount_ptr.h"
 
+#include "fcc_context.h"
+
 #include <clang/AST/AST.h>
 
 using namespace clang;
@@ -13,7 +15,6 @@ using namespace clang;
 namespace furious 
 {
 
-struct FccContext;
 struct FccSystem;
 class FccExecPlanVisitor;
 
@@ -37,6 +38,7 @@ struct FccColumn
   FccColumnType m_type;
   QualType      m_q_type;
   std::string   m_ref_name;
+  FccAccessMode m_access_mode;
 };
 
 
@@ -82,8 +84,8 @@ public:
  */
 struct Scan : public FccOperatorTmplt<Scan> 
 {
-  Scan(const std::string& ref_name);
-  Scan(QualType component);
+  explicit Scan(const std::string& ref_name);
+  explicit Scan(QualType component);
 
   virtual 
   ~Scan() = default;
@@ -184,14 +186,14 @@ struct Foreach : public FccOperatorTmplt<Foreach>
  */
 struct Gather : public FccOperatorTmplt<Gather>  
 {
-  Gather(RefCountPtr<FccOperator> child, 
-         const std::string& ref_name);
+  Gather(RefCountPtr<FccOperator> ref_table,
+         RefCountPtr<FccOperator> child);
 
   virtual 
   ~Gather();
 
+  RefCountPtr<FccOperator> p_ref_table;
   RefCountPtr<FccOperator> p_child;
-  std::string              m_ref_name;
 };
 
 ////////////////////////////////////////////////

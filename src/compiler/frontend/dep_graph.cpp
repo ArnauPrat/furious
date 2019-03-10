@@ -34,7 +34,7 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   for(uint32_t i = 0; i < size_b; ++i)
   {
     const QualType& type = node_b->p_match->m_system.m_component_types[i];
-    if(get_access_mode(type) == AccessMode::E_WRITE)
+    if(get_access_mode(type) == FccAccessMode::E_WRITE)
     {
       write_types_b.append(type);
     }

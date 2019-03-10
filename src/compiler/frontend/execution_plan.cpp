@@ -3,6 +3,7 @@
 #include "frontend/dep_graph.h"
 #include "execution_plan.h"
 #include "fcc_context.h"
+#include "clang_tools.h"
 
 namespace furious {
 
@@ -22,12 +23,24 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
+Scan::Scan(const std::string& ref_name) : 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
+{
+  FccColumn column;
+  column.m_type = FccColumnType::E_REFERENCE;
+  column.m_ref_name = ref_name;
+  column.m_access_mode = FccAccessMode::E_READ;
+  m_columns.append(column);
+
+}
+
 Scan::Scan(QualType component) : 
   FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_COMPONENT;
   column.m_q_type = component;
+  column.m_access_mode = get_access_mode(component);
   m_columns.append(column);
 }
 
@@ -113,12 +126,13 @@ Foreach::~Foreach()
 ////////////////////////////////////////////////
 
 
-Gather::Gather(RefCountPtr<FccOperator> child, 
-               const std::string& ref_name) :
+Gather::Gather(RefCountPtr<FccOperator> ref_table,
+               RefCountPtr<FccOperator> child ) :
 FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER, "Gather"),
-p_child(child),
-m_ref_name(ref_name)
+p_ref_table(ref_table),
+p_child(child)
 {
+  p_child.get()->p_parent = this;
   m_columns.append(child.get()->m_columns);
 }
 

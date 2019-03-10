@@ -175,14 +175,14 @@ get_qualified_type_name(const QualType& type)
 }
 
 
-AccessMode
+FccAccessMode
 get_access_mode(const QualType& type)
 {
   if(type.isConstQualified())
   {
-    return AccessMode::E_READ;
+    return FccAccessMode::E_READ;
   }
-  return AccessMode::E_WRITE;
+  return FccAccessMode::E_WRITE;
 }
 
 ////////////////////////////////////////////////

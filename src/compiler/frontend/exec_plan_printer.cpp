@@ -57,8 +57,8 @@ ExecPlanPrinter::visit(const Foreach* foreach)
 {
   StringBuilder str_builder;
   const FccSystem* info = foreach->p_systems[0];
-  str_builder.append("foreach (%lu) - \"%s\"",
-                     foreach, 
+  str_builder.append("foreach (%u) - \"%s\"",
+                     foreach->m_id, 
                      to_string(info).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
@@ -71,9 +71,20 @@ ExecPlanPrinter::visit(const Scan* scan)
 {
   StringBuilder str_builder;
   const FccColumn* column = &scan->m_columns[0];
-  str_builder.append("scan (%lu) - \"%s\"",
-                     scan, 
-                     get_type_name(column->m_q_type).c_str());
+  if(column->m_type == FccColumnType::E_COMPONENT)
+  {
+    str_builder.append("scan (%u) - \"%s\"",
+                       scan->m_id, 
+                       get_type_name(column->m_q_type).c_str());
+
+  }
+  else
+  {
+    str_builder.append("scan (%u) - #REFERENCE \"%s\"",
+                       scan->m_id, 
+                       column->m_ref_name.c_str());
+  }
+
   print(str_builder.p_buffer);
   incr_level(false);
   decr_level();
@@ -83,7 +94,7 @@ void
 ExecPlanPrinter::visit(const Join* join) 
 {
   StringBuilder str_builder;
-  str_builder.append("join(%lu)", join);
+  str_builder.append("join(%u)", join->m_id);
   print(str_builder.p_buffer);
   incr_level(true);
   join->p_left.get()->accept(this);
@@ -107,8 +118,8 @@ ExecPlanPrinter::visit(const TagFilter* tag_filter)
     type = has_not_type;
   }
 
-  str_builder.append("tag_filter (%lu) - %s - \"%s\"", 
-                     tag_filter, 
+  str_builder.append("tag_filter (%u) - %s - \"%s\"", 
+                     tag_filter->m_id, 
                      type, 
                      tag_filter->m_tag.c_str()); 
   print(str_builder.p_buffer);
@@ -132,8 +143,8 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
   {
     type = has_not_type;
   }
-  str_builder.append("component_filter (%lu) - %s - \"%s\"", 
-                     component_filter, 
+  str_builder.append("component_filter (%u) - %s - \"%s\"", 
+                     component_filter->m_id, 
                      type, 
                      get_type_name(component_filter->m_filter_type).c_str());
   print(str_builder.p_buffer);
@@ -152,8 +163,8 @@ void
 ExecPlanPrinter::visit(const PredicateFilter* predicate_filter) 
 {
   StringBuilder str_builder;
-  str_builder.append("predicate_filter (%lu) - %s", 
-                     predicate_filter, 
+  str_builder.append("predicate_filter (%u) - %s", 
+                     predicate_filter->m_id, 
                      to_string(predicate_filter->p_func_decl).c_str());
   print(str_builder.p_buffer);
   incr_level(false);
@@ -165,11 +176,16 @@ void
 ExecPlanPrinter::visit(const Gather* gather) 
 {
   StringBuilder str_builder;
-  str_builder.append("gather (%lu) - %s", 
-                     gather, 
-                     gather->m_ref_name.c_str());
+  FccColumn* ref_column = &gather->p_ref_table.p_ptr->m_columns[0];
+  if(ref_column->m_type != FccColumnType::E_REFERENCE)
+  {
+    //TODO: handle error
+  }
+  str_builder.append("gather (%u)", 
+                     gather->m_id);
   print(str_builder.p_buffer);
   incr_level(false);
+  gather->p_ref_table.get()->accept(this);
   gather->p_child.get()->accept(this);
   decr_level();
 }

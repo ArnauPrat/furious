@@ -24,7 +24,9 @@ p_context{context}
 void 
 ProduceVisitor::visit(const Foreach* foreach)
 {
-  produce(p_context->p_fd,foreach->p_child.get());
+  produce(p_context->p_fcc_context, 
+          p_context->p_fd,
+          foreach->p_child.get());
 }
 
 void 
@@ -53,7 +55,8 @@ ProduceVisitor::visit(const Scan* scan)
   fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
   fprintf(p_context->p_fd, "BlockCluster %s(%s.next().get_raw());\n", block_varname.c_str(), iter_varname.c_str());
 
-  consume(p_context->p_fd,
+  consume(p_context->p_fcc_context,
+          p_context->p_fd,
           scan->p_parent,
           "(&"+block_varname+")",
           scan);
@@ -66,32 +69,38 @@ ProduceVisitor::visit(const Join* join)
 {
   std::string hashtable = "hashtable_" + std::to_string(join->m_id);
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
-  produce(p_context->p_fd,join->p_left.get());
-  produce(p_context->p_fd,join->p_right.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd,join->p_left.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd,join->p_right.get());
 }
 
 void 
 ProduceVisitor::visit(const TagFilter* tag_filter)
 {
-  produce(p_context->p_fd,tag_filter->p_child.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd,tag_filter->p_child.get());
 }
 
 void
 ProduceVisitor::visit(const ComponentFilter* component_filter)
 {
-  produce(p_context->p_fd,component_filter->p_child.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd,component_filter->p_child.get());
 }
 
 void
 ProduceVisitor::visit(const PredicateFilter* predicate_filter)
 {
-  produce(p_context->p_fd,predicate_filter->p_child.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd,predicate_filter->p_child.get());
 }
 
 void
 ProduceVisitor::visit(const Gather* gather)
 {
-  produce(p_context->p_fd, gather->p_child.get());
+  produce(p_context->p_fcc_context,
+          p_context->p_fd, gather->p_child.get());
 }
 
 } /* furious */ 

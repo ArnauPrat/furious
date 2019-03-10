@@ -1,5 +1,6 @@
 
 
+#include "../../common/string_builder.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
 #include "fcc_context.h"
@@ -26,7 +27,11 @@ ConsumeVisitor::visit(const Foreach* foreach)
     const FccColumn* column = &foreach->m_columns[i];
     if(column->m_type == FccColumnType::E_REFERENCE)
     {
-      // TODO:report error
+      StringBuilder str_builder;
+      str_builder.append("<ForEach> operator cannot be applied to reference column type: \"%s\"", 
+                         column->m_ref_name.c_str());
+      p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+                                                         str_builder.p_buffer);
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
 
@@ -81,13 +86,11 @@ ConsumeVisitor::visit(const Join* join)
   std::string hashtable = "hashtable_"+std::to_string(join->m_id);
   if(p_context->p_caller == join->p_left.get()) 
   {
-
     fprintf(p_context->p_fd, 
             "%s.insert_copy(%s->m_start, %s);\n", 
             hashtable.c_str(), 
             p_context->m_source.c_str(), 
             p_context->m_source.c_str()); 
-
   }
   else 
   {
@@ -108,7 +111,8 @@ ConsumeVisitor::visit(const Join* join)
             "if(%s->p_enabled->num_set() != 0)\n{\n", 
             clustername.c_str());
 
-    consume(p_context->p_fd,
+    consume(p_context->p_fcc_context,
+            p_context->p_fd,
             join->p_parent,
             clustername,
             join);
@@ -157,7 +161,8 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
   fprintf(p_context->p_fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           p_context->m_source.c_str()); 
-  consume(p_context->p_fd,
+  consume(p_context->p_fcc_context,
+          p_context->p_fd,
           tag_filter->p_parent,
           p_context->m_source,
           tag_filter);
@@ -167,8 +172,11 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
 void
 ConsumeVisitor::visit(const ComponentFilter* component_filter)
 {
+  p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+                                                     "Component filter not yet implemented");
   // if ...
-  consume(p_context->p_fd,
+  consume(p_context->p_fcc_context,
+          p_context->p_fd,
           component_filter->p_parent,
           "cluster",
           component_filter);
@@ -185,7 +193,11 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
     const FccColumn* column = &predicate_filter->m_columns[i];
     if(column->m_type == FccColumnType::E_REFERENCE)
     {
-      // TODO: report error
+      StringBuilder str_builder;
+      str_builder.append("<PredicateFilter> operator cannot be applied to reference column type: \"%s\"", 
+                         column->m_ref_name.c_str());
+      p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+                                                         str_builder.p_buffer);
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
     fprintf(p_context->p_fd,
@@ -202,7 +214,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   {
     const FunctionDecl* func_decl = predicate_filter->p_func_decl;
     func_name = func_decl->getName();
-  } else
+  } 
+  else
   {
     fprintf(p_context->p_fd,"auto predicate = [] (");
     const FunctionDecl* func_decl = predicate_filter->p_func_decl;
@@ -239,7 +252,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   fprintf(p_context->p_fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           p_context->m_source.c_str()); 
-  consume(p_context->p_fd,
+  consume(p_context->p_fcc_context,
+          p_context->p_fd,
           predicate_filter->p_parent,
           p_context->m_source,
           predicate_filter);

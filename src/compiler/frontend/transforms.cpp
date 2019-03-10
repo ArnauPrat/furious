@@ -13,7 +13,7 @@ create_subplan(const FccMatch* match)
   if(match->m_system.m_component_types.size() > 1)
   {
     // We need to build joins
-    int32_t size = match->m_system.m_component_types.size();
+   /* int32_t size = match->m_system.m_component_types.size();
     FccOperator* left = new Scan(match->m_system.m_component_types[size-2]);
     FccOperator* right = new Scan(match->m_system.m_component_types[size-1]);
     root = new Join(left, right);
@@ -23,6 +23,34 @@ create_subplan(const FccMatch* match)
     {
       FccOperator* left = new Scan(match->m_system.m_component_types[i]);
       root = new Join(left, root);
+    }
+    */
+
+
+    int32_t size = match->p_entity_matches.size();
+    // First entity match
+    
+    for(int32_t i = size - 1; i >= 0; --i)
+    {
+      FccEntityMatch* entity_match = match->p_entity_matches[i];
+      uint32_t num_components = entity_match->m_basic_component_types.size();
+      for(uint32_t j = 0; j < num_components; ++j)
+      {
+        if(root == nullptr)
+        {
+          root = new Scan(entity_match->m_basic_component_types[j]);
+        }
+        else 
+        {
+          FccOperator* right = new Scan(entity_match->m_basic_component_types[j]);
+          if(entity_match->m_from_expand)
+          {
+            FccOperator* ref_scan = new Scan(entity_match->m_ref_name);
+            right = new Gather(ref_scan, right);
+          }
+          root = new Join(root, right);
+        }
+      }
     }
   } 
   else 

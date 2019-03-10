@@ -17,7 +17,6 @@ using namespace llvm;
 namespace furious 
 {
 
-struct FccOperator;
 struct FccContext;
 
 enum class FccOperationType 
@@ -26,7 +25,7 @@ enum class FccOperationType
   E_FOREACH
 };
 
-enum class AccessMode
+enum class FccAccessMode
 {
   E_READ,
   E_READ_WRITE,
@@ -127,6 +126,9 @@ struct FccEntityMatch
   void
   insert_filter_func(const FunctionDecl* decl);
 
+  void
+  insert_expand(const std::string& ref_name);
+
   FccContext*           p_fcc_context;                 // the fcc context this exec info belongs to
 
   DynArray<QualType>            m_basic_component_types;       // The types of the components of the system
@@ -135,12 +137,15 @@ struct FccEntityMatch
   DynArray<std::string>         m_has_tags;                    // The "with" tags  
   DynArray<std::string>         m_has_not_tags;                // The "has_not" tags
   DynArray<const FunctionDecl*> p_filter_func;                 // The filter function
+  bool                          m_from_expand;                 // True if this comes from an expand
+  std::string                   m_ref_name;                    // The reference name if comes form an expand
 };
 
 struct FccMatch
 {
   FccMatch(ASTContext* ast_context,
-           FccContext* fcc_context);
+           FccContext* fcc_context,
+           Expr* expr);
   ~FccMatch();
 
   ASTContext*           p_ast_context;          // clang ast context
@@ -150,15 +155,13 @@ struct FccMatch
   FccEntityMatch* 
   create_entity_match();
 
-  void
-  insert_expand(const std::string& ref_name);
 
   void
   set_system(const FccSystem* system);
 
   DynArray<FccEntityMatch*>       p_entity_matches;   // The set of entity matches that conform this query
-  DynArray<std::string>           m_expands;          // The set of expands that conform this query
   FccSystem                       m_system;           // The system that executes on the results of this match
+  Expr*                           p_expr;             // The clang expression of this match
 };
 
 ////////////////////////////////////////////////
@@ -183,7 +186,9 @@ enum class FccCompilationErrorType
 {
   E_UNKNOWN_ERROR,
   E_CYCLIC_DEPENDENCY_GRAPH,
-  E_INVALID_OPERATOR_REFERENCE_TYPE,
+  E_INVALID_COLUMN_TYPE,
+  E_INVALID_ACCESS_MODE_ON_EXPAND,
+  E_SYSTEM_INVALID_NUMBER_COMPONENTS,
 };
 
 typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*, 
@@ -194,7 +199,7 @@ typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*,
 
 typedef  void (*FCC_COMP_ERROR_CALLBACK)(FccContext*, 
                                          FccCompilationErrorType, 
-                                         const FccOperator*);
+                                         const std::string&);
 
 
 /**
@@ -243,7 +248,7 @@ struct FccContext
    */
   void 
   report_compilation_error(FccCompilationErrorType error_type,
-                           const FccOperator* fcc_operator);
+                           const std::string& err_msg);
 
   /**
    * \brief Creates an FccExecInfo in this context
@@ -253,7 +258,8 @@ struct FccContext
    * \return The created FccExecInfo.
    */
   FccMatch*
-  create_match(ASTContext* ast_context);
+  create_match(ASTContext* ast_context, 
+               Expr* expr);
 
   /**
    * \brief Inserts an ASTUnit to this context.
@@ -314,6 +320,15 @@ Fcc_run(FccContext* context,
         CommonOptionsParser& op,
         const std::string& output_file,
         const std::string& include_file);
+
+/**
+ * \brief Validates the correctness of a match expression
+ *
+ * \param match The match expression to validate the correctness for
+ *
+ */
+void
+Fcc_validate(const FccMatch* match);
 
 } /* furious */ 
 

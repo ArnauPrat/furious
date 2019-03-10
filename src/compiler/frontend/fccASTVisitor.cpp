@@ -21,7 +21,8 @@ p_fcc_match(nullptr)
 FccMatch*
 FuriousExprVisitor::parse_expression(Expr* expr)
 {
-  p_fcc_match = p_fcc_context->create_match(p_ast_context);
+  p_fcc_match = p_fcc_context->create_match(p_ast_context,
+                                            expr);
   this->TraverseStmt(expr);
   return p_fcc_match;
 }
@@ -170,15 +171,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 
             // We register the execution information obtained with the visitor,
             // after checking it is well-formed.
-            if(match->m_operation_type == FccOperationType::E_UNKNOWN) 
-            {
-              SourceLocation location = expr->getLocStart();
-              report_parsing_error(p_ast_context,
-                                   p_fcc_context,
-                                   location,
-                                   FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT);
-              return false;
-            }
+            Fcc_validate(match);
           }
           else 
           {

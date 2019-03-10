@@ -101,7 +101,7 @@ get_type_decl(const QualType& type);
  *
  * \return The access mode of the component
  */
-AccessMode
+FccAccessMode
 get_access_mode(const QualType& type);
 
 

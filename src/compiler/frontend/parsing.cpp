@@ -134,9 +134,9 @@ process_match(ASTContext* ast_context,
   const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
   DynArray<QualType> tmplt_types = get_tmplt_types(*arg_list);
 
-  for (size_t i = 1; i < tmplt_types.size(); ++i) 
+  for (size_t i = 0; i < tmplt_types.size(); ++i) 
   {
-    QualType type = tmplt_types[i]->getPointeeType();
+    QualType type = tmplt_types[i];
     entity_match->insert_component_type(&type);
   }
   return true;
@@ -163,7 +163,8 @@ process_expand(ASTContext* ast_context,
 
   const Expr* param_expr = call->getArg(0);
   std::string str = get_string_literal(param_expr);
-  fcc_match->insert_expand(str);
+  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
+  entity_match->insert_expand(str);
 
   bool res = process_match(ast_context,
                            fcc_context,

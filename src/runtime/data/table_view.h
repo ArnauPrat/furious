@@ -9,7 +9,7 @@ namespace furious
 {
 
 template<typename TComponent> 
-class TableView final  
+class TableView   
 {
 public:
 
@@ -68,7 +68,8 @@ public:
   /**
    * @brief Clears the table
    */
-  void clear();
+  void 
+  clear();
 
   /**
    * @brief Gets the component with the given id
@@ -78,7 +79,8 @@ public:
    * @return Returns a pointer to the component. Returns nullptr if the component
    * does not exist in the table
    */
-  TComponent* get_component(entity_id_t id) const ;
+  TComponent* 
+  get_component(entity_id_t id) const ;
 
   /**
    * @brief Cre 
@@ -89,28 +91,32 @@ public:
    * @param ...args
    */
   template<typename...Args>
-  void  insert_component(entity_id_t id, Args&&...args);
+  void  
+  insert_component(entity_id_t id, Args&&...args);
 
   /**
    * @brief Drops the component with the given id
    *
    * @param id
    */
-  void remove_component(entity_id_t id);
+  void 
+  remove_component(entity_id_t id);
 
   /**
    * @brief Enables an component of the table, only it it exists 
    *
    * @param id The id of the component to enable 
    */
-  void enable_component(entity_id_t id);
+  void 
+  enable_component(entity_id_t id);
 
   /**
    * @brief Disables an component of the table
    *
    * @param id The if of the component to disable 
    */
-  void disable_component(entity_id_t id);
+  void 
+  disable_component(entity_id_t id);
 
   /**
    * @brief Tells if an component is enabled or not
@@ -119,7 +125,8 @@ public:
    *
    * @return True if the component is enabled. False if it is not 
    */
-  bool is_enabled(entity_id_t id);
+  bool 
+  is_enabled(entity_id_t id);
 
 
   /**
@@ -127,14 +134,16 @@ public:
    *
    * @return Returns the size of the table
    */
-  size_t size() const;
+  size_t
+  size() const;
 
   /**
    * @brief Gets an iterator of the table
    *
    * @return A new iterator of the table. 
    */
-  BlockIterator iterator();
+  BlockIterator 
+  iterator();
 
 private:
   Table*  p_table;

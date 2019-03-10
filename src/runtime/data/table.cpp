@@ -189,13 +189,16 @@ void
 Table::clear() 
 {
   lock();
-  Iterator iterator(&m_blocks);
-  while(iterator.has_next()) 
+  if(m_destructor != nullptr)
   {
-    TBlock* block = iterator.next();
-    TBlockIterator b_iterator{block};
-    while(b_iterator.has_next()) {
-      m_destructor(b_iterator.next().p_data);
+    Iterator iterator(&m_blocks);
+    while(iterator.has_next()) 
+    {
+      TBlock* block = iterator.next();
+      TBlockIterator b_iterator{block};
+      while(b_iterator.has_next()) {
+        m_destructor(b_iterator.next().p_data);
+      }
     }
   }
   m_blocks.clear();
@@ -251,16 +254,16 @@ Table::alloc_component(entity_id_t id)
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
-void  
-Table::remove_component(entity_id_t id) 
+void* 
+Table::dealloc_component(entity_id_t id)
 {
-  assert(id != FURIOUS_INVALID_ID);
   lock();
+  assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
   TBlock* block = m_blocks.get(decoded_id.m_block_id);
   if(block == nullptr) {
     release();
-    return;
+    return nullptr;
   }
 
   if(block->p_exists->is_set(decoded_id.m_block_offset)) 
@@ -271,9 +274,20 @@ Table::remove_component(entity_id_t id)
   }
   block->p_exists->unset(decoded_id.m_block_offset);
   block->p_enabled->unset(decoded_id.m_block_offset);
-  m_destructor(&block->p_data[decoded_id.m_block_offset*m_esize]);
-  memset(&block->p_data[decoded_id.m_block_offset*m_esize], '\0', m_esize);
   release();
+  return &block->p_data[decoded_id.m_block_offset*m_esize];
+}
+
+void  
+Table::dealloc_and_destroy_component(entity_id_t id) 
+{
+  assert(id != FURIOUS_INVALID_ID);
+  void* ptr = dealloc_component(id);
+  if(ptr != nullptr)
+  {
+    m_destructor(ptr);
+    memset(ptr, 0, m_esize);
+  }
 }
 
 void 

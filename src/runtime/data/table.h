@@ -145,26 +145,6 @@ struct Table
   get_component(entity_id_t id) const;
 
   /**
-   * \brief Cre 
-   *
-   * \tparam TComponent
-   * \tparam typename...Args
-   * \param id
-   * \param ...args
-   */
-  template <typename TComponent, typename... Args>
-  void 
-  insert_component(entity_id_t id, Args &&... args);
-
-  /**
-   * \brief Drops the component with the given id
-   *
-   * \param id
-   */
-  void 
-  remove_component(entity_id_t id);
-
-  /**
    * \brief Enables an component of the table, only it it exists 
    *
    * \param id The id of the component to enable 
@@ -209,7 +189,7 @@ struct Table
   /**
    * \brief Gets the size of the table
    *
-   * \return Returns the size of the table
+
    */
   size_t 
   size() const;
@@ -236,33 +216,42 @@ struct Table
   void
   release() const;
 
-private:
   /**
-   * \brief This is a helper function that virtually allocates the space of an component and
+   * \brief This function virtually allocates the space of an component and
    * returns a pointer to the reserved position. The component is marked as if it
-   * was inserted. This method is aimed to be called from insert_component, which
-   * is a templated function. 
+   * was inserted and enabled.
    *
-   * \param id
+   * \param id The id of the entity to remove the component for
    *
-   * \return 
    */
   void* 
   alloc_component(entity_id_t id);
 
   /**
-   * \brief This is a helper function that virtually deallocates the space of an component and
+   * \brief This  virtually deallocates the space of an component and
    * returns a pointer to the position where it was deallocated. The component is marked as if it
-   * was removed. This method is aimed to be called from remove_component, which
-   * is a templated function. 
+   * was removed.  
    *
-   * \param id
+   * \param id The id of the entity to remove the component for
    *
-   * \return 
+   * \return The pointer where the component for the entity of the given id was
+   * allocated. nullptr if it did not exist.
    */
   void* 
   dealloc_component(entity_id_t id);
 
+
+  /**
+   * \brief This removes the component and deallocates its space by 
+   * calling the destructor of the table on the memory position where it was allocated.   
+   *
+   * \param id The id of the entity to remove the component for
+   *
+   */
+  void 
+  dealloc_and_destroy_component(entity_id_t id);
+
+private:
   std::string m_name; // The name of the table
   uint64_t m_id;
   size_t m_esize; // The size of each component in bytes

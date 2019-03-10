@@ -65,7 +65,7 @@ Database::clear_entity(entity_id_t id)
   while(it.has_next()) 
   {
     Table* table = *it.next();
-    table->remove_component(id);
+    table->dealloc_and_destroy_component(id);
   }
   release();
 }
@@ -158,7 +158,8 @@ Database::add_reference( const std::string& ref_name,
   {
     table_ptr = *ref_table;
   }
-  table_ptr->insert_component<uint32_t>(tail, head);
+  TableView<uint32_t> t_view(table_ptr);
+  t_view.insert_component(tail, head);
   release();
   return;
 }
@@ -173,7 +174,7 @@ Database::remove_reference( const std::string& ref_name,
   if (ref_table != nullptr) 
   {
     Table* table_ptr = *ref_table;
-    table_ptr->remove_component(tail);
+    table_ptr->dealloc_and_destroy_component(tail);
   }
   release();
   return;

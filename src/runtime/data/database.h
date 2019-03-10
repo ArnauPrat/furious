@@ -63,7 +63,8 @@ struct Database
    * Gets the table from type 
    * */
   template <typename T>
-  TableView<T> find_table();
+  TableView<T> 
+  find_table();
 
   /**
    * @brief Finds the table for the specified component or adds it to the

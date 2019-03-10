@@ -87,49 +87,61 @@ template<typename TComponent>
 }
 
 template<typename TComponent>
-void TableView<TComponent>::clear() {
+void 
+TableView<TComponent>::clear() 
+{
   p_table->clear();
 }
 
 template<typename TComponent>
-TComponent* TableView<TComponent>::get_component(entity_id_t id) const  {
+TComponent* 
+TableView<TComponent>::get_component(entity_id_t id) const  
+{
   return static_cast<TComponent*>(p_table->get_component(id));
 }
 
 template<typename TComponent>
 template<typename...Args>
-void TableView<TComponent>::insert_component(entity_id_t id, Args&&...args){
-  p_table->insert_component<TComponent>(id, std::forward<Args>(args)...);
+void 
+TableView<TComponent>::insert_component(entity_id_t id, Args&&...args)
+{
+  new (p_table->alloc_component(id)) TComponent{std::forward<Args>(args)...};
 }
 
 template<typename TComponent>
-void  TableView<TComponent>::remove_component(entity_id_t id){
-  p_table->remove_component(id);
+void  TableView<TComponent>::remove_component(entity_id_t id)
+{
+  p_table->dealloc_and_destroy_component(id);
 }
 
 template<typename TComponent>
-void  TableView<TComponent>::enable_component(entity_id_t id){
+void  TableView<TComponent>::enable_component(entity_id_t id)
+{
   p_table->enable_component(id);
 }
 
 template<typename TComponent>
-void TableView<TComponent>::disable_component(entity_id_t id){
+void TableView<TComponent>::disable_component(entity_id_t id)
+{
   p_table->disable_component(id);
 }
 
 template<typename TComponent>
-bool TableView<TComponent>::is_enabled(entity_id_t id){
+bool TableView<TComponent>::is_enabled(entity_id_t id)
+{
  return p_table->is_enabled(id);
 }
 
 
 template<typename TComponent>
-size_t TableView<TComponent>::size() const {
+size_t TableView<TComponent>::size() const 
+{
   return p_table->size();
 }
 
 template<typename TComponent>
-typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator() {
+typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator() 
+{
   return BlockIterator{p_table->iterator()};
 }
 

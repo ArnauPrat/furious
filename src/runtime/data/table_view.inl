@@ -2,7 +2,8 @@
 #include <utility>
 #include <assert.h>
 
-namespace furious {
+namespace furious 
+{
 
 template<typename TComponent>
 TableView<TComponent>::Block::Block(TBlock* block) : p_tblock{block} 
@@ -22,6 +23,12 @@ size_t
 TableView<TComponent>::Block::get_num_components() const 
 {
   return p_tblock->m_num_components;
+}
+
+template<typename TComponent>
+entity_id_t TableView<TComponent>::Block::get_start() const 
+{
+  return p_tblock->m_start;
 }
 
 template<typename TComponent>
@@ -143,6 +150,13 @@ template<typename TComponent>
 typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator() 
 {
   return BlockIterator{p_table->iterator()};
+}
+
+template <typename TComponent>
+Table*
+TableView<TComponent>::get_raw()
+{
+  return p_table;
 }
 
 } /* furious */ 

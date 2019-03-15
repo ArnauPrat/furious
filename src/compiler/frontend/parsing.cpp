@@ -134,9 +134,18 @@ process_match(ASTContext* ast_context,
   const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
   DynArray<QualType> tmplt_types = get_tmplt_types(*arg_list);
 
-  for (size_t i = 0; i < tmplt_types.size(); ++i) 
+  uint32_t num_consumed = 0;
+  for(uint32_t i = 0; i < fcc_match->p_entity_matches.size() - 1; ++i)
   {
-    QualType type = tmplt_types[i];
+    num_consumed+=fcc_match->p_entity_matches[i]->m_basic_component_types.size();
+  }
+  uint32_t num_system_args = fcc_match->m_system.m_component_types.size();
+
+  uint32_t begin = num_system_args - (num_consumed + tmplt_types.size());
+  uint32_t end = num_system_args - num_consumed;
+  for (size_t i = begin; i < end; ++i) 
+  {
+    QualType type = fcc_match->m_system.m_component_types[i];
     entity_match->insert_component_type(&type);
   }
   return true;

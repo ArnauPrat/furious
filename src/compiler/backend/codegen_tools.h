@@ -32,7 +32,6 @@ struct CodeGenContext
   std::string m_source;
   FILE*                   p_fd;
   const FccOperator*      p_caller;
-  FccContext*             p_fcc_context;
 };
 
 struct CodeGenRegistry
@@ -54,15 +53,13 @@ struct CodeGenRegistry
 
 
 void 
-consume(FccContext* fcc_context,
-        FILE* fd,
+consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
         const FccOperator* caller);
 
 void 
-produce(FccContext* fcc_context,
-        FILE* fd,
+produce(FILE* fd,
         const FccOperator* op);
 
 } /* furious */ 

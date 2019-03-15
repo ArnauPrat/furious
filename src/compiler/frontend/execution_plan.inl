@@ -8,8 +8,9 @@ namespace furious
 
 template<typename T>
 FccOperatorTmplt<T>::FccOperatorTmplt(FccOperatorType type,
-                                      const std::string& name) : 
-FccOperator(type, name)
+                                      const std::string& name,
+                                      FccContext* fcc_context) : 
+FccOperator(type, name, fcc_context)
 {
 
 }
@@ -22,8 +23,8 @@ FccOperatorTmplt<T>::accept(FccExecPlanVisitor* visitor) const
 }
 
 template<typename T>
-Filter<T>::Filter(RefCountPtr<FccOperator> child, const std::string& name) :
-FccOperatorTmplt<T>(FccOperatorType::E_FILTER, name),
+Filter<T>::Filter(RefCountPtr<FccOperator> child, const std::string& name, FccContext* fcc_context) :
+FccOperatorTmplt<T>(FccOperatorType::E_FILTER, name, fcc_context),
 p_child(child) 
 {
   p_child.get()->p_parent = this;

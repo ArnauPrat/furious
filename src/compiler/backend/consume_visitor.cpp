@@ -30,7 +30,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
       StringBuilder str_builder;
       str_builder.append("<ForEach> operator cannot be applied to reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      foreach->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
@@ -111,8 +111,7 @@ ConsumeVisitor::visit(const Join* join)
             "if(%s->p_enabled->num_set() != 0)\n{\n", 
             clustername.c_str());
 
-    consume(p_context->p_fcc_context,
-            p_context->p_fd,
+    consume(p_context->p_fd,
             join->p_parent,
             clustername,
             join);
@@ -161,8 +160,7 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
   fprintf(p_context->p_fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           p_context->m_source.c_str()); 
-  consume(p_context->p_fcc_context,
-          p_context->p_fd,
+  consume(p_context->p_fd,
           tag_filter->p_parent,
           p_context->m_source,
           tag_filter);
@@ -172,11 +170,10 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
 void
 ConsumeVisitor::visit(const ComponentFilter* component_filter)
 {
-  p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+  component_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                      "Component filter not yet implemented");
   // if ...
-  consume(p_context->p_fcc_context,
-          p_context->p_fd,
+  consume(p_context->p_fd,
           component_filter->p_parent,
           "cluster",
           component_filter);
@@ -196,7 +193,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
       StringBuilder str_builder;
       str_builder.append("<PredicateFilter> operator cannot be applied to reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      p_context->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      predicate_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
@@ -252,8 +249,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   fprintf(p_context->p_fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           p_context->m_source.c_str()); 
-  consume(p_context->p_fcc_context,
-          p_context->p_fd,
+  consume(p_context->p_fd,
           predicate_filter->p_parent,
           p_context->m_source,
           predicate_filter);
@@ -263,6 +259,35 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
 void
 ConsumeVisitor::visit(const Gather* gather)
 {
+  if(p_context->p_caller == gather->p_ref_table.get()) 
+  {
+    // perform the group by of the references
+    std::string groups = "groups_" + std::to_string(gather->m_id);
+    fprintf(p_context->p_fd,"TableView<entity_id_t>::Block block(%s->m_blocks[0]);\n", p_context->m_source.c_str());
+    fprintf(p_context->p_fd,"group_references(&%s, &block);\n", groups.c_str());
+  }
+  else
+  {
+    // perform the gather using the grouped references
+    DynArray<FccColumn>& child_columns = gather->p_child.get()->m_columns;
+    for(uint32_t i = 0; i < child_columns.size(); ++i)
+    {
+      FccColumn* column = &child_columns[i];
+      std::string component_name = get_type_name(column->m_q_type); 
+      std::string temp_table_name = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
+      fprintf(p_context->p_fd,"TableView<%s>::Block block_%u(%s->m_blocks[%u]);\n",
+              component_name.c_str(),
+              i,
+              p_context->m_source.c_str(),
+              i);
+      fprintf(p_context->p_fd,"gather<%s>(&groups_%u,&block_%u,&temp_table_%s_%u);\n", 
+              component_name.c_str(),
+              gather->m_id,
+              i,
+              component_name.c_str(),
+              gather->m_id);
+    }
+  }
 }
 
 } /* furious */ 

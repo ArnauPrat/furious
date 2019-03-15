@@ -119,6 +119,7 @@ class VarsExtr : public FccExecPlanVisitor
 public:
   std::set<std::string> m_components;
   std::set<std::string> m_tags;
+  std::set<std::string> m_references;
 
   virtual void 
   visit(const Foreach* foreach)
@@ -132,6 +133,10 @@ public:
     if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
     {
       m_components.insert(get_type_name(scan->m_columns[0].m_q_type));
+    }
+    else
+    {
+      m_references.insert(scan->m_columns[0].m_ref_name);
     }
   }
 
@@ -165,6 +170,7 @@ public:
   virtual void
   visit(const Gather* gather)
   {
+    gather->p_ref_table.get()->accept(this);
     gather->p_child.get()->accept(this);
   }
 };
@@ -245,6 +251,12 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
   }
 
+  for(const std::string& ref_name : vars_extr.m_references)
+  {
+    std::string table_varname = "ref_"+ref_name+"_table";
+    fprintf(fd, "TableView<entity_id_t> %s;\n", table_varname.c_str());
+  }
+
   // BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
@@ -293,6 +305,15 @@ generate_code(const FccExecPlan* exec_plan,
             "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
             table_varname.c_str(),
             table.c_str());
+  }
+
+  for(const std::string& ref_name : vars_extr.m_references)
+  {
+    std::string table_varname = "ref_"+ref_name+"_table";
+    fprintf(fd,
+            "%s  = database->get_references(\"%s\");\n",
+            table_varname.c_str(),
+            ref_name.c_str());
   }
 
   // INITIALIZING BITTABLES
@@ -357,11 +378,12 @@ generate_code(const FccExecPlan* exec_plan,
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
-    produce(exec_plan->p_context, fd,root);
+    produce(fd,root);
     fprintf(fd,"}\n");
   }
   delete p_registry;
 
+  fprintf(fd,"database->remove_temp_tables();\n");
   fprintf(fd, "database->release();\n");
   fprintf(fd, "}\n");
 

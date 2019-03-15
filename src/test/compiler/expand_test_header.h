@@ -22,4 +22,17 @@ struct Velocity
   float m_z;
 };
 
+struct Intensity 
+{
+  FURIOUS_COMPONENT(Intensity);
+
+  float m_intensity;
+};
+
+struct FieldMesh 
+{
+  FURIOUS_COMPONENT(Field);
+
+};
+
 #endif /* ifndef _BASIC_TEST_HEADER_H_ */

@@ -77,4 +77,31 @@ bool Database::exists_table()
   return m_tables.get(table_id) != nullptr;
 }
 
+template <typename T>
+TableView<T>
+Database::create_temp_table(const std::string& table_name)
+{
+  uint32_t hash_value = hash(table_name.c_str()); 
+  Table** table = m_temp_tables.get(hash_value);
+  if(table != nullptr) {
+    return TableView<T>(*table);
+  }
+  Table* table_ptr =  new Table(table_name, hash_value, sizeof(T), nullptr);
+  m_temp_tables.insert_copy(hash_value,&table_ptr);
+  return TableView<T>(table_ptr); 
+}
+
+template <typename T>
+void
+Database::remove_temp_table(TableView<T> table_view)
+{
+  uint32_t hash_value = hash(table_view.get_raw()->m_name);
+  Table** table = m_temp_tables.get(hash_value);
+  if(table != nullptr)
+  {
+    delete *table;
+    m_temp_tables.remove(hash_value);
+  }
+}
+
 } /* furious */ 

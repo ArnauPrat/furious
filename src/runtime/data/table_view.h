@@ -9,13 +9,10 @@ namespace furious
 {
 
 template<typename TComponent> 
-class TableView   
+struct TableView   
 {
-public:
-
-    class Block 
+    struct Block 
     {
-    public:
       typedef TComponent type;
       Block(TBlock* block);
       ~Block() = default;
@@ -41,10 +38,8 @@ public:
       TBlock* p_tblock;
     };
 
-    class BlockIterator 
+    struct BlockIterator 
     {
-    public:
-
       BlockIterator(Table::Iterator iter);
       ~BlockIterator() = default;
 
@@ -64,7 +59,6 @@ public:
 
   TableView& operator=(const TableView& other) = default;
 
-public:
   /**
    * @brief Clears the table
    */
@@ -144,6 +138,15 @@ public:
    */
   BlockIterator 
   iterator();
+
+
+  /**
+   * \brief Gets the pointer to the raw table of this table view
+   *
+   * \return The pointer to the raw table.
+   */
+  Table*
+  get_raw();
 
 private:
   Table*  p_table;

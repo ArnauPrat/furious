@@ -224,19 +224,19 @@ handle_compilation_error(FccContext* context,
   switch(type) 
   {
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
-      str_builder.append("Unknown error: %s", err_msg.c_str());
+      str_builder.append("Unknown error: %s\n", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
-      str_builder.append("Cyclic dependency graph %s", err_msg.c_str());
+      str_builder.append("Cyclic dependency graph %s\n", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_INVALID_COLUMN_TYPE:
-      str_builder.append("Invalid Column Type: %s", err_msg.c_str());
+      str_builder.append("Invalid Column Type: %s\n", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND:
-      str_builder.append("Invalid access mode: %s", err_msg.c_str());
+      str_builder.append("Invalid access mode: %s\n", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS:
-      str_builder.append("System invalid number of components: %s", err_msg.c_str());
+      str_builder.append("System invalid number of components: %s\n", err_msg.c_str());
       break;
   }
   llvm::errs() << str_builder.p_buffer;
@@ -281,7 +281,7 @@ FccContext::report_parsing_error(FccParsingErrorType error_type,
                                  int32_t line,
                                  int32_t column)
 {
-  if(p_pecallback) 
+  if(p_pecallback != nullptr) 
   {
     p_pecallback(this, 
                  error_type,
@@ -296,7 +296,7 @@ void
 FccContext::report_compilation_error(FccCompilationErrorType error_type,
                                      const std::string& err_msg)
 {
-  if(p_cecallback) 
+  if(p_cecallback != nullptr) 
   {
     p_cecallback(this, 
                  error_type,

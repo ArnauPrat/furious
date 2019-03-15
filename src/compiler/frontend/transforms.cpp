@@ -28,8 +28,6 @@ create_subplan(const FccMatch* match)
 
 
     int32_t size = match->p_entity_matches.size();
-    // First entity match
-    
     for(int32_t i = size - 1; i >= 0; --i)
     {
       FccEntityMatch* entity_match = match->p_entity_matches[i];
@@ -38,17 +36,26 @@ create_subplan(const FccMatch* match)
       {
         if(root == nullptr)
         {
-          root = new Scan(entity_match->m_basic_component_types[j]);
+          root = new Scan(entity_match->m_basic_component_types[j], 
+                          match->p_fcc_context);
         }
         else 
         {
-          FccOperator* right = new Scan(entity_match->m_basic_component_types[j]);
+          FccOperator* right = new Scan(entity_match->m_basic_component_types[j], 
+                                        match->p_fcc_context);
+
           if(entity_match->m_from_expand)
           {
-            FccOperator* ref_scan = new Scan(entity_match->m_ref_name);
-            right = new Gather(ref_scan, right);
+            FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
+                                             match->p_fcc_context);
+
+            right = new Gather(ref_scan, 
+                               right, 
+                               match->p_fcc_context);
           }
-          root = new Join(root, right);
+          root = new Join(root, 
+                          right, 
+                          match->p_fcc_context);
         }
       }
     }
@@ -56,7 +63,8 @@ create_subplan(const FccMatch* match)
   else 
   {
     // No join is needed, a single component needs to be scanned
-    root = new Scan(match->m_system.m_component_types[0]);
+    root = new Scan(match->m_system.m_component_types[0], 
+                    match->p_fcc_context);
   }
 
   // Create without Tag Filters
@@ -64,7 +72,8 @@ create_subplan(const FccMatch* match)
   {
     root = new TagFilter(root, 
                          match->p_entity_matches[0]->m_has_not_tags[i],
-                         FccFilterOpType::E_HAS_NOT);
+                         FccFilterOpType::E_HAS_NOT, 
+                         match->p_fcc_context);
   }
 
   // Create with tag filters
@@ -72,7 +81,8 @@ create_subplan(const FccMatch* match)
   {
     root = new TagFilter(root, 
                          match->p_entity_matches[0]->m_has_tags[i],
-                         FccFilterOpType::E_HAS);
+                         FccFilterOpType::E_HAS, 
+                         match->p_fcc_context);
   }
 
   // Create with components filters
@@ -80,7 +90,8 @@ create_subplan(const FccMatch* match)
   {
     root = new ComponentFilter(root, 
                                match->p_entity_matches[0]->m_has_not_components[i],
-                               FccFilterOpType::E_HAS_NOT);
+                               FccFilterOpType::E_HAS_NOT, 
+                               match->p_fcc_context);
   }
 
   // Create with components filters
@@ -88,14 +99,16 @@ create_subplan(const FccMatch* match)
   {
     root = new ComponentFilter(root, 
                                match->p_entity_matches[0]->m_has_components[i],
-                               FccFilterOpType::E_HAS);
+                               FccFilterOpType::E_HAS, 
+                               match->p_fcc_context);
   }
 
   // Create predicate filters
   for(uint32_t i = 0; i < match->p_entity_matches[0]->p_filter_func.size(); ++i)
   {
     root = new PredicateFilter(root, 
-                               match->p_entity_matches[0]->p_filter_func[i]);
+                               match->p_entity_matches[0]->p_filter_func[i], 
+                               match->p_fcc_context);
   }
 
   // Create Operation operator
@@ -112,7 +125,9 @@ create_subplan(const FccMatch* match)
       // * Create Foreach operator
       DynArray<const FccSystem*> arr;
       arr.append(&match->m_system);
-      root = new Foreach(root, arr);
+      root = new Foreach(root, 
+                         arr, 
+                         match->p_fcc_context);
       break;
   };
   return root;

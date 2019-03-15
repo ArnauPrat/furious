@@ -208,20 +208,59 @@ struct Database
   void
   release() const;
 
+  /**
+   * \brief Gets the table metadata of the different tables in the Database  
+   *
+   * \param data A pointer to TableInfo array 
+   * \param capacity The capacity of the TableInfo array
+   *
+   * \return Returns the number of entries set in the array
+   */
   size_t 
   meta_data(TableInfo* data, uint32_t capacity);
 
+  /**
+   * \brief Returns the number of tables in the database
+   *
+   * \return 
+   */
   size_t
   num_tables() const;
 
+
+  /**
+   * \brief Creates a temporal table for the given component type
+   *
+   * @tparam T The type of the components stored in the table
+   *
+   * \return A TableView of the temporal table
+   */
+  template <typename T>
+  TableView<T>
+  create_temp_table(const std::string& table_name);
+
+  /**
+   * \brief Destroys the given temporal table
+   *
+   * @tparam T The type of the componnets stored in the table
+   * \param view The view to the temporal table to destroy
+   */
+  template <typename T>
+  void
+  remove_temp_table(TableView<T> view);
+
+
+  void
+  remove_temp_tables();
 private:
 
   BTree<BitTable*>            m_tags;
   BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
   BTree<Table*>               m_references;
+  BTree<Table*>               m_temp_tables;
   entity_id_t                 m_next_entity_id;
   WebServer*                  p_webserver;
-  mutable std::mutex                  m_mutex;
+  mutable std::mutex          m_mutex;
 };
 
 }

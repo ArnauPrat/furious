@@ -64,8 +64,7 @@ CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
 ////////////////////////////////////////////////
 
 void 
-consume(FccContext* fcc_context,
-        FILE* fd,
+consume(FILE* fd,
         const FccOperator* op,
         const std::string& source,
         const FccOperator* caller)
@@ -77,8 +76,7 @@ consume(FccContext* fcc_context,
 }
 
 void 
-produce(FccContext* fcc_context,
-        FILE* fd,
+produce(FILE* fd,
         const FccOperator* op)
 {
   CodeGenContext* context = p_registry->find_or_create(op,fd);

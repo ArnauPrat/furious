@@ -35,6 +35,9 @@ set (RUNTIME_SRC
   runtime/data/context.cpp
   runtime/data/context.h
   runtime/data/data.h
+  runtime/data/data_utils.cpp
+  runtime/data/data_utils.h
+  runtime/data/data_utils.inl
   runtime/data/database.cpp
   runtime/data/database.h
   runtime/data/database.inl
@@ -44,7 +47,6 @@ set (RUNTIME_SRC
   runtime/data/macros.h
   runtime/data/table.cpp
   runtime/data/table.h
-  runtime/data/table.inl
   runtime/data/table_view.h
   runtime/data/table_view.inl
   runtime/data/webserver/webserver.h

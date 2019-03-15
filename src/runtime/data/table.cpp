@@ -1,6 +1,7 @@
 
 
 #include "table.h"
+#include "../memory/numa_alloc.h"
 
 namespace furious {
 
@@ -48,7 +49,7 @@ has_component(const TBlock* block,
 }
 
 TBlock::TBlock(entity_id_t start, size_t esize) :
-    p_data(static_cast<char*>(numa_alloc(0, esize*TABLE_BLOCK_SIZE ))),
+    p_data(static_cast<char*>(numa_alloc(0, esize*TABLE_BLOCK_SIZE))),
     m_start(start),
     m_num_components(0),
     m_num_enabled_components(0),

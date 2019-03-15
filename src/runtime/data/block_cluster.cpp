@@ -9,6 +9,13 @@ namespace furious
 
 #define _FURIOUS_INVALID_BLOCK_START 0xffffffff
 
+BlockCluster::BlockCluster() :
+m_num_elements(0),
+p_enabled(nullptr),
+m_start(_FURIOUS_INVALID_BLOCK_START) 
+{
+}
+
 BlockCluster::BlockCluster(TBlock* block) :
 m_num_elements(1),
 p_enabled(nullptr),
@@ -33,11 +40,13 @@ m_start(block.m_start)
 
 BlockCluster::~BlockCluster()
 {
-  delete p_enabled;
+  if(p_enabled != nullptr)
+  {
+    delete p_enabled;
+  }
 }
 
-void BlockCluster::append(TBlock* block, 
-                          const std::string& type)
+void BlockCluster::append(TBlock* block)
 {
   assert(m_num_elements < FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
   assert((m_start == _FURIOUS_INVALID_BLOCK_START || m_start == block->m_start ) && "Unaligned block cluster");
@@ -45,6 +54,11 @@ void BlockCluster::append(TBlock* block,
   if(m_start == _FURIOUS_INVALID_BLOCK_START)
   {
     m_start = block->m_start;
+  }
+  if(p_enabled == nullptr)
+  {
+    p_enabled = new Bitmap(block->p_enabled->max_bits());
+    p_enabled->set_bitmap(block->p_enabled);
   }
 
   m_blocks[m_num_elements] = block;

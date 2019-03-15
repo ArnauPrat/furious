@@ -12,15 +12,14 @@ namespace furious
 class BlockCluster final
 {
 public:
-  BlockCluster() = default;
+  BlockCluster();
   BlockCluster(TBlock* block);
   BlockCluster(const BlockCluster& block);
 
   ~BlockCluster();
 
   void 
-  append(TBlock* block, 
-         const std::string& type);
+  append(TBlock* block);
 
   void 
   append(const BlockCluster* other);

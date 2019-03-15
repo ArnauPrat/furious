@@ -263,6 +263,4 @@ private:
 
 } // namespace furious
 
-#include "table.inl"
-
 #endif

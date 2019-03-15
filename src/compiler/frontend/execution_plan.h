@@ -47,7 +47,8 @@ class FccOperator
 public:
 
   FccOperator(FccOperatorType type, 
-              const std::string& name);
+              const std::string& name,
+              FccContext* fcc_context);
 
   virtual
   ~FccOperator() = default;
@@ -57,6 +58,7 @@ public:
 
   FccOperatorType       m_type;
   std::string           m_name;
+  FccContext*           p_fcc_context;
   const FccOperator*    p_parent;
   DynArray<FccColumn>   m_columns;
   uint32_t              m_id;
@@ -70,7 +72,8 @@ class FccOperatorTmplt : public FccOperator
 {
 public:
   FccOperatorTmplt(FccOperatorType type,
-                   const std::string& name);
+                   const std::string& name,
+                   FccContext* fcc_context);
 
   virtual 
   ~FccOperatorTmplt() = default;
@@ -84,8 +87,10 @@ public:
  */
 struct Scan : public FccOperatorTmplt<Scan> 
 {
-  explicit Scan(const std::string& ref_name);
-  explicit Scan(QualType component);
+  explicit Scan(const std::string& ref_name,
+              FccContext* fcc_context);
+  explicit Scan(QualType component,
+              FccContext* fcc_context);
 
   virtual 
   ~Scan() = default;
@@ -98,7 +103,8 @@ struct Scan : public FccOperatorTmplt<Scan>
 struct Join : public FccOperatorTmplt<Join> 
 {
   Join(RefCountPtr<FccOperator> left, 
-       RefCountPtr<FccOperator> right);
+       RefCountPtr<FccOperator> right,
+       FccContext* fcc_context);
   virtual 
   ~Join();
 
@@ -114,7 +120,8 @@ template<typename T>
 struct Filter : public FccOperatorTmplt<T> 
 {
   Filter(RefCountPtr<FccOperator> child,
-         const std::string& name);
+         const std::string& name,
+         FccContext* fcc_context);
 
   virtual 
   ~Filter();
@@ -126,7 +133,8 @@ struct Filter : public FccOperatorTmplt<T>
 struct PredicateFilter : public Filter<PredicateFilter>
 {
   PredicateFilter(RefCountPtr<FccOperator> child,
-                  const FunctionDecl* func_decl);
+                  const FunctionDecl* func_decl,
+                  FccContext* fcc_context);
   virtual 
   ~PredicateFilter() = default;
 
@@ -143,7 +151,8 @@ struct TagFilter : public Filter<TagFilter>
 {
   TagFilter(RefCountPtr<FccOperator> child,
             const std::string& tag,
-            FccFilterOpType op_type);
+            FccFilterOpType op_type,
+            FccContext* fcc_context);
 
   virtual 
   ~TagFilter() = default;
@@ -156,7 +165,8 @@ struct ComponentFilter : public Filter<ComponentFilter>
 {
   ComponentFilter(RefCountPtr<FccOperator> child,
                   QualType component_type,
-                  FccFilterOpType op_type);
+                  FccFilterOpType op_type,
+                  FccContext* fcc_context);
 
   virtual 
   ~ComponentFilter() = default;
@@ -172,7 +182,8 @@ struct ComponentFilter : public Filter<ComponentFilter>
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
   Foreach(RefCountPtr<FccOperator> child, 
-          const DynArray<const FccSystem*>& systems);
+          const DynArray<const FccSystem*>& systems,
+          FccContext* fcc_context);
 
   virtual 
   ~Foreach();
@@ -187,7 +198,8 @@ struct Foreach : public FccOperatorTmplt<Foreach>
 struct Gather : public FccOperatorTmplt<Gather>  
 {
   Gather(RefCountPtr<FccOperator> ref_table,
-         RefCountPtr<FccOperator> child);
+         RefCountPtr<FccOperator> child,
+         FccContext* fcc_context);
 
   virtual 
   ~Gather();

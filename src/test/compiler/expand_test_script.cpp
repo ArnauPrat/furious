@@ -20,9 +20,22 @@ struct UpdatePosition
   }
 
   float m_speed = 1.0;
+};
+
+struct DrawFieldMesh
+{
+  void run(furious::Context* context,
+           uint32_t id,
+           FieldMesh* field,
+           const Position* parent_position,
+           const Intensity* parent_intensity)
+  {
+    // DRAW FIELD MESH
+  }
 
 };
 
 furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0);
+furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<DrawFieldMesh>();
 
 END_FURIOUS_SCRIPT

@@ -44,6 +44,13 @@ void Database::clear()
     delete *it_references.next();
   }
   m_references.clear();
+
+  BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
+  while (it_temp_tables.has_next()) 
+  {
+    delete *it_temp_tables.next();
+  }
+  m_temp_tables.clear();
   release();
 }
 
@@ -236,6 +243,19 @@ void
 Database::release() const
 {
   m_mutex.unlock();
+}
+
+void
+Database::remove_temp_tables()
+{
+  lock();
+  BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
+  while (it_temp_tables.has_next()) 
+  {
+    delete *it_temp_tables.next();
+  }
+  m_temp_tables.clear();
+  release();
 }
 
   

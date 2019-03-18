@@ -62,6 +62,46 @@ void
 produce(FILE* fd,
         const FccOperator* op);
 
+std::string
+generate_table_name(const std::string& type_name, 
+                    const FccOperator* op = nullptr);
+
+std::string
+generate_temp_table_name(const std::string& type_name, 
+                         const FccOperator* op = nullptr);
+
+std::string
+generate_ref_table_name(const std::string& ref_name, 
+                        const FccOperator* op = nullptr);
+
+std::string
+generate_bittable_name(const std::string& tag_name,
+                       const FccOperator* op = nullptr);
+
+std::string
+generate_table_iter_name(const std::string& table_name,
+                         const FccOperator* op = nullptr);
+
+std::string
+generate_block_name(const std::string& type_name,
+                    const FccOperator* op = nullptr);
+
+std::string
+generate_cluster_name(const FccOperator* op);
+
+std::string
+generate_ref_groups_name(const std::string& ref_name, 
+                         const FccOperator* op);
+
+std::string
+generate_hashtable_name(const FccOperator* op);
+
+std::string
+generate_system_wrapper_name(const std::string& system_name,
+                             uint32_t system_id,
+                             const FccOperator* op = nullptr);
+
 } /* furious */ 
+
 
 #endif

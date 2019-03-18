@@ -249,9 +249,11 @@ struct Database
   void
   remove_temp_table(TableView<T> view);
 
-
   void
   remove_temp_tables();
+
+  void
+  remove_temp_tables_no_lock();
 private:
 
   BTree<BitTable*>            m_tags;

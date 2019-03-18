@@ -249,13 +249,19 @@ void
 Database::remove_temp_tables()
 {
   lock();
+  remove_temp_tables_no_lock();
+  release();
+}
+
+void
+Database::remove_temp_tables_no_lock()
+{
   BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
   while (it_temp_tables.has_next()) 
   {
     delete *it_temp_tables.next();
   }
   m_temp_tables.clear();
-  release();
 }
 
   

@@ -237,30 +237,21 @@ generate_code(const FccExecPlan* exec_plan,
   // TABLEVIEWS
   for(const std::string& table : vars_extr.m_components)
   {
-    std::string base_name = table;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
-
-    std::string table_varname = base_name+"_table";
+    std::string table_varname = generate_table_name(table);
     fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
   }
 
   for(const std::string& ref_name : vars_extr.m_references)
   {
-    std::string table_varname = "ref_"+ref_name+"_table";
+    std::string table_varname = generate_ref_table_name(ref_name);
     fprintf(fd, "TableView<entity_id_t> %s;\n", table_varname.c_str());
   }
 
   // BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
-    fprintf(fd, "BitTable* tagged_%s;\n", tag.c_str());
+    std::string table_varname = generate_bittable_name(tag);
+    fprintf(fd, "BitTable* %s;\n", table_varname.c_str());
   }
 
   // SYSTEMWRAPPERS
@@ -268,10 +259,6 @@ generate_code(const FccExecPlan* exec_plan,
   {
     const FccMatch* match = exec_plan->p_context->p_matches[i];
     std::string system_name = get_type_name(match->m_system.m_system_type);
-    std::string base_name = system_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
     fprintf(fd, "SystemWrapper<%s", system_name.c_str());
     for(uint32_t j = 0; j < match->m_system.m_component_types.size(); ++j)
 		{
@@ -279,7 +266,9 @@ generate_code(const FccExecPlan* exec_plan,
       std::string q_ctype = get_qualified_type_name(component);
       fprintf(fd,",%s",q_ctype.c_str());
 		}
-    fprintf(fd, ">* %s_%d;\n", base_name.c_str(), match->m_system.m_id);
+    std::string wrapper_name = generate_system_wrapper_name(system_name, 
+                                                            match->m_system.m_id);
+    fprintf(fd, ">* %s;\n", wrapper_name.c_str());
   }
 
   /// GENERATING __furious__init  
@@ -290,17 +279,7 @@ generate_code(const FccExecPlan* exec_plan,
   // INITIALIZING TABLEVIEWS 
   for(const std::string& table : vars_extr.m_components)
   {
-    std::string base_name = table;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
-
-    std::string table_varname = base_name+"_table";
+    std::string table_varname = generate_table_name(table);
     fprintf(fd,
             "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
             table_varname.c_str(),
@@ -309,7 +288,7 @@ generate_code(const FccExecPlan* exec_plan,
 
   for(const std::string& ref_name : vars_extr.m_references)
   {
-    std::string table_varname = "ref_"+ref_name+"_table";
+    std::string table_varname = generate_ref_table_name(ref_name);
     fprintf(fd,
             "%s  = database->get_references(\"%s\");\n",
             table_varname.c_str(),
@@ -319,9 +298,10 @@ generate_code(const FccExecPlan* exec_plan,
   // INITIALIZING BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
+    std::string table_name = generate_bittable_name(tag);
     fprintf(fd,
-            "tagged_%s = database->get_tagged_entities(\"%s\");\n",
-            tag.c_str(),
+            "%s = database->get_tagged_entities(\"%s\");\n",
+            table_name.c_str(),
             tag.c_str());
   }
 
@@ -330,14 +310,11 @@ generate_code(const FccExecPlan* exec_plan,
   {
     const FccMatch* match = exec_plan->p_context->p_matches[i];
     std::string system_name = get_type_name(match->m_system.m_system_type);
-    std::string base_name = system_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
+    std::string wrapper_name = generate_system_wrapper_name(system_name, 
+                                                            match->m_system.m_id);
     fprintf(fd,
-            "%s_%d = create_system<%s>(",
-            base_name.c_str(),
-            match->m_system.m_id,
+            "%s = create_system<%s>(",
+            wrapper_name.c_str(),
             system_name.c_str());
 
     size_t num_params = match->m_system.m_ctor_params.size();
@@ -379,11 +356,11 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
     produce(fd,root);
+    fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
   }
   delete p_registry;
 
-  fprintf(fd,"database->remove_temp_tables();\n");
   fprintf(fd, "database->release();\n");
   fprintf(fd, "}\n");
 
@@ -395,11 +372,9 @@ generate_code(const FccExecPlan* exec_plan,
   {
     const FccMatch* match = exec_plan->p_context->p_matches[i];
     std::string system_name = get_type_name(match->m_system.m_system_type);
-    std::string base_name = system_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-    fprintf(fd, "destroy_system(%s_%d);\n", base_name.c_str(), match->m_system.m_id);
+    std::string wrapper_name = generate_system_wrapper_name(system_name, 
+                                                            match->m_system.m_id);
+    fprintf(fd, "destroy_system(%s);\n", wrapper_name.c_str());
   }
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");

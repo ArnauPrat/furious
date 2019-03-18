@@ -83,7 +83,7 @@ void
 ConsumeVisitor::visit(const Join* join)
 {
 
-  std::string hashtable = "hashtable_"+std::to_string(join->m_id);
+  std::string hashtable = generate_hashtable_name(join);
   if(p_context->p_caller == join->p_left.get()) 
   {
     fprintf(p_context->p_fd, 
@@ -94,26 +94,27 @@ ConsumeVisitor::visit(const Join* join)
   }
   else 
   {
-    std::string clustername = "cluster_"+std::to_string(join->m_id);
     fprintf(p_context->p_fd,
-            "BlockCluster* %s = %s.get(%s->m_start);\n",
-            clustername.c_str(),
+            "BlockCluster* build = %s.get(%s->m_start);\n",
             hashtable.c_str(),
             p_context->m_source.c_str());
     fprintf(p_context->p_fd,
-            "if(%s != nullptr)\n{\n",
+            "if(build != nullptr)\n{\n");
+    std::string clustername = generate_cluster_name(join);
+    fprintf(p_context->p_fd,
+            "BlockCluster %s(*build);\n", 
             clustername.c_str());
     fprintf(p_context->p_fd,
-            "%s->append(%s);\n", 
+            "%s.append(%s);\n", 
             clustername.c_str(), 
             p_context->m_source.c_str());
     fprintf(p_context->p_fd,
-            "if(%s->p_enabled->num_set() != 0)\n{\n", 
+            "if(%s.p_enabled->num_set() != 0)\n{\n", 
             clustername.c_str());
 
     consume(p_context->p_fd,
             join->p_parent,
-            clustername,
+            "(&"+clustername+")",
             join);
 
     fprintf(p_context->p_fd,"}\n");
@@ -124,11 +125,11 @@ ConsumeVisitor::visit(const Join* join)
 void 
 ConsumeVisitor::visit(const TagFilter* tag_filter)
 {
-  const std::string tag = tag_filter->m_tag;
+  const std::string bittable_name = generate_bittable_name(tag_filter->m_tag);
   fprintf(p_context->p_fd,"\n");
   fprintf(p_context->p_fd,
-          "const Bitmap* filter = tagged_%s->get_bitmap(%s->m_start);\n", 
-          tag.c_str(), 
+          "const Bitmap* filter = %s->get_bitmap(%s->m_start);\n", 
+          bittable_name.c_str(), 
           p_context->m_source.c_str());
 
   switch(tag_filter->m_op_type) 
@@ -259,34 +260,33 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
 void
 ConsumeVisitor::visit(const Gather* gather)
 {
+
+  std::string groups = generate_ref_groups_name(gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+                                                gather);
   if(p_context->p_caller == gather->p_ref_table.get()) 
   {
     // perform the group by of the references
-    std::string groups = "groups_" + std::to_string(gather->m_id);
-    fprintf(p_context->p_fd,"TableView<entity_id_t>::Block block(%s->m_blocks[0]);\n", p_context->m_source.c_str());
-    fprintf(p_context->p_fd,"group_references(&%s, &block);\n", groups.c_str());
+    fprintf(p_context->p_fd,
+            "group_references(&%s, %s->m_blocks[0]);\n", 
+            groups.c_str(),
+            p_context->m_source.c_str());
   }
   else
   {
     // perform the gather using the grouped references
+    fprintf(p_context->p_fd,"gather(&%s,%s",
+            groups.c_str(),
+            p_context->m_source.c_str());
     DynArray<FccColumn>& child_columns = gather->p_child.get()->m_columns;
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
       FccColumn* column = &child_columns[i];
       std::string component_name = get_type_name(column->m_q_type); 
-      std::string temp_table_name = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
-      fprintf(p_context->p_fd,"TableView<%s>::Block block_%u(%s->m_blocks[%u]);\n",
-              component_name.c_str(),
-              i,
-              p_context->m_source.c_str(),
-              i);
-      fprintf(p_context->p_fd,"gather<%s>(&groups_%u,&block_%u,&temp_table_%s_%u);\n", 
-              component_name.c_str(),
-              gather->m_id,
-              i,
-              component_name.c_str(),
-              gather->m_id);
+      std::string temp_table_name = generate_temp_table_name(component_name, gather);
+      fprintf(p_context->p_fd,",&%s",
+              temp_table_name.c_str());
     }
+    fprintf(p_context->p_fd,");\n");
   }
 }
 

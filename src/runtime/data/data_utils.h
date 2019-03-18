@@ -12,6 +12,8 @@
 namespace furious
 {
 
+struct BlockCluster;
+
 /**
  * \brief Copies the raw data of the given component to the table at the given
  * id. This is a raw copy, so it is not performed using any copy constructor nor
@@ -23,11 +25,12 @@ namespace furious
  * \param id The id of the element to copy the component to
  * \param component The component to be copied
  */
-template <typename TComponent>
 void
-copy_component_raw(TableView<TComponent>* table_view, 
-                   entity_id_t id, 
-                   const TComponent* component );
+copy_component_raw(const BlockCluster* cluster,
+                   entity_id_t source,
+                   entity_id_t target,
+                   Table** tables,
+                   uint32_t num_tables);
 
 
 /**
@@ -40,7 +43,7 @@ copy_component_raw(TableView<TComponent>* table_view,
  */
 void
 group_references(BTree<DynArray<entity_id_t>>* groups, 
-                 TableView<entity_id_t>::Block* block);
+                 TBlock* block);
 
 /**
  * \brief Given a set of reference groups and a components block, performs the
@@ -51,11 +54,11 @@ group_references(BTree<DynArray<entity_id_t>>* groups,
  * \param block The block to perform the gather from
  * \param table_view The table_view to store the gathered components
  */
-template <typename TComponent>
+template <typename...TComponents>
 void
 gather(const BTree<DynArray<entity_id_t>>* groups, 
-       const typename TableView<TComponent>::Block* block,
-       TableView<TComponent>* table_view);
+       const BlockCluster* cluster,
+       TableView<TComponents>*...table_view);
 
   
 } /* furious */ 

@@ -29,12 +29,12 @@ struct TBlock
   ~TBlock();
   
   char *p_data;                         // The pointer to the block data
-  entity_id_t m_start;                       // The id of the first component in the block
-  size_t m_num_components;                  // The number of components in the block
-  size_t m_num_enabled_components;          // The number of components in the block
-  uint32_t m_esize;                       // The size of the components contained in the block
-  Bitmap* p_exists;                       // A bitmap used to test whether an component is in the block or not
-  Bitmap* p_enabled;                      // A bitmap used to mark components that are enabled/disabled
+  entity_id_t m_start;                  // The id of the first component in the block
+  size_t m_num_components;              // The number of components in the block
+  size_t m_num_enabled_components;      // The number of components in the block
+  size_t m_esize;                       // The size of the components contained in the block
+  Bitmap* p_exists;                     // A bitmap used to test whether an component is in the block or not
+  Bitmap* p_enabled;                    // A bitmap used to mark components that are enabled/disabled
 };
 
 /**

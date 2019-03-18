@@ -10,61 +10,50 @@ FccOperator*
 create_subplan(const FccMatch* match)
 {
   FccOperator* root = nullptr;
-  if(match->m_system.m_component_types.size() > 1)
+
+  int32_t size = match->p_entity_matches.size();
+  for(int32_t i = size - 1; i >= 0; --i)
   {
-    // We need to build joins
-   /* int32_t size = match->m_system.m_component_types.size();
-    FccOperator* left = new Scan(match->m_system.m_component_types[size-2]);
-    FccOperator* right = new Scan(match->m_system.m_component_types[size-1]);
-    root = new Join(left, right);
-    for(int32_t i = size-3; 
-        i >= 0; 
-        --i)
+    FccEntityMatch* entity_match = match->p_entity_matches[i];
+    uint32_t num_components = entity_match->m_basic_component_types.size();
+    FccOperator* local_root = nullptr;
+    for(uint32_t j = 0; j < num_components; ++j)
     {
-      FccOperator* left = new Scan(match->m_system.m_component_types[i]);
-      root = new Join(left, root);
-    }
-    */
-
-
-    int32_t size = match->p_entity_matches.size();
-    for(int32_t i = size - 1; i >= 0; --i)
-    {
-      FccEntityMatch* entity_match = match->p_entity_matches[i];
-      uint32_t num_components = entity_match->m_basic_component_types.size();
-      for(uint32_t j = 0; j < num_components; ++j)
+      if(local_root == nullptr)
       {
-        if(root == nullptr)
-        {
-          root = new Scan(entity_match->m_basic_component_types[j], 
-                          match->p_fcc_context);
-        }
-        else 
-        {
-          FccOperator* right = new Scan(entity_match->m_basic_component_types[j], 
-                                        match->p_fcc_context);
+        local_root = new Scan(entity_match->m_basic_component_types[j], 
+                              match->p_fcc_context);
+      }
+      else 
+      {
+        FccOperator* right = new Scan(entity_match->m_basic_component_types[j], 
+                                      match->p_fcc_context);
 
-          if(entity_match->m_from_expand)
-          {
-            FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
-                                             match->p_fcc_context);
-
-            right = new Gather(ref_scan, 
-                               right, 
-                               match->p_fcc_context);
-          }
-          root = new Join(root, 
-                          right, 
-                          match->p_fcc_context);
-        }
+        local_root = new Join(local_root, 
+                              right, 
+                              match->p_fcc_context);
       }
     }
-  } 
-  else 
-  {
-    // No join is needed, a single component needs to be scanned
-    root = new Scan(match->m_system.m_component_types[0], 
-                    match->p_fcc_context);
+
+    if(entity_match->m_from_expand)
+    {
+      FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
+                                       match->p_fcc_context);
+
+      local_root = new Gather(ref_scan, 
+                              local_root, 
+                              match->p_fcc_context);
+    }
+    if(root == nullptr)
+    {
+      root = local_root;
+    }
+    else
+    {
+      root = new Join(root, 
+                      local_root, 
+                      match->p_fcc_context);
+    }
   }
 
   // Create without Tag Filters

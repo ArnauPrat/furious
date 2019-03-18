@@ -44,26 +44,19 @@ ProduceVisitor::visit(const Scan* scan)
     std::string q_ctype = get_qualified_type_name(column->m_q_type);
     std::string base_name = ctype;
 
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
 
-    table_varname = base_name+"_table";
-    iter_varname = base_name+"_iter_" + std::to_string(id);
+    table_varname = generate_table_name(base_name);
+    iter_varname = generate_table_iter_name(table_varname, scan);
     id++;
-    block_varname = base_name+"_block"; 
+    block_varname = generate_block_name(base_name, scan); 
   }
   else
   {
-    std::string base_name = "ref_"+column->m_ref_name;
-    table_varname = base_name+"_table";
-    iter_varname = base_name+"_iter_" + std::to_string(id);
+    std::string base_name = column[0].m_ref_name;
+    table_varname = generate_ref_table_name(base_name);
+    iter_varname = generate_table_iter_name(table_varname, scan);
     id++;
-    block_varname = base_name+"_block"; 
+    block_varname = generate_block_name(base_name,scan); 
   }
 
   fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());
@@ -81,7 +74,7 @@ ProduceVisitor::visit(const Scan* scan)
 void
 ProduceVisitor::visit(const Join* join)
 {
-  std::string hashtable = "hashtable_" + std::to_string(join->m_id);
+  std::string hashtable = generate_hashtable_name(join);
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,join->p_left.get());
   produce(p_context->p_fd,join->p_right.get());
@@ -108,7 +101,8 @@ ProduceVisitor::visit(const PredicateFilter* predicate_filter)
 void
 ProduceVisitor::visit(const Gather* gather)
 {
-  std::string groups = "groups_" + std::to_string(gather->m_id);
+  std::string groups = generate_ref_groups_name(gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+                                                gather);
   fprintf(p_context->p_fd,"BTree<DynArray<entity_id_t> > %s;\n", groups.c_str());
   produce(p_context->p_fd, gather->p_ref_table.get());
 
@@ -135,11 +129,14 @@ ProduceVisitor::visit(const Gather* gather)
                                                          str_builder.p_buffer);
     }
     std::string component_name = get_type_name(column->m_q_type); 
-    std::string temp_table_name = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
+    std::string temp_table_name = generate_temp_table_name(component_name, gather);
     fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table<%s>(\"%s\");\n", 
             component_name.c_str(),
             temp_table_name.c_str(),
             component_name.c_str(),
+            temp_table_name.c_str());
+
+    fprintf(p_context->p_fd,"%s.clear();\n", 
             temp_table_name.c_str());
   }
 
@@ -149,8 +146,8 @@ ProduceVisitor::visit(const Gather* gather)
   {
     FccColumn* column = &child_columns[i];
     std::string component_name = get_type_name(column->m_q_type); 
-    std::string table_varname = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
-    std::string iter_varname = "iter_"+table_varname;
+    std::string table_varname = generate_temp_table_name(component_name, gather);
+    std::string iter_varname = generate_table_iter_name(table_varname);
     fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
             iter_varname.c_str(), 
             table_varname.c_str());
@@ -158,27 +155,27 @@ ProduceVisitor::visit(const Gather* gather)
 
   FccColumn* column = &child_columns[0];
   std::string component_name = get_type_name(column->m_q_type); 
-  std::string table_varname = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
-  std::string iter_varname = "iter_"+table_varname;
+  std::string table_varname = generate_temp_table_name(component_name,gather);
+  std::string iter_varname = generate_table_iter_name(table_varname);
   fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
 
-  std::string block_varname = "block_"+std::to_string(gather->m_id);
-  fprintf(p_context->p_fd, "BlockCluster %s;\n", block_varname.c_str());
+  std::string cluster_varname = generate_cluster_name(gather);
+  fprintf(p_context->p_fd, "BlockCluster %s;\n", cluster_varname.c_str());
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     FccColumn* column = &child_columns[i];
     std::string component_name = get_type_name(column->m_q_type); 
-    std::string table_varname = "temp_table_"+component_name+"_"+std::to_string(gather->m_id);
-    std::string iter_varname = "iter_"+table_varname;
+    std::string table_varname = generate_temp_table_name(component_name, gather);
+    std::string iter_varname = generate_table_iter_name(table_varname);
     fprintf(p_context->p_fd, "%s.append(%s.next().get_raw());\n", 
-            block_varname.c_str(), 
+            cluster_varname.c_str(), 
             iter_varname.c_str());
   }
 
   consume(p_context->p_fd,
           gather->p_parent,
-          "(&"+block_varname+")",
+          "(&"+cluster_varname+")",
           gather);
 
   fprintf(p_context->p_fd,"}\n\n");

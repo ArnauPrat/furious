@@ -33,6 +33,9 @@ struct FieldMesh
 {
   FURIOUS_COMPONENT(Field);
 
+  float m_x;
+  float m_y;
+  float m_z;
 };
 
 #endif /* ifndef _BASIC_TEST_HEADER_H_ */

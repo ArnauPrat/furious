@@ -69,6 +69,12 @@ struct BTInsert
 void*
 alloc(BTRoot* root);
 
+struct BTEntry
+{
+  entity_id_t m_key;
+  void*       p_value;
+};
+
 struct BTIterator 
 {
   BTIterator(BTRoot* root);
@@ -88,7 +94,7 @@ struct BTIterator
    *
    * \return Returns the next elemnet in the btree
    */
-  void* 
+  BTEntry 
   next();
 
 private:

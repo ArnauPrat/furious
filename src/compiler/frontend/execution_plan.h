@@ -25,6 +25,7 @@ enum class FccOperatorType
   E_SCAN,
   E_FOREACH,
   E_GATHER,
+  E_CASCADING_GATHER,
 };
 
 enum class FccColumnType
@@ -208,6 +209,22 @@ struct Gather : public FccOperatorTmplt<Gather>
   RefCountPtr<FccOperator> p_child;
 };
 
+/**
+ * @brief Foreach operator. Applies a system for each table row
+ */
+struct CascadingGather : public FccOperatorTmplt<CascadingGather>  
+{
+  CascadingGather(RefCountPtr<FccOperator> ref_table,
+                  RefCountPtr<FccOperator> child,
+                  FccContext* fcc_context);
+
+  virtual 
+  ~CascadingGather();
+
+  RefCountPtr<FccOperator> p_ref_table;
+  RefCountPtr<FccOperator> p_child;
+};
+
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -266,6 +283,9 @@ public:
 
   virtual void
   visit(const Gather* gather) = 0;
+
+  virtual void
+  visit(const CascadingGather* casc_gather) = 0;
 };
 
 }  

@@ -1,6 +1,7 @@
 
 
 #include "data_utils.h"
+#include "bit_table.h"
 
 namespace furious
 {
@@ -41,6 +42,31 @@ group_references(BTree<DynArray<entity_id_t>>* groups,
       group->append(block->m_start + i);
     }
   }
+}
+
+void
+find_roots(const BTree<DynArray<entity_id_t>>* groups, 
+           BitTable* roots)
+{
+  BTree<DynArray<entity_id_t>>::Iterator it = groups->iterator();
+  while(it.has_next())
+  {
+    entity_id_t next_id = it.next().m_key;
+    roots->add(next_id);
+  }
+
+  it = groups->iterator();
+  while(it.has_next())
+  {
+    auto entry = it.next();
+    DynArray<entity_id_t>& group = *entry.p_value;
+    uint32_t size = group.size();
+    for(uint32_t i = 0; i < size; ++i)
+    {
+      roots->remove(group[i]);
+    }
+  }
+
 }
   
 } /* furiou */ 

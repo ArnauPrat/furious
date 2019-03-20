@@ -5,6 +5,12 @@
 namespace furious  
 {
 
+Entity::Entity() :
+m_id(FURIOUS_INVALID_ID),
+p_database(nullptr)
+{
+}
+
 Entity::Entity(Database* database,
                entity_id_t id) :
 m_id(id),

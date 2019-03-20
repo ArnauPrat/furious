@@ -3,8 +3,10 @@
 #include "transforms.h"
 #include "execution_plan.h"
 #include "fcc_context.h"
+#include "clang_tools.h"
 
-namespace furious {
+namespace furious 
+{
 
 FccOperator* 
 create_subplan(const FccMatch* match)
@@ -40,9 +42,35 @@ create_subplan(const FccMatch* match)
       FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
                                        match->p_fcc_context);
 
-      local_root = new Gather(ref_scan, 
-                              local_root, 
-                              match->p_fcc_context);
+      bool cascading = false;
+      for(uint32_t j = 0; j < num_components; ++j)
+      {
+        QualType expand_type = entity_match->m_basic_component_types[j];
+        uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types.size();
+        for(uint32_t k = 0; j < num_match_components; ++j)
+        {
+          QualType match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types[k];
+          if(!(get_access_mode(match_type) == FccAccessMode::E_READ) &&
+              get_type_name(expand_type) == get_type_name(match_type))
+          {
+            cascading = true;
+            break;
+          }
+        }
+      }
+
+      if(cascading)
+      {
+        local_root = new CascadingGather(ref_scan, 
+                                         local_root, 
+                                         match->p_fcc_context);
+      }
+      else
+      {
+        local_root = new Gather(ref_scan, 
+                                local_root, 
+                                match->p_fcc_context);
+      }
     }
     if(root == nullptr)
     {

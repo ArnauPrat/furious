@@ -22,7 +22,7 @@ BTree<T>::~BTree()
     BTree<T>::Iterator it = iterator();
     while(it.has_next())
     {
-      T* value = (T*)it.next();
+      T* value = it.next().p_value;
       value->~T();
       free(value);
       m_size--;
@@ -39,7 +39,7 @@ BTree<T>::clear()
   BTree<T>::Iterator it = iterator();
   while(it.has_next())
   {
-    T* value = (T*)it.next();
+    T* value = it.next().p_value;
     value->~T();
     free(value);
   }
@@ -137,10 +137,11 @@ BTree<T>::Iterator::has_next() const
 }
 
 template<typename T>
-T* 
+typename BTree<T>::Entry
 BTree<T>::Iterator::next() 
 {
-  return static_cast<T*>(m_iterator.next());
+  BTEntry entry = m_iterator.next();
+  return BTree<T>::Entry{entry.m_key, static_cast<T*>(entry.p_value)};
 }
 
 } /* furious */ 

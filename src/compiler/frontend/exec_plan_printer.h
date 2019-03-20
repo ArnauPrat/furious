@@ -28,6 +28,10 @@ public:
   virtual void
   visit(const Join* join) override;
 
+
+  virtual void
+  visit(const CascadingGather* join) override;
+
   virtual void 
   visit(const TagFilter* tag_filter) override;
 

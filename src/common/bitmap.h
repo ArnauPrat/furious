@@ -93,6 +93,12 @@ struct Bitmap
   void
   set_negate();
 
+  /**
+   * \brief Sets the bitmap to all zeros
+   */
+  void
+  all_zeros();
+
 private:
   uint32_t m_max_bits;
   uint32_t m_num_set;

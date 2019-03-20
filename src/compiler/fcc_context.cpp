@@ -182,35 +182,35 @@ handle_parsing_error(FccContext* context,
                      FccParsingErrorType type,
                      const std::string& filename, 
                      int line,
-                     int column
+                     int column,
+                     const std::string& message
                     )
 {
 
-  std::string message;
+  StringBuilder str_builder;
   switch(type) 
   {
     case FccParsingErrorType::E_UNKNOWN_ERROR:
-      message = "Unknown error";
+      str_builder.append("Unknown error");
       break;
     case FccParsingErrorType::E_UNKNOWN_FURIOUS_OPERATION:
-      message = "Unknown furious operation"; 
+      str_builder.append("Unknown furious operation"); 
       break;
     case FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT:
-      message = "Incomplete furious statement";
+      str_builder.append("Incomplete furious statement ");
       break;
     case FccParsingErrorType::E_UNSUPPORTED_STATEMENT:
-      message = "Non furious staetment";
+      str_builder.append("Non furious staetment");
       break;
     case FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS:
-      message = "Non allowed var declaration";
+      str_builder.append("Non allowed var declaration");
       break;
     case FccParsingErrorType::E_EXPECTED_STRING_LITERAL:
-      message = "Expected String Literal error";
+      str_builder.append("Expected String Literal error");
       break;
   }
 
-  StringBuilder str_builder;
-  str_builder.append("%s found in %s:%d:%d\n", message.c_str(), filename.c_str(), line, column);
+  str_builder.append(" found in %s:%d:%d. %s\n", filename.c_str(), line, column, message.c_str());
   llvm::errs() << str_builder.p_buffer;
   abort();
 }
@@ -279,7 +279,8 @@ void
 FccContext::report_parsing_error(FccParsingErrorType error_type,
                                  const std::string& filename,
                                  int32_t line,
-                                 int32_t column)
+                                 int32_t column,
+                                 const std::string& message)
 {
   if(p_pecallback != nullptr) 
   {
@@ -287,7 +288,8 @@ FccContext::report_parsing_error(FccParsingErrorType error_type,
                  error_type,
                  filename,
                  line,
-                 column);
+                 column,
+                 message);
   }
   abort();
 }
@@ -377,7 +379,8 @@ Fcc_validate(const FccMatch* match)
     report_parsing_error(match->p_ast_context,
                         match->p_fcc_context,
                         location,
-                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
+                        "");
   }
 
   uint32_t num_matches = match->p_entity_matches.size();
@@ -387,7 +390,18 @@ Fcc_validate(const FccMatch* match)
     report_parsing_error(match->p_ast_context,
                         match->p_fcc_context,
                         location,
-                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
+                        "At least one match must exist");
+  }
+
+  if( num_matches > 2)
+  {
+    SourceLocation location = match->p_expr->getLocStart();
+    report_parsing_error(match->p_ast_context,
+                        match->p_fcc_context,
+                        location,
+                        FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
+                        "More than 2 expands found. The maximum number of expands per statement is 1");
   }
 
   DynArray<bool> allow_writes;

@@ -145,7 +145,8 @@ void
 report_parsing_error(ASTContext* ast_context, 
                      FccContext* fcc_context,
                      const SourceLocation& location,
-                     const FccParsingErrorType& type);
+                     const FccParsingErrorType& type,
+                     const std::string& message);
 
 } /* furious */ 
 

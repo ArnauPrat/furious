@@ -16,6 +16,12 @@ namespace furious
 template<typename T>
 struct BTree 
 {
+  struct Entry
+  {
+    entity_id_t m_key;
+    T*          p_value;
+  };
+
   struct Iterator 
   {
   public:
@@ -25,7 +31,7 @@ struct BTree
     bool 
     has_next() const;
 
-    T* 
+    Entry 
     next();
     
   private:

@@ -290,4 +290,48 @@ ConsumeVisitor::visit(const Gather* gather)
   }
 }
 
+void
+ConsumeVisitor::visit(const CascadingGather* casc_gather)
+{
+
+  std::string groups = generate_ref_groups_name(casc_gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+                                                casc_gather);
+  if(p_context->p_caller == casc_gather->p_ref_table.get()) 
+  {
+    // perform the group by of the references
+    fprintf(p_context->p_fd,
+            "group_references(&%s, %s->m_blocks[0]);\n", 
+            groups.c_str(),
+            p_context->m_source.c_str());
+  }
+  else
+  {
+    std::string hashtable = generate_hashtable_name(casc_gather);
+    fprintf(p_context->p_fd, 
+            "%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str()); 
+
+    // perform the gather using the grouped references
+    /*fprintf(p_context->p_fd,
+            "gather(&%s,%s,current_frontier_%u, next_frontier_%u",
+            groups.c_str(),
+            p_context->m_source.c_str(),
+            casc_gather->m_id,
+            casc_gather->m_id);
+    DynArray<FccColumn>& child_columns = casc_gather->p_child.get()->m_columns;
+    for(uint32_t i = 0; i < child_columns.size(); ++i)
+    {
+      FccColumn* column = &child_columns[i];
+      std::string component_name = get_type_name(column->m_q_type); 
+      std::string temp_table_name = generate_temp_table_name(component_name, casc_gather);
+      fprintf(p_context->p_fd,",&%s",
+              temp_table_name.c_str());
+    }
+    fprintf(p_context->p_fd,");\n");
+    */
+  }
+}
+
 } /* furious */ 

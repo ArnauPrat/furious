@@ -8,12 +8,12 @@ namespace furious
 {
 
 /**
- * @brief Gets the line number of a source location
+ * \brief Gets the line number of a source location
  *
- * @param manager The source manager the source location depends on
- * @param location The source location
+ * \param manager The source manager the source location depends on
+ * \param location The source location
  *
- * @return Returns the line represented by the given source location
+ * \return Returns the line represented by the given source location
  */
 int 
 get_line_number(const SourceManager& manager,
@@ -25,12 +25,12 @@ get_line_number(const SourceManager& manager,
 }
 
 /**
- * @brief Gets the column number of a source location
+ * \brief Gets the column number of a source location
  *
- * @param manager The source manager the source location depends on
- * @param location The source location
+ * \param manager The source manager the source location depends on
+ * \param location The source location
  *
- * @return Returns the column represented by the given source location
+ * \return Returns the column represented by the given source location
  */
 int 
 get_column_number(const SourceManager& manager,
@@ -45,7 +45,8 @@ void
 report_parsing_error(ASTContext* ast_context, 
                      FccContext* fcc_context,
                      const SourceLocation& location,
-                     const FccParsingErrorType& type) 
+                     const FccParsingErrorType& type,
+                     const std::string& message) 
 {
   const SourceManager& sm = ast_context->getSourceManager();
   std::string filename = sm.getFilename(location);
@@ -54,16 +55,17 @@ report_parsing_error(ASTContext* ast_context,
   fcc_context->report_parsing_error(type,
                                     filename,
                                     line_number,
-                                    column_number);
+                                    column_number,
+                                    message);
 }
 
 /**
- * @brief Given a TemplateArgumentList, extract the QualTypes of the template
+ * \brief Given a TemplateArgumentList, extract the QualTypes of the template
  * argument types
  *
- * @param arg_list The TemplateArgumentList to extract the types from
+ * \param arg_list The TemplateArgumentList to extract the types from
  *
- * @return Returns a std::vector with the extracted QualTypes
+ * \return Returns a std::vector with the extracted QualTypes
  */
 DynArray<QualType> 
 get_tmplt_types(const TemplateArgumentList& arg_list) 
@@ -230,13 +232,13 @@ process_foreach(ASTContext* ast_context,
 }
 
 /**
- * @brief Finds and returns the first occurrence of the stmt of type T in a depth first
+ * \brief Finds and returns the first occurrence of the stmt of type T in a depth first
  * search way.
  *
- * @tparam T The type of expr to find
- * @param expr The expr to start looking at
+ * \tparam T The type of expr to find
+ * \param expr The expr to start looking at
  *
- * @return Returns the first occurrence of a node of type T (traversed in a DFS way). nullptr otherwise.
+ * \return Returns the first occurrence of a node of type T (traversed in a DFS way). nullptr otherwise.
  */
 template<typename T>
 const T* find_first_dfs(const Stmt* expr)
@@ -295,12 +297,12 @@ process_filter(ASTContext* ast_context,
       entity_match->insert_filter_func(func_decl);
     } else if(isa<VarDecl>(decl))
     {
-      // TODO: Report error via callback
       SourceLocation location = call->getLocStart();
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
-                           FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS);
+                           FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS,
+                           "");
       return false;
     }
   } 
@@ -338,7 +340,8 @@ process_has_tag(ASTContext* ast_context,
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
-                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL);
+                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL,
+                           "Non literal types are not allowed.");
       return false;
     }
   }
@@ -374,7 +377,8 @@ process_has_not_tag(ASTContext* ast_context,
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
-                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL);
+                           FccParsingErrorType::E_EXPECTED_STRING_LITERAL,
+                           "Non literal types are not allowed");
       return false;
     }
   }

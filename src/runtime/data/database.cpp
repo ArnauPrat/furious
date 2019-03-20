@@ -27,28 +27,28 @@ void Database::clear()
   BTree<Table*>::Iterator it_tables = m_tables.iterator();
   while (it_tables.has_next()) 
   {
-    delete *it_tables.next();
+    delete *it_tables.next().p_value;
   }
   m_tables.clear();
 
   BTree<BitTable*>::Iterator it_tags = m_tags.iterator();
   while (it_tags.has_next()) 
   {
-    delete *it_tags.next();
+    delete *it_tags.next().p_value;
   }
   m_tags.clear();
 
   BTree<Table*>::Iterator it_references = m_references.iterator();
   while (it_references.has_next()) 
   {
-    delete *it_references.next();
+    delete *it_references.next().p_value;
   }
   m_references.clear();
 
   BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
   while (it_temp_tables.has_next()) 
   {
-    delete *it_temp_tables.next();
+    delete *it_temp_tables.next().p_value;
   }
   m_temp_tables.clear();
   release();
@@ -71,7 +71,7 @@ Database::clear_entity(entity_id_t id)
   BTree<Table*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
   {
-    Table* table = *it.next();
+    Table* table = *it.next().p_value;
     table->dealloc_and_destroy_component(id);
   }
   release();
@@ -224,7 +224,7 @@ Database::meta_data(TableInfo* data, uint32_t capacity)
   uint32_t count = 0; 
   while(it.has_next() && count < capacity)
   {
-    Table* table = *it.next();
+    Table* table = *it.next().p_value;
     strncpy(&data[count].m_name[0], table->name().c_str(), _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
     data[count].m_size = table->size();
     count++;
@@ -259,7 +259,7 @@ Database::remove_temp_tables_no_lock()
   BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
   while (it_temp_tables.has_next()) 
   {
-    delete *it_temp_tables.next();
+    delete *it_temp_tables.next().p_value;
   }
   m_temp_tables.clear();
 }

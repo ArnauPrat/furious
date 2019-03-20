@@ -14,6 +14,7 @@ class Database;
 class Entity 
 {
 public: 
+  Entity();
   Entity(Database* database,
           entity_id_t id);
   Entity( Database* database  );

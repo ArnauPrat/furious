@@ -41,13 +41,14 @@ BTIterator::has_next() const
   return sibling->m_leaf.m_nleafs > 0;
 }
 
-void*
+BTEntry
 BTIterator::next() 
 {
   if(m_leaf == nullptr || m_leaf->m_leaf.m_nleafs == 0) 
   {
-    return nullptr;
+    return BTEntry{0xffffffff,nullptr};
   }
+  uint32_t id = m_leaf->m_leaf.m_keys[m_index];
   void* value = m_leaf->m_leaf.m_leafs[m_index];
   m_index+=1;
   if(m_index >= m_leaf->m_leaf.m_nleafs) 
@@ -55,7 +56,7 @@ BTIterator::next()
     m_index = 0;
     m_leaf = m_leaf->m_leaf.m_next;
   }
-  return value;
+  return BTEntry{id, value};
 }
 
 int32_t btree_num_allocations = 0;

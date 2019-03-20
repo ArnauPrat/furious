@@ -178,6 +178,13 @@ Bitmap::set_negate()
   }
 }
 
+void
+Bitmap::all_zeros()
+{
+  uint32_t num_chunks = (m_max_bits + 7) / 8;
+  memset(p_data,0,num_chunks*sizeof(uint8_t));
+}
+
 
 } /* furious
 */ 

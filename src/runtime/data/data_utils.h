@@ -13,6 +13,7 @@ namespace furious
 {
 
 struct BlockCluster;
+struct BitTable;
 
 /**
  * \brief Copies the raw data of the given component to the table at the given
@@ -46,10 +47,21 @@ group_references(BTree<DynArray<entity_id_t>>* groups,
                  TBlock* block);
 
 /**
+ * \brief Finds the roots of a groups (those entities that form the roots of the
+ * tree induced by the references)
+ *
+ * \param groups The groups to get the roots from
+ * \param roots The bittable to plalce the roots to
+ */
+void
+find_roots(const BTree<DynArray<entity_id_t>>* groups, 
+           BitTable* roots);
+
+/**
  * \brief Given a set of reference groups and a components block, performs the
  * gather operation of this block into the given table view
  *
- * @tparam TComponent The componnet type to gather
+ * \tparam TComponent The componnet type to gather
  * \param groups The reference groups 
  * \param block The block to perform the gather from
  * \param table_view The table_view to store the gathered components
@@ -58,6 +70,25 @@ template <typename...TComponents>
 void
 gather(const BTree<DynArray<entity_id_t>>* groups, 
        const BlockCluster* cluster,
+       TableView<TComponents>*...table_view);
+
+/**
+ * \brief Given a set of reference groups and a components block, performs the
+ * gather operation of this block into the given table view
+ *
+ * \tparam TComponent The componnet type to gather
+ * \param groups The reference groups 
+ * \param block The block to perform the gather from
+ * \param current_frontier The bittable with the current_frontier to filter the gather. 
+ * \param next_frontier The bittable with the next_frontier to filter the gather. 
+ * \param table_view The table_view to store the gathered components
+ */
+template <typename...TComponents>
+void
+gather(const BTree<DynArray<entity_id_t>>* groups, 
+       const BlockCluster* cluster,
+       BitTable* current_frontier,
+       BitTable* next_frontier,
        TableView<TComponents>*...table_view);
 
   

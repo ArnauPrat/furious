@@ -195,7 +195,8 @@ typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*,
                                            FccParsingErrorType, 
                                            const std::string&, 
                                            int32_t, 
-                                           int32_t);
+                                           int32_t,
+                                           const std::string&);
 
 typedef  void (*FCC_COMP_ERROR_CALLBACK)(FccContext*, 
                                          FccCompilationErrorType, 
@@ -238,7 +239,8 @@ struct FccContext
   report_parsing_error(FccParsingErrorType error_type,
                        const std::string& filename,
                        int32_t line,
-                       int32_t column);
+                       int32_t column,
+                       const std::string& message);
 
   /**
    * \brief Reports a parsing error using the callback set in FccContext

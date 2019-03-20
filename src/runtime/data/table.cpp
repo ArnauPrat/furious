@@ -145,7 +145,7 @@ Table::Iterator::has_next() const
 TBlock* 
 Table::Iterator::next() 
 {
-  TBlock* next = m_it.next();
+  TBlock* next = m_it.next().p_value;
   return next;
 }
 
@@ -197,7 +197,8 @@ Table::clear()
     {
       TBlock* block = iterator.next();
       TBlockIterator b_iterator{block};
-      while(b_iterator.has_next()) {
+      while(b_iterator.has_next()) 
+      {
         m_destructor(b_iterator.next().p_data);
       }
     }

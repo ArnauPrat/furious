@@ -103,6 +103,12 @@ public:
   {
     gather->p_child.get()->accept(this);
   }
+
+  virtual void
+  visit(const CascadingGather* casc_gather) 
+  {
+    casc_gather->p_child.get()->accept(this);
+  }
 };
 
 ////////////////////////////////////////////////
@@ -172,6 +178,13 @@ public:
   {
     gather->p_ref_table.get()->accept(this);
     gather->p_child.get()->accept(this);
+  }
+
+  virtual void
+  visit(const CascadingGather* casc_gather)
+  {
+    casc_gather->p_ref_table.get()->accept(this);
+    casc_gather->p_child.get()->accept(this);
   }
 };
 
@@ -356,7 +369,7 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
     fprintf(fd,"{\n");
     produce(fd,root);
-    fprintf(fd,"database->remove_temp_tables_no_lock();\n");
+    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
   }
   delete p_registry;

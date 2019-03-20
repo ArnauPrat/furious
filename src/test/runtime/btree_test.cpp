@@ -382,7 +382,7 @@ TEST(BTreeTest, BTree)
   uint32_t val = 0;
   while (iterator.has_next()) 
   {
-    TestValue* value = *iterator.next();
+    TestValue* value = *iterator.next().p_value;
     ASSERT_EQ(value->m_val, val);
     ASSERT_EQ(value, values[val]);
     val++;
@@ -414,7 +414,7 @@ TEST(BTreeTest, BTree)
   val = 0;
   while (iterator.has_next()) 
   {
-    TestValue* value = static_cast<TestValue*>(*iterator.next());
+    TestValue* value = static_cast<TestValue*>(*iterator.next().p_value);
     ASSERT_EQ(value->m_val, val);
     ASSERT_EQ(value, values[val]);
     val+=2;

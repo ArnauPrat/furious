@@ -179,7 +179,8 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             report_parsing_error(p_ast_context,
                                  p_fcc_context,
                                  location,
-                                 FccParsingErrorType::E_UNSUPPORTED_STATEMENT);
+                                 FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
+                                 "Unknown expression type");
             return false;
           }
         } 
@@ -206,7 +207,8 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
               report_parsing_error(p_ast_context,
                                    p_fcc_context,
                                    location,
-                                   FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS);
+                                   FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS,
+                                   "");
               return false;
             }
           }

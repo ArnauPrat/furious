@@ -149,6 +149,30 @@ Gather::~Gather()
 {
 }
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+CascadingGather::CascadingGather(RefCountPtr<FccOperator> ref_table,
+                                 RefCountPtr<FccOperator> child,
+                                 FccContext* fcc_context) :
+FccOperatorTmplt<CascadingGather>(FccOperatorType::E_CASCADING_GATHER, "CascadingGather", fcc_context),
+p_ref_table(ref_table),
+p_child(child)
+{
+  p_ref_table.get()->p_parent=this;
+  p_child.get()->p_parent = this;
+  m_columns.append(child.get()->m_columns);
+}
+
+CascadingGather::~CascadingGather()
+{
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
 FccExecPlan::FccExecPlan(FccContext* context) :
 p_context(context)
 {

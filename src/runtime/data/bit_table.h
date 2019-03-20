@@ -15,7 +15,7 @@ namespace furious
 struct BitTable 
 {
 
-  BitTable () = default;
+  BitTable ();
   ~BitTable ();
 
   /**
@@ -26,7 +26,7 @@ struct BitTable
    * @return Returns true if the element exists. false otherwise.
    */
   bool
-  exists(uint32_t id) const;
+  exists(entity_id_t id) const;
 
   /**
    * @brief Adds an element to the bit table 
@@ -34,7 +34,7 @@ struct BitTable
    * @param id
    */
   void
-  add(uint32_t id);
+  add(entity_id_t id);
 
   /**
    * @brief Removes an element from the bit table
@@ -42,7 +42,7 @@ struct BitTable
    * @param id The id of the element to remove
    */
   void
-  remove(uint32_t id);
+  remove(entity_id_t id);
 
   /**
    * @brief Gets the bitmap of the bit table for a specific bitmapid.
@@ -54,8 +54,23 @@ struct BitTable
   const Bitmap* 
   get_bitmap(uint32_t bitset_id) const;
 
+  /**
+   * \brief Gets the size of the bittable (number of bits set to 1)
+   *
+   * \return  The size of the bit table
+   */
+  uint32_t
+  size();
+
+  /**
+   * \brief Clears the bittable
+   */
+  void
+  clear();
+
 private:
   mutable BTree<Bitmap> m_bitmaps;
+  uint32_t              m_size;
 };
   
 } /* furious

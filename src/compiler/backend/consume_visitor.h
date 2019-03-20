@@ -40,6 +40,9 @@ public:
   virtual void
   visit(const Gather* gather);
 
+  virtual void
+  visit(const CascadingGather* casc_gather);
+
   CodeGenContext* p_context;
 };
 

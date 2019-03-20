@@ -191,6 +191,24 @@ ExecPlanPrinter::visit(const Gather* gather)
 }
 
 void
+ExecPlanPrinter::visit(const CascadingGather* casc_gather) 
+{
+  StringBuilder str_builder;
+  FccColumn* ref_column = &casc_gather->p_ref_table.p_ptr->m_columns[0];
+  if(ref_column->m_type != FccColumnType::E_REFERENCE)
+  {
+    //TODO: handle error
+  }
+  str_builder.append("cascading_gather (%u)", 
+                     casc_gather->m_id);
+  print(str_builder.p_buffer);
+  incr_level(false);
+  casc_gather->p_ref_table.get()->accept(this);
+  casc_gather->p_child.get()->accept(this);
+  decr_level();
+}
+
+void
 ExecPlanPrinter::incr_level(bool sibling)
 {
   if(sibling)

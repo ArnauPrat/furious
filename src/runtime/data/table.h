@@ -113,7 +113,7 @@ struct Table
 
   private:
     const BTree<TBlock>*          p_blocks;
-    BTree<TBlock>::Iterator      m_it;
+    BTree<TBlock>::Iterator       m_it;
   };
 
   Table(const std::string &name, 

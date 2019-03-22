@@ -50,7 +50,7 @@ process_expand(ASTContext* ast_context,
 
 
 /**
- * \brief Provess a furious entry point call
+ * \brief Process a furious entry point call
  *
  * \param ast_context The ast context of the call to process
  * \param fcc_system The FccExecInfo where the result must be stored
@@ -63,6 +63,22 @@ process_foreach(ASTContext* ast_context,
                 FccContext* fcc_context,
                 FccMatch*   fcc_match,
                 const CallExpr* call);
+
+/**
+ * \brief Processes an outputwriteonly call
+ *
+ * \param ast_context The ast context of the call to process
+ * \param fcc_context The fcc context 
+ * \param fcc_match The match 
+ * \param call The call expression
+ *
+ * \return  True if the parsing was corret. False otherwise.
+ */
+bool 
+process_outputwriteonly(ASTContext* ast_context,
+                        FccContext* fcc_context,
+                        FccMatch*   fcc_match,
+                        const CallExpr* call);
 
 /**
  * \brief Process a with_tag call

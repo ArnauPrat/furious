@@ -182,7 +182,7 @@ get_access_mode(const QualType& type)
   {
     return FccAccessMode::E_READ;
   }
-  return FccAccessMode::E_WRITE;
+  return FccAccessMode::E_READ_WRITE;
 }
 
 ////////////////////////////////////////////////

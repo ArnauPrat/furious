@@ -34,7 +34,7 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   for(uint32_t i = 0; i < size_b; ++i)
   {
     const QualType& type = node_b->p_match->m_system.m_component_types[i];
-    if(get_access_mode(type) == FccAccessMode::E_WRITE)
+    if(get_access_mode(type) == FccAccessMode::E_READ_WRITE)
     {
       write_types_b.append(type);
     }
@@ -45,13 +45,18 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   {
     const QualType& type_a = node_a->p_match->m_system.m_component_types[i];
     std::string name_a = get_type_name(type_a);
+    FccAccessMode access_a = get_access_mode(type_a);
 
     size_b = write_types_b.size();
     for(uint32_t ii = 0; ii < size_b; ++ii)
     {
       const QualType& type_b = write_types_b[ii];
       std::string name_b = get_type_name(type_b);
-      if(name_a == name_b)
+      if(name_a == name_b && 
+         !(access_a == FccAccessMode::E_READ_WRITE && 
+           node_a->p_match->m_system.m_is_outputwriteonly &&
+           !node_b->p_match->m_system.m_is_outputwriteonly 
+         ))
       {
         return true;
       }

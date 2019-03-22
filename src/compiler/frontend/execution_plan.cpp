@@ -36,13 +36,13 @@ Scan::Scan(const std::string& ref_name, FccContext* fcc_context) :
 
 }
 
-Scan::Scan(QualType component, FccContext* fcc_context) : 
+Scan::Scan(QualType component, FccAccessMode access_mode, FccContext* fcc_context) : 
   FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan", fcc_context) 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_COMPONENT;
   column.m_q_type = component;
-  column.m_access_mode = get_access_mode(component);
+  column.m_access_mode = access_mode;
   m_columns.append(column);
 }
 

@@ -62,6 +62,7 @@ struct FccSystem
   QualType                  m_system_type;        // The type of the system
   DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
   DynArray<QualType>        m_component_types;       // The types of the components of the system
+  bool                      m_is_outputwriteonly;
   int32_t                   m_id;
 };
 

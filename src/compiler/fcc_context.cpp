@@ -22,7 +22,8 @@ namespace furious
 {
 
 FccSystem::FccSystem(FccContext* fcc_context) :
-p_fcc_context(fcc_context)
+p_fcc_context(fcc_context),
+m_is_outputwriteonly(false)
 {
 }
 

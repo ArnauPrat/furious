@@ -231,6 +231,16 @@ process_foreach(ASTContext* ast_context,
   return true;
 }
 
+bool 
+process_outputwriteonly(ASTContext* ast_context,
+                        FccContext* fcc_context,
+                        FccMatch*   fcc_match,
+                        const CallExpr* call)
+{
+  fcc_match->m_system.m_is_outputwriteonly = true;
+  return true;
+}
+
 /**
  * \brief Finds and returns the first occurrence of the stmt of type T in a depth first
  * search way.

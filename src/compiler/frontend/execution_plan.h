@@ -89,9 +89,10 @@ public:
 struct Scan : public FccOperatorTmplt<Scan> 
 {
   explicit Scan(const std::string& ref_name,
-              FccContext* fcc_context);
+                FccContext* fcc_context);
   explicit Scan(QualType component,
-              FccContext* fcc_context);
+                FccAccessMode access_mode,
+                FccContext* fcc_context);
 
   virtual 
   ~Scan() = default;

@@ -21,14 +21,23 @@ create_subplan(const FccMatch* match)
     FccOperator* local_root = nullptr;
     for(uint32_t j = 0; j < num_components; ++j)
     {
+
+      FccAccessMode access_mode = get_access_mode(entity_match->m_basic_component_types[j]);
+      if(access_mode == FccAccessMode::E_READ_WRITE && match->m_system.m_is_outputwriteonly)
+      {
+        access_mode = FccAccessMode::E_WRITE;
+      }
+
       if(local_root == nullptr)
       {
         local_root = new Scan(entity_match->m_basic_component_types[j], 
+                              access_mode,
                               match->p_fcc_context);
       }
       else 
       {
         FccOperator* right = new Scan(entity_match->m_basic_component_types[j], 
+                                      access_mode,
                                       match->p_fcc_context);
 
         local_root = new Join(local_root, 

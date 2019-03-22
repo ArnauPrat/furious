@@ -44,9 +44,9 @@ TEST(ExpandTest, ExpandTest )
   // FIRST LEVEL
   for(uint32_t i = 0; i < 2; ++i)
   {
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_x,0.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_y,0.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_z,0.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_x,1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_y,1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Position)->m_z,1.0f);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], Intensity)->m_intensity,5.0f);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], FieldMesh)->m_x,0.0f);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[first_level_entities[i]], FieldMesh)->m_y,0.0f);
@@ -56,25 +56,25 @@ TEST(ExpandTest, ExpandTest )
   // SECOND LEVEL
   for(uint32_t i = 0; i < 4; ++i)
   {
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_x,0.1f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_y,0.1f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_z,0.1f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_x,0.2f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_y,0.2f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Position)->m_z,0.2f);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], Intensity)->m_intensity,5.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_x,0.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_y,0.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_z,0.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_x,5.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_y,5.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[second_level_entities[i]], FieldMesh)->m_z,5.0f);
   }
 
   // THIRD LEVEL
   for(uint32_t i = 0; i < 2; ++i)
   {
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_x,0.2f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_y,0.2f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_z,0.2f);
+    ASSERT_TRUE(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_x - 0.12f < 0.001);
+    ASSERT_TRUE(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_y - 0.12f < 0.001);
+    ASSERT_TRUE(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_z - 0.12f < 0.001);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Intensity)->m_intensity,5.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_x,0.5f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_y,0.5f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_z,0.5f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_x,1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_y,1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_z,1.0f);
   }
 
   furious::__furious_release();

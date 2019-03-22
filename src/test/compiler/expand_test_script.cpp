@@ -14,12 +14,24 @@ struct UpdatePosition
            const Velocity* velocity,
            const Position* parent_position)
   {
-    position->m_x = parent_position->m_x + velocity->m_x*context->m_dt*m_speed;
-    position->m_y = parent_position->m_y + velocity->m_y*context->m_dt*m_speed;
-    position->m_z = parent_position->m_z + velocity->m_z*context->m_dt*m_speed;
+    position->m_x = (position->m_x + parent_position->m_x) * velocity->m_x*context->m_dt*m_speed;
+    position->m_y = (position->m_y + parent_position->m_y) * velocity->m_y*context->m_dt*m_speed;
+    position->m_z = (position->m_z + parent_position->m_z) * velocity->m_z*context->m_dt*m_speed;
   }
 
-  float m_speed = 1.0;
+  float m_speed = 1.0f;
+};
+
+struct IncrementPosition
+{
+  void run(furious::Context* context,
+           uint32_t id,
+           Position* position)
+  {
+    position->m_x += 1.0f;
+    position->m_y += 1.0f;
+    position->m_z += 1.0f;
+  }
 };
 
 struct PropagateIntensity
@@ -53,7 +65,8 @@ struct DrawFieldMesh
 
 };
 
-furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0);
+furious::match<Position>().foreach<IncrementPosition>().outputwriteonly();
+furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f);
 furious::match<FieldMesh>().foreach<DrawFieldMesh>();
 furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
 

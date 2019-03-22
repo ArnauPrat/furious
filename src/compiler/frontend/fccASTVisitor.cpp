@@ -62,6 +62,14 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
                                call);
       }
 
+      if(func_name == "outputwriteonly") 
+      {
+        return process_outputwriteonly(p_ast_context,
+                                       p_fcc_context,
+                                       p_fcc_match,
+                                       call);
+      }
+
       if(func_name == "has_tag" ) 
       {
         return process_has_tag(p_ast_context,

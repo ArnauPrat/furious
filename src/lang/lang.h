@@ -44,7 +44,11 @@ namespace furious
 template <typename TSystem, typename... TComponents>
 struct RegisterSystemInfo
 {
-
+  RegisterSystemInfo
+  outputwriteonly()
+  {
+    return RegisterSystemInfo();
+  }
 };
 
 /**

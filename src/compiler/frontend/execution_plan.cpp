@@ -195,19 +195,22 @@ FccExecPlan::insert_root(ASTContext* ast_context,
   p_asts.append(ast_context);
 }
 
-bool
+FccCompilationErrorType
 FccExecPlan::bootstrap()
 {
   DependencyGraph dep_graph;
   uint32_t size = p_context->p_matches.size();
   for(uint32_t i = 0; i < size; ++i)
   {
-    dep_graph.insert(p_context->p_matches[i]);
+    if(!dep_graph.insert(p_context->p_matches[i])) 
+    {
+      return FccCompilationErrorType::E_OUTPUT_DEPENDENCY;
+    }
   }
 
   if(!dep_graph.is_acyclic()) 
   {
-    return false;
+    return FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH;
   }
 
   DynArray<const FccMatch*> seq = dep_graph.get_valid_exec_sequence();
@@ -217,7 +220,7 @@ FccExecPlan::bootstrap()
     FccOperator* next_root = create_subplan(info);
     insert_root(info->p_ast_context, next_root);
   }
-  return true;
+  return FccCompilationErrorType::E_NO_ERROR;
 }
 
 ////////////////////////////////////////////////

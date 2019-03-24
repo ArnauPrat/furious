@@ -235,7 +235,7 @@ struct FccExecPlan
   FccExecPlan(FccContext* context);
   ~FccExecPlan();
 
-  bool
+  FccCompilationErrorType 
   bootstrap();
 
   /**

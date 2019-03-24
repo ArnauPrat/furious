@@ -65,8 +65,8 @@ struct DrawFieldMesh
 
 };
 
-furious::match<Position>().foreach<ResetPosition>();
-furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f).rw_output();
+furious::match<Position>().foreach<ResetPosition>().set_priority(1);
+furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f);
 furious::match<FieldMesh>().foreach<DrawFieldMesh>();
 furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
 

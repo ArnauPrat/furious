@@ -62,9 +62,9 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
                                call);
       }
 
-      if(func_name == "rw_output") 
+      if(func_name == "set_priority") 
       {
-        return process_rw_output(p_ast_context,
+        return process_set_priority(p_ast_context,
                                        p_fcc_context,
                                        p_fcc_match,
                                        call);

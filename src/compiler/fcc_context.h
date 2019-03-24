@@ -29,7 +29,6 @@ enum class FccAccessMode
 {
   E_READ,
   E_READ_WRITE,
-  E_WRITE
 };
 
 /**
@@ -62,7 +61,6 @@ struct FccSystem
   QualType                  m_system_type;        // The type of the system
   DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
   DynArray<QualType>        m_component_types;       // The types of the components of the system
-  bool                      m_rw_output;
   int32_t                   m_id;
 };
 
@@ -163,6 +161,7 @@ struct FccMatch
   DynArray<FccEntityMatch*>       p_entity_matches;   // The set of entity matches that conform this query
   FccSystem                       m_system;           // The system that executes on the results of this match
   Expr*                           p_expr;             // The clang expression of this match
+  uint32_t                        m_priority;         // The execution priority of this match
 };
 
 ////////////////////////////////////////////////
@@ -181,15 +180,18 @@ enum class FccParsingErrorType
   E_UNSUPPORTED_VAR_DECLARATIONS,
   E_UNSUPPORTED_STATEMENT,
   E_EXPECTED_STRING_LITERAL,
+  E_NO_ERROR,
 };
 
 enum class FccCompilationErrorType
 {
   E_UNKNOWN_ERROR,
   E_CYCLIC_DEPENDENCY_GRAPH,
+  E_OUTPUT_DEPENDENCY,
   E_INVALID_COLUMN_TYPE,
   E_INVALID_ACCESS_MODE_ON_EXPAND,
   E_SYSTEM_INVALID_NUMBER_COMPONENTS,
+  E_NO_ERROR,
 };
 
 typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*, 

@@ -3,6 +3,8 @@
 #include "parsing.h"
 #include "fcc_context.h"
 #include "clang_tools.h"
+#include "../common/types.h"
+
 
 namespace furious 
 {
@@ -232,12 +234,20 @@ process_foreach(ASTContext* ast_context,
 }
 
 bool 
-process_rw_output(ASTContext* ast_context,
+process_set_priority(ASTContext* ast_context,
                         FccContext* fcc_context,
                         FccMatch*   fcc_match,
                         const CallExpr* call)
 {
-  fcc_match->m_system.m_rw_output = true;
+  uint32_t num_args = call->getNumArgs();
+  if(num_args != 1)
+  {
+    return false;
+  }
+
+  const Expr* param_expr = call->getArg(0);
+  uint32_t priority = get_uint32_literal(param_expr);
+  fcc_match->m_priority = priority;
   return true;
 }
 

@@ -32,7 +32,7 @@ struct DependencyGraph
    *
    * \param exec_info The FccMatch to add
    */
-  void 
+  bool 
   insert(const FccMatch* exec_info);
 
   /**

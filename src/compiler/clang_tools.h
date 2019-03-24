@@ -115,6 +115,17 @@ get_access_mode(const QualType& type);
  */
 std::string
 get_string_literal(const Expr* expr);
+
+/**
+ * \brief Gets the uint32 literal of an expression
+ *
+ * \param expr The expression to get the string literal from
+ *
+ * \return Returns the uint32 literal. 0 if string literal cannot be
+ * found
+ */
+uint32_t
+get_uint32_literal(const Expr* expr);
   
 } /* furious
  */ 

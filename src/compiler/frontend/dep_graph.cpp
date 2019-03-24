@@ -34,13 +34,14 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   for(uint32_t i = 0; i < size_b; ++i)
   {
     const QualType& type = node_b->p_match->m_system.m_component_types[i];
-    if(get_access_mode(type) == FccAccessMode::E_WRITE)
+    if(get_access_mode(type) == FccAccessMode::E_READ_WRITE)
     {
       write_types_b.append(type);
     }
   }
 
   uint32_t size_a = node_a->p_match->m_system.m_component_types.size();
+  uint32_t priority_a = node_a->p_match->m_priority;
   for(uint32_t i = 0; i < size_a; ++i)
   {
     const QualType& type_a = node_a->p_match->m_system.m_component_types[i];
@@ -48,13 +49,14 @@ is_dependent(DGNode* node_a, DGNode* node_b)
     FccAccessMode access_a = get_access_mode(type_a);
 
     size_b = write_types_b.size();
+    uint32_t priority_b = node_b->p_match->m_priority;
     for(uint32_t ii = 0; ii < size_b; ++ii)
     {
       const QualType& type_b = write_types_b[ii];
       std::string name_b = get_type_name(type_b);
       if(name_a == name_b && 
         ((access_a == FccAccessMode::E_READ) ||
-        (access_a == FccAccessMode::E_WRITE && node_a->p_match->m_system.m_rw_output)))
+        (access_a == FccAccessMode::E_READ_WRITE && priority_a <= priority_b)))
       {
         return true;
       }
@@ -63,11 +65,12 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   return false;
 }
 
-void 
+bool 
 DependencyGraph::insert(const FccMatch* exec_info)
 {
   DGNode* node = new DGNode(p_nodes.size(),
                             exec_info);
+
   for(uint32_t i = 0; i < p_nodes.size(); ++i)
   {
     if(is_dependent(node,p_nodes[i]))
@@ -83,6 +86,7 @@ DependencyGraph::insert(const FccMatch* exec_info)
     }
   }
   p_nodes.append(node);
+  return true;
 }
 
 DynArray<const FccMatch*>

@@ -45,7 +45,7 @@ template <typename TSystem, typename... TComponents>
 struct RegisterSystemInfo
 {
   RegisterSystemInfo
-  rw_output()
+  set_priority(unsigned int x)
   {
     return RegisterSystemInfo();
   }

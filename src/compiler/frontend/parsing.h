@@ -65,7 +65,7 @@ process_foreach(ASTContext* ast_context,
                 const CallExpr* call);
 
 /**
- * \brief Processes an rw_output call
+ * \brief Processes a set_priority call
  *
  * \param ast_context The ast context of the call to process
  * \param fcc_context The fcc context 
@@ -75,7 +75,7 @@ process_foreach(ASTContext* ast_context,
  * \return  True if the parsing was corret. False otherwise.
  */
 bool 
-process_rw_output(ASTContext* ast_context,
+process_set_priority(ASTContext* ast_context,
                   FccContext* fcc_context,
                   FccMatch*   fcc_match,
                   const CallExpr* call);

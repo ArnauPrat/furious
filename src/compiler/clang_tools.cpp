@@ -182,20 +182,21 @@ get_access_mode(const QualType& type)
   {
     return FccAccessMode::E_READ;
   }
-  return FccAccessMode::E_WRITE;
+  return FccAccessMode::E_READ_WRITE;
 }
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-class StringLiteralVisitor : public RecursiveASTVisitor<StringLiteralVisitor>
+class LiteralVisitor : public RecursiveASTVisitor<LiteralVisitor>
 {
 public:
 
-  std::string str;
+  std::string str = "";
+  uint32_t    uint32 = 0;
 
-  StringLiteralVisitor() {}
+  LiteralVisitor() {}
 
   virtual
   bool VisitStringLiteral(clang::StringLiteral* string_literal)
@@ -204,13 +205,29 @@ public:
     return true;
   }
 
+  virtual
+  bool VisitIntegerLiteral(clang::IntegerLiteral* integer_literal)
+  {
+    uint32 = integer_literal->getValue().getLimitedValue(); 
+    return true;
+  }
+
 };
+
 std::string
 get_string_literal(const Expr* expr)
 {
-  StringLiteralVisitor visitor;
+  LiteralVisitor visitor;
   visitor.TraverseStmt(const_cast<Expr*>(expr));
   return visitor.str;
+}
+
+uint32_t
+get_uint32_literal(const Expr* expr)
+{
+  LiteralVisitor visitor;
+  visitor.TraverseStmt(const_cast<Expr*>(expr));
+  return visitor.uint32;
 }
 
 } /* furious*/

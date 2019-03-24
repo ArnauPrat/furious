@@ -22,8 +22,7 @@ namespace furious
 {
 
 FccSystem::FccSystem(FccContext* fcc_context) :
-p_fcc_context(fcc_context),
-m_rw_output(false)
+p_fcc_context(fcc_context)
 {
 }
 
@@ -112,7 +111,8 @@ p_ast_context(ast_context),
 p_fcc_context(fcc_context),
 m_operation_type(FccOperationType::E_UNKNOWN),
 m_system(fcc_context),
-p_expr(expr)
+p_expr(expr),
+m_priority(0)
 {
 }
 
@@ -209,6 +209,9 @@ handle_parsing_error(FccContext* context,
     case FccParsingErrorType::E_EXPECTED_STRING_LITERAL:
       str_builder.append("Expected String Literal error");
       break;
+    case FccParsingErrorType::E_NO_ERROR:
+      str_builder.append("No Error. This should never be reported");
+      break;
   }
 
   str_builder.append(" found in %s:%d:%d. %s\n", filename.c_str(), line, column, message.c_str());
@@ -227,6 +230,9 @@ handle_compilation_error(FccContext* context,
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
       str_builder.append("Unknown error: %s\n", err_msg.c_str());
       break;
+    case FccCompilationErrorType::E_OUTPUT_DEPENDENCY:
+      str_builder.append("Found output dependency: %s\n", err_msg.c_str());
+      break;
     case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
       str_builder.append("Cyclic dependency graph %s\n", err_msg.c_str());
       break;
@@ -238,6 +244,9 @@ handle_compilation_error(FccContext* context,
       break;
     case FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS:
       str_builder.append("System invalid number of components: %s\n", err_msg.c_str());
+      break;
+    case FccCompilationErrorType::E_NO_ERROR:
+      str_builder.append("No Error. This should never be reported");
       break;
   }
   llvm::errs() << str_builder.p_buffer;
@@ -353,11 +362,11 @@ Fcc_run(FccContext* context,
 
   // Build initial execution plan
   FccExecPlan exec_plan(context);
-
-  if(!exec_plan.bootstrap())
+  FccCompilationErrorType err = exec_plan.bootstrap();
+  if(err != FccCompilationErrorType::E_NO_ERROR)
   {
     handle_compilation_error(context, 
-                             FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH, 
+                             err, 
                              "");
   }
 
@@ -434,9 +443,8 @@ Fcc_validate(const FccMatch* match)
   {
     QualType type = match->m_system.m_component_types[i];
     if(allow_writes[i] == false &&
-       (get_access_mode(type) == FccAccessMode::E_WRITE ||
-        get_access_mode(type) == FccAccessMode::E_READ_WRITE
-       ))
+       get_access_mode(type) == FccAccessMode::E_READ_WRITE
+       )
     {
       StringBuilder str_builder;
       str_builder.append("\"%s\" access mode after expand must be read-only", get_type_name(type).c_str());

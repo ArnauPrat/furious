@@ -23,10 +23,6 @@ create_subplan(const FccMatch* match)
     {
 
       FccAccessMode access_mode = get_access_mode(entity_match->m_basic_component_types[j]);
-      if(access_mode == FccAccessMode::E_WRITE && match->m_system.m_rw_output)
-      {
-        access_mode = FccAccessMode::E_READ_WRITE;
-      }
 
       if(local_root == nullptr)
       {

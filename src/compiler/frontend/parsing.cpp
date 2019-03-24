@@ -232,12 +232,12 @@ process_foreach(ASTContext* ast_context,
 }
 
 bool 
-process_outputwriteonly(ASTContext* ast_context,
+process_rw_output(ASTContext* ast_context,
                         FccContext* fcc_context,
                         FccMatch*   fcc_match,
                         const CallExpr* call)
 {
-  fcc_match->m_system.m_is_outputwriteonly = true;
+  fcc_match->m_system.m_rw_output = true;
   return true;
 }
 

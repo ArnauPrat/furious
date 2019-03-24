@@ -22,15 +22,15 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-struct IncrementPosition
+struct ResetPosition
 {
   void run(furious::Context* context,
            uint32_t id,
            Position* position)
   {
-    position->m_x += 1.0f;
-    position->m_y += 1.0f;
-    position->m_z += 1.0f;
+    position->m_x = 1.0f;
+    position->m_y = 1.0f;
+    position->m_z = 1.0f;
   }
 };
 
@@ -65,8 +65,8 @@ struct DrawFieldMesh
 
 };
 
-furious::match<Position>().foreach<IncrementPosition>().outputwriteonly();
-furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f);
+furious::match<Position>().foreach<ResetPosition>();
+furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f).rw_output();
 furious::match<FieldMesh>().foreach<DrawFieldMesh>();
 furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
 

@@ -45,7 +45,7 @@ template <typename TSystem, typename... TComponents>
 struct RegisterSystemInfo
 {
   RegisterSystemInfo
-  outputwriteonly()
+  rw_output()
   {
     return RegisterSystemInfo();
   }

@@ -155,7 +155,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
 
   if (func->getNameAsString() == "furious_script")
   {
-    func->dump();
+    //func->dump();
     if (func->hasBody())
     {
       for(auto stmt : func->getBody()->children()) 

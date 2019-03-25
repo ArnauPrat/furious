@@ -77,12 +77,20 @@ DependencyGraph::insert(const FccMatch* exec_info)
     {
       p_nodes[i]->p_children.append(node);
       node->p_parents.append(p_nodes[i]);
+      printf("%s deps on %s \n", 
+             get_type_name(node->p_match->m_system.m_system_type).c_str(),
+             get_type_name(p_nodes[i]->p_match->m_system.m_system_type).c_str()
+             );
     }
 
     if(is_dependent(p_nodes[i], node))
     {
       node->p_children.append(p_nodes[i]);
       p_nodes[i]->p_parents.append(node);
+      printf("%s deps on %s \n", 
+             get_type_name(p_nodes[i]->p_match->m_system.m_system_type).c_str(),
+             get_type_name(node->p_match->m_system.m_system_type).c_str()
+             );
     }
   }
   p_nodes.append(node);
@@ -176,40 +184,59 @@ DependencyGraph::is_acyclic()
   return true;
 }
 
+bool
+all_visited_parents(DGNode* node, std::set<DGNode*>& visited)
+{
+  for(uint32_t i = 0; i < node->p_parents.size(); ++i)
+  {
+    if(visited.find(node->p_parents[i]) == visited.end())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 DynArray<const FccMatch*>
 DependencyGraph::get_valid_exec_sequence()
 {
   DynArray<const FccMatch*> ret;
   std::set<DGNode*> visited_nodes;
   uint32_t size = p_nodes.size();
-  for(uint32_t i = 0; i < size; ++i)
+  bool found = true;
+  while(found)
   {
-    DGNode* next_root = p_nodes[i];
-    if(next_root->p_parents.size() == 0 && visited_nodes.find(next_root) == visited_nodes.end())
+    found = false;
+    for(uint32_t i = 0; i < size; ++i)
     {
-      DynArray<DGNode*> next_frontier;
-      DynArray<DGNode*> current_frontier;
-      current_frontier.append(next_root);
-      visited_nodes.insert(next_root);
-      while(current_frontier.size() > 0)
+      DGNode* next_root = p_nodes[i];
+      if(visited_nodes.find(next_root) == visited_nodes.end() && all_visited_parents(next_root, visited_nodes))
       {
-        for(uint32_t ii = 0; ii < current_frontier.size(); ++ii)
+        found = true;
+        DynArray<DGNode*> next_frontier;
+        DynArray<DGNode*> current_frontier;
+        current_frontier.append(next_root);
+        visited_nodes.insert(next_root);
+        while(current_frontier.size() > 0)
         {
-          DGNode* next_root = current_frontier[ii]; 
-          ret.append(next_root->p_match);
-          uint32_t num_children =  next_root->p_children.size();
-          for(uint32_t j = 0; j < num_children; ++j)
+          for(uint32_t ii = 0; ii < current_frontier.size(); ++ii)
           {
-            DGNode* child = next_root->p_children[j];
-            if(visited_nodes.find(child) == visited_nodes.end())
+            DGNode* next_root = current_frontier[ii]; 
+            ret.append(next_root->p_match);
+            uint32_t num_children =  next_root->p_children.size();
+            for(uint32_t j = 0; j < num_children; ++j)
             {
-              next_frontier.append(child);
-              visited_nodes.insert(child);
+              DGNode* child = next_root->p_children[j];
+              if(visited_nodes.find(child) == visited_nodes.end() && all_visited_parents(child, visited_nodes))
+              {
+                next_frontier.append(child);
+                visited_nodes.insert(child);
+              }
             }
           }
+          current_frontier = next_frontier;
+          next_frontier.clear();
         }
-        current_frontier = next_frontier;
-        next_frontier.clear();
       }
     }
   }

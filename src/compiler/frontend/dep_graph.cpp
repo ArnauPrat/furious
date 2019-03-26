@@ -55,8 +55,8 @@ is_dependent(DGNode* node_a, DGNode* node_b)
       const QualType& type_b = write_types_b[ii];
       std::string name_b = get_type_name(type_b);
       if(name_a == name_b && 
-        ((access_a == FccAccessMode::E_READ) ||
-        (access_a == FccAccessMode::E_READ_WRITE && priority_a <= priority_b)))
+        (/*(access_a == FccAccessMode::E_READ) ||*/
+        (/*access_a == FccAccessMode::E_READ_WRITE &&*/ priority_a <= priority_b)))
       {
         return true;
       }

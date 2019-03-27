@@ -78,6 +78,13 @@ public:
     join->p_right.get()->accept(this);
   }
 
+  virtual void
+  visit(const LeftFilterJoin* left_filter_join) 
+  {
+    left_filter_join->p_left.get()->accept(this);
+    left_filter_join->p_right.get()->accept(this);
+  }
+
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
@@ -151,6 +158,13 @@ public:
   {
     join->p_left.get()->accept(this);
     join->p_right.get()->accept(this);
+  }
+
+  virtual void
+  visit(const LeftFilterJoin* left_filter_join) 
+  {
+    left_filter_join->p_left.get()->accept(this);
+    left_filter_join->p_right.get()->accept(this);
   }
 
   virtual void 

@@ -92,6 +92,35 @@ gather(const BTree<DynArray<entity_id_t>>* groups,
        TableView<TComponents>*...table_view);
 
   
+/**
+ * \brief This operation assumes that the "column" column in the block cluster
+ * is of type #REFERENCE. This functions filters those rows in the blockcluster
+ * such that the entity_id_t corresponding in the column "column" 
+ * exists in BitTable.
+ *
+ * \param bittable The BitTable to check
+ * \param block_cluster The block cluster to manipulate
+ * \param column The column of the block cluster
+ */
+void
+filter_bittable_exists(const BitTable* bittable, 
+                       BlockCluster* block_cluster,
+                       uint32_t column);
+
+/**
+ * \brief This operation assumes that the "column" column in the block cluster
+ * is of type #REFERENCE. This functions filters those rows in the blockcluster
+ * such that the entity_id_t corresponding in the column "column" does not
+ * exist in BitTable
+ *
+ * \param bittable The BitTable to check
+ * \param block_cluster The block cluster to manipulate
+ * \param column The column of the block cluster
+ */
+void
+filter_bittable_not_exists(const BitTable* bittable, 
+                           BlockCluster* block_cluster,
+                           uint32_t column);
 } /* furious */ 
 
 #include "data_utils.inl"

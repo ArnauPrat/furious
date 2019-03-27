@@ -76,5 +76,10 @@ void BlockCluster::append(const BlockCluster* other)
   }
   p_enabled->set_and(other->p_enabled);
 }
+
+void BlockCluster::filter(const BlockCluster* other)
+{
+  p_enabled->set_and(other->p_enabled);
+}
   
 } /* furious */ 

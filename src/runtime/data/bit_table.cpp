@@ -70,7 +70,7 @@ BitTable::get_bitmap(uint32_t id) const
   Bitmap* bitmap = m_bitmaps.get(bitset_id);
   if(bitmap == nullptr) 
   {
-    m_bitmaps.insert_new(bitset_id, TABLE_BLOCK_SIZE);
+    bitmap = m_bitmaps.insert_new(bitset_id, TABLE_BLOCK_SIZE);
   }
   return bitmap;
 }

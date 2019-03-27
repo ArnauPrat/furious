@@ -30,8 +30,8 @@ enum class FccOperatorType
 
 enum class FccColumnType
 {
+  E_REFERENCE,
   E_COMPONENT,
-  E_REFERENCE
 };
 
 struct FccColumn
@@ -116,6 +116,23 @@ struct Join : public FccOperatorTmplt<Join>
 };
 
 /**
+ * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
+ * left table. Do not confuse with Left Joins.
+ */
+struct LeftFilterJoin : public FccOperatorTmplt<LeftFilterJoin> 
+{
+  LeftFilterJoin(RefCountPtr<FccOperator> left, 
+                 RefCountPtr<FccOperator> right,
+                 FccContext* fcc_context);
+  virtual 
+  ~LeftFilterJoin();
+
+  uint32_t m_split_point;
+  RefCountPtr<FccOperator> p_left;
+  RefCountPtr<FccOperator> p_right;
+};
+
+/**
  * @brief Filter operator. Filter components by entity tags
  */
 template<typename T>
@@ -154,12 +171,14 @@ struct TagFilter : public Filter<TagFilter>
   TagFilter(RefCountPtr<FccOperator> child,
             const std::string& tag,
             FccFilterOpType op_type,
-            FccContext* fcc_context);
+            FccContext* fcc_context,
+            bool on_column = false);
 
   virtual 
   ~TagFilter() = default;
 
   const std::string m_tag;
+  bool              m_on_column;
   FccFilterOpType   m_op_type;
 };
 
@@ -168,12 +187,14 @@ struct ComponentFilter : public Filter<ComponentFilter>
   ComponentFilter(RefCountPtr<FccOperator> child,
                   QualType component_type,
                   FccFilterOpType op_type,
-                  FccContext* fcc_context);
+                  FccContext* fcc_context,
+                  bool on_column = false);
 
   virtual 
   ~ComponentFilter() = default;
 
   QualType          m_filter_type;
+  bool              m_on_column;
   FccFilterOpType   m_op_type;
 };
 
@@ -272,6 +293,9 @@ public:
 
   virtual void
   visit(const Join* join) = 0;
+
+  virtual void
+  visit(const LeftFilterJoin* left_filter_join) = 0;
 
   virtual void 
   visit(const TagFilter* tag_filter) = 0;

@@ -59,15 +59,25 @@ struct DrawFieldMesh
     // DRAW FIELD MESH
   }
 
- float m_x;
- float m_y;
- float m_z;
+};
 
+struct IncrementFieldMesh
+{
+  void run(furious::Context* context,
+           uint32_t id,
+           FieldMesh* field)
+  {
+    // DRAW FIELD MESH
+    field->m_x += 1.0;
+    field->m_y += 1.0;
+    field->m_z += 1.0;
+  }
 };
 
 furious::match<Position>().foreach<ResetPosition>().set_priority(1);
 furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f);
 furious::match<FieldMesh>().foreach<DrawFieldMesh>();
-furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
+furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>().set_priority(1);
+furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>();
 
 END_FURIOUS_SCRIPT

@@ -29,6 +29,9 @@ public:
   virtual void
   visit(const Join* join);
 
+  virtual void
+  visit(const LeftFilterJoin* join);
+
   virtual void 
   visit(const TagFilter* tag_filter);
 

@@ -33,7 +33,6 @@ Scan::Scan(const std::string& ref_name, FccContext* fcc_context) :
   column.m_ref_name = ref_name;
   column.m_access_mode = FccAccessMode::E_READ;
   m_columns.append(column);
-
 }
 
 Scan::Scan(QualType component, FccAccessMode access_mode, FccContext* fcc_context) : 
@@ -72,6 +71,26 @@ Join::~Join()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
+LeftFilterJoin::LeftFilterJoin(RefCountPtr<FccOperator> left, 
+                               RefCountPtr<FccOperator> right,
+                               FccContext* fcc_context) :
+FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_JOIN, "LeftFilterJoin", fcc_context), 
+p_left(left),
+p_right(right) 
+{
+  p_left.get()->p_parent = this;
+  p_right.get()->p_parent = this;
+  m_columns.append(p_left.get()->m_columns);
+}
+
+LeftFilterJoin::~LeftFilterJoin() 
+{
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
 PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
                                  const FunctionDecl* func_decl,
                                  FccContext* fcc_context) :
@@ -88,9 +107,11 @@ p_func_decl(func_decl)
 TagFilter::TagFilter(RefCountPtr<FccOperator> child,
                      const std::string& tag,
                      FccFilterOpType op_type,
-                     FccContext* fcc_context) :
+                     FccContext* fcc_context,
+                     bool on_column) :
 Filter(child, "TagFilter",fcc_context),
 m_tag(tag),
+m_on_column(on_column),
 m_op_type(op_type)
 {
 }
@@ -102,9 +123,11 @@ m_op_type(op_type)
 ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
                                  QualType component_type,
                                  FccFilterOpType op_type,
-                                 FccContext* fcc_context) :
+                                 FccContext* fcc_context,
+                                 bool on_column) :
 Filter<ComponentFilter>(child, "ComponentFilter", fcc_context),
 m_filter_type(component_type),
+m_on_column(on_column),
 m_op_type(op_type)
 {
 }

@@ -122,40 +122,116 @@ ConsumeVisitor::visit(const Join* join)
   }
 }
 
+void
+ConsumeVisitor::visit(const LeftFilterJoin* left_filter_join)
+{
+
+  std::string hashtable = generate_hashtable_name(left_filter_join);
+  if(p_context->p_caller == left_filter_join->p_left.get()) 
+  {
+    fprintf(p_context->p_fd, 
+            "%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str()); 
+  }
+  else 
+  {
+    fprintf(p_context->p_fd,
+            "BlockCluster* build = %s.get(%s->m_start);\n",
+            hashtable.c_str(),
+            p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "if(build != nullptr)\n{\n");
+    std::string clustername = generate_cluster_name(left_filter_join);
+    fprintf(p_context->p_fd,
+            "BlockCluster %s(*build);\n", 
+            clustername.c_str());
+    fprintf(p_context->p_fd,
+            "%s.filter(%s);\n", 
+            clustername.c_str(), 
+            p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "if(%s.p_enabled->num_set() != 0)\n{\n", 
+            clustername.c_str());
+
+    consume(p_context->p_fd,
+            left_filter_join->p_parent,
+            "(&"+clustername+")",
+            left_filter_join);
+
+    fprintf(p_context->p_fd,"}\n");
+    fprintf(p_context->p_fd,"}\n");
+  }
+}
+
 void 
 ConsumeVisitor::visit(const TagFilter* tag_filter)
 {
   const std::string bittable_name = generate_bittable_name(tag_filter->m_tag);
   fprintf(p_context->p_fd,"\n");
-  fprintf(p_context->p_fd,
-          "const Bitmap* filter = %s->get_bitmap(%s->m_start);\n", 
-          bittable_name.c_str(), 
-          p_context->m_source.c_str());
 
-  switch(tag_filter->m_op_type) 
+  if(!tag_filter->m_on_column)
   {
-    case FccFilterOpType::E_HAS:
-      {
-        fprintf(p_context->p_fd,
-                "%s->p_enabled->set_and(filter);\n",
-                p_context->m_source.c_str());
-        break;
-      }
-    case FccFilterOpType::E_HAS_NOT:
-      {
-        fprintf(p_context->p_fd, 
-                "Bitmap* negate = new Bitmap(TABLE_BLOCK_SIZE);\n");
-        fprintf(p_context->p_fd, 
-                "negate->set_bitmap(filter);\n");
-        fprintf(p_context->p_fd, 
-                "negate->set_negate();\n");
-        fprintf(p_context->p_fd,
-                "%s->p_enabled->set_and(negate);\n",
-                p_context->m_source.c_str());
-        fprintf(p_context->p_fd, 
-                "delete negate;\n");
-        break;
-      }
+    fprintf(p_context->p_fd,
+            "const Bitmap* filter = %s->get_bitmap(%s->m_start);\n", 
+            bittable_name.c_str(), 
+            p_context->m_source.c_str());
+    switch(tag_filter->m_op_type) 
+    {
+      case FccFilterOpType::E_HAS:
+        {
+          fprintf(p_context->p_fd,
+                  "%s->p_enabled->set_and(filter);\n",
+                  p_context->m_source.c_str());
+          break;
+        }
+      case FccFilterOpType::E_HAS_NOT:
+        {
+          fprintf(p_context->p_fd,"{\n");
+          fprintf(p_context->p_fd, 
+                  "Bitmap negate(TABLE_BLOCK_SIZE);\n");
+          fprintf(p_context->p_fd, 
+                  "negate.set_bitmap(filter);\n");
+          fprintf(p_context->p_fd, 
+                  "negate.set_negate();\n");
+          fprintf(p_context->p_fd,
+                  "%s->p_enabled->set_and(&negate);\n",
+                  p_context->m_source.c_str());
+          fprintf(p_context->p_fd,"}\n");
+          break;
+        }
+    }
+  }
+  else
+  {
+    if(tag_filter->m_columns[0].m_type != FccColumnType::E_REFERENCE)
+    {
+      StringBuilder str_builder;
+      str_builder.append("Cannot apply filter tag \"%s\" on column on a non-reference column type", tag_filter->m_tag.c_str());
+      tag_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+                                                          str_builder.p_buffer);
+    }
+
+    switch(tag_filter->m_op_type) 
+    {
+      case FccFilterOpType::E_HAS:
+        {
+          fprintf(p_context->p_fd,
+                  "filter_bittable_exists(%s,%s,0);\n",
+                  bittable_name.c_str(),
+                  p_context->m_source.c_str());
+          break;
+        }
+      case FccFilterOpType::E_HAS_NOT:
+        {
+          fprintf(p_context->p_fd,
+                  "filter_bittable_not_exists(%s,%s,0);\n",
+                  bittable_name.c_str(),
+                  p_context->m_source.c_str());
+          break;
+        }
+    }
   }
 
   fprintf(p_context->p_fd,
@@ -312,25 +388,6 @@ ConsumeVisitor::visit(const CascadingGather* casc_gather)
             hashtable.c_str(), 
             p_context->m_source.c_str(), 
             p_context->m_source.c_str()); 
-
-    // perform the gather using the grouped references
-    /*fprintf(p_context->p_fd,
-            "gather(&%s,%s,current_frontier_%u, next_frontier_%u",
-            groups.c_str(),
-            p_context->m_source.c_str(),
-            casc_gather->m_id,
-            casc_gather->m_id);
-    DynArray<FccColumn>& child_columns = casc_gather->p_child.get()->m_columns;
-    for(uint32_t i = 0; i < child_columns.size(); ++i)
-    {
-      FccColumn* column = &child_columns[i];
-      std::string component_name = get_type_name(column->m_q_type); 
-      std::string temp_table_name = generate_temp_table_name(component_name, casc_gather);
-      fprintf(p_context->p_fd,",&%s",
-              temp_table_name.c_str());
-    }
-    fprintf(p_context->p_fd,");\n");
-    */
   }
 }
 

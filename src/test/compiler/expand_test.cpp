@@ -32,7 +32,10 @@ TEST(ExpandTest, ExpandTest )
   entities[4].add_reference("parent",entities[1]);
   entities[5].add_reference("parent",entities[1]);
   
-
+  entities[2].add_tag("test");
+  entities[3].add_tag("test");
+  entities[4].add_tag("test");
+  entities[5].add_tag("test");
 
   furious::__furious_init(database);
   furious::__furious_frame(0.1,database);
@@ -72,9 +75,9 @@ TEST(ExpandTest, ExpandTest )
     ASSERT_TRUE(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_y - 0.12f < 0.001);
     ASSERT_TRUE(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Position)->m_z - 0.12f < 0.001);
     ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], Intensity)->m_intensity,5.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_x,1.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_y,1.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_z,1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_x,2.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_y,2.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(&entities[third_level_entities[i]], FieldMesh)->m_z,2.0f);
   }
 
   furious::__furious_release();

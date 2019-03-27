@@ -8,6 +8,111 @@
 namespace furious 
 {
 
+FccOperator*
+apply_filters(const FccMatch* match, 
+              const FccEntityMatch* entity_match, 
+              FccOperator* root)
+{
+
+  FccOperator* local_root = root;
+
+  // Create without Tag Filters
+  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
+  {
+    local_root = new TagFilter(local_root, 
+                               entity_match->m_has_not_tags[i],
+                               FccFilterOpType::E_HAS_NOT, 
+                               match->p_fcc_context);
+  }
+
+  // Create with tag filters
+  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
+  {
+    local_root = new TagFilter(local_root, 
+                               entity_match->m_has_tags[i],
+                               FccFilterOpType::E_HAS, 
+                               match->p_fcc_context);
+  }
+
+  // Create with components filters
+  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
+  {
+    local_root = new ComponentFilter(local_root, 
+                                     entity_match->m_has_not_components[i],
+                                     FccFilterOpType::E_HAS_NOT, 
+                                     match->p_fcc_context);
+  }
+
+  // Create with components filters
+  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
+  {
+    local_root = new ComponentFilter(local_root, 
+                                     entity_match->m_has_components[i],
+                                     FccFilterOpType::E_HAS, 
+                                     match->p_fcc_context);
+  }
+
+  // Create predicate filters
+  for(uint32_t i = 0; i < entity_match->p_filter_func.size(); ++i)
+  {
+    local_root = new PredicateFilter(local_root, 
+                                     entity_match->p_filter_func[i], 
+                                     match->p_fcc_context);
+  }
+  return local_root;
+}
+
+FccOperator*
+apply_filters_reference(const FccMatch* match, 
+                        const FccEntityMatch* entity_match, 
+                        FccOperator* root)
+{
+
+  FccOperator* local_root = root;
+
+  // Create without Tag Filters
+  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
+  {
+    local_root = new TagFilter(local_root, 
+                               entity_match->m_has_not_tags[i],
+                               FccFilterOpType::E_HAS_NOT, 
+                               match->p_fcc_context,
+                               true);
+  }
+
+  // Create with tag filters
+  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
+  {
+    local_root = new TagFilter(local_root, 
+                               entity_match->m_has_tags[i],
+                               FccFilterOpType::E_HAS, 
+                               match->p_fcc_context,
+                               true);
+  }
+
+  // Create with components filters
+  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
+  {
+    local_root = new ComponentFilter(local_root, 
+                                     entity_match->m_has_not_components[i],
+                                     FccFilterOpType::E_HAS_NOT, 
+                                     match->p_fcc_context,
+                                     true);
+  }
+
+  // Create with components filters
+  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
+  {
+    local_root = new ComponentFilter(local_root, 
+                                     entity_match->m_has_components[i],
+                                     FccFilterOpType::E_HAS, 
+                                     match->p_fcc_context,
+                                     true);
+  }
+
+  return local_root;
+}
+
 FccOperator* 
 create_subplan(const FccMatch* match)
 {
@@ -42,96 +147,76 @@ create_subplan(const FccMatch* match)
       }
     }
 
+    if(local_root != nullptr)
+    {
+      local_root = apply_filters(match, entity_match, local_root);
+    }
+
+    bool non_component_expand = local_root == nullptr; 
     if(entity_match->m_from_expand)
     {
       FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
                                        match->p_fcc_context);
 
-      bool cascading = false;
-      for(uint32_t j = 0; j < num_components; ++j)
+      if(!non_component_expand)
       {
-        QualType expand_type = entity_match->m_basic_component_types[j];
-        uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types.size();
-        for(uint32_t k = 0; j < num_match_components; ++j)
+        bool cascading = false;
+        for(uint32_t j = 0; j < num_components; ++j)
         {
-          QualType match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types[k];
-          if(!(get_access_mode(match_type) == FccAccessMode::E_READ) &&
-              get_type_name(expand_type) == get_type_name(match_type))
+          QualType expand_type = entity_match->m_basic_component_types[j];
+          uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types.size();
+          for(uint32_t k = 0; j < num_match_components; ++j)
           {
-            cascading = true;
-            break;
+            QualType match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types[k];
+            if(!(get_access_mode(match_type) == FccAccessMode::E_READ) &&
+               get_type_name(expand_type) == get_type_name(match_type))
+            {
+              cascading = true;
+              break;
+            }
           }
         }
-      }
 
-      if(cascading)
-      {
-        local_root = new CascadingGather(ref_scan, 
-                                         local_root, 
-                                         match->p_fcc_context);
+        if(cascading)
+        {
+          local_root = new CascadingGather(ref_scan, 
+                                           local_root, 
+                                           match->p_fcc_context);
+        }
+        else
+        {
+          local_root = new Gather(ref_scan, 
+                                  local_root, 
+                                  match->p_fcc_context);
+        }
       }
       else
       {
-        local_root = new Gather(ref_scan, 
-                                local_root, 
-                                match->p_fcc_context);
+        local_root = apply_filters_reference(match, entity_match, ref_scan);
       }
     }
+
     if(root == nullptr)
     {
       root = local_root;
     }
     else
     {
-      root = new Join(root, 
-                      local_root, 
-                      match->p_fcc_context);
+      if(non_component_expand)
+      {
+        root = new LeftFilterJoin(root, 
+                                  local_root, 
+                                  match->p_fcc_context);
+      }
+      else
+      {
+        root = new Join(root, 
+                        local_root, 
+                        match->p_fcc_context);
+      }
     }
   }
 
-  // Create without Tag Filters
-  for(uint32_t i = 0; i < match->p_entity_matches[0]->m_has_not_tags.size(); ++i)
-  {
-    root = new TagFilter(root, 
-                         match->p_entity_matches[0]->m_has_not_tags[i],
-                         FccFilterOpType::E_HAS_NOT, 
-                         match->p_fcc_context);
-  }
-
-  // Create with tag filters
-  for(uint32_t i = 0; i < match->p_entity_matches[0]->m_has_tags.size(); ++i)
-  {
-    root = new TagFilter(root, 
-                         match->p_entity_matches[0]->m_has_tags[i],
-                         FccFilterOpType::E_HAS, 
-                         match->p_fcc_context);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < match->p_entity_matches[0]->m_has_not_components.size(); ++i)
-  {
-    root = new ComponentFilter(root, 
-                               match->p_entity_matches[0]->m_has_not_components[i],
-                               FccFilterOpType::E_HAS_NOT, 
-                               match->p_fcc_context);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < match->p_entity_matches[0]->m_has_components.size(); ++i)
-  {
-    root = new ComponentFilter(root, 
-                               match->p_entity_matches[0]->m_has_components[i],
-                               FccFilterOpType::E_HAS, 
-                               match->p_fcc_context);
-  }
-
-  // Create predicate filters
-  for(uint32_t i = 0; i < match->p_entity_matches[0]->p_filter_func.size(); ++i)
-  {
-    root = new PredicateFilter(root, 
-                               match->p_entity_matches[0]->p_filter_func[i], 
-                               match->p_fcc_context);
-  }
 
   // Create Operation operator
   switch(match->m_operation_type)
@@ -167,5 +252,5 @@ merge_foreach(FccContext* context,
               const Foreach* foreach2) {
   return nullptr;
 }
-  
+
 } /* furious */ 

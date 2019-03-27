@@ -68,5 +68,41 @@ find_roots(const BTree<DynArray<entity_id_t>>* groups,
   }
 
 }
+
+void
+filter_bittable_exists(const BitTable* bittable, 
+                       BlockCluster* block_cluster,
+                       uint32_t column)
+{
+  for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
+  {
+    if(block_cluster->p_enabled->is_set(i))
+    {
+      entity_id_t id = ((entity_id_t*)block_cluster->m_blocks[column]->p_data)[i];
+      if(!bittable->exists(id))
+      {
+        block_cluster->p_enabled->unset(i);
+      }
+    }
+  }
+}
+
+void
+filter_bittable_not_exists(const BitTable* bittable, 
+                       BlockCluster* block_cluster,
+                       uint32_t column)
+{
+  for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
+  {
+    if(block_cluster->p_enabled->is_set(i))
+    {
+      entity_id_t id = ((entity_id_t*)block_cluster->m_blocks[column]->p_data)[i];
+      if(bittable->exists(id))
+      {
+        block_cluster->p_enabled->unset(i);
+      }
+    }
+  }
+}
   
 } /* furiou */ 

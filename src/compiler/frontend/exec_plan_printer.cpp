@@ -102,6 +102,18 @@ ExecPlanPrinter::visit(const Join* join)
   decr_level();
 }
 
+void
+ExecPlanPrinter::visit(const LeftFilterJoin* left_filter_join) 
+{
+  StringBuilder str_builder;
+  str_builder.append("left_filter_join(%u)", left_filter_join->m_id);
+  print(str_builder.p_buffer);
+  incr_level(true);
+  left_filter_join->p_left.get()->accept(this);
+  left_filter_join->p_right.get()->accept(this);
+  decr_level();
+}
+
 void 
 ExecPlanPrinter::visit(const TagFilter* tag_filter) 
 {
@@ -118,10 +130,23 @@ ExecPlanPrinter::visit(const TagFilter* tag_filter)
     type = has_not_type;
   }
 
-  str_builder.append("tag_filter (%u) - %s - \"%s\"", 
+  char* column_type;
+  char on_key[] = "on_key";
+  char on_ref_column[] = "on_ref_column";
+  if(tag_filter->m_on_column)
+  {
+    column_type = on_ref_column;
+  }
+  else
+  {
+    column_type = on_key;
+  }
+
+  str_builder.append("tag_filter (%u) - %s - \"%s\" - %s", 
                      tag_filter->m_id, 
                      type, 
-                     tag_filter->m_tag.c_str()); 
+                     tag_filter->m_tag.c_str(),
+                     column_type); 
   print(str_builder.p_buffer);
   incr_level(false);
   tag_filter->p_child.get()->accept(this);

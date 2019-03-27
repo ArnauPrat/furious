@@ -80,6 +80,15 @@ ProduceVisitor::visit(const Join* join)
   produce(p_context->p_fd,join->p_right.get());
 }
 
+void
+ProduceVisitor::visit(const LeftFilterJoin* left_filter_join)
+{
+  std::string hashtable = generate_hashtable_name(left_filter_join);
+  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
+  produce(p_context->p_fd,left_filter_join->p_left.get());
+  produce(p_context->p_fd,left_filter_join->p_right.get());
+}
+
 void 
 ProduceVisitor::visit(const TagFilter* tag_filter)
 {

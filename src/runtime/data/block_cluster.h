@@ -24,6 +24,9 @@ public:
   void 
   append(const BlockCluster* other);
 
+  void 
+  filter(const BlockCluster* other);
+
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
@@ -33,6 +36,7 @@ public:
   Bitmap*                         p_enabled;
   uint32_t                        m_start;
 };
+
 
 
 

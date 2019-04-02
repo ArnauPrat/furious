@@ -11,18 +11,17 @@ namespace furious
 
 std::string 
 get_code(const SourceManager &sm,
-         SourceLocation &start,
-         SourceLocation &end)
+         SourceRange range)
 {
 
 
-  SourceLocation loc = clang::Lexer::getLocForEndOfToken(end,
+  SourceLocation loc = clang::Lexer::getLocForEndOfToken(range.getEnd(),
                                                          0,
                                                          sm,
                                                          LangOptions());
   clang::SourceLocation token_end(loc);
-  return std::string(sm.getCharacterData(start),
-                     sm.getCharacterData(token_end) - sm.getCharacterData(start));
+  return std::string(sm.getCharacterData(range.getBegin()),
+                     sm.getCharacterData(token_end) - sm.getCharacterData(range.getBegin()));
 }
 
 ////////////////////////////////////////////////
@@ -50,7 +49,7 @@ public:
     const SourceManager& sm = p_ast_context->getSourceManager();
     if(decl->getSourceRange().isValid())
     {
-      std::string filename = sm.getFilename(decl->getLocStart());
+      std::string filename = sm.getFilename(decl->getSourceRange().getBegin());
       std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
 
       if(filename != "")

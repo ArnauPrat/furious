@@ -42,11 +42,13 @@ add_executable( fcc
 #set(Boost_USE_MULTITHREADED ON)  
 #set(Boost_USE_STATIC_RUNTIME OFF) 
 #FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
+set(LLVM_LINK_COMPONENTS support)
 
 target_link_libraries(fcc 
-  #  ${Boost_LIBRARIES} 
   clang 
   clangAST 
+  clangASTMatchers
+  clangSerialization
   clangFrontend
   clangTooling
   clangRewrite

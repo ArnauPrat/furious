@@ -12,7 +12,7 @@ endif()
 
 #find_package(Clang REQUIRED)
 
-set(CLANG_INCLUDES_DIR "/usr/lib/clang/7.0.1/include")
+set(CLANG_INCLUDES_DIR "/usr/lib/clang/8.0.0/include")
 
 if(NOT CLANG_INCLUDES_DIR)
   message(FATAL_ERROR "Need to define folder wich clang includes")

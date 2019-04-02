@@ -29,6 +29,20 @@ struct TableInfo
   uint32_t    m_size;
 };
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+struct GlobalInfo
+{
+  void * p_global;
+  void (*m_destructor)(void *ptr);
+};
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
 
 struct Database 
 {
@@ -85,7 +99,7 @@ struct Database
    *
    * @return Returns True if the table exists. False otherwise
    */
-  template<typename TComponent>
+  template<typename T>
   bool 
   exists_table();
 
@@ -240,6 +254,18 @@ struct Database
   create_temp_table(const std::string& table_name);
 
   /**
+   * \brief Creates a temporal table for the given component type (withput locking the database). Meant to
+   * be used only in fcc generated code.
+   *
+   * @tparam T The type of the components stored in the table
+   *
+   * \return A TableView of the temporal table
+   */
+  template <typename T>
+  TableView<T>
+  create_temp_table_no_lock(const std::string& table_name);
+
+  /**
    * \brief Destroys the given temporal table
    *
    * @tparam T The type of the componnets stored in the table
@@ -249,17 +275,91 @@ struct Database
   void
   remove_temp_table(TableView<T> view);
 
+  /**
+   * \brief Destroys the given temporal table (withput locking the database). Meant to
+   * be used only in fcc generated code.
+   *
+   * @tparam T The type of the componnets stored in the table
+   * \param view The view to the temporal table to destroy
+   */
+  template <typename T>
+  void
+  remove_temp_table_no_lock(TableView<T> view);
+
+  /**
+   * \brief Remove all temporal tables
+   */
   void
   remove_temp_tables();
 
+  /**
+   * \brief Removes all temporal tables (without locking the database). Meant to
+   * be used only in fcc generated code.
+   */
   void
   remove_temp_tables_no_lock();
+
+  /**
+   * \brief Creates a new global
+   *
+   * @tparam T The global to create
+   *
+   * \return Returns a pointer to the newly created global or nullptr if already
+   * exists
+   */
+  template <typename T,typename...Args>
+  T*
+  create_global(Args...args);
+
+  /**
+   * \brief Removes an existing global
+   *
+   * @tparam T The global to remove 
+   */
+  template <typename T>
+  void 
+  remove_global();
+
+  /**
+   * \brief Gets the global of a given type
+   *
+   * @tparam T The type of the global
+   *
+   * \return A pointer to the global
+   */
+  template <typename T>
+  T* 
+  find_global();
+
+  /**
+   * \brief Finds or creates a new global
+   *
+   * @tparam T The type of the global to create
+   *
+   * \return 
+   */
+  template <typename T,typename...Args>
+  T* 
+  find_or_create_global(Args...args);
+
+  /**
+   * \brief Tests whether a global exists or not
+   *
+   * \tparam TComponent The global stored in the table
+   *
+   * \return Returns True if the global exists. False otherwise
+   */
+  template<typename T>
+  bool 
+  exists_global();
+
 private:
 
   BTree<BitTable*>            m_tags;
   BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
   BTree<Table*>               m_references;
   BTree<Table*>               m_temp_tables;
+  BTree<GlobalInfo>           m_globals;
   entity_id_t                 m_next_entity_id;
   WebServer*                  p_webserver;
   mutable std::mutex          m_mutex;

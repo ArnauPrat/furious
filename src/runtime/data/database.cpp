@@ -51,6 +51,14 @@ void Database::clear()
     delete *it_temp_tables.next().p_value;
   }
   m_temp_tables.clear();
+
+  BTree<GlobalInfo>::Iterator it_globals = m_globals.iterator();
+  while (it_globals.has_next()) 
+  {
+    BTree<GlobalInfo>::Entry entry = it_globals.next();
+    entry.p_value->m_destructor(entry.p_value->p_global);
+  }
+  m_globals.clear();
   release();
 }
 

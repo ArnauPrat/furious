@@ -33,8 +33,9 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   uint32_t size_b = node_b->p_match->m_system.m_component_types.size(); 
   for(uint32_t i = 0; i < size_b; ++i)
   {
-    const QualType& type = node_b->p_match->m_system.m_component_types[i];
-    if(get_access_mode(type) == FccAccessMode::E_READ_WRITE)
+    const QualType& type = node_b->p_match->m_system.m_component_types[i].m_type;
+    bool is_read_only = node_b->p_match->m_system.m_component_types[i].m_is_read_only;
+    if(!is_read_only)
     {
       write_types_b.append(type);
     }
@@ -44,9 +45,8 @@ is_dependent(DGNode* node_a, DGNode* node_b)
   uint32_t priority_a = node_a->p_match->m_priority;
   for(uint32_t i = 0; i < size_a; ++i)
   {
-    const QualType& type_a = node_a->p_match->m_system.m_component_types[i];
+    const QualType& type_a = node_a->p_match->m_system.m_component_types[i].m_type;
     std::string name_a = get_type_name(type_a);
-    FccAccessMode access_a = get_access_mode(type_a);
 
     size_b = write_types_b.size();
     uint32_t priority_b = node_b->p_match->m_priority;
@@ -55,8 +55,7 @@ is_dependent(DGNode* node_a, DGNode* node_b)
       const QualType& type_b = write_types_b[ii];
       std::string name_b = get_type_name(type_b);
       if(name_a == name_b && 
-        (/*(access_a == FccAccessMode::E_READ) ||*/
-        (/*access_a == FccAccessMode::E_READ_WRITE &&*/ priority_a <= priority_b)))
+         priority_a <= priority_b)
       {
         return true;
       }

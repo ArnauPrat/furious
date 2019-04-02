@@ -35,6 +35,11 @@
 namespace furious
 {
 
+template<typename T>
+struct Global
+{
+};
+
 /**
  * \brief Object used to tune the set of entities the system runs on
  *

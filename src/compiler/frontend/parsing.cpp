@@ -119,14 +119,42 @@ print_debug_info(const ASTContext* ast_context,
                << get_column_number(sm, location)<< "\n";
 }
 
+bool
+is_global(ASTContext* ast_context,
+          FccContext* fcc_context,
+          QualType qtype
+         )
+{
+  if(qtype->getAsRecordDecl()->isTemplateDecl())
+  {
+     if(qtype->getAsRecordDecl()->getNameAsString() == "Global")
+     {
+       return true;
+     }
+     else
+     {
+       SourceLocation location = qtype->getAsRecordDecl()->getSourceRange().getBegin();
+       report_parsing_error(ast_context,
+                            fcc_context,
+                            location,
+                            FccParsingErrorType::E_UNSUPPORTED_TYPE_MODIFIER,
+                            qtype->getAsRecordDecl()->getNameAsString());
+
+     }
+  }
+  return false;
+}
+
+
 bool 
 process_match(ASTContext* ast_context,
-                FccContext* fcc_context,
-                FccMatch*   fcc_match,
-                const CallExpr* call)
+              FccContext* fcc_context,
+              FccMatch*   fcc_match,
+              const CallExpr* call)
 {
+
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found match",
                    location);
@@ -138,19 +166,28 @@ process_match(ASTContext* ast_context,
   const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
   DynArray<QualType> tmplt_types = get_tmplt_types(*arg_list);
 
+  // We need to fetch the actual types from the system's signature, since they
+  // contain they contain the proper accessmode information. Also, we need to
+  // set read the scope from the expand types and propagate to the match types
+  // in the system
   uint32_t num_consumed = 0;
   for(uint32_t i = 0; i < fcc_match->p_entity_matches.size() - 1; ++i)
   {
-    num_consumed+=fcc_match->p_entity_matches[i]->m_basic_component_types.size();
+    num_consumed+=fcc_match->p_entity_matches[i]->m_match_types.size();
   }
   uint32_t num_system_args = fcc_match->m_system.m_component_types.size();
 
   uint32_t begin = num_system_args - (num_consumed + tmplt_types.size());
   uint32_t end = num_system_args - num_consumed;
-  for (size_t i = begin; i < end; ++i) 
+  for (size_t i = begin, j = 0; i < end; ++i, ++j) 
   {
-    QualType type = fcc_match->m_system.m_component_types[i];
-    entity_match->insert_component_type(&type);
+    QualType type = fcc_match->m_system.m_component_types[i].m_type;
+    bool read_only = fcc_match->m_system.m_component_types[i].m_is_read_only;
+    bool global = is_global(ast_context, fcc_context, tmplt_types[j]);
+    fcc_match->m_system.m_component_types[i].m_is_global = global;
+    entity_match->insert_match_type(&type,
+                                    read_only,
+                                    global);
   }
   return true;
 }
@@ -162,7 +199,7 @@ process_expand(ASTContext* ast_context,
                 const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found expand",
                    location);
@@ -195,7 +232,7 @@ process_foreach(ASTContext* ast_context,
                 const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found foreach",
                    location);
@@ -219,7 +256,11 @@ process_foreach(ASTContext* ast_context,
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
     QualType type = tmplt_types[i]->getPointeeType();
-    system->insert_component_type(&type);
+    bool read_only = get_access_mode(type) == FccAccessMode::E_READ;
+    bool global = is_global(ast_context,
+                            fcc_context,
+                            type);
+    system->insert_component_type(&type, read_only, global);
   }
 
   // Extract System constructor parameter expressions
@@ -291,7 +332,7 @@ process_filter(ASTContext* ast_context,
                const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found filter",
                    location);
@@ -317,7 +358,7 @@ process_filter(ASTContext* ast_context,
       entity_match->insert_filter_func(func_decl);
     } else if(isa<VarDecl>(decl))
     {
-      SourceLocation location = call->getLocStart();
+      SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
@@ -336,7 +377,7 @@ process_has_tag(ASTContext* ast_context,
                  const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found has tag",
                    location);
@@ -356,7 +397,7 @@ process_has_tag(ASTContext* ast_context,
     else
     {
 
-      SourceLocation location = call->getLocStart();
+      SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
@@ -375,7 +416,7 @@ process_has_not_tag(ASTContext* ast_context,
                     const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found has not tag",
                    location);
@@ -393,7 +434,7 @@ process_has_not_tag(ASTContext* ast_context,
     else
     {
 
-      SourceLocation location = call->getLocStart();
+      SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
                            fcc_context,
                            location,
@@ -412,7 +453,7 @@ process_has_component(ASTContext* ast_context,
                        const CallExpr* call)
 {
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found has component",
                    location);
@@ -437,7 +478,7 @@ process_has_not_component(ASTContext* ast_context,
 {
 
 #ifndef NDEBUG
-  SourceLocation location = call->getLocStart();
+  SourceLocation location = call->getSourceRange().getBegin();
   print_debug_info(ast_context,
                    "Found has not component",
                    location);

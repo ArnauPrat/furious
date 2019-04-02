@@ -31,9 +31,11 @@ FccSystem::~FccSystem()
 }
 
 void
-FccSystem::insert_component_type(const QualType* q_type)
+FccSystem::insert_component_type(const QualType* q_type,
+                                 bool is_read_only,
+                                 bool is_global)
 {
-  m_component_types.append(*q_type);
+  m_component_types.append({*q_type,is_read_only,is_global});
 }
 
 void
@@ -58,9 +60,11 @@ FccEntityMatch::~FccEntityMatch()
 }
 
 void
-FccEntityMatch::insert_component_type(const QualType* q_type)
+FccEntityMatch::insert_match_type(const QualType* q_type, 
+                                  bool is_read_only,
+                                  bool is_global)
 {
-  m_basic_component_types.append(*q_type);
+  m_match_types.append({*q_type, is_read_only, is_global});
 }
 
 void
@@ -205,6 +209,9 @@ handle_parsing_error(FccContext* context,
       break;
     case FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS:
       str_builder.append("Non allowed var declaration");
+      break;
+    case FccParsingErrorType::E_UNSUPPORTED_TYPE_MODIFIER:
+      str_builder.append("Unsupported type modifier");
       break;
     case FccParsingErrorType::E_EXPECTED_STRING_LITERAL:
       str_builder.append("Expected String Literal error");
@@ -385,7 +392,7 @@ Fcc_validate(const FccMatch* match)
 
   if(match->m_operation_type == FccOperationType::E_UNKNOWN)
   {
-    SourceLocation location = match->p_expr->getLocStart();
+    SourceLocation location = match->p_expr->getSourceRange().getBegin();
     report_parsing_error(match->p_ast_context,
                         match->p_fcc_context,
                         location,
@@ -396,7 +403,7 @@ Fcc_validate(const FccMatch* match)
   uint32_t num_matches = match->p_entity_matches.size();
   if( num_matches == 0)
   {
-    SourceLocation location = match->p_expr->getLocStart();
+    SourceLocation location = match->p_expr->getSourceRange().getBegin();
     report_parsing_error(match->p_ast_context,
                         match->p_fcc_context,
                         location,
@@ -406,7 +413,7 @@ Fcc_validate(const FccMatch* match)
 
   if( num_matches > 2)
   {
-    SourceLocation location = match->p_expr->getLocStart();
+    SourceLocation location = match->p_expr->getSourceRange().getBegin();
     report_parsing_error(match->p_ast_context,
                         match->p_fcc_context,
                         location,
@@ -415,19 +422,22 @@ Fcc_validate(const FccMatch* match)
   }
 
   DynArray<bool> allow_writes;
+  DynArray<bool> allow_globals;
 
   FccEntityMatch* e_match = match->p_entity_matches[num_matches - 1];
-  for(uint32_t i = 0; i < e_match->m_basic_component_types.size(); ++i)
+  for(uint32_t i = 0; i < e_match->m_match_types.size(); ++i)
   {
     allow_writes.append(true);
+    allow_globals.append(true);
   }
 
   for(int32_t i = num_matches - 2; i >= 0; --i)
   {
     e_match = match->p_entity_matches[i];
-    for(uint32_t j = 0; j < e_match->m_basic_component_types.size(); ++j)
+    for(uint32_t j = 0; j < e_match->m_match_types.size(); ++j)
     {
       allow_writes.append(false);
+      allow_globals.append(false);
     }
   }
 
@@ -439,17 +449,42 @@ Fcc_validate(const FccMatch* match)
                                                      str_builder.p_buffer);
   }
 
+  bool all_globals = true;
   for(uint32_t i = 0; i < match->m_system.m_component_types.size(); ++i)
   {
-    QualType type = match->m_system.m_component_types[i];
+    const FccMatchType* match_type = &match->m_system.m_component_types[i];
     if(allow_writes[i] == false &&
-       get_access_mode(type) == FccAccessMode::E_READ_WRITE
-       )
+       !match_type->m_is_read_only)
     {
       StringBuilder str_builder;
-      str_builder.append("\"%s\" access mode after expand must be read-only", get_type_name(type).c_str());
+      str_builder.append("\"%s\" access mode after expand must be read-only", get_type_name(match_type->m_type).c_str());
       match->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
                                                      str_builder.p_buffer);
+    }
+
+    if(allow_globals[i] == false &&
+       match_type->m_is_global)
+    {
+      StringBuilder str_builder;
+      str_builder.append("\"%s\" scope modifier after expand cannot be global", get_type_name(match_type->m_type).c_str());
+      match->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                                     str_builder.p_buffer);
+    }
+    all_globals &= match_type->m_is_global;
+  }
+
+  if(!all_globals)
+  {
+    for(uint32_t i = 0; i < match->m_system.m_component_types.size(); ++i)
+    {
+      const FccMatchType* match_type = &match->m_system.m_component_types[i];
+      if(!match_type->m_is_read_only && match_type->m_is_global)
+      {
+        StringBuilder str_builder;
+        str_builder.append("\"%s\" read-write access mode on globals is only allowed \"global-only\" systems", get_type_name(match_type->m_type).c_str());
+        match->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                                       str_builder.p_buffer);
+      }
     }
   }
 

@@ -36,15 +36,13 @@ to_string(const FccSystem* info)
   {
     const ASTContext& context = info->m_system_type->getAsCXXRecordDecl()->getASTContext();
     const SourceManager& sm = context.getSourceManager();
-    SourceLocation start = info->m_ctor_params[0]->getLocStart();
-    SourceLocation end = info->m_ctor_params[0]->getLocEnd();
-    str_builder.append("%s", get_code(sm,start,end).c_str());
+    str_builder.append("%s", 
+                       get_code(sm,info->m_ctor_params[0]->getSourceRange()).c_str());
 
     for (int32_t i = 1; i < (int32_t)info->m_ctor_params.size(); ++i) 
     {
-      SourceLocation start = info->m_ctor_params[i]->getLocStart();
-      SourceLocation end = info->m_ctor_params[i]->getLocEnd();
-      str_builder.append(", %s", get_code(sm, start, end).c_str()); 
+      str_builder.append(", %s", 
+                         get_code(sm, info->m_ctor_params[i]->getSourceRange()).c_str()); 
     }
 
   }

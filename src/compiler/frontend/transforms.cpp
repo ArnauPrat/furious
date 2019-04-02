@@ -122,28 +122,31 @@ create_subplan(const FccMatch* match)
   for(int32_t i = size - 1; i >= 0; --i)
   {
     FccEntityMatch* entity_match = match->p_entity_matches[i];
-    uint32_t num_components = entity_match->m_basic_component_types.size();
+    uint32_t num_components = entity_match->m_match_types.size();
     FccOperator* local_root = nullptr;
     for(uint32_t j = 0; j < num_components; ++j)
     {
-
-      FccAccessMode access_mode = get_access_mode(entity_match->m_basic_component_types[j]);
-
-      if(local_root == nullptr)
+      FccMatchType* match_type = &entity_match->m_match_types[j];
+      if(!match_type->m_is_global)
       {
-        local_root = new Scan(entity_match->m_basic_component_types[j], 
-                              access_mode,
-                              match->p_fcc_context);
-      }
-      else 
-      {
-        FccOperator* right = new Scan(entity_match->m_basic_component_types[j], 
-                                      access_mode,
-                                      match->p_fcc_context);
 
-        local_root = new Join(local_root, 
-                              right, 
-                              match->p_fcc_context);
+        FccAccessMode access_mode = match_type->m_is_read_only ? FccAccessMode::E_READ : FccAccessMode::E_READ_WRITE;
+        if(local_root == nullptr)
+        {
+          local_root = new Scan(entity_match->m_match_types[j].m_type, 
+                                access_mode,
+                                match->p_fcc_context);
+        }
+        else 
+        {
+          FccOperator* right = new Scan(entity_match->m_match_types[j].m_type, 
+                                        access_mode,
+                                        match->p_fcc_context);
+
+          local_root = new Join(local_root, 
+                                right, 
+                                match->p_fcc_context);
+        }
       }
     }
 
@@ -163,11 +166,11 @@ create_subplan(const FccMatch* match)
         bool cascading = false;
         for(uint32_t j = 0; j < num_components; ++j)
         {
-          QualType expand_type = entity_match->m_basic_component_types[j];
-          uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types.size();
+          QualType expand_type = entity_match->m_match_types[j].m_type;
+          uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_match_types.size();
           for(uint32_t k = 0; j < num_match_components; ++j)
           {
-            QualType match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_basic_component_types[k];
+            QualType match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_match_types[k].m_type;
             if(!(get_access_mode(match_type) == FccAccessMode::E_READ) &&
                get_type_name(expand_type) == get_type_name(match_type))
             {

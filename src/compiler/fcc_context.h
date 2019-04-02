@@ -31,6 +31,13 @@ enum class FccAccessMode
   E_READ_WRITE,
 };
 
+struct FccMatchType
+{
+  QualType  m_type;
+  bool      m_is_read_only;
+  bool      m_is_global;
+};
+
 /**
  * \brief 
  */
@@ -45,9 +52,13 @@ struct FccSystem
    * \brief Inserts a component type to this execution info
    *
    * \param q_type The component type to add
+   * \param is_read_only Whether the type is readonly or not 
+   * \param is_global Whether the type is global or not 
    */
   void
-  insert_component_type(const QualType* q_type);
+  insert_component_type(const QualType* q_type, 
+                        bool is_read_only,
+                        bool is_global);
 
   /**
    * \brief Inserts a new constructor parameter expression
@@ -60,9 +71,10 @@ struct FccSystem
   FccContext*               p_fcc_context;
   QualType                  m_system_type;        // The type of the system
   DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
-  DynArray<QualType>        m_component_types;       // The types of the components of the system
+  DynArray<FccMatchType>    m_component_types;       // The types of the components of the system
   int32_t                   m_id;
 };
+
 
 /**
  * \brief Structure used to store the information of the execution of a system,
@@ -81,9 +93,11 @@ struct FccEntityMatch
    * \brief Inserts a component type to this execution info
    *
    * \param q_type The component type to add
+   * \param is_read_only Wether this is read only type or not
+   * \param is_global Wether this is a global type or not
    */
   void
-  insert_component_type(const QualType* q_type);
+  insert_match_type(const QualType* q_type, bool is_read_only, bool is_global);
 
   /**
    * \brief Inerts a has component predicate to this execution info
@@ -128,16 +142,16 @@ struct FccEntityMatch
   void
   insert_expand(const std::string& ref_name);
 
-  FccContext*           p_fcc_context;                 // the fcc context this exec info belongs to
+  FccContext*           p_fcc_context;                  // the fcc context this exec info belongs to
 
-  DynArray<QualType>            m_basic_component_types;       // The types of the components of the system
-  DynArray<QualType>            m_has_components;              // The types of the "has" components
-  DynArray<QualType>            m_has_not_components;          // The types of the "has_not" components
-  DynArray<std::string>         m_has_tags;                    // The "with" tags  
-  DynArray<std::string>         m_has_not_tags;                // The "has_not" tags
-  DynArray<const FunctionDecl*> p_filter_func;                 // The filter function
-  bool                          m_from_expand;                 // True if this comes from an expand
-  std::string                   m_ref_name;                    // The reference name if comes form an expand
+  DynArray<FccMatchType>        m_match_types;          // The types this match is matching against
+  DynArray<QualType>            m_has_components;       // The types of the "has" components
+  DynArray<QualType>            m_has_not_components;   // The types of the "has_not" components
+  DynArray<std::string>         m_has_tags;             // The "with" tags  
+  DynArray<std::string>         m_has_not_tags;         // The "has_not" tags
+  DynArray<const FunctionDecl*> p_filter_func;          // The filter function
+  bool                          m_from_expand;          // True if this comes from an expand
+  std::string                   m_ref_name;             // The reference name if comes form an expand
 };
 
 struct FccMatch
@@ -179,6 +193,7 @@ enum class FccParsingErrorType
   E_INCOMPLETE_FURIOUS_STATEMENT,
   E_UNSUPPORTED_VAR_DECLARATIONS,
   E_UNSUPPORTED_STATEMENT,
+  E_UNSUPPORTED_TYPE_MODIFIER,
   E_EXPECTED_STRING_LITERAL,
   E_NO_ERROR,
 };

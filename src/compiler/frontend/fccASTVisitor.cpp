@@ -183,7 +183,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
           }
           else 
           {
-            SourceLocation location = expr->getLocStart();
+            SourceLocation location = expr->getSourceRange().getBegin();
             report_parsing_error(p_ast_context,
                                  p_fcc_context,
                                  location,
@@ -211,7 +211,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             }
             else 
             {
-              SourceLocation location = decl->getLocStart();
+              SourceLocation location = decl->getSourceRange().getBegin();
               report_parsing_error(p_ast_context,
                                    p_fcc_context,
                                    location,

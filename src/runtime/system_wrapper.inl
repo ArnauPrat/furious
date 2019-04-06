@@ -29,7 +29,8 @@ void SystemWrapper<T,Components...>::apply_block(Context* context,
     {
       p_system_object->run(context, block_start+i, &components[i]...);
     }
-  } else 
+  } 
+  else 
   {
     for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) 
     {

@@ -74,7 +74,7 @@ Join::~Join()
 LeftFilterJoin::LeftFilterJoin(RefCountPtr<FccOperator> left, 
                                RefCountPtr<FccOperator> right,
                                FccContext* fcc_context) :
-FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_JOIN, "LeftFilterJoin", fcc_context), 
+FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_LEFT_FILTER_JOIN, "LeftFilterJoin", fcc_context), 
 p_left(left),
 p_right(right) 
 {
@@ -84,6 +84,50 @@ p_right(right)
 }
 
 LeftFilterJoin::~LeftFilterJoin() 
+{
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+CrossJoin::CrossJoin(RefCountPtr<FccOperator> left, 
+                               RefCountPtr<FccOperator> right,
+                               FccContext* fcc_context) :
+FccOperatorTmplt<CrossJoin>(FccOperatorType::E_CROSS_JOIN, "CrossJoin", fcc_context), 
+p_left(left),
+p_right(right) 
+{
+  p_left.get()->p_parent = this;
+  p_right.get()->p_parent = this;
+  m_columns.append(p_left.get()->m_columns);
+  m_split_point = m_columns.size();
+  m_columns.append(p_right.get()->m_columns);
+}
+
+CrossJoin::~CrossJoin() 
+{
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+Fetch::Fetch(QualType global_type,
+             FccAccessMode access_mode,
+             FccContext* fcc_context) : 
+FccOperatorTmplt<Fetch>(FccOperatorType::E_FETCH, "Fetch", fcc_context),
+m_global_type(global_type)
+{
+  FccColumn column;
+  column.m_access_mode = access_mode;
+  column.m_q_type = global_type;
+  column.m_type = FccColumnType::E_GLOBAL;
+  m_columns.append(column);
+}
+
+Fetch::~Fetch()
 {
 }
 
@@ -143,8 +187,11 @@ Foreach::Foreach(RefCountPtr<FccOperator> child,
   p_systems(systems), 
   p_child(child) 
 {
-  p_child.get()->p_parent = this;
-  m_columns.append(child.get()->m_columns);
+  if(child.get() != nullptr)
+  {
+    p_child.get()->p_parent = this;
+    m_columns.append(child.get()->m_columns);
+  }
 }
 
 Foreach::~Foreach() 

@@ -85,6 +85,19 @@ public:
     left_filter_join->p_right.get()->accept(this);
   }
 
+  virtual void
+  visit(const CrossJoin* cross_join) 
+  {
+    cross_join->p_left.get()->accept(this);
+    cross_join->p_right.get()->accept(this);
+  }
+
+  virtual void
+  visit(const Fetch* fetch) 
+  {
+      extract_dependencies(get_dependencies(fetch->m_columns[0].m_q_type));
+  }
+
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
@@ -167,6 +180,20 @@ public:
     left_filter_join->p_right.get()->accept(this);
   }
 
+  virtual void
+  visit(const CrossJoin* cross_join) 
+  {
+    cross_join->p_left.get()->accept(this);
+    cross_join->p_right.get()->accept(this);
+  }
+
+  virtual void
+  visit(const Fetch* fetch)
+  {
+    m_components.insert(get_type_name(fetch->m_columns[0].m_q_type));
+  }
+
+
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
@@ -234,9 +261,7 @@ generate_code(const FccExecPlan* exec_plan,
   {
     const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
     const SourceManager& sm = decl->getASTContext().getSourceManager();
-    SourceLocation start = decl->clang::Decl::getSourceRange().getBegin();
-    SourceLocation end = decl->clang::Decl::getSourceRange().getEnd();
-    std::string code = get_code(sm, start, end);
+    std::string code = get_code(sm, decl->getSourceRange());
     fprintf(fd,"using namespace %s;\n",code.c_str());
   }
 
@@ -244,11 +269,8 @@ generate_code(const FccExecPlan* exec_plan,
   for(const Decl* decl : deps_visitor.m_declarations)
   {
     const SourceManager& sm = decl->getASTContext().getSourceManager();
-    SourceLocation start = decl->getLocStart();
-    SourceLocation end = decl->getLocEnd();
     std::string code = get_code(sm,
-                                start,
-                                end);
+                                decl->getSourceRange());
     fprintf(fd,"%s;\n\n", code.c_str());
   }
 
@@ -286,16 +308,9 @@ generate_code(const FccExecPlan* exec_plan,
   {
     const FccMatch* match = exec_plan->p_context->p_matches[i];
     std::string system_name = get_type_name(match->m_system.m_system_type);
-    fprintf(fd, "SystemWrapper<%s", system_name.c_str());
-    for(uint32_t j = 0; j < match->m_system.m_component_types.size(); ++j)
-		{
-      QualType component = match->m_system.m_component_types[j];
-      std::string q_ctype = get_qualified_type_name(component);
-      fprintf(fd,",%s",q_ctype.c_str());
-		}
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
                                                             match->m_system.m_id);
-    fprintf(fd, ">* %s;\n", wrapper_name.c_str());
+    fprintf(fd, "%s* %s;", system_name.c_str(), wrapper_name.c_str());
   }
 
   /// GENERATING __furious__init  
@@ -340,7 +355,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
                                                             match->m_system.m_id);
     fprintf(fd,
-            "%s = create_system<%s>(",
+            "%s = new %s(",
             wrapper_name.c_str(),
             system_name.c_str());
 
@@ -349,16 +364,12 @@ generate_code(const FccExecPlan* exec_plan,
     {
       const Expr* param = match->m_system.m_ctor_params[0];
       const SourceManager& sm = match->p_ast_context->getSourceManager();
-      SourceLocation start = param->getLocStart();
-      SourceLocation end = param->getLocEnd();
-      std::string code = get_code(sm,start,end);
+      std::string code = get_code(sm,param->getSourceRange());
       fprintf(fd,"%s", code.c_str());
       for(size_t i = 1; i < num_params; ++i)
       {
         const Expr* param = match->m_system.m_ctor_params[i];
-        SourceLocation start = param->getLocStart();
-        SourceLocation end = param->getLocEnd();
-        std::string code = get_code(sm,start,end);
+        std::string code = get_code(sm,param->getSourceRange());
         fprintf(fd,",%s",code.c_str());
       }
     }
@@ -401,7 +412,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::string system_name = get_type_name(match->m_system.m_system_type);
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
                                                             match->m_system.m_id);
-    fprintf(fd, "destroy_system(%s);\n", wrapper_name.c_str());
+    fprintf(fd, "delete %s;\n", wrapper_name.c_str());
   }
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");

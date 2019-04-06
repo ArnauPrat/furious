@@ -36,7 +36,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
     const std::string& type = get_qualified_type_name(column->m_q_type);
 
     fprintf(p_context->p_fd,
-            "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n", 
+            "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
             type.c_str(), 
             param_index, 
             type.c_str(), 
@@ -47,31 +47,59 @@ ConsumeVisitor::visit(const Foreach* foreach)
   }
   fprintf(p_context->p_fd, "\n");
 
+  StringBuilder str_builder;
   uint32_t size = foreach->p_systems.size();
   for(uint32_t i = 0; i < size; ++i)
   {
-
     const FccSystem* info = foreach->p_systems[i];
-    std::string system_name = get_type_name(info->m_system_type);
-    std::string base_name = system_name;
 
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
+    std::string system_name  = get_type_name(info->m_system_type);
+    std::string wrapper_name = generate_system_wrapper_name(system_name, 
+                                                            info->m_id);
 
-    fprintf(p_context->p_fd,
-            "%s_%d->apply_block(&context,\n%s->m_start,\n%s->p_enabled", 
-            base_name.c_str(), 
-            info->m_id, 
-            p_context->m_source.c_str(), 
-            p_context->m_source.c_str());
+    str_builder.append("%s->run(&context,\n%s->m_start", 
+                       wrapper_name.c_str(), 
+                       p_context->m_source.c_str(), 
+                       p_context->m_source.c_str());
 
     for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
     {
-      fprintf(p_context->p_fd,",\ndata_%zu",i);
+      str_builder.append(",\n&data_%d[i]",i);
     }
-    fprintf(p_context->p_fd, ");\n"); 
+    str_builder.append(");\n"); 
   }
+
+  fprintf(p_context->p_fd,
+          "if(%s->p_enabled->num_set() == TABLE_BLOCK_SIZE)\n{\n", 
+          p_context->m_source.c_str());
+
+  fprintf(p_context->p_fd,
+          "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+  fprintf(p_context->p_fd,
+          "%s",
+          str_builder.p_buffer);
+  fprintf(p_context->p_fd,
+          "}\n");
+  fprintf(p_context->p_fd,
+          "}\n");
+  fprintf(p_context->p_fd,
+          "else\n{\n");
+  fprintf(p_context->p_fd,
+          "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+  fprintf(p_context->p_fd,
+          "if(%s->p_enabled->is_set(i))\n{\n", 
+          p_context->m_source.c_str());
+  fprintf(p_context->p_fd,
+          "%s",
+          str_builder.p_buffer);
+  fprintf(p_context->p_fd,
+          "}\n");
+
+  fprintf(p_context->p_fd,
+          "}\n");
+
+  fprintf(p_context->p_fd,
+          "}\n");
 }
 
 void 
@@ -94,38 +122,38 @@ ConsumeVisitor::visit(const Join* join)
   }
   else 
   {
-    fprintf(p_context->p_fd,
-            "BlockCluster* build = %s.get(%s->m_start);\n",
-            hashtable.c_str(),
-            p_context->m_source.c_str());
-    fprintf(p_context->p_fd,
-            "if(build != nullptr)\n{\n");
-    std::string clustername = generate_cluster_name(join);
-    fprintf(p_context->p_fd,
-            "BlockCluster %s(*build);\n", 
-            clustername.c_str());
-    fprintf(p_context->p_fd,
-            "%s.append(%s);\n", 
-            clustername.c_str(), 
-            p_context->m_source.c_str());
-    fprintf(p_context->p_fd,
-            "if(%s.p_enabled->num_set() != 0)\n{\n", 
-            clustername.c_str());
 
-    consume(p_context->p_fd,
-            join->p_parent,
-            "(&"+clustername+")",
-            join);
+      fprintf(p_context->p_fd,
+              "BlockCluster* build = %s.get(%s->m_start);\n",
+              hashtable.c_str(),
+              p_context->m_source.c_str());
+      fprintf(p_context->p_fd,
+              "if(build != nullptr)\n{\n");
+      std::string clustername = generate_cluster_name(join);
+      fprintf(p_context->p_fd,
+              "BlockCluster %s(*build);\n", 
+              clustername.c_str());
+      fprintf(p_context->p_fd,
+              "%s.append(%s);\n", 
+              clustername.c_str(), 
+              p_context->m_source.c_str());
+      fprintf(p_context->p_fd,
+              "if(%s.p_enabled->num_set() != 0)\n{\n", 
+              clustername.c_str());
 
-    fprintf(p_context->p_fd,"}\n");
-    fprintf(p_context->p_fd,"}\n");
+      consume(p_context->p_fd,
+              join->p_parent,
+              "(&"+clustername+")",
+              join);
+
+      fprintf(p_context->p_fd,"}\n");
+      fprintf(p_context->p_fd,"}\n");
   }
 }
 
 void
 ConsumeVisitor::visit(const LeftFilterJoin* left_filter_join)
 {
-
   std::string hashtable = generate_hashtable_name(left_filter_join);
   if(p_context->p_caller == left_filter_join->p_left.get()) 
   {
@@ -163,6 +191,38 @@ ConsumeVisitor::visit(const LeftFilterJoin* left_filter_join)
     fprintf(p_context->p_fd,"}\n");
     fprintf(p_context->p_fd,"}\n");
   }
+}
+
+void
+ConsumeVisitor::visit(const CrossJoin* join)
+{
+
+  if(p_context->p_caller == join->p_left.get()) 
+  {
+
+    std::string hashtable = "left_"+generate_hashtable_name(join);
+    fprintf(p_context->p_fd, 
+            "%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str()); 
+  }
+  else 
+  {
+    std::string hashtable = "right_"+generate_hashtable_name(join);
+    fprintf(p_context->p_fd, 
+            "%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable.c_str(), 
+            p_context->m_source.c_str(), 
+            p_context->m_source.c_str()); 
+  }
+}
+
+void
+ConsumeVisitor::visit(const Fetch* fetch)
+{
+
+
 }
 
 void 
@@ -273,14 +333,28 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
       predicate_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
-    const std::string& type = get_qualified_type_name(column->m_q_type);
-    fprintf(p_context->p_fd,
-            "%s* data_%d = (%s*)(%s->m_blocks[%d]->p_data);\n",
-            type.c_str(),
-            param_index,
-            type.c_str(),
-            p_context->m_source.c_str(),
-            param_index);
+    if(column->m_type == FccColumnType::E_COMPONENT)
+    {
+      const std::string& type = get_qualified_type_name(column->m_q_type);
+      fprintf(p_context->p_fd,
+              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n",
+              type.c_str(),
+              param_index,
+              type.c_str(),
+              p_context->m_source.c_str(),
+              param_index);
+    }
+    else
+    {
+      const std::string& type = get_qualified_type_name(column->m_q_type);
+      fprintf(p_context->p_fd,
+              "%s* data_%d = (%s*)(%s->get_global(%d));\n",
+              type.c_str(),
+              param_index,
+              type.c_str(),
+              p_context->m_source.c_str(),
+              param_index);
+    }
     param_index++;
   }
   std::string func_name = "";
@@ -301,10 +375,10 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
     }
     const ASTContext& context = predicate_filter->p_func_decl->getASTContext();
     const SourceManager& sm = context.getSourceManager();
-    SourceLocation start = predicate_filter->p_func_decl->getLocStart();
-    SourceLocation end = predicate_filter->p_func_decl->getLocEnd();
 
-    fprintf(p_context->p_fd, "%s;\n",get_code(sm, start, end).c_str());
+    fprintf(p_context->p_fd, 
+            "%s;\n",
+            get_code(sm, predicate_filter->p_func_decl->getSourceRange()).c_str());
     func_name = "predicate";
   }
 
@@ -316,10 +390,27 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
           p_context->m_source.c_str(),
           p_context->m_source.c_str(),
           func_name.c_str());
-  fprintf(p_context->p_fd, "&data_0[i]");
+
+  const FccColumn* column = &predicate_filter->m_columns[0];
+  if(column->m_type == FccColumnType::E_COMPONENT)
+  {
+    fprintf(p_context->p_fd, "&data_0[i]");
+  }
+  else
+  {
+    fprintf(p_context->p_fd, "data_0");
+  }
   for(size_t i = 1; i <predicate_filter->m_columns.size(); ++i)
   {
-    fprintf(p_context->p_fd, ",&data_%zu[i]", i);
+    const FccColumn* column = &predicate_filter->m_columns[i];
+    if(column->m_type == FccColumnType::E_COMPONENT)
+    {
+      fprintf(p_context->p_fd, ",&data_%zu[i]", i);
+    }
+    else
+    {
+      fprintf(p_context->p_fd, ",data_%zu", i);
+    }
   }
   fprintf(p_context->p_fd, "));\n");
   fprintf(p_context->p_fd, "}\n");
@@ -343,7 +434,7 @@ ConsumeVisitor::visit(const Gather* gather)
   {
     // perform the group by of the references
     fprintf(p_context->p_fd,
-            "group_references(&%s, %s->m_blocks[0]);\n", 
+            "group_references(&%s, %s->get_tblock(0));\n", 
             groups.c_str(),
             p_context->m_source.c_str());
   }
@@ -376,7 +467,7 @@ ConsumeVisitor::visit(const CascadingGather* casc_gather)
   {
     // perform the group by of the references
     fprintf(p_context->p_fd,
-            "group_references(&%s, %s->m_blocks[0]);\n", 
+            "group_references(&%s, %s->get_tblock(0));\n", 
             groups.c_str(),
             p_context->m_source.c_str());
   }

@@ -101,6 +101,10 @@ generate_system_wrapper_name(const std::string& system_name,
                              uint32_t system_id,
                              const FccOperator* op = nullptr);
 
+std::string
+generate_global_name(const std::string& type_name, 
+                     const FccOperator* op = nullptr);
+
 } /* furious */ 
 
 

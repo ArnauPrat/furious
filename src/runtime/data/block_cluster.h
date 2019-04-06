@@ -4,14 +4,18 @@
 
 #include "table.h"
 
-#define FURIOUS_MAX_CLUSTER_SIZE 16
+#define _FURIOUS_MAX_CLUSTER_SIZE 16
 
 namespace furious
 {
 
-class BlockCluster final
+
+/**
+ * \brief This is used to represent a joined block of data, mostly table blocks.
+ * However, it can also contain pointers to global data.
+ */
+struct BlockCluster 
 {
-public:
   BlockCluster();
   BlockCluster(TBlock* block);
   BlockCluster(const BlockCluster& block);
@@ -22,19 +26,31 @@ public:
   append(TBlock* block);
 
   void 
+  append_global(void* global);
+
+  void 
   append(const BlockCluster* other);
 
   void 
   filter(const BlockCluster* other);
 
+  TBlock* 
+  get_tblock(uint32_t index) const;
+
+  void* 
+  get_global(uint32_t index) const;
+
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
   
-  TBlock*                         m_blocks[FURIOUS_MAX_CLUSTER_SIZE]; 
   size_t                          m_num_elements;
   Bitmap*                         p_enabled;
+  Bitmap*                         p_global;
   uint32_t                        m_start;
+
+private:
+  void*                           m_blocks[_FURIOUS_MAX_CLUSTER_SIZE]; 
 };
 
 

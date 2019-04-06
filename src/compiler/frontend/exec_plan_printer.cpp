@@ -112,6 +112,26 @@ ExecPlanPrinter::visit(const LeftFilterJoin* left_filter_join)
   decr_level();
 }
 
+void
+ExecPlanPrinter::visit(const CrossJoin* cross_join) 
+{
+  StringBuilder str_builder;
+  str_builder.append("cross_join(%u)", cross_join->m_id);
+  print(str_builder.p_buffer);
+  incr_level(true);
+  cross_join->p_left.get()->accept(this);
+  cross_join->p_right.get()->accept(this);
+  decr_level();
+}
+
+void
+ExecPlanPrinter::visit(const Fetch* fetch) 
+{
+  StringBuilder str_builder;
+  str_builder.append("fetch(%u) - GLOBAL %s", fetch->m_id, get_type_name(fetch->m_columns[0].m_q_type).c_str());
+  print(str_builder.p_buffer);
+}
+
 void 
 ExecPlanPrinter::visit(const TagFilter* tag_filter) 
 {

@@ -28,11 +28,6 @@ template <typename T>
 RefCountPtr<T>::~RefCountPtr()
 {
   release();
-  if(p_ref_data->m_num_refs == 0)
-  {
-    delete p_ptr;
-    delete p_ref_data;
-  }
 }
 
 template <typename T>
@@ -54,6 +49,17 @@ void
 RefCountPtr<T>::release()
 {
   --p_ref_data->m_num_refs;
+  if(p_ref_data != nullptr && 
+     p_ref_data->m_num_refs == 0)
+  {
+    delete p_ref_data;
+    p_ref_data = nullptr;
+    if(p_ptr != nullptr)
+    {
+      delete p_ptr;
+      p_ptr = nullptr;
+    }
+  }
 }
 
 template <typename T>
@@ -61,11 +67,6 @@ RefCountPtr<T>&
 RefCountPtr<T>::operator=(const RefCountPtr<T>& other)
 {
   release();
-  if(p_ref_data->m_num_refs == 0)
-  {
-    delete p_ptr;
-    delete p_ref_data;
-  }
   p_ptr = other.p_ptr;
   p_ref_data = other.p_ref_data;
   lock();

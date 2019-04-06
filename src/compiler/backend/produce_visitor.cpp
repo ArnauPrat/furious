@@ -83,10 +83,121 @@ ProduceVisitor::visit(const Join* join)
 void
 ProduceVisitor::visit(const LeftFilterJoin* left_filter_join)
 {
+
   std::string hashtable = generate_hashtable_name(left_filter_join);
   fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable.c_str());
   produce(p_context->p_fd,left_filter_join->p_left.get());
   produce(p_context->p_fd,left_filter_join->p_right.get());
+}
+
+void
+ProduceVisitor::visit(const CrossJoin* cross_join)
+{
+  std::string hashtable_left = "left_" + generate_hashtable_name(cross_join);
+  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable_left.c_str());
+  produce(p_context->p_fd,cross_join->p_left.get());
+  std::string hashtable_right = "right_" + generate_hashtable_name(cross_join);
+  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable_right.c_str());
+  produce(p_context->p_fd,cross_join->p_right.get());
+
+  std::string iter_varname_left = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
+  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+          iter_varname_left.c_str(), 
+          hashtable_left.c_str());
+  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname_left.c_str());
+
+  std::string left_cluster_name = "left_"+generate_cluster_name(cross_join);
+  fprintf(p_context->p_fd,
+          "BlockCluster* %s = %s.next();\n", 
+          left_cluster_name.c_str(),
+          iter_varname_left.c_str());
+
+  std::string iter_varname_right = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
+  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+          iter_varname_right.c_str(), 
+          hashtable_right.c_str());
+  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname_right.c_str());
+
+  std::string right_cluster_name = "right_"+generate_cluster_name(cross_join);
+  fprintf(p_context->p_fd,
+          "BlockCluster* %s = %s.next();\n", 
+          left_cluster_name.c_str(),
+          iter_varname_left.c_str());
+
+  std::string joined_cluster_name = generate_cluster_name(cross_join);
+
+  fprintf(p_context->p_fd,
+          "BlockCluster %s(%s);\n", 
+          joined_cluster_name.c_str(),
+          left_cluster_name.c_str());
+
+  fprintf(p_context->p_fd,
+          "%s.append(%s);\n", 
+          joined_cluster_name.c_str(),
+          right_cluster_name.c_str());
+
+  consume(p_context->p_fd,
+          cross_join->p_parent,
+          "(&"+joined_cluster_name+")",
+          cross_join);
+
+
+  fprintf(p_context->p_fd, 
+          "}\n"); 
+  fprintf(p_context->p_fd, 
+          "}\n"); 
+}
+
+void
+ProduceVisitor::visit(const Fetch* fetch)
+{
+
+  fprintf(p_context->p_fd, 
+          "{\n"); 
+
+
+  std::string global_type_name = get_type_name(fetch->m_columns[0].m_q_type);
+  std::string global_var_name = generate_global_name(global_type_name,
+                                                    fetch);
+
+  std::string block_var_name = generate_cluster_name(fetch);
+
+  fprintf(p_context->p_fd, 
+          "%s* %s = database->find_global<%s>();\n", 
+          global_type_name.c_str(),
+          global_var_name.c_str(),
+          global_type_name.c_str());
+
+  fprintf(p_context->p_fd, 
+          "if(%s != nullptr )\n{\n", 
+          global_var_name.c_str());
+
+  fprintf(p_context->p_fd, 
+          "BlockCluster %s;\n", 
+          block_var_name.c_str()); 
+
+  fprintf(p_context->p_fd, 
+          "%s.append_global(%s);\n", 
+          block_var_name.c_str(),
+          global_var_name.c_str()); 
+
+
+  fprintf(p_context->p_fd,
+          "%s.append(%s);\n",
+          block_var_name.c_str(),
+          p_context->m_source.c_str());
+
+  consume(p_context->p_fd,
+          fetch->p_parent,
+          "(&"+block_var_name+")",
+          fetch);
+
+  fprintf(p_context->p_fd, 
+          "}\n"); 
+
+  fprintf(p_context->p_fd, 
+          "}\n"); 
+
 }
 
 void 
@@ -140,7 +251,7 @@ ProduceVisitor::visit(const Gather* gather)
     }
     std::string component_name = get_type_name(column->m_q_type); 
     std::string temp_table_name = generate_temp_table_name(component_name, gather);
-    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table<%s>(\"%s\");\n", 
+    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
             component_name.c_str(),
             temp_table_name.c_str(),
             component_name.c_str(),
@@ -232,7 +343,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
     }
     std::string component_name = get_type_name(column->m_q_type); 
     std::string temp_table_name = generate_temp_table_name(component_name, casc_gather);
-    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table<%s>(\"%s\");\n", 
+    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
             component_name.c_str(),
             temp_table_name.c_str(),
             component_name.c_str(),

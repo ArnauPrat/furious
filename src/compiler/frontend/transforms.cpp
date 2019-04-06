@@ -127,26 +127,47 @@ create_subplan(const FccMatch* match)
     for(uint32_t j = 0; j < num_components; ++j)
     {
       FccMatchType* match_type = &entity_match->m_match_types[j];
-      if(!match_type->m_is_global)
-      {
 
-        FccAccessMode access_mode = match_type->m_is_read_only ? FccAccessMode::E_READ : FccAccessMode::E_READ_WRITE;
-        if(local_root == nullptr)
+      FccAccessMode access_mode = match_type->m_is_read_only ? FccAccessMode::E_READ : FccAccessMode::E_READ_WRITE;
+      if(local_root == nullptr)
+      {
+        if(match_type->m_is_global)
+        {
+          local_root = new Fetch(entity_match->m_match_types[j].m_type, 
+                                 access_mode,
+                                 match->p_fcc_context);
+        }
+        else
         {
           local_root = new Scan(entity_match->m_match_types[j].m_type, 
                                 access_mode,
                                 match->p_fcc_context);
         }
-        else 
+      }
+      else 
+      {
+        FccOperator* right = nullptr;
+        if(match_type->m_is_global)
         {
-          FccOperator* right = new Scan(entity_match->m_match_types[j].m_type, 
-                                        access_mode,
-                                        match->p_fcc_context);
+          right = new Fetch(entity_match->m_match_types[j].m_type, 
+                                 access_mode,
+                                 match->p_fcc_context);
+
+          local_root = new CrossJoin(local_root, 
+                                     right, 
+                                     match->p_fcc_context);
+        }
+        else
+        {
+          right = new Scan(entity_match->m_match_types[j].m_type, 
+                           access_mode,
+                           match->p_fcc_context);
 
           local_root = new Join(local_root, 
                                 right, 
                                 match->p_fcc_context);
         }
+
       }
     }
 

@@ -215,4 +215,28 @@ generate_system_wrapper_name(const std::string& system_name,
   return wrapper_name;
 }
 
+std::string
+generate_global_name(const std::string& type_name, 
+                    const FccOperator* op)
+{
+    std::string base_name = type_name;
+    std::transform(base_name.begin(), 
+                   base_name.end(), 
+                   base_name.begin(), ::tolower);
+
+    std::replace(base_name.begin(),
+                 base_name.end(),
+                 ':',
+                 '_');
+
+    std::string global_varname = "global_"+base_name;
+
+    if(op != nullptr)
+    {
+      global_varname = global_varname+"_"+std::to_string(op->m_id);
+    }
+
+    return global_varname;
+}
+
 } /* furious */ 

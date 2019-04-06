@@ -32,6 +32,12 @@ public:
   visit(const LeftFilterJoin* join) override;
 
   virtual void
+  visit(const CrossJoin* cross_join) override;
+
+  virtual void
+  visit(const Fetch* fetch) override;
+
+  virtual void
   visit(const CascadingGather* join) override;
 
   virtual void 

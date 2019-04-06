@@ -18,8 +18,8 @@ copy_component_raw(const BlockCluster* cluster,
   {
     Table* table_ptr = tables[i];
     void* ptr = table_ptr->alloc_component(target);
-    size_t esize = cluster->m_blocks[i]->m_esize;
-    void* object = &cluster->m_blocks[i]->p_data[source*esize];
+    size_t esize = cluster->get_tblock(i)->m_esize;
+    void* object = &cluster->get_tblock(i)->p_data[source*esize];
     memcpy(ptr, object, esize);
   }
 }
@@ -78,7 +78,7 @@ filter_bittable_exists(const BitTable* bittable,
   {
     if(block_cluster->p_enabled->is_set(i))
     {
-      entity_id_t id = ((entity_id_t*)block_cluster->m_blocks[column]->p_data)[i];
+      entity_id_t id = ((entity_id_t*)block_cluster->get_tblock(column)->p_data)[i];
       if(!bittable->exists(id))
       {
         block_cluster->p_enabled->unset(i);
@@ -96,7 +96,7 @@ filter_bittable_not_exists(const BitTable* bittable,
   {
     if(block_cluster->p_enabled->is_set(i))
     {
-      entity_id_t id = ((entity_id_t*)block_cluster->m_blocks[column]->p_data)[i];
+      entity_id_t id = ((entity_id_t*)block_cluster->get_tblock(column)->p_data)[i];
       if(bittable->exists(id))
       {
         block_cluster->p_enabled->unset(i);

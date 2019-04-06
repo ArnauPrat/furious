@@ -31,6 +31,12 @@ public:
   virtual void
   visit(const LeftFilterJoin* left_filter_join);
 
+  virtual void
+  visit(const CrossJoin* cross_join);
+
+  virtual void
+  visit(const Fetch* fetch);
+
   virtual void 
   visit(const TagFilter* tag_filter);
 

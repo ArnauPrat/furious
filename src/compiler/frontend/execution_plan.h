@@ -20,9 +20,12 @@ class FccExecPlanVisitor;
 
 enum class FccOperatorType 
 {
-  E_JOIN,
-  E_FILTER,
   E_SCAN,
+  E_JOIN,
+  E_LEFT_FILTER_JOIN,
+  E_CROSS_JOIN,
+  E_FETCH,
+  E_FILTER,
   E_FOREACH,
   E_GATHER,
   E_CASCADING_GATHER,
@@ -32,6 +35,7 @@ enum class FccColumnType
 {
   E_REFERENCE,
   E_COMPONENT,
+  E_GLOBAL,
 };
 
 struct FccColumn
@@ -130,6 +134,39 @@ struct LeftFilterJoin : public FccOperatorTmplt<LeftFilterJoin>
   uint32_t m_split_point;
   RefCountPtr<FccOperator> p_left;
   RefCountPtr<FccOperator> p_right;
+};
+
+/**
+ * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
+ * left table. Do not confuse with Left Joins.
+ */
+struct CrossJoin : public FccOperatorTmplt<CrossJoin> 
+{
+  CrossJoin(RefCountPtr<FccOperator> left, 
+            RefCountPtr<FccOperator> right,
+            FccContext* fcc_context);
+  virtual 
+  ~CrossJoin();
+
+  uint32_t m_split_point;
+  RefCountPtr<FccOperator> p_left;
+  RefCountPtr<FccOperator> p_right;
+};
+
+/**
+ * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
+ * left table. Do not confuse with Left Joins.
+ */
+struct Fetch : public FccOperatorTmplt<Fetch> 
+{
+  Fetch(QualType global_type,
+        FccAccessMode access_mode,
+        FccContext* fcc_context);
+
+  virtual 
+  ~Fetch();
+
+  QualType m_global_type;
 };
 
 /**
@@ -296,6 +333,12 @@ public:
 
   virtual void
   visit(const LeftFilterJoin* left_filter_join) = 0;
+
+  virtual void
+  visit(const CrossJoin* cross_join) = 0;
+
+  virtual void
+  visit(const Fetch* fetch) = 0;
 
   virtual void 
   visit(const TagFilter* tag_filter) = 0;

@@ -31,12 +31,20 @@ m_start(block->m_start)
 
 BlockCluster::BlockCluster(const BlockCluster& block) : 
 m_num_elements(block.m_num_elements),
+p_enabled(nullptr),
+p_global(nullptr),
 m_start(block.m_start)
 {
-  p_enabled = new Bitmap(block.p_enabled->max_bits());
-  p_enabled->set_bitmap(block.p_enabled);
-  p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
-  p_global->set_bitmap(block.p_global);
+  if(block.p_enabled != nullptr)
+  {
+    p_enabled = new Bitmap(block.p_enabled->max_bits());
+    p_enabled->set_bitmap(block.p_enabled);
+  }
+  if(block.p_global != nullptr)
+  {
+    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+    p_global->set_bitmap(block.p_global);
+  }
   for(uint32_t i = 0; i < block.m_num_elements; ++i)
   {
     m_blocks[i] = block.m_blocks[i];
@@ -97,13 +105,18 @@ void BlockCluster::append(const BlockCluster* other)
     m_start = other->m_start;
   }
 
-  assert(m_start == other->m_start && "Trying to append unaligned blockclusters with different start values");
+  assert((m_start == other->m_start || 
+          (other->m_start == _FURIOUS_INVALID_BLOCK_START && other->p_global->is_set(0) && other->m_num_elements == 1)) 
+         && "Trying to append unaligned blockclusters with different start values");
 
-  if(p_enabled == nullptr)
+  if(other->p_enabled != nullptr)
   {
-    p_enabled = new Bitmap(other->p_enabled->max_bits());
+    if(p_enabled == nullptr)
+    {
+      p_enabled = new Bitmap(other->p_enabled->max_bits());
+    }
+    p_enabled->set_and(other->p_enabled);
   }
-  p_enabled->set_and(other->p_enabled);
 
   if(p_global == nullptr)
   {

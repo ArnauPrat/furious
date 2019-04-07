@@ -153,11 +153,11 @@ Database::create_global(Args...args)
     return nullptr;
   }
   GlobalInfo g_info;
-  g_info.p_global = new T(std::forward<Args>(args)...);
+  g_info.p_global = new T{std::forward<Args>(args)...};
   g_info.m_destructor = &destructor<T>;
   m_globals.insert_copy(hash_value,&g_info);
   release();
-  return g_info.p_global; 
+  return (T*)g_info.p_global; 
 }
 
 template <typename T>
@@ -181,11 +181,19 @@ T*
 Database::find_global()
 {
   lock();
+  T* global = find_global_no_lock<T>();
+  release();
+  return global;
+}
+
+template <typename T>
+T* 
+Database::find_global_no_lock()
+{
   uint32_t hash_value = get_table_id<T>();
   GlobalInfo* global = m_globals.get(hash_value);
   assert(global != nullptr);
-  release();
-  return global->p_global;
+  return (T*)global->p_global;
 }
 
 template <typename T,typename...Args>
@@ -203,7 +211,7 @@ Database::find_or_create_global(Args...args)
     return global;
   }
   GlobalInfo g_info;
-  g_info.p_global = new T(std::forward<Args>(args)...);
+  g_info.p_global = new T{std::forward<Args>(args)...};
   g_info.m_destructor = &destructor<T>;
   m_globals.insert_copy(hash_value,&g_info);
   release();

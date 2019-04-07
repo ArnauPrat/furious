@@ -35,13 +35,26 @@ ConsumeVisitor::visit(const Foreach* foreach)
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
 
-    fprintf(p_context->p_fd,
-            "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
-            type.c_str(), 
-            param_index, 
-            type.c_str(), 
-            p_context->m_source.c_str(), 
-            param_index);
+    if(column->m_type == FccColumnType::E_COMPONENT)
+    {
+      fprintf(p_context->p_fd,
+              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
+              type.c_str(), 
+              param_index, 
+              type.c_str(), 
+              p_context->m_source.c_str(), 
+              param_index);
+    }
+    else if (column->m_type == FccColumnType::E_GLOBAL)
+    {
+      fprintf(p_context->p_fd,
+              "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
+              type.c_str(), 
+              param_index, 
+              type.c_str(), 
+              p_context->m_source.c_str(), 
+              param_index);
+    }
 
     param_index++;
   }
@@ -64,7 +77,15 @@ ConsumeVisitor::visit(const Foreach* foreach)
 
     for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
     {
-      str_builder.append(",\n&data_%d[i]",i);
+      const FccColumn* column = &foreach->m_columns[i];
+      if(column->m_type == FccColumnType::E_COMPONENT)
+      {
+        str_builder.append(",\n&data_%d[i]",i);
+      }
+      else if (column->m_type == FccColumnType::E_GLOBAL)
+      {
+        str_builder.append(",\ndata_%d",i);
+      }
     }
     str_builder.append(");\n"); 
   }

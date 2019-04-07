@@ -108,11 +108,11 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
 
   std::string left_cluster_name = "left_"+generate_cluster_name(cross_join);
   fprintf(p_context->p_fd,
-          "BlockCluster* %s = %s.next();\n", 
+          "BlockCluster* %s = %s.next().p_value;\n", 
           left_cluster_name.c_str(),
           iter_varname_left.c_str());
 
-  std::string iter_varname_right = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
+  std::string iter_varname_right = "right_iter_hashtable_"+std::to_string(cross_join->m_id);
   fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
           iter_varname_right.c_str(), 
           hashtable_right.c_str());
@@ -120,14 +120,14 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
 
   std::string right_cluster_name = "right_"+generate_cluster_name(cross_join);
   fprintf(p_context->p_fd,
-          "BlockCluster* %s = %s.next();\n", 
-          left_cluster_name.c_str(),
-          iter_varname_left.c_str());
+          "BlockCluster* %s = %s.next().p_value;\n", 
+          right_cluster_name.c_str(),
+          iter_varname_right.c_str());
 
   std::string joined_cluster_name = generate_cluster_name(cross_join);
 
   fprintf(p_context->p_fd,
-          "BlockCluster %s(%s);\n", 
+          "BlockCluster %s(*%s);\n", 
           joined_cluster_name.c_str(),
           left_cluster_name.c_str());
 
@@ -163,7 +163,7 @@ ProduceVisitor::visit(const Fetch* fetch)
   std::string block_var_name = generate_cluster_name(fetch);
 
   fprintf(p_context->p_fd, 
-          "%s* %s = database->find_global<%s>();\n", 
+          "%s* %s = database->find_global_no_lock<%s>();\n", 
           global_type_name.c_str(),
           global_var_name.c_str(),
           global_type_name.c_str());
@@ -180,12 +180,6 @@ ProduceVisitor::visit(const Fetch* fetch)
           "%s.append_global(%s);\n", 
           block_var_name.c_str(),
           global_var_name.c_str()); 
-
-
-  fprintf(p_context->p_fd,
-          "%s.append(%s);\n",
-          block_var_name.c_str(),
-          p_context->m_source.c_str());
 
   consume(p_context->p_fd,
           fetch->p_parent,

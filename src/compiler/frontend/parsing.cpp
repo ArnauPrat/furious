@@ -125,7 +125,8 @@ is_global(ASTContext* ast_context,
           QualType qtype
          )
 {
-  if(qtype->getAsRecordDecl()->isTemplateDecl())
+  
+  if(isa<ClassTemplateSpecializationDecl>(qtype->getAsCXXRecordDecl()))
   {
      if(qtype->getAsRecordDecl()->getNameAsString() == "Global")
      {

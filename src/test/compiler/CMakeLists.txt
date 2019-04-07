@@ -42,6 +42,7 @@ SET(TESTS
     filter_lambda_test
     dependency_test
     expand_test
+    global_test
   )
 
 foreach( TEST ${TESTS} )

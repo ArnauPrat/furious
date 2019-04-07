@@ -156,5 +156,12 @@ BlockCluster::get_global(uint32_t index) const
   assert(p_global->is_set(index) && "Trying to get global which is a tblock from a BlockCluster");
   return m_blocks[index];
 }
+
+bool
+BlockCluster::has_elements() const
+{
+  return (p_enabled != nullptr && p_enabled->num_set() > 0) ||
+  (p_enabled == nullptr && p_global->is_set(0));
+}
   
 } /* furious */ 

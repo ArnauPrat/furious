@@ -90,37 +90,56 @@ ConsumeVisitor::visit(const Foreach* foreach)
     str_builder.append(");\n"); 
   }
 
-  fprintf(p_context->p_fd,
-          "if(%s->p_enabled->num_set() == TABLE_BLOCK_SIZE)\n{\n", 
-          p_context->m_source.c_str());
+  bool all_globals = true;
+  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
+  {
+    if(foreach->m_columns[i].m_type != FccColumnType::E_GLOBAL)
+    {
+      all_globals = false;
+      break;
+    }
+  }
 
-  fprintf(p_context->p_fd,
-          "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
-  fprintf(p_context->p_fd,
-          "%s",
-          str_builder.p_buffer);
-  fprintf(p_context->p_fd,
-          "}\n");
-  fprintf(p_context->p_fd,
-          "}\n");
-  fprintf(p_context->p_fd,
-          "else\n{\n");
-  fprintf(p_context->p_fd,
-          "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
-  fprintf(p_context->p_fd,
-          "if(%s->p_enabled->is_set(i))\n{\n", 
-          p_context->m_source.c_str());
-  fprintf(p_context->p_fd,
-          "%s",
-          str_builder.p_buffer);
-  fprintf(p_context->p_fd,
-          "}\n");
+  if(all_globals)
+  {
+    fprintf(p_context->p_fd,
+            "%s",
+            str_builder.p_buffer);
+  }
+  else
+  {
+    fprintf(p_context->p_fd,
+            "if(%s->p_enabled->num_set() == TABLE_BLOCK_SIZE)\n{\n", 
+            p_context->m_source.c_str());
 
-  fprintf(p_context->p_fd,
-          "}\n");
+    fprintf(p_context->p_fd,
+            "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+    fprintf(p_context->p_fd,
+            "%s",
+            str_builder.p_buffer);
+    fprintf(p_context->p_fd,
+            "}\n");
+    fprintf(p_context->p_fd,
+            "}\n");
+    fprintf(p_context->p_fd,
+            "else\n{\n");
+    fprintf(p_context->p_fd,
+            "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+    fprintf(p_context->p_fd,
+            "if(%s->p_enabled->is_set(i))\n{\n", 
+            p_context->m_source.c_str());
+    fprintf(p_context->p_fd,
+            "%s",
+            str_builder.p_buffer);
+    fprintf(p_context->p_fd,
+            "}\n");
 
-  fprintf(p_context->p_fd,
-          "}\n");
+    fprintf(p_context->p_fd,
+            "}\n");
+
+    fprintf(p_context->p_fd,
+            "}\n");
+  }
 }
 
 void 

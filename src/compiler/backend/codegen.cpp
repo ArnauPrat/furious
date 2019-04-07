@@ -262,7 +262,7 @@ generate_code(const FccExecPlan* exec_plan,
     const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
     const SourceManager& sm = decl->getASTContext().getSourceManager();
     std::string code = get_code(sm, decl->getSourceRange());
-    fprintf(fd,"using namespace %s;\n",code.c_str());
+    fprintf(fd,"%s;\n",code.c_str());
   }
 
   // ADDING DECLARATIONS FOUND IN FURIOUS SCRIPTS

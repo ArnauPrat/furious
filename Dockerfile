@@ -1,4 +1,4 @@
-FROM         base/archlinux:latest
+FROM         archlinux/base:latest
 MAINTAINER   Arnau Prat <arnau.prat@gmail.com>
 CMD          bash
 

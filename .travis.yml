@@ -23,4 +23,5 @@ env:
 after_script:
   - cmake
   - make tidy-furious
+  - git diff > tidy.patch
   - ./fixup.sh

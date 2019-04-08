@@ -95,7 +95,10 @@ public:
   virtual void
   visit(const Fetch* fetch) 
   {
+    if(fetch->m_columns[0].m_type == FccColumnType::E_GLOBAL)
+    {
       extract_dependencies(get_dependencies(fetch->m_columns[0].m_q_type));
+    }
   }
 
   virtual void 
@@ -190,9 +193,8 @@ public:
   virtual void
   visit(const Fetch* fetch)
   {
-    m_components.insert(get_type_name(fetch->m_columns[0].m_q_type));
+    //m_components.insert(get_type_name(fetch->m_columns[0].m_q_type));
   }
-
 
   virtual void 
   visit(const TagFilter* tag_filter) 
@@ -310,7 +312,7 @@ generate_code(const FccExecPlan* exec_plan,
     std::string system_name = get_type_name(match->m_system.m_system_type);
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
                                                             match->m_system.m_id);
-    fprintf(fd, "%s* %s;", system_name.c_str(), wrapper_name.c_str());
+    fprintf(fd, "%s* %s;\n", system_name.c_str(), wrapper_name.c_str());
   }
 
   /// GENERATING __furious__init  

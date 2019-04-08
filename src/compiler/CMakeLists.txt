@@ -1,34 +1,38 @@
 
 include_directories(./)
 
+set(COMPILER_SRC
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/clang_tools.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/clang_tools.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/fcc.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/dep_graph.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/dep_graph.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.inl
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/parsing.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/parsing.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.h
+  )
+
 add_executable( fcc 
   ${COMMON_SRC}
-  backend/codegen.cpp
-  backend/codegen.h
-  backend/codegen_tools.cpp
-  backend/codegen_tools.h
-  backend/consume_visitor.cpp
-  backend/consume_visitor.h
-  backend/produce_visitor.cpp
-  backend/produce_visitor.h
-  clang_tools.cpp
-  clang_tools.h
-  fcc.cpp
-  fcc_context.cpp
-  fcc_context.h
-  frontend/dep_graph.cpp
-  frontend/dep_graph.h
-  frontend/exec_plan_printer.cpp
-  frontend/exec_plan_printer.h
-  frontend/execution_plan.cpp
-  frontend/execution_plan.h
-  frontend/execution_plan.inl
-  frontend/fccASTVisitor.cpp
-  frontend/fccASTVisitor.h
-  frontend/parsing.cpp
-  frontend/parsing.h
-  frontend/transforms.cpp
-  frontend/transforms.h
+  ${COMPILER_SRC}
   )
 
 #set_target_properties(fcc
@@ -60,3 +64,17 @@ target_link_libraries(fcc
 install (TARGETS fcc 
           RUNTIME DESTINATION bin
           LIBRARY DESTINATION lib)
+
+set(TIDY_SRC
+    ${COMPILER_SRC}
+    ${COMMON_SRC}
+    )
+
+list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
+
+add_custom_target(
+  tidy-compiler
+  COMMAND clang-tidy ${TIDY_SRC} ${COMPILER_SRC} -- --std=c++17 -I
+  ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
+  COMMENT "running clang tidy on COMPILER"
+  )

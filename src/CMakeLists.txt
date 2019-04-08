@@ -27,38 +27,37 @@ set (COMMON_SRC
   )
 
 set (RUNTIME_SRC
-  runtime/data/bit_table.cpp
-  runtime/data/bit_table.h
-  runtime/data/block_cluster.cpp
-  runtime/data/block_cluster.h
-  runtime/data/common.h
-  runtime/data/context.cpp
-  runtime/data/context.h
-  runtime/data/data.h
-  runtime/data/data_utils.cpp
-  runtime/data/data_utils.h
-  runtime/data/data_utils.inl
-  runtime/data/database.cpp
-  runtime/data/database.h
-  runtime/data/database.inl
-  runtime/data/entity.cpp
-  runtime/data/entity.h
-  runtime/data/entity.inl
-  runtime/data/macros.h
-  runtime/data/table.cpp
-  runtime/data/table.h
-  runtime/data/table_view.h
-  runtime/data/table_view.inl
-  runtime/data/webserver/webserver.h
-  runtime/data/webserver/webserver.cpp
-  runtime/memory/memory.h
-  runtime/memory/numa_alloc.cpp
-  runtime/memory/numa_alloc.h
-  runtime/runtime.h
-  runtime/system_wrapper.h
-  runtime/system_wrapper.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/bit_table.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/bit_table.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/common.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/context.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/context.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/data.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/macros.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/memory.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
   )
-
 
 
 add_library(furious SHARED
@@ -108,3 +107,16 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
        FILES_MATCHING PATTERN "*.inl"
        )
+
+set(TIDY_SRC
+    ${RUNTIME_SRC}
+    ${COMMON_SRC}
+    )
+
+list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
+
+add_custom_target(
+  tidy-runtime
+  COMMAND clang-tidy ${TIDY_SRC} -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
+  COMMENT "running clang tidy on RUNTIME"
+  )

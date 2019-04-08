@@ -12,4 +12,4 @@ ADD cmake ./cmake
 RUN mkdir build 
 
 RUN pacman -Syy --noconfirm 
-RUN pacman -S --noconfirm gcc cmake gtest numactl make clang llvm-libs llvm
+RUN pacman -S --noconfirm gcc cmake gtest numactl make clang llvm-libs llvm git

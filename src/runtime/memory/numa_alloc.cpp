@@ -1,9 +1,9 @@
 
 
 #include "numa_alloc.h"
-#include <stdlib.h>
-#include <numa.h>
 #include <memory.h>
+#include <numa.h>
+#include <stdlib.h>
 
 namespace furious {
 
@@ -21,4 +21,5 @@ void numa_free( void* ptr ) {
   free(ptr);
 }
   
-} /* furious */ 
+} // namespace furious
+ /* furious */ 

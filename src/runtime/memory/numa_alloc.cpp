@@ -3,6 +3,7 @@
 #include "numa_alloc.h"
 #include <numa.h>
 #include <memory.h>
+
 #include <stdlib.h>
 
 namespace furious {

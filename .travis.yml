@@ -21,7 +21,7 @@ env:
     - secure: l2EkyEM2GdDVsndhyRkzj8vrt3wzVJQHZEK2YzqOROdo3hRa4JoMZOl01FDmjOHfb6MEIEe1mpRy6JBIAKAm5hcXT9hli2DlF9YHcg6SGFdPpkpFLMa7A3uuAwErR+1xy2WGWotq1QthtIekzayAySMmil9RC3zsw6u6K8zGuAdT6elrBiLodbdt2051aszCfBMrQF00lxYUaj9ePx/20QLeh+n2t2vyaKJ3Igau/UwvQS1stlV8jPc2+MwB3vhzhHMzmomlfNIhUtsLaHkkiLeaDUL+MRDRP5lORnP20qD5jxT6SjhMN/rROnMiWUtwuXYZbPzfsMPaLTXIesmicfB3nrjYaXKjhQakljz/P2cC3HTt+gFdHupUcyr7HrNU834yQ/5pN4b9ZtihApItfUZEcR39z/KedKsnDF8mYfdcegQhcUQSGzWwmTlqVTWlPhX4/sPJ8lNgZwa902FkyMmK3D5GxupM7MRyc4qBkYhWpgYiP/WDQVZeZ/kwXg9t/SWHj7Qa7IXc2yvwhWaHHmRDNGX2saQPnhijs0GkOvBpKcUpKBFiNuGy+bfDyaR6F0Hrb9LwEGRDP8VXxHtHQ47elZzGJI1COgpFszVThV2nPkBOpeLEf3R2GpsMbt7EknrZBMeK+yjprXMazoHK7MWXaUpY0aPWYYH+KYsvDOU=
 
 after_script:
-  - cmake .
-  - make tidy-furious
-  - git diff > tidy.patch
+  - docker exec build 
+  - docker exec build make tidy-furious
+  - docker exec build git diff > tidy.patch
   - ./fixup.sh

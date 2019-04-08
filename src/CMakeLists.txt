@@ -117,6 +117,6 @@ list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
 
 add_custom_target(
   tidy-runtime
-  COMMAND clang-tidy ${TIDY_SRC} -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
+  COMMAND clang-tidy ${TIDY_SRC} -checks=llvm-* -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
   COMMENT "running clang tidy on RUNTIME"
   )

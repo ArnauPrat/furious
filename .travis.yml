@@ -22,6 +22,6 @@ env:
 
 after_script:
   - docker exec build cmake .
-  - docker exec build make tidy-furious
+  - docker exec build make tidy-runtime
   - docker exec build git diff > tidy.patch
   - ./fixup.sh

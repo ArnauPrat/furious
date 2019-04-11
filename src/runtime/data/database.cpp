@@ -211,6 +211,7 @@ Database::stop_webserver()
   if(p_webserver != nullptr)
   {
     p_webserver->stop();
+    delete p_webserver;
     p_webserver = nullptr;
   }
 }

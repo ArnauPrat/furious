@@ -53,9 +53,15 @@ m_start(block.m_start)
 
 BlockCluster::~BlockCluster()
 {
+
   if(p_enabled != nullptr)
   {
     delete p_enabled;
+  }
+
+  if(p_global != nullptr)
+  {
+    delete p_global;
   }
 }
 

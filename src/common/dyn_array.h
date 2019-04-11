@@ -58,6 +58,9 @@ struct DynArray
   DynArray<T>&
   operator=(DynArray&&);
 
+  T*
+  buffer() const;
+
 private:
   T*        p_data;
   uint32_t  m_capacity;

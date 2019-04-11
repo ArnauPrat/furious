@@ -184,5 +184,12 @@ DynArray<T>::operator=(DynArray&& other)
   other.m_num_elements = 0;
   return *this;
 }
+
+template<typename T>
+T*
+DynArray<T>::buffer() const
+{
+  return p_data;
+}
   
 }  

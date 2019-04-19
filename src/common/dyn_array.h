@@ -32,6 +32,9 @@ struct DynArray
   clear();
 
   void
+  reset();
+
+  void
   append(const T&);
 
   void
@@ -62,7 +65,9 @@ struct DynArray
   buffer() const;
 
 private:
-  T*        p_data;
+
+
+  char*     p_data;
   uint32_t  m_capacity;
   uint32_t  m_num_elements;
 

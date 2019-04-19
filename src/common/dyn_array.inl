@@ -1,5 +1,7 @@
 
 #include <utility>
+#include <new>
+
 namespace furious
 {
 
@@ -58,12 +60,33 @@ DynArray<T>::clear()
 {
   if(p_data)
   {
-    delete [] p_data;
+    for(uint32_t i = 0; i < m_num_elements; ++i)
+    {
+      T* ptr = &(((T*)p_data)[i]);
+      ptr->~T();
+    }
+    free(p_data);
     p_data = nullptr;
     m_capacity = 0;
     m_num_elements = 0;
   }
 }
+
+template <typename T>
+void
+DynArray<T>::reset()
+{
+  if(p_data)
+  {
+    for(uint32_t i = 0; i < m_num_elements; ++i)
+    {
+      T* ptr = &(((T*)p_data)[i]);
+      ptr->~T();
+    }
+    m_num_elements = 0;
+  }
+}
+
 
 template <typename T>
 uint32_t
@@ -79,17 +102,19 @@ DynArray<T>::append(const T& item)
   if(m_num_elements == m_capacity)
   {
     uint32_t new_capacity = m_capacity + _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
-    T* temp = new T[new_capacity];
+    char* temp = (char*)malloc(sizeof(T)*new_capacity);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
-      temp[i] = p_data[i];
+      void* ptr = temp + i*sizeof(T);
+      new (ptr) T(((T*)p_data)[i]);
     }
-    delete [] p_data;
+    free(p_data);
     p_data = temp;
     m_capacity = new_capacity;
   }
 
-  p_data[m_num_elements] = item;
+  void* ptr = p_data + m_num_elements*sizeof(T);
+  new ( ptr ) T(item);
   m_num_elements++;
 }
 
@@ -100,17 +125,19 @@ DynArray<T>::append(T&& item)
   if(m_num_elements == m_capacity)
   {
     uint32_t new_capacity = m_capacity + _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
-    T* temp = new T[new_capacity];
+    char* temp = (char*)malloc(sizeof(T)*new_capacity);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
-      temp[i] = std::move(p_data[i]);
+      void* ptr = temp + i*sizeof(T); 
+      new (ptr) T(std::move(((T*)p_data)[i]));
     }
-    delete [] p_data;
+    free(p_data);
     p_data = temp;
     m_capacity = new_capacity;
   }
 
-  p_data[m_num_elements] = std::move(item);
+  void* ptr = p_data + m_num_elements*sizeof(T); 
+  new ( ptr ) T(std::move(item));
   m_num_elements++;
 }
 
@@ -138,21 +165,21 @@ template<typename T>
 T&
 DynArray<T>::get(uint32_t index)
 {
-  return p_data[index];
+  return ((T*)p_data)[index];
 }
 
 template<typename T>
 T& 
 DynArray<T>::operator[](std::size_t index)
 {
-  return p_data[index];
+  return ((T*)p_data)[index];
 }
 
 template<typename T>
 const T& 
 DynArray<T>::operator[](std::size_t index) const
 {
-  return p_data[index];
+  return ((T*)p_data)[index];
 }
 
 
@@ -161,12 +188,13 @@ DynArray<T>&
 DynArray<T>::operator=(const DynArray& other)
 {
   clear();
-  p_data = new T[other.m_capacity];
+  p_data = (char*)malloc(sizeof(T)*other.m_capacity);
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
   for(uint32_t i = 0; i < other.m_num_elements; ++i)
   {
-    p_data[i] = other.p_data[i];
+    void* ptr = p_data + i*sizeof(T);
+    new (ptr) T(((T*)other.p_data)[i]);
   }
   return *this;
 }
@@ -189,7 +217,7 @@ template<typename T>
 T*
 DynArray<T>::buffer() const
 {
-  return p_data;
+  return (T*)p_data;
 }
   
 }  

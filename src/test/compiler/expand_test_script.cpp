@@ -74,10 +74,10 @@ struct IncrementFieldMesh
   }
 };
 
-furious::match<Position>().foreach<ResetPosition>().set_priority(1);
-furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f);
+furious::match<Position>().foreach<ResetPosition>();
+furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f).set_priority(2);
 furious::match<FieldMesh>().foreach<DrawFieldMesh>();
-furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>().set_priority(1);
-furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>();
+furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
+furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>().set_priority(2);
 
 END_FURIOUS_SCRIPT

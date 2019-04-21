@@ -17,6 +17,7 @@ m_pos(0)
 {
   m_capacity = 2048;
   p_buffer = (char*)malloc(m_capacity*sizeof(char));
+  p_buffer[0] = 0;
 }
 
 StringBuilder::~StringBuilder()

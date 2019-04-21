@@ -8,11 +8,9 @@
 namespace furious {
 
 FccOperator::FccOperator(FccOperatorType type, 
-                         const std::string& name,
-                         FccContext* fcc_context) :
+                         const std::string& name) :
 m_type(type),
 m_name(name),
-p_fcc_context(fcc_context),
 p_parent(nullptr)
 {
   static uint32_t id = 0;
@@ -25,8 +23,8 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Scan::Scan(const std::string& ref_name, FccContext* fcc_context) : 
-  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan", fcc_context) 
+Scan::Scan(const std::string& ref_name) : 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_REFERENCE;
@@ -35,8 +33,9 @@ Scan::Scan(const std::string& ref_name, FccContext* fcc_context) :
   m_columns.append(column);
 }
 
-Scan::Scan(QualType component, FccAccessMode access_mode, FccContext* fcc_context) : 
-  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan", fcc_context) 
+Scan::Scan(QualType component, 
+           FccAccessMode access_mode) : 
+  FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_COMPONENT;
@@ -50,9 +49,8 @@ Scan::Scan(QualType component, FccAccessMode access_mode, FccContext* fcc_contex
 ////////////////////////////////////////////////
 
 Join::Join(RefCountPtr<FccOperator> left, 
-           RefCountPtr<FccOperator> right,
-           FccContext* fcc_context) :
-FccOperatorTmplt<Join>(FccOperatorType::E_JOIN, "Join", fcc_context), 
+           RefCountPtr<FccOperator> right) :
+FccOperatorTmplt<Join>(FccOperatorType::E_JOIN, "Join"), 
 p_left(left),
 p_right(right) 
 {
@@ -72,9 +70,8 @@ Join::~Join()
 ////////////////////////////////////////////////
 
 LeftFilterJoin::LeftFilterJoin(RefCountPtr<FccOperator> left, 
-                               RefCountPtr<FccOperator> right,
-                               FccContext* fcc_context) :
-FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_LEFT_FILTER_JOIN, "LeftFilterJoin", fcc_context), 
+                               RefCountPtr<FccOperator> right) :
+FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_LEFT_FILTER_JOIN, "LeftFilterJoin"), 
 p_left(left),
 p_right(right) 
 {
@@ -92,9 +89,8 @@ LeftFilterJoin::~LeftFilterJoin()
 ////////////////////////////////////////////////
 
 CrossJoin::CrossJoin(RefCountPtr<FccOperator> left, 
-                               RefCountPtr<FccOperator> right,
-                               FccContext* fcc_context) :
-FccOperatorTmplt<CrossJoin>(FccOperatorType::E_CROSS_JOIN, "CrossJoin", fcc_context), 
+                               RefCountPtr<FccOperator> right) :
+FccOperatorTmplt<CrossJoin>(FccOperatorType::E_CROSS_JOIN, "CrossJoin"), 
 p_left(left),
 p_right(right) 
 {
@@ -115,9 +111,8 @@ CrossJoin::~CrossJoin()
 
 
 Fetch::Fetch(QualType global_type,
-             FccAccessMode access_mode,
-             FccContext* fcc_context) : 
-FccOperatorTmplt<Fetch>(FccOperatorType::E_FETCH, "Fetch", fcc_context),
+             FccAccessMode access_mode) : 
+FccOperatorTmplt<Fetch>(FccOperatorType::E_FETCH, "Fetch"),
 m_global_type(global_type)
 {
   FccColumn column;
@@ -136,9 +131,8 @@ Fetch::~Fetch()
 ////////////////////////////////////////////////
 
 PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
-                                 const FunctionDecl* func_decl,
-                                 FccContext* fcc_context) :
-Filter<PredicateFilter>(child, "PredicateFilter",fcc_context),
+                                 const FunctionDecl* func_decl) :
+Filter<PredicateFilter>(child, "PredicateFilter"),
 p_func_decl(func_decl)
 {
 }
@@ -151,9 +145,8 @@ p_func_decl(func_decl)
 TagFilter::TagFilter(RefCountPtr<FccOperator> child,
                      const std::string& tag,
                      FccFilterOpType op_type,
-                     FccContext* fcc_context,
                      bool on_column) :
-Filter(child, "TagFilter",fcc_context),
+Filter(child, "TagFilter"),
 m_tag(tag),
 m_on_column(on_column),
 m_op_type(op_type)
@@ -167,9 +160,8 @@ m_op_type(op_type)
 ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
                                  QualType component_type,
                                  FccFilterOpType op_type,
-                                 FccContext* fcc_context,
                                  bool on_column) :
-Filter<ComponentFilter>(child, "ComponentFilter", fcc_context),
+Filter<ComponentFilter>(child, "ComponentFilter"),
 m_filter_type(component_type),
 m_on_column(on_column),
 m_op_type(op_type)
@@ -181,9 +173,8 @@ m_op_type(op_type)
 ////////////////////////////////////////////////
 
 Foreach::Foreach(RefCountPtr<FccOperator> child,
-                 const DynArray<const FccSystem*>& systems,
-                 FccContext* fcc_context) :
-  FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH, "Foreach", fcc_context), 
+                 const DynArray<const FccSystem*>& systems) :
+  FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH, "Foreach"), 
   p_systems(systems), 
   p_child(child) 
 {
@@ -204,9 +195,8 @@ Foreach::~Foreach()
 
 
 Gather::Gather(RefCountPtr<FccOperator> ref_table,
-               RefCountPtr<FccOperator> child,
-               FccContext* fcc_context) :
-FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER, "Gather", fcc_context),
+               RefCountPtr<FccOperator> child) :
+FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER, "Gather"),
 p_ref_table(ref_table),
 p_child(child)
 {
@@ -224,9 +214,8 @@ Gather::~Gather()
 ////////////////////////////////////////////////
 
 CascadingGather::CascadingGather(RefCountPtr<FccOperator> ref_table,
-                                 RefCountPtr<FccOperator> child,
-                                 FccContext* fcc_context) :
-FccOperatorTmplt<CascadingGather>(FccOperatorType::E_CASCADING_GATHER, "CascadingGather", fcc_context),
+                                 RefCountPtr<FccOperator> child) :
+FccOperatorTmplt<CascadingGather>(FccOperatorType::E_CASCADING_GATHER, "CascadingGather"),
 p_ref_table(ref_table),
 p_child(child)
 {
@@ -243,12 +232,6 @@ CascadingGather::~CascadingGather()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccExecPlan::FccExecPlan(FccContext* context) :
-p_context(context)
-{
-
-}
-
 FccExecPlan::~FccExecPlan()
 {
   for(uint32_t i = 0; i < p_roots.size(); ++i)
@@ -258,7 +241,7 @@ FccExecPlan::~FccExecPlan()
 }
 
 void
-FccExecPlan::insert_root(ASTContext* ast_context, 
+FccExecPlan::insert_root(const ASTContext* ast_context, 
                          FccOperator* root)
 {
   p_roots.append(root); 
@@ -266,15 +249,19 @@ FccExecPlan::insert_root(ASTContext* ast_context,
 }
 
 FccCompilationErrorType
-FccExecPlan::bootstrap()
+FccExecPlan::bootstrap(FccMatchPlace place)
 {
   DependencyGraph dep_graph;
-  uint32_t size = p_context->p_matches.size();
+  const DynArray<FccMatch*>& matches = p_fcc_context->p_matches;
+  uint32_t size = matches.size();
   for(uint32_t i = 0; i < size; ++i)
   {
-    if(!dep_graph.insert(p_context->p_matches[i])) 
+    if(matches[i]->m_place == place)
     {
-      return FccCompilationErrorType::E_OUTPUT_DEPENDENCY;
+      if(!dep_graph.insert(matches[i])) 
+      {
+        return FccCompilationErrorType::E_OUTPUT_DEPENDENCY;
+      }
     }
   }
 

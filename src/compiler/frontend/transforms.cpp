@@ -21,8 +21,7 @@ apply_filters(const FccMatch* match,
   {
     local_root = new TagFilter(local_root, 
                                entity_match->m_has_not_tags[i],
-                               FccFilterOpType::E_HAS_NOT, 
-                               match->p_fcc_context);
+                               FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with tag filters
@@ -30,8 +29,7 @@ apply_filters(const FccMatch* match,
   {
     local_root = new TagFilter(local_root, 
                                entity_match->m_has_tags[i],
-                               FccFilterOpType::E_HAS, 
-                               match->p_fcc_context);
+                               FccFilterOpType::E_HAS);
   }
 
   // Create with components filters
@@ -39,8 +37,7 @@ apply_filters(const FccMatch* match,
   {
     local_root = new ComponentFilter(local_root, 
                                      entity_match->m_has_not_components[i],
-                                     FccFilterOpType::E_HAS_NOT, 
-                                     match->p_fcc_context);
+                                     FccFilterOpType::E_HAS_NOT);
   }
 
   // Create with components filters
@@ -48,16 +45,14 @@ apply_filters(const FccMatch* match,
   {
     local_root = new ComponentFilter(local_root, 
                                      entity_match->m_has_components[i],
-                                     FccFilterOpType::E_HAS, 
-                                     match->p_fcc_context);
+                                     FccFilterOpType::E_HAS);
   }
 
   // Create predicate filters
   for(uint32_t i = 0; i < entity_match->p_filter_func.size(); ++i)
   {
     local_root = new PredicateFilter(local_root, 
-                                     entity_match->p_filter_func[i], 
-                                     match->p_fcc_context);
+                                     entity_match->p_filter_func[i]);
   }
   return local_root;
 }
@@ -75,8 +70,7 @@ apply_filters_reference(const FccMatch* match,
   {
     local_root = new TagFilter(local_root, 
                                entity_match->m_has_not_tags[i],
-                               FccFilterOpType::E_HAS_NOT, 
-                               match->p_fcc_context,
+                               FccFilterOpType::E_HAS_NOT,
                                true);
   }
 
@@ -85,8 +79,7 @@ apply_filters_reference(const FccMatch* match,
   {
     local_root = new TagFilter(local_root, 
                                entity_match->m_has_tags[i],
-                               FccFilterOpType::E_HAS, 
-                               match->p_fcc_context,
+                               FccFilterOpType::E_HAS,
                                true);
   }
 
@@ -96,7 +89,6 @@ apply_filters_reference(const FccMatch* match,
     local_root = new ComponentFilter(local_root, 
                                      entity_match->m_has_not_components[i],
                                      FccFilterOpType::E_HAS_NOT, 
-                                     match->p_fcc_context,
                                      true);
   }
 
@@ -106,7 +98,6 @@ apply_filters_reference(const FccMatch* match,
     local_root = new ComponentFilter(local_root, 
                                      entity_match->m_has_components[i],
                                      FccFilterOpType::E_HAS, 
-                                     match->p_fcc_context,
                                      true);
   }
 
@@ -134,14 +125,12 @@ create_subplan(const FccMatch* match)
         if(match_type->m_is_global)
         {
           local_root = new Fetch(entity_match->m_match_types[j].m_type, 
-                                 access_mode,
-                                 match->p_fcc_context);
+                                 access_mode);
         }
         else
         {
           local_root = new Scan(entity_match->m_match_types[j].m_type, 
-                                access_mode,
-                                match->p_fcc_context);
+                                access_mode);
         }
       }
       else 
@@ -150,22 +139,18 @@ create_subplan(const FccMatch* match)
         if(match_type->m_is_global)
         {
           right = new Fetch(entity_match->m_match_types[j].m_type, 
-                                 access_mode,
-                                 match->p_fcc_context);
+                                 access_mode);
 
           local_root = new CrossJoin(local_root, 
-                                     right, 
-                                     match->p_fcc_context);
+                                     right);
         }
         else
         {
           right = new Scan(entity_match->m_match_types[j].m_type, 
-                           access_mode,
-                           match->p_fcc_context);
+                           access_mode);
 
           local_root = new Join(local_root, 
-                                right, 
-                                match->p_fcc_context);
+                                right);
         }
 
       }
@@ -179,8 +164,7 @@ create_subplan(const FccMatch* match)
     bool non_component_expand = local_root == nullptr; 
     if(entity_match->m_from_expand)
     {
-      FccOperator* ref_scan = new Scan(entity_match->m_ref_name, 
-                                       match->p_fcc_context);
+      FccOperator* ref_scan = new Scan(entity_match->m_ref_name);
 
       if(!non_component_expand)
       {
@@ -204,14 +188,12 @@ create_subplan(const FccMatch* match)
         if(cascading)
         {
           local_root = new CascadingGather(ref_scan, 
-                                           local_root, 
-                                           match->p_fcc_context);
+                                           local_root);
         }
         else
         {
           local_root = new Gather(ref_scan, 
-                                  local_root, 
-                                  match->p_fcc_context);
+                                  local_root);
         }
       }
       else
@@ -229,14 +211,12 @@ create_subplan(const FccMatch* match)
       if(non_component_expand)
       {
         root = new LeftFilterJoin(root, 
-                                  local_root, 
-                                  match->p_fcc_context);
+                                  local_root);
       }
       else
       {
         root = new Join(root, 
-                        local_root, 
-                        match->p_fcc_context);
+                        local_root);
       }
     }
   }
@@ -255,10 +235,9 @@ create_subplan(const FccMatch* match)
       //  without_tag and filter predicate.
       // * Create Foreach operator
       DynArray<const FccSystem*> arr;
-      arr.append(&match->m_system);
+      arr.append(match->p_system);
       root = new Foreach(root, 
-                         arr, 
-                         match->p_fcc_context);
+                         arr);
       break;
   };
   return root;
@@ -271,8 +250,7 @@ destroy_subplan(FccOperator* root)
 }
 
 Foreach* 
-merge_foreach(FccContext* context,
-              const Foreach* foreach1, 
+merge_foreach(const Foreach* foreach1, 
               const Foreach* foreach2) {
   return nullptr;
 }

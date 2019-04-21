@@ -13,6 +13,7 @@ copy_component_raw(const BlockCluster* cluster,
                    Table** tables,
                    uint32_t num_tables)
 {
+  // TODO: this needs to be changed to use the copy constructor
   assert(cluster->m_num_elements == num_tables && "Copy component raw operation on block cluster of incorrect size");
   for(uint32_t i = 0; i < num_tables; ++i)
   {

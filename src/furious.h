@@ -13,6 +13,9 @@ namespace furious
 extern void __furious_init(Database* database);
 extern void __furious_frame(float delta, 
                             Database* database);
+
+extern void __furious_post_frame(float delta, 
+                                 Database* database);
 extern void __furious_release();
 
 }

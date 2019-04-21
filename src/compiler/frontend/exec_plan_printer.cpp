@@ -32,17 +32,18 @@ to_string(const FccSystem* info)
 {
   StringBuilder str_builder;
   str_builder.append("%s (", info->m_system_type->getAsCXXRecordDecl()->getNameAsString().c_str());
-  if(info->m_ctor_params.size() > 0)
+  const DynArray<const Expr*>& ctor_params = info->m_ctor_params;
+  if(ctor_params.size() > 0)
   {
     const ASTContext& context = info->m_system_type->getAsCXXRecordDecl()->getASTContext();
     const SourceManager& sm = context.getSourceManager();
     str_builder.append("%s", 
                        get_code(sm,info->m_ctor_params[0]->getSourceRange()).c_str());
 
-    for (int32_t i = 1; i < (int32_t)info->m_ctor_params.size(); ++i) 
+    for (int32_t i = 1; i < (int32_t)ctor_params.size(); ++i) 
     {
       str_builder.append(", %s", 
-                         get_code(sm, info->m_ctor_params[i]->getSourceRange()).c_str()); 
+                         get_code(sm, ctor_params[i]->getSourceRange()).c_str()); 
     }
 
   }

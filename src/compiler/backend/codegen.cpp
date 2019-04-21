@@ -237,6 +237,7 @@ public:
 
 void 
 generate_code(const FccExecPlan* exec_plan,
+              const FccExecPlan* post_exec_plan,
               const std::string& filename,
               const std::string& include_file)
 {
@@ -248,6 +249,7 @@ generate_code(const FccExecPlan* exec_plan,
   // LOOKING FOR DEPENDENCIES 
   DependenciesExtr deps_visitor;
   deps_visitor.traverse(exec_plan);
+  deps_visitor.traverse(post_exec_plan);
 
   // ADDING REQUIRED INCLUDES
   for(const std::string& incl : deps_visitor.m_include_files)
@@ -259,9 +261,10 @@ generate_code(const FccExecPlan* exec_plan,
 
   // ADDING REQUIRED "USING NAMESPACE DIRECTIVES TODO: Add support for other
   // using clauses"
-  for(uint32_t i = 0; i < exec_plan->p_context->p_using_decls.size(); ++i)
+  const DynArray<const UsingDirectiveDecl*>& usings = p_fcc_context->p_using_decls;
+  for(uint32_t i = 0; i < usings.size(); ++i)
   {
-    const UsingDirectiveDecl* decl = exec_plan->p_context->p_using_decls[i];
+    const UsingDirectiveDecl* decl = usings[i];
     const SourceManager& sm = decl->getASTContext().getSourceManager();
     std::string code = get_code(sm, decl->getSourceRange());
     fprintf(fd,"%s;\n",code.c_str());
@@ -284,6 +287,7 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd,"// Variable declarations \n");
   VarsExtr vars_extr;
   vars_extr.traverse(exec_plan);
+  vars_extr.traverse(post_exec_plan);
 
   // TABLEVIEWS
   for(const std::string& table : vars_extr.m_components)
@@ -306,12 +310,13 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // SYSTEMWRAPPERS
-  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size();++i)
+  const DynArray<FccMatch*>& matches = p_fcc_context->p_matches;
+  for(uint32_t i = 0; i < matches.size();++i)
   {
-    const FccMatch* match = exec_plan->p_context->p_matches[i];
-    std::string system_name = get_type_name(match->m_system.m_system_type);
+    const FccMatch* match = matches[i];
+    std::string system_name = get_type_name(match->p_system->m_system_type);
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->m_system.m_id);
+                                                            match->p_system->m_id);
     fprintf(fd, "%s* %s;\n", system_name.c_str(), wrapper_name.c_str());
   }
 
@@ -350,27 +355,27 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // INITIALIZING SYSTEM WRAPPERS
-  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size(); ++i)
+  for(uint32_t i = 0; i < matches.size(); ++i)
   {
-    const FccMatch* match = exec_plan->p_context->p_matches[i];
-    std::string system_name = get_type_name(match->m_system.m_system_type);
+    const FccMatch* match = matches[i];
+    std::string system_name = get_type_name(match->p_system->m_system_type);
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->m_system.m_id);
+                                                            match->p_system->m_id);
     fprintf(fd,
             "%s = new %s(",
             wrapper_name.c_str(),
             system_name.c_str());
 
-    size_t num_params = match->m_system.m_ctor_params.size();
-    if( num_params > 0) 
+    const DynArray<const Expr*>& ctor_params = match->p_system->m_ctor_params;
+    if( ctor_params.size() > 0) 
     {
-      const Expr* param = match->m_system.m_ctor_params[0];
+      const Expr* param = ctor_params[0];
       const SourceManager& sm = match->p_ast_context->getSourceManager();
       std::string code = get_code(sm,param->getSourceRange());
       fprintf(fd,"%s", code.c_str());
-      for(size_t i = 1; i < num_params; ++i)
+      for(size_t i = 1; i < ctor_params.size(); ++i)
       {
-        const Expr* param = match->m_system.m_ctor_params[i];
+        const Expr* param = ctor_params[i];
         std::string code = get_code(sm,param->getSourceRange());
         fprintf(fd,",%s",code.c_str());
       }
@@ -404,16 +409,41 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "database->release();\n");
   fprintf(fd, "}\n");
 
+  /// GENERATING __furious_post_frame CODE
+  fprintf(fd,"\n\n\n");
+  fprintf(fd,"void __furious_post_frame(float delta, Database* database)\n{\n");
+
+  fprintf(fd, "database->lock();\n");
+  fprintf(fd, "Context context(delta,database);\n");
+
+  // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
+  p_registry = new CodeGenRegistry();
+  for(uint32_t i = 0; i < post_exec_plan->p_roots.size(); ++i)
+  {
+    const FccOperator* root = post_exec_plan->p_roots[i];
+    ExecPlanPrinter printer(true);
+    root->accept(&printer);
+    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
+    fprintf(fd,"{\n");
+    produce(fd,root);
+    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
+    fprintf(fd,"}\n");
+  }
+  delete p_registry;
+
+  fprintf(fd, "database->release();\n");
+  fprintf(fd, "}\n");
+
   // GENERATING __furious_release CODE
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 
-  for(uint32_t i = 0; i < exec_plan->p_context->p_matches.size(); ++i)
+  for(uint32_t i = 0; i < matches.size(); ++i)
   {
-    const FccMatch* match = exec_plan->p_context->p_matches[i];
-    std::string system_name = get_type_name(match->m_system.m_system_type);
+    const FccMatch* match = matches[i];
+    std::string system_name = get_type_name(match->p_system->m_system_type);
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->m_system.m_id);
+                                                            match->p_system->m_id);
     fprintf(fd, "delete %s;\n", wrapper_name.c_str());
   }
   fprintf(fd, "}\n");

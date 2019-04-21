@@ -20,7 +20,6 @@ enum class FccParsingErrorType;
  * \brief Process a match call
  *
  * \param ast_context The ast context of the expand call
- * \param fcc_context The fcc context of the expand call
  * \param fcc_match The fcc_match of the expand call
  * \param call The call expression to process
  *
@@ -28,7 +27,6 @@ enum class FccParsingErrorType;
  */
 bool 
 process_match(ASTContext* ast_context,
-              FccContext *fcc_context,
               FccMatch* fcc_match,
               const CallExpr* call);
 
@@ -36,7 +34,6 @@ process_match(ASTContext* ast_context,
  * \brief Process an expand call
  *
  * \param ast_context The ast context of the expand call
- * \param fcc_context The fcc context of the expand call
  * \param fcc_match The fcc_match of the expand call
  * \param call The call expression to process
  *
@@ -44,7 +41,6 @@ process_match(ASTContext* ast_context,
  */
 bool 
 process_expand(ASTContext* ast_context,
-               FccContext *fcc_context,
                FccMatch* fcc_match,
                const CallExpr* call);
 
@@ -60,7 +56,6 @@ process_expand(ASTContext* ast_context,
  */
 bool 
 process_foreach(ASTContext* ast_context,
-                FccContext* fcc_context,
                 FccMatch*   fcc_match,
                 const CallExpr* call);
 
@@ -68,7 +63,6 @@ process_foreach(ASTContext* ast_context,
  * \brief Processes a set_priority call
  *
  * \param ast_context The ast context of the call to process
- * \param fcc_context The fcc context 
  * \param fcc_match The match 
  * \param call The call expression
  *
@@ -76,9 +70,22 @@ process_foreach(ASTContext* ast_context,
  */
 bool 
 process_set_priority(ASTContext* ast_context,
-                  FccContext* fcc_context,
                   FccMatch*   fcc_match,
                   const CallExpr* call);
+
+/**
+ * \brief Processes a set_post_frame call
+ *
+ * \param ast_context The ast context of the call to process
+ * \param fcc_match The match 
+ * \param call The call expression
+ *
+ * \return  True if the parsing was corret. False otherwise.
+ */
+bool 
+process_set_post_frame(ASTContext* ast_context,
+                       FccMatch*   fcc_match,
+                       const CallExpr* call);
 
 /**
  * \brief Process a with_tag call
@@ -91,7 +98,6 @@ process_set_priority(ASTContext* ast_context,
  */
 bool 
 process_has_tag(ASTContext* ast_context,
-                 FccContext *fcc_context,
                  FccMatch* fcc_match,
                  const CallExpr* call);
 
@@ -106,7 +112,6 @@ process_has_tag(ASTContext* ast_context,
  */
 bool 
 process_has_not_tag(ASTContext* ast_context,
-                    FccContext *fcc_context,
                     FccMatch* fcc_match,
                     const CallExpr* call);
 
@@ -121,9 +126,8 @@ process_has_not_tag(ASTContext* ast_context,
  */
 bool 
 process_has_component(ASTContext* ast_context,
-                       FccContext *fcc_context,
-                       FccMatch* fcc_match,
-                       const CallExpr* call);
+                      FccMatch* fcc_match,
+                      const CallExpr* call);
 
 /**
  * \brief Process a without_component call
@@ -136,7 +140,6 @@ process_has_component(ASTContext* ast_context,
  */
 bool 
 process_has_not_component(ASTContext* ast_context,
-                          FccContext *fcc_context,
                           FccMatch* fcc_match,
                           const CallExpr* call);
 
@@ -151,15 +154,13 @@ process_has_not_component(ASTContext* ast_context,
  */
 bool 
 process_filter(ASTContext* ast_context,
-               FccContext *fcc_context,
                FccMatch* fcc_match,
                const CallExpr* call);
 
 
 
 void 
-report_parsing_error(ASTContext* ast_context, 
-                     FccContext* fcc_context,
+report_parsing_error(const ASTContext* ast_context, 
                      const SourceLocation& location,
                      const FccParsingErrorType& type,
                      const std::string& message);

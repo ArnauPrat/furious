@@ -52,8 +52,7 @@ class FccOperator
 public:
 
   FccOperator(FccOperatorType type, 
-              const std::string& name,
-              FccContext* fcc_context);
+              const std::string& name);
 
   virtual
   ~FccOperator() = default;
@@ -63,7 +62,6 @@ public:
 
   FccOperatorType       m_type;
   std::string           m_name;
-  FccContext*           p_fcc_context;
   const FccOperator*    p_parent;
   DynArray<FccColumn>   m_columns;
   uint32_t              m_id;
@@ -77,8 +75,7 @@ class FccOperatorTmplt : public FccOperator
 {
 public:
   FccOperatorTmplt(FccOperatorType type,
-                   const std::string& name,
-                   FccContext* fcc_context);
+                   const std::string& name);
 
   virtual 
   ~FccOperatorTmplt() = default;
@@ -92,11 +89,10 @@ public:
  */
 struct Scan : public FccOperatorTmplt<Scan> 
 {
-  explicit Scan(const std::string& ref_name,
-                FccContext* fcc_context);
+  explicit Scan(const std::string& ref_name);
+
   explicit Scan(QualType component,
-                FccAccessMode access_mode,
-                FccContext* fcc_context);
+                FccAccessMode access_mode);
 
   virtual 
   ~Scan() = default;
@@ -109,8 +105,7 @@ struct Scan : public FccOperatorTmplt<Scan>
 struct Join : public FccOperatorTmplt<Join> 
 {
   Join(RefCountPtr<FccOperator> left, 
-       RefCountPtr<FccOperator> right,
-       FccContext* fcc_context);
+       RefCountPtr<FccOperator> right);
   virtual 
   ~Join();
 
@@ -126,8 +121,7 @@ struct Join : public FccOperatorTmplt<Join>
 struct LeftFilterJoin : public FccOperatorTmplt<LeftFilterJoin> 
 {
   LeftFilterJoin(RefCountPtr<FccOperator> left, 
-                 RefCountPtr<FccOperator> right,
-                 FccContext* fcc_context);
+                 RefCountPtr<FccOperator> right);
   virtual 
   ~LeftFilterJoin();
 
@@ -143,8 +137,7 @@ struct LeftFilterJoin : public FccOperatorTmplt<LeftFilterJoin>
 struct CrossJoin : public FccOperatorTmplt<CrossJoin> 
 {
   CrossJoin(RefCountPtr<FccOperator> left, 
-            RefCountPtr<FccOperator> right,
-            FccContext* fcc_context);
+            RefCountPtr<FccOperator> right);
   virtual 
   ~CrossJoin();
 
@@ -160,8 +153,7 @@ struct CrossJoin : public FccOperatorTmplt<CrossJoin>
 struct Fetch : public FccOperatorTmplt<Fetch> 
 {
   Fetch(QualType global_type,
-        FccAccessMode access_mode,
-        FccContext* fcc_context);
+        FccAccessMode access_mode);
 
   virtual 
   ~Fetch();
@@ -176,8 +168,7 @@ template<typename T>
 struct Filter : public FccOperatorTmplt<T> 
 {
   Filter(RefCountPtr<FccOperator> child,
-         const std::string& name,
-         FccContext* fcc_context);
+         const std::string& name);
 
   virtual 
   ~Filter();
@@ -189,8 +180,7 @@ struct Filter : public FccOperatorTmplt<T>
 struct PredicateFilter : public Filter<PredicateFilter>
 {
   PredicateFilter(RefCountPtr<FccOperator> child,
-                  const FunctionDecl* func_decl,
-                  FccContext* fcc_context);
+                  const FunctionDecl* func_decl);
   virtual 
   ~PredicateFilter() = default;
 
@@ -208,7 +198,6 @@ struct TagFilter : public Filter<TagFilter>
   TagFilter(RefCountPtr<FccOperator> child,
             const std::string& tag,
             FccFilterOpType op_type,
-            FccContext* fcc_context,
             bool on_column = false);
 
   virtual 
@@ -224,7 +213,6 @@ struct ComponentFilter : public Filter<ComponentFilter>
   ComponentFilter(RefCountPtr<FccOperator> child,
                   QualType component_type,
                   FccFilterOpType op_type,
-                  FccContext* fcc_context,
                   bool on_column = false);
 
   virtual 
@@ -242,8 +230,7 @@ struct ComponentFilter : public Filter<ComponentFilter>
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
   Foreach(RefCountPtr<FccOperator> child, 
-          const DynArray<const FccSystem*>& systems,
-          FccContext* fcc_context);
+          const DynArray<const FccSystem*>& systems);
 
   virtual 
   ~Foreach();
@@ -258,8 +245,7 @@ struct Foreach : public FccOperatorTmplt<Foreach>
 struct Gather : public FccOperatorTmplt<Gather>  
 {
   Gather(RefCountPtr<FccOperator> ref_table,
-         RefCountPtr<FccOperator> child,
-         FccContext* fcc_context);
+         RefCountPtr<FccOperator> child);
 
   virtual 
   ~Gather();
@@ -274,8 +260,7 @@ struct Gather : public FccOperatorTmplt<Gather>
 struct CascadingGather : public FccOperatorTmplt<CascadingGather>  
 {
   CascadingGather(RefCountPtr<FccOperator> ref_table,
-                  RefCountPtr<FccOperator> child,
-                  FccContext* fcc_context);
+                  RefCountPtr<FccOperator> child);
 
   virtual 
   ~CascadingGather();
@@ -290,11 +275,10 @@ struct CascadingGather : public FccOperatorTmplt<CascadingGather>
 
 struct FccExecPlan 
 {
-  FccExecPlan(FccContext* context);
   ~FccExecPlan();
 
   FccCompilationErrorType 
-  bootstrap();
+  bootstrap(FccMatchPlace place);
 
   /**
    * \brief Inserts a new root to the execution plan
@@ -303,12 +287,11 @@ struct FccExecPlan
    * \param FccOperator The root operator
    */
   void
-  insert_root(ASTContext* ast_context, 
+  insert_root(const ASTContext* ast_context, 
               FccOperator*);
 
-  FccContext*               p_context;
-  DynArray<ASTContext*>     p_asts;
-  DynArray<FccOperator*>    p_roots; 
+  DynArray<const ASTContext*>     p_asts;
+  DynArray<FccOperator*>          p_roots; 
 };
 
 ////////////////////////////////////////////////

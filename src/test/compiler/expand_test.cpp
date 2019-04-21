@@ -85,6 +85,35 @@ TEST(ExpandTest, ExpandTest )
   delete database;
 }
 
+TEST(ExpandTest, ExpandTestLarge ) 
+{
+  furious::Database* database = new furious::Database();
+  database->start_webserver("localhost", 
+                            "8080");
+
+  furious::Entity entities[10000];
+  for(uint32_t i = 0; i < 10000; ++i)
+  {
+    entities[i] = furious::create_entity(database);
+    FURIOUS_ADD_COMPONENT(&entities[i],Position, 0.0f, 0.0f, 0.0f);
+    FURIOUS_ADD_COMPONENT(&entities[i],Velocity, 1.0f, 1.0f, 1.0f);
+    FURIOUS_ADD_COMPONENT(&entities[i],FieldMesh, 0.0f, 0.0f, 0.0f);
+    FURIOUS_ADD_COMPONENT(&entities[i],Intensity, 5.0f);
+  }
+
+  for(uint32_t i = 0; i < 5000; ++i)
+  {
+    entities[i].add_reference("parent",entities[i+5000]);
+  }
+
+  furious::__furious_init(database);
+  furious::__furious_frame(0.1,database);
+
+  furious::__furious_release();
+
+  delete database;
+}
+
 int main(int argc, char *argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);

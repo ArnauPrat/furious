@@ -54,6 +54,12 @@ struct RegisterSystemInfo
   {
     return RegisterSystemInfo();
   }
+
+  RegisterSystemInfo
+  set_post_frame()
+  {
+    return RegisterSystemInfo();
+  }
 };
 
 /**

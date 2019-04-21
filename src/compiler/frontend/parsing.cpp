@@ -44,8 +44,7 @@ get_column_number(const SourceManager& manager,
 }
 
 void 
-report_parsing_error(ASTContext* ast_context, 
-                     FccContext* fcc_context,
+report_parsing_error(const ASTContext* ast_context, 
                      const SourceLocation& location,
                      const FccParsingErrorType& type,
                      const std::string& message) 
@@ -54,7 +53,7 @@ report_parsing_error(ASTContext* ast_context,
   std::string filename = sm.getFilename(location);
   int32_t line_number = get_line_number(sm, location);
   int32_t column_number = get_column_number(sm, location);
-  fcc_context->report_parsing_error(type,
+  p_fcc_context->report_parsing_error(type,
                                     filename,
                                     line_number,
                                     column_number,
@@ -121,7 +120,6 @@ print_debug_info(const ASTContext* ast_context,
 
 bool
 is_global(ASTContext* ast_context,
-          FccContext* fcc_context,
           QualType qtype
          )
 {
@@ -136,7 +134,6 @@ is_global(ASTContext* ast_context,
      {
        SourceLocation location = qtype->getAsRecordDecl()->getSourceRange().getBegin();
        report_parsing_error(ast_context,
-                            fcc_context,
                             location,
                             FccParsingErrorType::E_UNSUPPORTED_TYPE_MODIFIER,
                             qtype->getAsRecordDecl()->getNameAsString());
@@ -149,7 +146,6 @@ is_global(ASTContext* ast_context,
 
 bool 
 process_match(ASTContext* ast_context,
-              FccContext* fcc_context,
               FccMatch*   fcc_match,
               const CallExpr* call)
 {
@@ -161,7 +157,8 @@ process_match(ASTContext* ast_context,
                    location);
 #endif
 
-  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
+  const DynArray<FccEntityMatch*>& e_matches = fcc_match->p_entity_matches;
+  FccEntityMatch* entity_match = e_matches[e_matches.size()-1];
 
   const FunctionDecl* function_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
@@ -172,30 +169,30 @@ process_match(ASTContext* ast_context,
   // set read the scope from the expand types and propagate to the match types
   // in the system
   uint32_t num_consumed = 0;
-  for(uint32_t i = 0; i < fcc_match->p_entity_matches.size() - 1; ++i)
+  for(uint32_t i = 0; i < e_matches.size() - 1; ++i)
   {
-    num_consumed+=fcc_match->p_entity_matches[i]->m_match_types.size();
+    num_consumed+=e_matches[i]->m_match_types.size();
   }
-  uint32_t num_system_args = fcc_match->m_system.m_component_types.size();
 
+  DynArray<FccMatchType>& e_match_types = fcc_match->p_system->m_match_types;
+  uint32_t num_system_args = e_match_types.size();
   uint32_t begin = num_system_args - (num_consumed + tmplt_types.size());
   uint32_t end = num_system_args - num_consumed;
   for (size_t i = begin, j = 0; i < end; ++i, ++j) 
   {
-    QualType type = fcc_match->m_system.m_component_types[i].m_type;
-    bool read_only = fcc_match->m_system.m_component_types[i].m_is_read_only;
-    bool global = is_global(ast_context, fcc_context, tmplt_types[j]);
-    fcc_match->m_system.m_component_types[i].m_is_global = global;
-    entity_match->insert_match_type(&type,
-                                    read_only,
-                                    global);
+    QualType type = e_match_types[i].m_type;
+    bool read_only = e_match_types[i].m_is_read_only;
+    bool global = is_global(ast_context, tmplt_types[j]);
+    e_match_types[i].m_is_global = global;
+    entity_match->m_match_types.append({type,
+                                       read_only,
+                                       global});
   }
   return true;
 }
 
 bool 
 process_expand(ASTContext* ast_context,
-                FccContext* fcc_context,
                 FccMatch*   fcc_match,
                 const CallExpr* call)
 {
@@ -214,11 +211,12 @@ process_expand(ASTContext* ast_context,
 
   const Expr* param_expr = call->getArg(0);
   std::string str = get_string_literal(param_expr);
-  FccEntityMatch* entity_match = fcc_match->p_entity_matches[fcc_match->p_entity_matches.size()-1];
-  entity_match->insert_expand(str);
+  const DynArray<FccEntityMatch*>& e_matches = fcc_match->p_entity_matches;
+  FccEntityMatch* entity_match = e_matches[e_matches.size()-1];
+  entity_match->m_ref_name = str;
+  entity_match->m_from_expand = true;
 
   bool res = process_match(ast_context,
-                           fcc_context,
                            fcc_match,
                            call);
   fcc_match->create_entity_match();
@@ -228,7 +226,6 @@ process_expand(ASTContext* ast_context,
 
 bool 
 process_foreach(ASTContext* ast_context,
-                FccContext* fcc_context,
                 FccMatch*   fcc_match,
                 const CallExpr* call)
 {
@@ -251,7 +248,7 @@ process_foreach(ASTContext* ast_context,
   const TemplateArgumentList& arg_list = tmplt_decl->getTemplateArgs();
   DynArray<QualType> tmplt_types = get_tmplt_types(arg_list);
 
-  FccSystem* system = &fcc_match->m_system;
+  FccSystem* system = new FccSystem();
   system->m_id = system_id;
   system->m_system_type = tmplt_types[0];
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
@@ -259,9 +256,8 @@ process_foreach(ASTContext* ast_context,
     QualType type = tmplt_types[i]->getPointeeType();
     bool read_only = get_access_mode(type) == FccAccessMode::E_READ;
     bool global = is_global(ast_context,
-                            fcc_context,
                             type);
-    system->insert_component_type(&type, read_only, global);
+    system->m_match_types.append({type, read_only, global});
   }
 
   // Extract System constructor parameter expressions
@@ -269,17 +265,17 @@ process_foreach(ASTContext* ast_context,
   for(uint32_t i = 0; i < num_args; ++i)
   {
     const Expr* arg_expr = call->getArg(i);
-    system->insert_ctor_param(arg_expr);
+    system->m_ctor_params.append(arg_expr);
   }
+  fcc_match->p_system = system;
   system_id++;
   return true;
 }
 
 bool 
 process_set_priority(ASTContext* ast_context,
-                        FccContext* fcc_context,
-                        FccMatch*   fcc_match,
-                        const CallExpr* call)
+                     FccMatch*   fcc_match,
+                     const CallExpr* call)
 {
   uint32_t num_args = call->getNumArgs();
   if(num_args != 1)
@@ -290,6 +286,21 @@ process_set_priority(ASTContext* ast_context,
   const Expr* param_expr = call->getArg(0);
   uint32_t priority = get_uint32_literal(param_expr);
   fcc_match->m_priority = priority;
+  return true;
+}
+
+bool 
+process_set_post_frame(ASTContext* ast_context,
+                       FccMatch*   fcc_match,
+                       const CallExpr* call)
+{
+  uint32_t num_args = call->getNumArgs();
+  if(num_args != 0)
+  {
+    return false;
+  }
+
+  fcc_match->m_place = FccMatchPlace::E_POST_FRAME;
   return true;
 }
 
@@ -328,7 +339,6 @@ const T* find_first_dfs(const Stmt* expr)
 
 bool 
 process_filter(ASTContext* ast_context,
-               FccContext* fcc_context,
                FccMatch* fcc_match,
                const CallExpr* call)
 {
@@ -346,7 +356,7 @@ process_filter(ASTContext* ast_context,
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
-    entity_match->insert_filter_func(func_decl);
+    entity_match->p_filter_func.append(func_decl);
   } 
 
   const DeclRefExpr* decl_ref = nullptr;
@@ -356,12 +366,12 @@ process_filter(ASTContext* ast_context,
     if(isa<FunctionDecl>(decl))
     {
       func_decl = cast<FunctionDecl>(decl);
-      entity_match->insert_filter_func(func_decl);
-    } else if(isa<VarDecl>(decl))
+      entity_match->p_filter_func.append(func_decl);
+    } 
+    else if(isa<VarDecl>(decl))
     {
       SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
-                           fcc_context,
                            location,
                            FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS,
                            "");
@@ -373,7 +383,6 @@ process_filter(ASTContext* ast_context,
 
 bool 
 process_has_tag(ASTContext* ast_context,
-                 FccContext* fcc_context,
                  FccMatch*   fcc_match,
                  const CallExpr* call)
 {
@@ -393,14 +402,13 @@ process_has_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      entity_match->insert_has_tag(literal->getString());
+      entity_match->m_has_tags.append(literal->getString());
     } 
     else
     {
 
       SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
-                           fcc_context,
                            location,
                            FccParsingErrorType::E_EXPECTED_STRING_LITERAL,
                            "Non literal types are not allowed.");
@@ -412,7 +420,6 @@ process_has_tag(ASTContext* ast_context,
 
 bool 
 process_has_not_tag(ASTContext* ast_context,
-                    FccContext* fcc_context,
                     FccMatch* fcc_match,
                     const CallExpr* call)
 {
@@ -430,14 +437,13 @@ process_has_not_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      entity_match->insert_has_not_tag(literal->getString());
+      entity_match->m_has_not_tags.append(literal->getString());
     } 
     else
     {
 
       SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(ast_context,
-                           fcc_context,
                            location,
                            FccParsingErrorType::E_EXPECTED_STRING_LITERAL,
                            "Non literal types are not allowed");
@@ -449,7 +455,6 @@ process_has_not_tag(ASTContext* ast_context,
 
 bool 
 process_has_component(ASTContext* ast_context,
-                       FccContext* fcc_contex,
                        FccMatch*  fcc_match,
                        const CallExpr* call)
 {
@@ -466,14 +471,13 @@ process_has_component(ASTContext* ast_context,
   {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    entity_match->insert_has_compponent(&type);
+    entity_match->m_has_components.append(type);
   }
   return true;
 }
 
 bool 
 process_has_not_component(ASTContext* ast_context,
-                          FccContext* fcc_contex,
                           FccMatch*   fcc_match,
                           const CallExpr* call)
 {
@@ -491,7 +495,7 @@ process_has_not_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     QualType type = arg.getAsType();
-    entity_match->insert_has_not_component(&type);
+    entity_match->m_has_not_components.append(type);
   }
   return true;
 }

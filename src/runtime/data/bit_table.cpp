@@ -25,7 +25,7 @@ BitTable::exists(entity_id_t id) const
   {
     return false;
   }
-  return bitmap->is_set(id - bitset_id);
+  return bitmap->is_set(id % TABLE_BLOCK_SIZE);
 }
 
 void

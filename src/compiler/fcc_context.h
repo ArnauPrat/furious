@@ -19,6 +19,8 @@ namespace furious
 
 struct FccContext;
 
+extern FccContext* p_fcc_context;
+
 enum class FccOperationType 
 {
   E_UNKNOWN,
@@ -41,38 +43,12 @@ struct FccMatchType
 /**
  * \brief 
  */
-struct FccSystem 
+struct FccSystem
 {
-  FccSystem(FccContext* fcc_context);
-  FccSystem(const FccSystem&) = delete;
-
-  ~FccSystem();
-
-  /**
-   * \brief Inserts a component type to this execution info
-   *
-   * \param q_type The component type to add
-   * \param is_read_only Whether the type is readonly or not 
-   * \param is_global Whether the type is global or not 
-   */
-  void
-  insert_component_type(const QualType* q_type, 
-                        bool is_read_only,
-                        bool is_global);
-
-  /**
-   * \brief Inserts a new constructor parameter expression
-   *
-   * \param param The expression to insert
-   */
-  void
-  insert_ctor_param(const Expr* param);
-
-  FccContext*               p_fcc_context;
-  QualType                  m_system_type;        // The type of the system
-  DynArray<const Expr*>     m_ctor_params;        // The expressions of the system's constructor parameters 
-  DynArray<FccMatchType>    m_component_types;       // The types of the components of the system
-  int32_t                   m_id;
+  QualType                  m_system_type;                // The type of the system
+  DynArray<const Expr*>     m_ctor_params;                // The expressions of the system's constructor parameters 
+  DynArray<FccMatchType>    m_match_types;                // The types of the components of the system
+  int32_t                   m_id                    = -1; // The id of the system  
 };
 
 
@@ -83,99 +59,39 @@ struct FccSystem
  */
 struct FccEntityMatch 
 {
-  FccEntityMatch(FccContext* fcc_context);
-
-  FccEntityMatch(const FccEntityMatch&) = delete;
-
-  ~FccEntityMatch();
-
-  /**
-   * \brief Inserts a component type to this execution info
-   *
-   * \param q_type The component type to add
-   * \param is_read_only Wether this is read only type or not
-   * \param is_global Wether this is a global type or not
-   */
-  void
-  insert_match_type(const QualType* q_type, bool is_read_only, bool is_global);
-
-  /**
-   * \brief Inerts a has component predicate to this execution info
-   *
-   * \param q_type The component of the predicate 
-   */
-  void
-  insert_has_compponent(const QualType* q_type);
-
-  /**
-   * \brief Inserts a has not component predicate to this execution info
-   *
-   * \param q_type The component of the predicate 
-   */
-  void
-  insert_has_not_component(const QualType* q_type);
-
-  /**
-   * \brief Inserts a has tag predicate to this execution info
-   *
-   * \param q_type The tag of the predicate
-   */
-  void
-  insert_has_tag(const std::string& q_type);
-
-  /**
-   * \brief Inserts a has not tag predicate to this execution info
-   *
-   * \param q_type The tag of the predicate
-   */
-  void
-  insert_has_not_tag(const std::string& q_type);
-
-  /**
-   * \brief Inserts a filter function predicate to this execution info
-   *
-   * \param decl The function declaration to add
-   */
-  void
-  insert_filter_func(const FunctionDecl* decl);
-
-  void
-  insert_expand(const std::string& ref_name);
-
-  FccContext*           p_fcc_context;                  // the fcc context this exec info belongs to
-
-  DynArray<FccMatchType>        m_match_types;          // The types this match is matching against
-  DynArray<QualType>            m_has_components;       // The types of the "has" components
-  DynArray<QualType>            m_has_not_components;   // The types of the "has_not" components
-  DynArray<std::string>         m_has_tags;             // The "with" tags  
-  DynArray<std::string>         m_has_not_tags;         // The "has_not" tags
-  DynArray<const FunctionDecl*> p_filter_func;          // The filter function
-  bool                          m_from_expand;          // True if this comes from an expand
-  std::string                   m_ref_name;             // The reference name if comes form an expand
+  DynArray<FccMatchType>        m_match_types;                  // The types this match is matching against
+  DynArray<QualType>            m_has_components;               // The types of the "has" components
+  DynArray<QualType>            m_has_not_components;           // The types of the "has_not" components
+  DynArray<std::string>         m_has_tags;                     // The "with" tags  
+  DynArray<std::string>         m_has_not_tags;                 // The "has_not" tags
+  DynArray<const FunctionDecl*> p_filter_func;                  // The filter function
+  bool                          m_from_expand       = false;    // True if this comes from an expand
+  std::string                   m_ref_name;                     // The reference name if comes form an expand
 };
 
+enum class FccMatchPlace
+{
+  E_FRAME,
+  E_POST_FRAME,
+};
+
+/**
+ * \brief Structure used to store the information about a match statement
+ */
 struct FccMatch
 {
-  FccMatch(ASTContext* ast_context,
-           FccContext* fcc_context,
-           Expr* expr);
   ~FccMatch();
 
-  ASTContext*           p_ast_context;          // clang ast context
-  FccContext*           p_fcc_context;          // the fcc context this exec info belongs to
-
-  FccOperationType      m_operation_type;              // The type of operations
   FccEntityMatch* 
   create_entity_match();
 
-
-  void
-  set_system(const FccSystem* system);
-
-  DynArray<FccEntityMatch*>       p_entity_matches;   // The set of entity matches that conform this query
-  FccSystem                       m_system;           // The system that executes on the results of this match
-  Expr*                           p_expr;             // The clang expression of this match
-  uint32_t                        m_priority;         // The execution priority of this match
+  ASTContext*                     p_ast_context     = nullptr;                      // clang ast context
+  FccOperationType                m_operation_type  = FccOperationType::E_UNKNOWN;  // The type of operations
+  DynArray<FccEntityMatch*>       p_entity_matches;                                 // The set of entity matches that conform this query
+  FccSystem*                      p_system          = nullptr;                      // The system that executes on the results of this match
+  Expr*                           p_expr            = nullptr;                      // The clang expression of this match
+  uint32_t                        m_priority        = 1;                            // The execution priority of this match
+  FccMatchPlace                   m_place           = FccMatchPlace::E_FRAME;       // Where this match code should be output
 };
 
 ////////////////////////////////////////////////
@@ -209,15 +125,13 @@ enum class FccCompilationErrorType
   E_NO_ERROR,
 };
 
-typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccContext*, 
-                                           FccParsingErrorType, 
+typedef void (*FCC_PARSING_ERROR_CALLBACK)(FccParsingErrorType, 
                                            const std::string&, 
                                            int32_t, 
                                            int32_t,
                                            const std::string&);
 
-typedef  void (*FCC_COMP_ERROR_CALLBACK)(FccContext*, 
-                                         FccCompilationErrorType, 
+typedef  void (*FCC_COMP_ERROR_CALLBACK)(FccCompilationErrorType, 
                                          const std::string&);
 
 
@@ -258,7 +172,7 @@ struct FccContext
                        const std::string& filename,
                        int32_t line,
                        int32_t column,
-                       const std::string& message);
+                       const std::string& message) const;
 
   /**
    * \brief Reports a parsing error using the callback set in FccContext
@@ -268,7 +182,7 @@ struct FccContext
    */
   void 
   report_compilation_error(FccCompilationErrorType error_type,
-                           const std::string& err_msg);
+                           const std::string& err_msg) const;
 
   /**
    * \brief Creates an FccExecInfo in this context
@@ -281,23 +195,10 @@ struct FccContext
   create_match(ASTContext* ast_context, 
                Expr* expr);
 
-  /**
-   * \brief Inserts an ASTUnit to this context.
-   *
-   * \param unit The unit to insert.
-   */
-  void
-  insert_ast_unit(std::unique_ptr<ASTUnit>& unit);
-
-
-  /**
-   * \brief Inserts a using declaration to this context
-   *
-   * \param decl The using declaration to add
-   */
-  void
-  insert_using_decl(const UsingDirectiveDecl* using_decl);
-
+  ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+ 
 
   FCC_PARSING_ERROR_CALLBACK  p_pecallback;             // Pointer to function handling parsing errors
   FCC_COMP_ERROR_CALLBACK     p_cecallback;             // Pointer to the function handling compilation errors
@@ -312,7 +213,7 @@ struct FccContext
  *
  * \param context The context to initialize
  */
-FccContext*
+void
 Fcc_create_context();
 
 /**
@@ -321,7 +222,7 @@ Fcc_create_context();
  * \param context The context to release 
  */
 void 
-Fcc_release_context(FccContext* context);
+Fcc_release_context();
 
 
 /**
@@ -336,8 +237,7 @@ Fcc_release_context(FccContext* context);
  * \return Returns the exit code of the compilation. 0 if successful.
  */
 int 
-Fcc_run(FccContext* context, 
-        CommonOptionsParser& op,
+Fcc_run(CommonOptionsParser& op,
         const std::string& output_file,
         const std::string& include_file);
 

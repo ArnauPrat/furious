@@ -32,6 +32,14 @@ set_bit_false(uint8_t* data, uint32_t bit)
   return changed;
 }
 
+static bool
+read_bit(uint8_t* data, uint32_t bit)
+{
+  assert(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
+  uint32_t mask = 1 << bit;
+  return ((*data & mask) != 0);
+}
+
 Bitmap::Bitmap(uint32_t size) :
 m_max_bits(size),
 m_num_set(0)
@@ -88,10 +96,10 @@ Bitmap::set_bit(uint32_t element, bool value)
 bool
 Bitmap::is_set(uint32_t element) const
 {
+  assert(element < m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
-  uint32_t mask = 1 << offset;
-  return ((p_data[chunk] & mask) != 0);
+  return read_bit(&p_data[chunk], offset);
 }
 
 uint32_t

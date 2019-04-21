@@ -30,22 +30,24 @@ bool
 is_dependent(DGNode* node_a, DGNode* node_b)
 {
   DynArray<QualType> write_types_b;
-  uint32_t size_b = node_b->p_match->m_system.m_component_types.size(); 
+  const DynArray<FccMatchType>& match_types_b = node_b->p_match->p_system->m_match_types;
+  uint32_t size_b = match_types_b.size(); 
   for(uint32_t i = 0; i < size_b; ++i)
   {
-    const QualType& type = node_b->p_match->m_system.m_component_types[i].m_type;
-    bool is_read_only = node_b->p_match->m_system.m_component_types[i].m_is_read_only;
+    const QualType& type = match_types_b[i].m_type;
+    bool is_read_only = match_types_b[i].m_is_read_only;
     if(!is_read_only)
     {
       write_types_b.append(type);
     }
   }
 
-  uint32_t size_a = node_a->p_match->m_system.m_component_types.size();
+  const DynArray<FccMatchType>& match_types_a = node_a->p_match->p_system->m_match_types;
+  uint32_t size_a = match_types_a.size();
   uint32_t priority_a = node_a->p_match->m_priority;
   for(uint32_t i = 0; i < size_a; ++i)
   {
-    const QualType& type_a = node_a->p_match->m_system.m_component_types[i].m_type;
+    const QualType& type_a = match_types_a[i].m_type;
     std::string name_a = get_type_name(type_a);
 
     size_b = write_types_b.size();
@@ -55,7 +57,7 @@ is_dependent(DGNode* node_a, DGNode* node_b)
       const QualType& type_b = write_types_b[ii];
       std::string name_b = get_type_name(type_b);
       if(name_a == name_b && 
-         priority_a <= priority_b)
+         priority_a >= priority_b)
       {
         return true;
       }
@@ -77,8 +79,8 @@ DependencyGraph::insert(const FccMatch* exec_info)
       p_nodes[i]->p_children.append(node);
       node->p_parents.append(p_nodes[i]);
       printf("%s deps on %s \n", 
-             get_type_name(node->p_match->m_system.m_system_type).c_str(),
-             get_type_name(p_nodes[i]->p_match->m_system.m_system_type).c_str()
+             get_type_name(node->p_match->p_system->m_system_type).c_str(),
+             get_type_name(p_nodes[i]->p_match->p_system->m_system_type).c_str()
              );
     }
 
@@ -87,8 +89,8 @@ DependencyGraph::insert(const FccMatch* exec_info)
       node->p_children.append(p_nodes[i]);
       p_nodes[i]->p_parents.append(node);
       printf("%s deps on %s \n", 
-             get_type_name(p_nodes[i]->p_match->m_system.m_system_type).c_str(),
-             get_type_name(node->p_match->m_system.m_system_type).c_str()
+             get_type_name(p_nodes[i]->p_match->p_system->m_system_type).c_str(),
+             get_type_name(node->p_match->p_system->m_system_type).c_str()
              );
     }
   }

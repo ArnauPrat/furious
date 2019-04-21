@@ -231,7 +231,7 @@ ProduceVisitor::visit(const Gather* gather)
       StringBuilder str_builder;
       str_builder.append("<Gather> operator target component cannot be a reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      gather->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
 
@@ -240,7 +240,7 @@ ProduceVisitor::visit(const Gather* gather)
       StringBuilder str_builder;
       str_builder.append("<Gather> operator target component must have access mode READ: \"%s\"", 
                          get_type_name(column->m_q_type).c_str());
-      gather->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     std::string component_name = get_type_name(column->m_q_type); 
@@ -323,7 +323,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
       StringBuilder str_builder;
       str_builder.append("<Gather> operator target component cannot be a reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      casc_gather->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
 
@@ -332,7 +332,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
       StringBuilder str_builder;
       str_builder.append("<Gather> operator target component must have access mode READ: \"%s\"", 
                          get_type_name(column->m_q_type).c_str());
-      casc_gather->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     std::string component_name = get_type_name(column->m_q_type); 

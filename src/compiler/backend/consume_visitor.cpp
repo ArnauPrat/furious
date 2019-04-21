@@ -30,7 +30,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
       StringBuilder str_builder;
       str_builder.append("<ForEach> operator cannot be applied to reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      foreach->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     const std::string& type = get_qualified_type_name(column->m_q_type);
@@ -309,7 +309,7 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
     {
       StringBuilder str_builder;
       str_builder.append("Cannot apply filter tag \"%s\" on column on a non-reference column type", tag_filter->m_tag.c_str());
-      tag_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                           str_builder.p_buffer);
     }
 
@@ -347,7 +347,7 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
 void
 ConsumeVisitor::visit(const ComponentFilter* component_filter)
 {
-  component_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+  p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                      "Component filter not yet implemented");
   // if ...
   consume(p_context->p_fd,
@@ -370,7 +370,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
       StringBuilder str_builder;
       str_builder.append("<PredicateFilter> operator cannot be applied to reference column type: \"%s\"", 
                          column->m_ref_name.c_str());
-      predicate_filter->p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
+      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_COLUMN_TYPE,
                                                          str_builder.p_buffer);
     }
     if(column->m_type == FccColumnType::E_COMPONENT)

@@ -10,10 +10,8 @@ namespace furious
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context,
-                                       FccContext *fcc_context) : 
+FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context) : 
 p_ast_context(ast_context), 
-p_fcc_context(fcc_context),
 p_fcc_match(nullptr)
 {
 }
@@ -57,7 +55,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
         p_fcc_match->m_operation_type = FccOperationType::E_FOREACH;
         p_fcc_match->p_ast_context = p_ast_context;
         return process_foreach(p_ast_context,
-                               p_fcc_context,
                                p_fcc_match,
                                call);
       }
@@ -65,15 +62,20 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "set_priority") 
       {
         return process_set_priority(p_ast_context,
-                                       p_fcc_context,
                                        p_fcc_match,
                                        call);
+      }
+
+      if(func_name == "set_post_frame") 
+      {
+        return process_set_post_frame(p_ast_context,
+                                      p_fcc_match,
+                                      call);
       }
 
       if(func_name == "has_tag" ) 
       {
         return process_has_tag(p_ast_context,
-                               p_fcc_context,
                                p_fcc_match,
                                call);
       }
@@ -81,7 +83,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "has_not_tag" ) 
       {
         return process_has_not_tag(p_ast_context,
-                                   p_fcc_context,
                                    p_fcc_match,
                                    call);
       }
@@ -89,7 +90,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "has_component" ) 
       {
         return process_has_component(p_ast_context,
-                                     p_fcc_context,
                                      p_fcc_match,
                                      call);
       }
@@ -97,7 +97,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "has_not_component" ) 
       {
         return process_has_not_component(p_ast_context,
-                                         p_fcc_context,
                                          p_fcc_match,
                                          call);
       }
@@ -105,7 +104,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "filter" ) 
       {
         return process_filter(p_ast_context,
-                              p_fcc_context,
                               p_fcc_match,
                               call);
       }
@@ -113,7 +111,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "match" ) 
       {
         bool res = process_match(p_ast_context,
-                                 p_fcc_context,
                                  p_fcc_match,
                                  call);
         return res;
@@ -122,7 +119,6 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "expand" ) 
       {
         bool res = process_expand(p_ast_context,
-                                  p_fcc_context,
                                   p_fcc_match,
                                   call);
         return res;
@@ -142,10 +138,8 @@ bool FuriousExprVisitor::TraverseLambdaBody(LambdaExpr* expr)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-FccASTVisitor::FccASTVisitor(ASTContext *ast_context,
-                             FccContext *fcc_context) : 
-p_ast_context(ast_context),
-p_fcc_context(fcc_context)
+FccASTVisitor::FccASTVisitor(ASTContext *ast_context) : 
+p_ast_context(ast_context)
 {
 }
 
@@ -172,8 +166,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
              expr_type->getAsCXXRecordDecl()->getNameAsString() == "RegisterSystemInfo" &&
              isa<ClassTemplateSpecializationDecl>(ret_decl) )
           {
-            FuriousExprVisitor visitor(p_ast_context,
-                                       p_fcc_context);
+            FuriousExprVisitor visitor(p_ast_context);
 
             FccMatch* match = visitor.parse_expression(expr);
 
@@ -185,7 +178,6 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
           {
             SourceLocation location = expr->getSourceRange().getBegin();
             report_parsing_error(p_ast_context,
-                                 p_fcc_context,
                                  location,
                                  FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
                                  "Unknown expression type");
@@ -207,13 +199,12 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             {
               // OK
               const UsingDirectiveDecl* using_decl = cast<UsingDirectiveDecl>(decl);
-              p_fcc_context->insert_using_decl(using_decl);
+              p_fcc_context->p_using_decls.append(using_decl);
             }
             else 
             {
               SourceLocation location = decl->getSourceRange().getBegin();
               report_parsing_error(p_ast_context,
-                                   p_fcc_context,
                                    location,
                                    FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS,
                                    "");

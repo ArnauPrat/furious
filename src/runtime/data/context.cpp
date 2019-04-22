@@ -6,9 +6,12 @@
 namespace furious 
 {
 
-Context::Context(float dt, Database* database) : 
+Context::Context(float dt, 
+                 Database* database, 
+                 void* user_data) : 
   m_dt(dt), 
-  p_database(database) 
+  p_user_data(user_data),
+  p_database(database)
   {
   }
 

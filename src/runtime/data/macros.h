@@ -38,12 +38,21 @@
 ////////////////////////////////////////////////
 
 #define FURIOUS_ADD_COMPONENT(entity,Component, ...) \
-  (entity)->add_component<Component>(__VA_ARGS__)
+  (entity).add_component<Component>(__VA_ARGS__)
 
 #define FURIOUS_REMOVE_COMPONENT(entity, Component) \
-  (entity)->remove_component<Component>()
+  (entity).remove_component<Component>()
 
 #define FURIOUS_GET_COMPONENT(entity, Component) \
-  (entity)->get_component<Component>()
+  (entity).get_component<Component>()
+
+#define FURIOUS_ADD_TAG(entity, tag) \
+  (entity).add_tag(tag)
+
+#define FURIOUS_REMOVE_TAG(entity, tag) \
+  (entity).remove_tag(tag)
+
+#define FURIOUS_HAS_TAG(entity, tag) \
+  (entity).has_tag(tag)
 
 #endif

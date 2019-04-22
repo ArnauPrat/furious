@@ -20,18 +20,18 @@ TEST(GlobalTest, GlobalTest )
   for(uint32_t i = 0; i < 8; ++i)
   {
     entities[i] = furious::create_entity(database);
-    FURIOUS_ADD_COMPONENT(&entities[i],Position, 0.0f, 0.0f, 0.0f);
+    FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
   }
 
   furious::__furious_init(database);
-  furious::__furious_frame(0.1,database);
+  furious::__furious_frame(0.1,database, nullptr);
 
   // FIRST LEVEL
   for(uint32_t i = 0; i < 8; ++i)
   {
-    ASSERT_EQ(entities[i].get_component<Position>()->m_x, 1.0f);
-    ASSERT_EQ(entities[i].get_component<Position>()->m_y, 1.0f);
-    ASSERT_EQ(entities[i].get_component<Position>()->m_z, 1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_x, 1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_y, 1.0f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_z, 1.0f);
   }
 
   furious::__furious_release();

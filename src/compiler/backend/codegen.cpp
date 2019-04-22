@@ -386,10 +386,10 @@ generate_code(const FccExecPlan* exec_plan,
 
   /// GENERATING __furious_frame CODE
   fprintf(fd,"\n\n\n");
-  fprintf(fd,"void __furious_frame(float delta, Database* database)\n{\n");
+  fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
   fprintf(fd, "database->lock();\n");
-  fprintf(fd, "Context context(delta,database);\n");
+  fprintf(fd, "Context context(delta,database,user_data);\n");
 
   // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
   p_registry = new CodeGenRegistry();
@@ -411,10 +411,10 @@ generate_code(const FccExecPlan* exec_plan,
 
   /// GENERATING __furious_post_frame CODE
   fprintf(fd,"\n\n\n");
-  fprintf(fd,"void __furious_post_frame(float delta, Database* database)\n{\n");
+  fprintf(fd,"void __furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
 
   fprintf(fd, "database->lock();\n");
-  fprintf(fd, "Context context(delta,database);\n");
+  fprintf(fd, "Context context(delta,database,user_data);\n");
 
   // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
   p_registry = new CodeGenRegistry();

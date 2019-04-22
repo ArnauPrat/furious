@@ -20,7 +20,9 @@ struct IdComponentPair
 class Context 
 {
 public:
-  Context(float dt, Database* database);
+  Context(float dt, 
+          Database* database,
+          void* user_data);
   ~Context() = default;
 
   template<typename TComponent>
@@ -30,6 +32,7 @@ public:
     void disable_component(const std::string& component_name, int32_t id);
 
   const float m_dt;                 
+  void*       p_user_data;
 
 private:
   Database*     p_database;

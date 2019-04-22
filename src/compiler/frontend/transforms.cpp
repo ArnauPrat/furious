@@ -8,6 +8,22 @@
 namespace furious 
 {
 
+FccOperator* 
+apply_predicate_filters(const FccMatch* match,
+                        const FccEntityMatch* entity_match,
+                        FccOperator* root)
+{
+  FccOperator* local_root = root;
+
+  // Create predicate filters
+  for(uint32_t i = 0; i < entity_match->p_filter_func.size(); ++i)
+  {
+    local_root = new PredicateFilter(local_root, 
+                                     entity_match->p_filter_func[i]);
+  }
+  return local_root;
+}
+
 FccOperator*
 apply_filters(const FccMatch* match, 
               const FccEntityMatch* entity_match, 
@@ -48,12 +64,6 @@ apply_filters(const FccMatch* match,
                                      FccFilterOpType::E_HAS);
   }
 
-  // Create predicate filters
-  for(uint32_t i = 0; i < entity_match->p_filter_func.size(); ++i)
-  {
-    local_root = new PredicateFilter(local_root, 
-                                     entity_match->p_filter_func[i]);
-  }
   return local_root;
 }
 
@@ -219,6 +229,8 @@ create_subplan(const FccMatch* match)
                         local_root);
       }
     }
+
+    root = apply_predicate_filters(match, entity_match, root);
   }
 
 

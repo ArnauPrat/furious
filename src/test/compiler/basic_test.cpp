@@ -19,16 +19,16 @@ TEST(BasicTest, BasicTest )
   for(int i = 0; i < 1000; ++i)
   {
     furious::Entity entity = furious::create_entity(database);
-    FURIOUS_ADD_COMPONENT((&entity),Position,0.0f,0.0f,0.0f);
-    FURIOUS_ADD_COMPONENT((&entity),Velocity,1.0f,1.0f,1.0f);
+    FURIOUS_ADD_COMPONENT(entity,Position,0.0f,0.0f,0.0f);
+    FURIOUS_ADD_COMPONENT(entity,Velocity,1.0f,1.0f,1.0f);
     entities.push_back(entity);
   }
 
-  furious::__furious_frame(0.1,database);
+  furious::__furious_frame(0.1,database, nullptr);
 
   for(furious::Entity& entity : entities)
   {
-    Position* position = FURIOUS_GET_COMPONENT((&entity), Position);
+    Position* position = FURIOUS_GET_COMPONENT(entity, Position);
     ASSERT_EQ(position->m_x,0.1f);
     ASSERT_EQ(position->m_y,0.1f);
     ASSERT_EQ(position->m_z,0.1f);

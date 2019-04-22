@@ -55,4 +55,13 @@
 #define FURIOUS_HAS_TAG(entity, tag) \
   (entity).has_tag(tag)
 
+#define FURIOUS_ADD_REFERENCE(entity, reference, other) \
+  (entity).add_reference(reference, other)
+
+#define FURIOUS_REMOVE_REFERENCE(entity, reference, other) \
+  (entity).remove_reference(reference, other)
+
+#define FURIOUS_GET_REFERENCE(entity, reference) \
+  (entity).get_reference(reference)
+
 #endif

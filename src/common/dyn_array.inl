@@ -5,7 +5,8 @@
 namespace furious
 {
 
-#define _FURIOUS_DYN_ARRAY_GROWTH_FACTOR 8
+#define _FURIOUS_DYN_ARRAY_GROWTH_FACTOR 2
+#define _FURIOUS_DYN_ARRAY_INITIAL_CAPACITY 8
 
 template<typename T>
 DynArray<T>::DynArray() : 
@@ -13,6 +14,8 @@ p_data(nullptr),
 m_capacity(0),
 m_num_elements(0)
 {
+  p_data = (char*)malloc(sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY);
+  m_capacity = _FURIOUS_DYN_ARRAY_INITIAL_CAPACITY;
 }
 
 template<typename T>
@@ -21,7 +24,15 @@ p_data(nullptr),
 m_capacity(0),
 m_num_elements(0)
 {
-  *this = other;
+  clear();
+  p_data = (char*)malloc(sizeof(T)*other.m_capacity);
+  m_capacity = other.m_capacity;
+  m_num_elements = other.m_num_elements;
+  for(uint32_t i = 0; i < other.m_num_elements; ++i)
+  {
+      void* ptr = &(((T*)p_data)[i]);
+      new (ptr) T(((T*)other.p_data)[i]);
+  }
 }
 
 template<typename T>
@@ -101,7 +112,7 @@ DynArray<T>::append(const T& item)
 {
   if(m_num_elements == m_capacity)
   {
-    uint32_t new_capacity = m_capacity + _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
+    uint32_t new_capacity = m_capacity * _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
     char* temp = (char*)malloc(sizeof(T)*new_capacity);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
@@ -124,7 +135,7 @@ DynArray<T>::append(T&& item)
 {
   if(m_num_elements == m_capacity)
   {
-    uint32_t new_capacity = m_capacity + _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
+    uint32_t new_capacity = m_capacity * _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
     char* temp = (char*)malloc(sizeof(T)*new_capacity);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
@@ -157,6 +168,7 @@ DynArray<T>::pop()
 {
   if(m_num_elements > 0)
   {
+  ((T*)p_data)[m_num_elements-1].~T();
     m_num_elements--;
   }
 }

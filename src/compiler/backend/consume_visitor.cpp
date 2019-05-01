@@ -21,6 +21,17 @@ p_context{context}
 void 
 ConsumeVisitor::visit(const Foreach* foreach)
 {
+
+  bool all_globals = true;
+  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
+  {
+    if(foreach->m_columns[i].m_type != FccColumnType::E_GLOBAL)
+    {
+      all_globals = false;
+      break;
+    }
+  }
+
   int param_index = 0;
   for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
   {
@@ -70,10 +81,17 @@ ConsumeVisitor::visit(const Foreach* foreach)
     std::string wrapper_name = generate_system_wrapper_name(system_name, 
                                                             info->m_id);
 
-    str_builder.append("%s->run(&context,\n%s->m_start", 
-                       wrapper_name.c_str(), 
-                       p_context->m_source.c_str(), 
-                       p_context->m_source.c_str());
+    if(all_globals)
+    {
+      str_builder.append("%s->run(&context,\n0", 
+                         wrapper_name.c_str());
+    }
+    else
+    {
+      str_builder.append("%s->run(&context,\n%s->m_start + i", 
+                         wrapper_name.c_str(), 
+                         p_context->m_source.c_str());
+    }
 
     for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
     {
@@ -88,16 +106,6 @@ ConsumeVisitor::visit(const Foreach* foreach)
       }
     }
     str_builder.append(");\n"); 
-  }
-
-  bool all_globals = true;
-  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
-  {
-    if(foreach->m_columns[i].m_type != FccColumnType::E_GLOBAL)
-    {
-      all_globals = false;
-      break;
-    }
   }
 
   if(all_globals)

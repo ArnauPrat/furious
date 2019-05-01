@@ -362,7 +362,7 @@ TEST(BTreeTest, BTree)
 {
   BTree<TestValue*>* btree = new BTree<TestValue*>();
 
-  uint32_t BTREE_MAX_KEY=10000;
+  uint32_t BTREE_MAX_KEY=100000;
 
   TestValue* values[BTREE_MAX_KEY];
 

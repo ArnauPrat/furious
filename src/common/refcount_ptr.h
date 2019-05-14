@@ -18,6 +18,7 @@ struct RefData
 template <typename T>
 struct RefCountPtr
 {
+  RefCountPtr();
   RefCountPtr(T* ptr);
   RefCountPtr(const RefCountPtr<T>& other);
   ~RefCountPtr();

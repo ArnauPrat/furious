@@ -63,6 +63,9 @@ produce(FILE* fd,
         const FccOperator* op);
 
 std::string
+sanitize_name(const std::string& str);
+
+std::string
 generate_table_name(const std::string& type_name, 
                     const FccOperator* op = nullptr);
 

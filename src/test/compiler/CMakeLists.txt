@@ -17,7 +17,7 @@ function(create_test NAME)
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp -i
                     "furious.h"
                     ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- --std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src
-                     DEPENDS fcc furious ${NAME}_script.cpp
+                    DEPENDS fcc furious ${NAME}_script.cpp ${NAME}_header.h
     )
 
   add_executable(${NAME}
@@ -43,6 +43,7 @@ SET(TESTS
     dependency_test
     expand_test
     global_test
+    reflection_test
   )
 
 foreach( TEST ${TESTS} )

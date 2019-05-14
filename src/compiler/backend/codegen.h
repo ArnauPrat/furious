@@ -5,6 +5,7 @@
 
 #include <string>
 
+
 namespace furious 
 {
 
@@ -36,6 +37,9 @@ generate_code(const FccExecPlan* exec_plan,
               const FccExecPlan* post_exec_plan,
               const std::string& filename,
               const std::string& include_file);
+
+
+
 
   
 } /* furious */ 

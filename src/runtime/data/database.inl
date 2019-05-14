@@ -229,4 +229,28 @@ Database::exists_global()
   return res;
 }
 
+template<typename T>
+void
+Database::add_refl_data(RefCountPtr<ReflData> refl_strct)
+{
+  assert(T::_component_name() == refl_strct.get()->m_type_name);
+  lock();
+  uint32_t hash_value = get_table_id<T>();
+  m_refl_data.insert_copy(hash_value, &refl_strct);
+  release();
+  return;
+}
+
+template<typename T>
+const ReflData* 
+Database::get_refl_data()
+{
+  lock();
+  uint32_t hash_value = get_table_id<T>();
+  ReflData* data = m_refl_data.get(hash_value)->get();
+  release();
+  return data;
+}
+
+
 } /* furious */ 

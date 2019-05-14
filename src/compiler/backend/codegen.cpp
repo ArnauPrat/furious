@@ -9,6 +9,7 @@
 #include "codegen_tools.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
+#include "reflection.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,7 +147,8 @@ public:
 class VarsExtr : public FccExecPlanVisitor 
 {
 public:
-  std::set<std::string> m_components;
+  std::set<CXXRecordDecl*> m_component_decls;
+  std::set<std::string>    m_components;
   std::set<std::string> m_tags;
   std::set<std::string> m_references;
 
@@ -162,6 +164,7 @@ public:
     if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
     {
       m_components.insert(get_type_name(scan->m_columns[0].m_q_type));
+      m_component_decls.insert(scan->m_columns[0].m_q_type->getAsCXXRecordDecl());
     }
     else
     {
@@ -193,7 +196,7 @@ public:
   virtual void
   visit(const Fetch* fetch)
   {
-    //m_components.insert(get_type_name(fetch->m_columns[0].m_q_type));
+    m_component_decls.insert(fetch->m_columns[0].m_q_type->getAsCXXRecordDecl());
   }
 
   virtual void 
@@ -207,6 +210,7 @@ public:
   visit(const ComponentFilter* component_filter) 
   {
     m_components.insert(get_type_name(component_filter->m_filter_type));
+    m_component_decls.insert(component_filter->m_filter_type->getAsCXXRecordDecl());
     component_filter->p_child.get()->accept(this);
   }
 
@@ -290,10 +294,10 @@ generate_code(const FccExecPlan* exec_plan,
   vars_extr.traverse(post_exec_plan);
 
   // TABLEVIEWS
-  for(const std::string& table : vars_extr.m_components)
+  for(const std::string& component_name : vars_extr.m_components)
   {
-    std::string table_varname = generate_table_name(table);
-    fprintf(fd, "TableView<%s> %s;\n", table.c_str(), table_varname.c_str());
+    std::string table_varname = generate_table_name(component_name);
+    fprintf(fd, "TableView<%s> %s;\n", component_name.c_str(), table_varname.c_str());
   }
 
   for(const std::string& ref_name : vars_extr.m_references)
@@ -326,13 +330,13 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "void __furious_init(Database* database)\n{\n");
 
   // INITIALIZING TABLEVIEWS 
-  for(const std::string& table : vars_extr.m_components)
+  for(const std::string& component_name : vars_extr.m_components)
   {
-    std::string table_varname = generate_table_name(table);
+    std::string table_varname = generate_table_name(component_name);
     fprintf(fd,
             "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
             table_varname.c_str(),
-            table.c_str());
+            component_name.c_str());
   }
 
   for(const std::string& ref_name : vars_extr.m_references)
@@ -382,6 +386,14 @@ generate_code(const FccExecPlan* exec_plan,
     }
     fprintf(fd,");\n");
   }
+
+  // GENERATING REFLECTION CODE
+  for(CXXRecordDecl* decl : vars_extr.m_component_decls)
+  {
+    generate_reflection_code(fd, decl);
+  }
+
+
   fprintf(fd,"}\n");
 
   /// GENERATING __furious_frame CODE
@@ -449,6 +461,12 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");
   fclose(fd);
+}
+
+void
+generate_reflection_code(FILE* fp, const QualType& decl)
+{
+
 }
   
 } /* furious */ 

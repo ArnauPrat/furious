@@ -6,6 +6,7 @@
 #include "common/common.h"
 #include "runtime/runtime.h"
 #include "lang/macros.h"
+#include "stddef.h"
 
 namespace furious
 {

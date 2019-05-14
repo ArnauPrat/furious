@@ -2,6 +2,8 @@
 include_directories(./)
 
 set(COMPILER_SRC
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.cpp

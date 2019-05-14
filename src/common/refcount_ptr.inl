@@ -9,6 +9,14 @@ m_num_refs(0)
 }
 
 template <typename T>
+RefCountPtr<T>::RefCountPtr() : 
+p_ptr(nullptr)
+{
+  p_ref_data = new RefData();
+  lock();
+}
+
+template <typename T>
 RefCountPtr<T>::RefCountPtr(T* ptr) : 
 p_ptr(ptr)
 {
@@ -70,6 +78,7 @@ RefCountPtr<T>::operator=(const RefCountPtr<T>& other)
   p_ptr = other.p_ptr;
   p_ref_data = other.p_ref_data;
   lock();
+  return *this;
 }
 
 } /* furious */ 

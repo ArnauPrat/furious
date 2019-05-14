@@ -71,6 +71,16 @@ std::string
 get_type_name(const QualType& type);
 
 /**
+ * \brief Gets the name of a QualType, including the namespace
+ *
+ * \param type The QualType to get the name from
+ *
+ * \return Returns the name of the QualType
+ */
+std::string 
+get_tagged_type_name(const QualType& type);
+
+/**
  * \brief Gets the fully qualified name of a QualType
  *
  * \param type The QualType to get the fully qualified type name from

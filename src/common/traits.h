@@ -1,6 +1,6 @@
 
-#ifndef _FURIOUS_REFLECTION_H_
-#define _FURIOUS_REFLECTION_H_
+#ifndef _FURIOUS_TRAITS_H_
+#define _FURIOUS_TRAITS_H_
 
 #include "reference.h"
 #include <cassert>

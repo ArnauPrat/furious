@@ -166,6 +166,16 @@ get_type_name(const QualType& type)
 }
 
 std::string 
+get_tagged_type_name(const QualType& type)
+{
+  QualType aux = type;
+  aux.removeLocalConst();
+  PrintingPolicy policy{{}};
+  policy.SuppressTagKeyword = false;
+  return QualType::getAsString(aux.split(), policy);
+}
+
+std::string 
 get_qualified_type_name(const QualType& type) 
 {
   PrintingPolicy policy{{}};

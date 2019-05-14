@@ -273,5 +273,4 @@ Database::remove_temp_tables_no_lock()
   m_temp_tables.clear();
 }
 
-  
 } /* furious */ 

@@ -3,6 +3,7 @@
 #ifndef _FURIOUS_DATABASE_H_
 #define _FURIOUS_DATABASE_H_
 
+#include "reflection.h"
 #include "table.h"
 #include "bit_table.h"
 #include "macros.h"
@@ -365,16 +366,37 @@ struct Database
   bool 
   exists_global();
 
+
+  /**
+   * \brief Adds reflection data for a given table or global 
+   *
+   * \param refl_strct The reflection data to add
+   */
+  template<typename T>
+  void
+  add_refl_data(RefCountPtr<ReflData> refl_strct);
+
+
+  /**
+   * \brief Gets the reflection data associated to a given table 
+   *
+   * @tparam T
+   */
+  template<typename T>
+  const ReflData* 
+  get_refl_data();
+
 private:
 
-  BTree<BitTable*>            m_tags;
-  BTree<Table*>               m_tables;           /** Holds a map between component types and their tables **/
-  BTree<Table*>               m_references;
-  BTree<Table*>               m_temp_tables;
-  BTree<GlobalInfo>           m_globals;
-  entity_id_t                 m_next_entity_id;
-  WebServer*                  p_webserver;
-  mutable std::mutex          m_mutex;
+  BTree<BitTable*>              m_tags;
+  BTree<Table*>                 m_tables;           /** Holds a map between component types and their tables **/
+  BTree<Table*>                 m_references;
+  BTree<Table*>                 m_temp_tables;
+  BTree<GlobalInfo>             m_globals;
+  BTree<RefCountPtr<ReflData>>  m_refl_data;
+  entity_id_t                   m_next_entity_id;
+  WebServer*                    p_webserver;
+  mutable std::mutex            m_mutex;
 };
 
 }

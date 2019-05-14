@@ -38,6 +38,8 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/database.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/database.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/database.inl

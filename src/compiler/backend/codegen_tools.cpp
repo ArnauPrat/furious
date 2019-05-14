@@ -84,19 +84,31 @@ produce(FILE* fd,
 }
 
 std::string
-generate_table_name(const std::string& type_name, 
-                    const FccOperator* op)
+sanitize_name(const std::string& name)
 {
-    std::string base_name = type_name;
+    std::string base_name = name;
     std::transform(base_name.begin(), 
                    base_name.end(), 
                    base_name.begin(), ::tolower);
 
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
+    char special_chars[] = {':','<','>',',','.',' '};
 
+    for(uint32_t i = 0; i < sizeof(special_chars); ++i)
+    {
+      std::replace(base_name.begin(),
+                   base_name.end(),
+                   special_chars[i],
+                   '_');
+    }
+
+    return base_name;
+}
+
+std::string
+generate_table_name(const std::string& type_name, 
+                    const FccOperator* op)
+{
+    std::string base_name = sanitize_name(type_name); 
     std::string table_varname = "table_"+base_name;
 
     if(op != nullptr)
@@ -153,15 +165,7 @@ std::string
 generate_block_name(const std::string& type_name,
                     const FccOperator* op)
 {
-    std::string base_name = type_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
+    std::string base_name = sanitize_name(type_name);
     std::string block_name =  "block_"+base_name; 
     if(op != nullptr)
     {
@@ -180,15 +184,7 @@ std::string
 generate_ref_groups_name(const std::string& ref_name,
                          const FccOperator* op)
 {
-    std::string base_name = ref_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
+    std::string base_name = sanitize_name(ref_name);
   return "ref_"+base_name+"_groups_"+std::to_string(op->m_id);
 }
 
@@ -219,15 +215,7 @@ std::string
 generate_global_name(const std::string& type_name, 
                     const FccOperator* op)
 {
-    std::string base_name = type_name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    std::replace(base_name.begin(),
-                 base_name.end(),
-                 ':',
-                 '_');
+    std::string base_name = sanitize_name(type_name);
 
     std::string global_varname = "global_"+base_name;
 

@@ -247,9 +247,14 @@ Database::get_refl_data()
 {
   lock();
   uint32_t hash_value = get_table_id<T>();
-  ReflData* data = m_refl_data.get(hash_value)->get();
+  RefCountPtr<ReflData>* data = m_refl_data.get(hash_value);
+  ReflData* ret = nullptr;
+  if(data != nullptr)
+  {
+    ret = data->get();
+  }
   release();
-  return data;
+  return ret;
 }
 
 

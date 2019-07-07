@@ -28,3 +28,6 @@ Entity Component Systems are effectively using the Relational Model to compose t
 
 On the other hand, systems can be seen as some sort of composition of a declarative select-like query plus an imperative game logic part containing the actual game update code. The select part, is the part where the system expresses the subset of entities the system applies to. For instance, in the above "UpdatePosition" example, the select part could be expressed, in natural language, as "Select all entitities having a Position and a Velocity component". Then, for all the entities resulting from such query, the imperative game logic part is executed. 
 
+## The furious approach
+
+The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. Traditional Entity Component Systems 

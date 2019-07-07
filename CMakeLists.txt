@@ -4,22 +4,26 @@ PROJECT( furious )
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release)
+  message(STATUS "Setting build type to 'RELEASE' as none was specified.")
+  set(CMAKE_BUILD_TYPE RELEASE)
 endif()
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 
 ## Checking for required packages
 
-#find_package(Clang REQUIRED)
+find_package(LibClang REQUIRED)
 
-set(CLANG_INCLUDES_DIR "/usr/lib/clang/8.0.0/include")
-
-if(NOT CLANG_INCLUDES_DIR)
-  message(FATAL_ERROR "Need to define folder wich clang includes")
+if(NOT LIBCLANG_FOUND)
+  message(FATAL_ERROR "LibClang could not be found")
 endif()
 
+set(CLANG_INCLUDES_DIR "${LIBCLANG_LIBDIR}/clang/${LIBCLANG_VERSION_STRING}/include")
+#
+#if(NOT CLANG_INCLUDES_DIR)
+#  message(FATAL_ERROR "Need to define folder with clang includes")
+#endif()
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 #set(CMAKE_INSTALL_PREFIX ${FURIOUS_INSTALL_PREFIX})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -46,8 +50,11 @@ set(FURIOUS_DEFAULT_DEFINES " ")
 set(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(FURIOUS_OUTPUT_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/furious")
 
-
 enable_testing()
+
+message(STATUS "BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message(STATUS "LIBCLANG: ${LIBCLANG_VERSION_STRING}")
+message(STATUS "LIBCLANG INCLUDES DIR: ${CLANG_INCLUDES_DIR}")
 
 add_subdirectory(src)
 

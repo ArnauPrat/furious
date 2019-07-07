@@ -1,6 +1,8 @@
 
 include_directories(./)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBCLANG_CXXFLAGS}")
+
 set(COMPILER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.h
@@ -39,7 +41,9 @@ add_executable( fcc
 
 set(LLVM_LINK_COMPONENTS support)
 
+link_directories(${LIBCLANG_LIBDIR})
 target_link_libraries(fcc 
+  ${LIBCLANG_LIBRARIES}
   clang 
   clangAST 
   clangASTMatchers

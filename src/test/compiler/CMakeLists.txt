@@ -1,7 +1,5 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
-#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -pg -DNDEBUG -ftree-vectorize -ftree-vectorizer-verbose=7 -fopt-info-vec-all -fno-devirtualize ")
 
 add_definitions(${FURIOUS_DEFAULT_DEFINES})
 

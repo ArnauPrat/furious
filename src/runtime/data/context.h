@@ -5,6 +5,7 @@
 
 #include "../../common/common.h"
 #include <vector>
+#include <string>
 
 namespace furious 
 {

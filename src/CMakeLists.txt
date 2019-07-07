@@ -99,26 +99,28 @@ add_executable( lang_test
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 install (TARGETS furious 
-          RUNTIME DESTINATION bin
-          LIBRARY DESTINATION lib)
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
-       FILES_MATCHING PATTERN "*.h"
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ 
+        DESTINATION include/furious
+        FILES_MATCHING PATTERN "*.h"
        )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/furious
-       FILES_MATCHING PATTERN "*.inl"
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ 
+        DESTINATION include/furious
+        FILES_MATCHING PATTERN "*.inl"
        )
 
-set(TIDY_SRC
-    ${RUNTIME_SRC}
-    ${COMMON_SRC}
-    )
-
-list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
-
-add_custom_target(
-  tidy-runtime
-  COMMAND clang-tidy ${TIDY_SRC} -checks=llvm-* -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
-  COMMENT "running clang tidy on RUNTIME"
-  )
+     #set(TIDY_SRC
+     #    ${RUNTIME_SRC}
+     #    ${COMMON_SRC}
+     #    )
+     #
+     #list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
+     #
+     #add_custom_target(
+     #  tidy-runtime
+     #  COMMAND clang-tidy ${TIDY_SRC} -checks=llvm-* -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
+     #  COMMENT "running clang tidy on RUNTIME"
+     #  )

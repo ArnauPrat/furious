@@ -37,17 +37,6 @@ add_executable( fcc
   ${COMPILER_SRC}
   )
 
-#set_target_properties(fcc
-#  PROPERTIES
-#  RUNTIME_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-#  LIBRARY_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-#  ARCHIVE_OUTPUT_DIRECTORY ${FURIOUS_OUTPUT_DIR}
-#)
-
-#set(Boost_USE_STATIC_LIBS OFF) 
-#set(Boost_USE_MULTITHREADED ON)  
-#set(Boost_USE_STATIC_RUNTIME OFF) 
-#FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 set(LLVM_LINK_COMPONENTS support)
 
 target_link_libraries(fcc 
@@ -63,20 +52,21 @@ target_link_libraries(fcc
   LLVM
   )
 
+
 install (TARGETS fcc 
-          RUNTIME DESTINATION bin
-          LIBRARY DESTINATION lib)
+  RUNTIME DESTINATION ${FURIOUS_INSTALL_PREFIX}/bin
+  LIBRARY DESTINATION ${FURIOUS_INSTALL_PREFIX}/lib)
 
-set(TIDY_SRC
-    ${COMPILER_SRC}
-    ${COMMON_SRC}
-    )
-
-list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
-
-add_custom_target(
-  tidy-compiler
-  COMMAND clang-tidy ${TIDY_SRC} ${COMPILER_SRC} -- --std=c++17 -I
-  ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
-  COMMENT "running clang tidy on COMPILER"
-  )
+#set(TIDY_SRC
+#    ${COMPILER_SRC}
+#    ${COMMON_SRC}
+#    )
+#
+#list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
+#
+#add_custom_target(
+#  tidy-compiler
+#  COMMAND clang-tidy ${TIDY_SRC} ${COMPILER_SRC} -- --std=c++17 -I
+#  ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
+#  COMMENT "running clang tidy on COMPILER"
+#  )

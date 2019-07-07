@@ -219,7 +219,10 @@ public:
 
 
 std::string
-generate_reflection_code(FILE* fd, ReflData* refl_data, const std::string& root, const std::string& path)
+generate_reflection_code(FILE* fd, 
+                         ReflData* refl_data, 
+                         const std::string& root, 
+                         const std::string& path)
 {
   std::string refl_data_varname = "ref_data_"+sanitize_name(refl_data->m_type_name);
   fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", refl_data_varname.c_str());

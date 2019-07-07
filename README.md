@@ -30,4 +30,19 @@ On the other hand, systems can be seen as some sort of composition of a declarat
 
 ## The furious approach
 
-The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. Traditional Entity Component Systems 
+The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. 
+
+**Traditional ECS**
+
+In traditional Entity Component Systems, the ECS comes with the form of an API allowing the users to declare and manipualte entities, as well as to create and execute systems. Such API is used in one ore more source files that are compiled and linked with the game engine. 
+
+
+![](figures/traditional.png)
+
+**furious ECS**
+
+Furious takes a slightly different approach. Like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the system's code is written in the so called "furious scripts". Such scripts, written in C++, are compiled alltogether with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file which is then compiled and linked with the rest of the game and the furious runtime library.
+
+Such an approach allows the Fcc to have a complete view of all the game logic. With such view, the fcc compiler can build and optimize an execution plan with the goal of minimizing the amount of memory accesses and improve data locality, given that multiple systems can share the access to one or more components, leading to a non-trivial optimal system execution order. In other words, the set of furious scripts is seen as a set of queries to be executed, which the fcc compiler tries to do in the most optimal way. The result is a single source code file that can be called from and linked with the rest of the code.
+
+![](figures/furious.png)

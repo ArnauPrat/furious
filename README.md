@@ -41,3 +41,14 @@ Finding the optimal execution order of such systems is not trivial. For this rea
 Moreover, the produced code makes use of tight for loops, no virtual function calls and operates in chunks of consecutive data, which alltogether allows the final C++ compiler to highly optimize the code and auto-vectorize it. 
 
 ![](figures/furious.png)
+
+## Compilation
+
+Furious uses CMAKE and the Make toolchain to build on Linux, which is currently the only supported platform. To compile the project:
+
+```
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=RELEASE ..
+```
+
+

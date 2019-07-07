@@ -1,7 +1,7 @@
 # furious
 [![Build Status](https://travis-ci.org/ArnauPrat/furious.svg?branch=master)](https://travis-ci.org/ArnauPrat/furious)
 
-Furious is an experimental Entity Component System  (ECS) library for game engines. As a research prototype, its main goal is to serve as a research platform to investigate the interesection of Modern database systems and Game Engines. 
+Furious is an experimental Entity Component System  (ECS) library for game engines written in C++11. As a research prototype, its main goal is to serve as a research platform to investigate the interesection of Modern database systems and Game Engines. 
 
 ## ECS Overview
 
@@ -30,4 +30,14 @@ On the other hand, systems can be seen as some sort of composition of a declarat
 
 ## The furious approach
 
-The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. Traditional Entity Component Systems 
+The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. 
+Like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the systems' code is written in the so called "furious scripts". Such scripts, written in C++, are compiled alltogether with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file which is then compiled and linked with the rest of the game and the furious runtime library.
+
+Such an approach allows the fcc compiler to have a complete view of all (or part of) the game logic expressed as furious scripts. With such a global view, the fcc compiler can produce a single C++11 src file that implements the expressed game logic. 
+
+The fcc compiler works under the assumption that logic of modern games is complex and is decomposed into tens of systems using tens or hundreds of different components, forming a complex bipartite graph between systems and components. 
+Finding the optimal execution order of such systems is not trivial. For this reason and thanks to the global view fcc has of the game logic, fcc can build and optimize an execution plan with the goal of minimizing the amount of work and memory accesses, improve data locality, and the overall execution time, similar how Databases optimize queries. 
+
+Moreover, the produced code makes use of tight for loops, no virtual function calls and operates in chunks of consecutive data, which alltogether allows the final C++ compiler to highly optimize the code and auto-vectorize it. 
+
+![](figures/furious.png)

@@ -223,6 +223,10 @@ generate_reflection_code(FILE* fd, ReflData* refl_data, const std::string& root,
 {
   std::string refl_data_varname = "ref_data_"+sanitize_name(refl_data->m_type_name);
   fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", refl_data_varname.c_str());
+  fprintf(fd, 
+          "%s.get()->m_type_name = \"%s\";\n", 
+          refl_data_varname.c_str(),
+          refl_data->m_type_name.c_str());
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
     ReflField* field = &refl_data->m_fields[i];

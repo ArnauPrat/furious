@@ -42,13 +42,14 @@ Moreover, the produced code makes use of tight for loops, no virtual function ca
 
 ![](figures/furious.png)
 
-## Compilation
+## Compilation and Installation
 
 Furious uses CMAKE and the Make toolchain to build on Linux, which is currently the only supported platform. To compile the project:
 
 ```
 mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=RELEASE ..
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=<path/to/install/prefix> ..
+make && make install
 ```
 
 

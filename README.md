@@ -53,7 +53,7 @@ Additionally, thanks to the source to source furious compiler, system's code can
 
 The following is a simple example of a furious script, which implements an "UpdatePosition" system.
 
-´´´cpp                                                                                                                                                                                                                   
+```cpp                                                                                                                                                                                                                   
 
 #include <furious/lang/lang.h>      
 #include "components/position.h"
@@ -103,7 +103,7 @@ furious::match<Transform, Velocity>().foreach<RotatorAroundParent>();
                                                                                                                                                                                                                    
 END_FURIOUS_SCRIPT 
 
-´´´
+```
 
 ## Compilation and Installation
 

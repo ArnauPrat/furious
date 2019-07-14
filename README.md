@@ -30,17 +30,19 @@ On the other hand, systems can be seen as some sort of composition of a declarat
 
 ## The furious approach
 
-The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems. 
-Like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the systems' code is written in the so called "furious scripts". Such scripts, written in C++, are compiled alltogether with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file which is then compiled and linked with the rest of the game and the furious runtime library.
+The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems.
 
-Such an approach allows the fcc compiler to have a complete view of all (or part of) the game logic expressed as furious scripts. With such a global view, the fcc compiler can produce a single C++11 src file that implements the expressed game logic. 
+In traditional ECSs, the user expresses imperatively where and in which order to execute the different systems in the main game loop. For instance, execute a system that implements the AI of the enemies, another that updates all entities positions,then another one that renders those entities with a mesh, etc. The optimal system execution order on complex games with tens of systems and components might not be trivial, thus the user must spend time in optimizing their code. Even worse, such order might change during the development of the game is it evolves.
 
-The fcc compiler works under the assumption that logic of modern games is complex and is decomposed into tens of systems using tens or hundreds of different components, forming a complex bipartite graph between systems and components. 
-Finding the optimal execution order of such systems is not trivial. For this reason and thanks to the global view fcc has of the game logic, fcc can build and optimize an execution plan with the goal of minimizing the amount of work and memory accesses, improve data locality, and the overall execution time, similar how Databases optimize queries. 
-
-Moreover, the produced code makes use of tight for loops, no virtual function calls and operates in chunks of consecutive data, which alltogether allows the final C++ compiler to highly optimize the code and auto-vectorize it. 
+In furious, like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the systems' code is written in the so called "furious scripts". Such scripts, written in C++, are compiled all together with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file which is then compiled and linked with the rest of the game and the furious runtime library.
 
 ![](figures/furious.png)
+
+Furious scripts are composed by two parts:
+* A declarative part which specifies the entities the system should run on
+* An imperative part where the logic of the system is implemented
+
+Given a set of "furious scripts" implementing the game logic, the fcc compiler can produce a single C++11 src file implementing the same game logic yet minimizing memory accesses, favoring auto-vectorization and eliminating any kind of virtual function call. 
 
 ## Compilation and Installation
 

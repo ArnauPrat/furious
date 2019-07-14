@@ -32,17 +32,78 @@ On the other hand, systems can be seen as some sort of composition of a declarat
 
 The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems.
 
-In traditional ECSs, the user expresses imperatively where and in which order to execute the different systems in the main game loop. For instance, execute a system that implements the AI of the enemies, another that updates all entities positions,then another one that renders those entities with a mesh, etc. The optimal system execution order on complex games with tens of systems and components might not be trivial, thus the user must spend time in optimizing their code. Even worse, such order might change during the development of the game is it evolves.
+In traditional ECSs, the user expresses imperatively where and in which order to execute the different systems in the main game loop. For instance, execute a system that implements the AI of the enemies, another that updates all entities positions,then another one that renders those entities with a mesh, etc. The optimal system execution order (which may change as the development of the game evolves) on complex games with tens of systems and components might not be trivial, thus the user must spend time in optimizing their code, something that could be automated by a tool.
 
-In furious, like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the systems' code is written in the so called "furious scripts". Such scripts, written in C++, are compiled all together with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file which is then compiled and linked with the rest of the game and the furious runtime library.
+In furious, like in traditional ECSs, the code to declare and create entities is written as usual and compiled and linked with the rest of the game code. However, the systems' code is written in the so called "furious scripts". Such scripts, written in C++, are compiled all together with the Furious C++ to C++ compiler (fcc), which produces a single C++ source code file with a set of predefined functions that can be called from game's code, and which are then compiled and linked with the rest of the game and the furious runtime library.
 
 ![](figures/furious.png)
 
 Furious scripts are composed by two parts:
-* A declarative part which specifies the entities the system should run on
+* A declarative part (the query) which specifies the entities the system should run on
 * An imperative part where the logic of the system is implemented
 
-Given a set of "furious scripts" implementing the game logic, the fcc compiler can produce a single C++11 src file implementing the same game logic yet minimizing memory accesses, favoring auto-vectorization and eliminating any kind of virtual function call. 
+Given a set of "furious scripts" implementing the game logic, the fcc compiler understands the declarative part (the query) of the furious scripts and out of it, creates an execution plan, which is optimized using a cost model to produce a single C++11 src file implementing the same game logic. The optimization process's goal is to run the game logic as fast as possible by:
+
+* minimizing the use of function calls (and no virtual calls) so the produced code is as explicit as possible to the final compiler, so it can optimize register allocation 
+* place the code in tight for loops with inlined code, which opertes on aligned memory arrays to be easy to auto-vectorize by the compiler
+* take advantage of common system's subqueries to reduce the amount of times the same data is fetched from memory every frame, improving data locality
+* understanding dependencies between systems and their components access modes (READ or READ_WRITE), allowing for an automatic and safe parallelization of the execution plans
+
+Additionally, thanks to the source to source furious compiler, system's code can be kept into independent modular scripts, making the code presumably more maintainable since no hand-crafted optimizations need to be performed.
+
+The following is a simple example of a furious script, which implements an "UpdatePosition" system.
+
+´´´cpp                                                                                                                                                                                                                   
+
+#include <furious/lang/lang.h>      
+#include "components/position.h"
+#include "components/velocity.h"
+                   
+   
+/** Components code declared in position.h and velocity.h files
+
+struct Position
+{
+  FURIOUS_COMPONENT(Position);
+  float m_x;
+  float m_y;
+  float m_z;
+};
+
+struct Velocity
+{
+  FURIOUS_COMPONENT(Velocity;
+  float m_x;
+  float m_y;
+  float m_z;
+};
+
+**/
+                                                                                                                                                                                                                   
+BEGIN_FURIOUS_SCRIPT                                                                                                                                                                                               
+   
+// The imperative part (System's implementation)
+struct UpdatePosition                                                                                                                                                                                         
+{                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           Position* position,                                                                                                                                                                                
+           const Velocity* velocity)                                                                                                                                                                            
+  {                                                                                                                                                                                                                
+        position->m_x += velocity->m_x*context->m_dt;        
+        position->m_y += velocity->m_y*context->m_dt; 
+        position->m_z += velocity->m_y*context->m_dt; 
+  }                                                                                                                                                                                                                
+                                                                                                                                                                                                    
+};                                                                                                                                                                                                                 
+   
+// The declarative part (the query)
+furious::match<Transform, Velocity>().foreach<RotatorAroundParent>();                                                                                                                                    
+                                                                                                                                                                                 
+                                                                                                                                                                                                                   
+END_FURIOUS_SCRIPT 
+
+´´´
 
 ## Compilation and Installation
 

@@ -26,6 +26,8 @@ Such a way of building entities and expressing logic, have several advantages ov
 
 Entity Component Systems are effectively using the Relational Model to compose the entities. The entity id or index, is the entities primary-key while components are typically stored in arrays or similar data structures indexed by the entity index. Such data structures are equivalent to tables in databases. 
 
+In Furious, there exists a table for each different component type. Such tables, are split into blocks of a fixed size (64 entries by default) and each position of a block corresponds to an entity. Each block contains additional data such as the block offset, a bitmap to store if a given position in the block is valid, or whether the corresponding component in a position is enabled or not. 
+
 On the other hand, systems can be seen as some sort of composition of a declarative select-like query plus an imperative game logic part containing the actual game update code. The select part, is the part where the system expresses the subset of entities the system applies to. For instance, in the above "UpdatePosition" example, the select part could be expressed, in natural language, as "Select all entitities having a Position and a Velocity component". Then, for all the entities resulting from such query, the imperative game logic part is executed. 
 
 The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems.

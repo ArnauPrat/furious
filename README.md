@@ -42,7 +42,7 @@ Furious scripts are composed by two parts:
 * A declarative part (the query) which specifies the entities the system should run on
 * An imperative part where the logic of the system is implemented
 
-Given a set of "furious scripts" implementing the game logic, the fcc compiler understands the declarative part (the query) of the furious scripts and out of it, creates an execution plan, which is optimized using a cost model to produce a single C++11 src file implementing the same game logic. The optimization process's goal is to run the game logic as fast as possible by:
+Given a set of "furious scripts" implementing the game logic, the fcc compiler understands the declarative part (the query) of the furious scripts and for each one, creates an execution plan. Given all the execution plans, the compiler is able to merge them and produce a newly optimized execution plan using a cost model, which in turn is translated to a single C++11 src file implementing the same game logic expressed in the scripts. The optimization process's goal is to run the game logic as fast as possible by:
 
 * minimizing the use of function calls (and no virtual calls) so the produced code is as explicit as possible to the final compiler, so it can optimize register allocation 
 * place the code in tight for loops with inlined code, which opertes on aligned memory arrays to be easy to auto-vectorize by the compiler

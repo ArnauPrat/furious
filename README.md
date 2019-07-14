@@ -22,13 +22,11 @@ Such a way of building entities and expressing logic, have several advantages ov
 * Data locality: Since components contain only tightly semantically related data, and systems are build to operate only on such data in a streaming fashion (tight loops), spatial locality is enforced and CPU prefetchers exploited.
 * Code locality: Since the logic is stored in systems, and systems are run on all entities that qualify, code locality is achieved.
 
-## Entity Component Systems and Databases
+## Motivation
 
 Entity Component Systems are effectively using the Relational Model to compose the entities. The entity id or index, is the entities primary-key while components are typically stored in arrays or similar data structures indexed by the entity index. Such data structures are equivalent to tables in databases. 
 
 On the other hand, systems can be seen as some sort of composition of a declarative select-like query plus an imperative game logic part containing the actual game update code. The select part, is the part where the system expresses the subset of entities the system applies to. For instance, in the above "UpdatePosition" example, the select part could be expressed, in natural language, as "Select all entitities having a Position and a Velocity component". Then, for all the entities resulting from such query, the imperative game logic part is executed. 
-
-## The furious approach
 
 The goal of furious is to apply Database concepts such as query compilation and query optimizers to Entity Component Systems.
 
@@ -98,12 +96,78 @@ struct UpdatePosition
 };                                                                                                                                                                                                                 
    
 // The declarative part (the query)
-furious::match<Transform, Velocity>().foreach<RotatorAroundParent>();                                                                                                                                    
+furious::match<Position, Velocity>().foreach<UpdatePosition>();                                                                                                                                    
                                                                                                                                                                                  
                                                                                                                                                                                                                    
 END_FURIOUS_SCRIPT 
 
 ```
+which would produce the following simple execution plan
+
+```
+- foreach (4) - "UpdatePosition ()"
+   |- join(3)
+    |- scan (2) - "Position"
+    |- scan (1) - "Velocity"
+```
+
+Let's supose we have another furious script, that updates the velocity randomly each frame
+
+```cpp                                                                                                                                                                                                                   
+
+#include <furious/lang/lang.h>      
+#include "components/velocity.h"
+                   
+                                                                                                                                                                                                                   
+BEGIN_FURIOUS_SCRIPT                                                                                                                                                                                               
+   
+// The imperative part (System's implementation)
+struct UpdateVelocity                                                                                                                                                                                       
+{    
+  UpdateVelocity(float acceleration) :
+  m_accl(acceleration)
+  {
+  }
+  
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           Velocity* velocity)                                                                                                                                                                            
+  {                                                                                                                                                                                                         
+        velocity->m_x += context->m_dt*m_accl;
+        velocity->m_y += context->m_dt*m_accl;
+        velocity->m_z += context->m_dt*m_accl;
+  }
+  
+  float m_accl;
+                                                                                                                                                                                                    
+};                                                                                                                                                                                                                 
+   
+// The declarative part (the query)
+furious::match<Velocity>().foreach<UpdateVelocity>(0.1f);                                                                                                                                    
+                                                                                                                                                                                 
+                                                                                                                                                                                                                   
+END_FURIOUS_SCRIPT 
+```
+
+which would produce the following execution plan:
+
+```
+- foreach (6) - "UpdateVelocity ()"
+   |- scan (5) - "Velocity"
+```
+
+then, the fcc compiler, could merge both execution plans as follows:
+
+```
+- foreach (4) - "UpdatePosition ()"
+   |- join(3)
+    |- scan (2) - "Position"
+    |- foreach (6) - "UpdateVelocity ()"
+       |- scan (5) - "Velocity"
+```
+
+chaining the execution of UpdateVelocity with UpdatePosition, and thus, the Velocity data would only be accessed once. Note also that there is an output dependency between UpdateVelocity and UpdatePosition systems, since UpdatePosition reads the Velocity value written by UpdateVelocity. Furious creates a dependency graph between systems to check for dependencies, and provides a mechanism to let the programmer break them when they are cyclic.
+
 
 ## Compilation and Installation
 

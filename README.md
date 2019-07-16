@@ -186,14 +186,30 @@ make && make install
 
 ## Using Furious 
 
-### Initialization
+### (De-)Initialization
 
-Furious defines the following macros for creating entities:
+The central object of furious is the ```cpp Database```, which is the one responsible of storing all the data regarding entities, components, tags and references.
 
 ```cpp
+#include <furious/furious.h>
+
+// ...
+furious::Database* database = new furious::Database();
+// ...
+delete database;
 ```
 
-### Creating entities
+### Creating/destroying entities
+
+```cpp
+#include <furious/furious.h>
+
+// ...
+Entity entity = FURIOUS_CREATE_ENTITY(database);
+// ...
+FURIOUS_DESTROY_ENTITY(entity);
+// ...
+```
 
 ### Adding, removing and accessing components
 

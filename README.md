@@ -107,7 +107,7 @@ furious::match<Position, Velocity>().foreach<UpdatePosition>();
 END_FURIOUS_SCRIPT 
 
 ```
-which would produce the following simple execution plan
+which would produce the following simple execution plan, which would join tables Position and Velocity, and for each joined entity, would run the update position system.
 
 ```
 - foreach (4) - "UpdatePosition ()"
@@ -116,7 +116,7 @@ which would produce the following simple execution plan
     |- scan (1) - "Velocity"
 ```
 
-Let's supose we have another furious script, that updates the velocity randomly each frame
+Now, let's supose we add another furious script to our game, that updates the velocity each frame:
 
 ```cpp                                                                                                                                                                                                                   
 
@@ -171,7 +171,7 @@ then, the fcc compiler, could merge both execution plans as follows:
        |- scan (5) - "Velocity"
 ```
 
-chaining the execution of UpdateVelocity with UpdatePosition, and thus, the Velocity data would only be accessed once. Note also that there is an output dependency between UpdateVelocity and UpdatePosition systems, since UpdatePosition reads the Velocity value written by UpdateVelocity. Furious creates a dependency graph between systems to check for dependencies, and provides a mechanism to let the programmer break them when they are cyclic.
+chaining the execution of UpdateVelocity with UpdatePosition, and thus, the Velocity table blocks would only be accessed once. Note also that there is an output dependency between UpdateVelocity and UpdatePosition systems, since UpdatePosition reads the Velocity value written by UpdateVelocity. Furious creates a dependency graph between systems to check for dependencies, and provides a mechanism to let the programmer break them when they are cyclic.
 
 
 ## Compilation and Installation
@@ -184,4 +184,21 @@ cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=<path/to/install/prefix>
 make && make install
 ```
 
+## Using Furious 
 
+### Initialization
+
+Furious defines the following macros for creating entities:
+
+```cpp
+```
+
+### Creating entities
+
+### Adding, removing and accessing components
+
+### Adding and removing tags to/from entities
+
+### Adding and removing references between entities
+
+### Writting Furious scripts

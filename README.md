@@ -210,11 +210,85 @@ Entity entity = FURIOUS_CREATE_ENTITY(database);
 FURIOUS_DESTROY_ENTITY(entity);
 // ...
 ```
+### Definning components
+
+Defining components is straight forward. They are declared as a simple ```cpp struct```, with a macro used to automatically create several methods furious needs. 
+
+```cpp
+#include <furious/furious.h>
+
+struct Position 
+{
+  FURIOUS_COMPONENT(Position);
+  
+  Position(float x, float y, float z) :
+   m_x(x), 
+   m_y(y),
+   m_z(z)
+   {
+   }
+  
+  float m_x;
+  float m_y;
+  float m_z;
+};
+```
 
 ### Adding, removing and accessing components
 
+```cpp
+#include <furious/furious.h>
+
+//...
+// Adding a component
+FURIOUS_ADD_COMPONENT(entity, Position, 0.0f, 0.0f, 0.0f);
+
+//...
+// Getting pointer to a component
+const Position* position = FURIOUS_GET_COMPONENT(entity, Position);
+
+//...
+// Removing a component
+FURIOUS_REMOVE_COMPONENT(entity, Position);
+
+```
+
 ### Adding and removing tags to/from entities
 
+```cpp
+#include <furious/furious.h>
+
+//...
+// Tagging an entity
+FURIOUS_ADD_TAG(entity, "tag");
+
+//...
+// Checking if an entity is tagged
+bool has_tag = FURIOUS_HAS_TAG(entity, "tag");
+
+//...
+// Removing a tag
+FURIOUS_REMOVE_TAG(entity, "tag");
+```
+
+
 ### Adding and removing references between entities
+
+
+```cpp
+#include <furious/furious.h>
+
+//...
+// Tagging an entity
+FURIOUS_ADD_REFERENCE(entity1, "refname", entity2);
+
+//...
+// Getting a reference
+Entity entityX = FURIOUS_GET_REFERENCE(entity, "refname");
+
+//...
+// Removing a reference
+FURIOUS_REMOVE_REFERENCE(entity, "refname");
+```
 
 ### Writting Furious scripts

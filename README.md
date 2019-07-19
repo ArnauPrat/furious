@@ -3,6 +3,16 @@
 
 Furious is an experimental Entity Component System  (ECS) library for game engines written in C++11. As a research prototype, its main goal is to serve as a research platform to investigate the interesection of Modern database systems and Game Engines. 
 
+## Table of Contents
+
+[ECS Overview](#overview)
+[Motivation](#motivation)
+[Compilation And Installation](#compilation)
+[Using Furious](#using)
+[Furious FCC Compiler](#compiler)
+[TODO](#todo)
+
+<a name="overview"/>
 ## ECS Overview
 
 Entity Component Systems, which are very popular nowadays in commercial game engines such as Unity.
@@ -22,6 +32,7 @@ Such a way of building entities and expressing logic, have several advantages ov
 * Data locality: Since components contain only tightly semantically related data, and systems are build to operate only on such data in a streaming fashion (tight loops), spatial locality is enforced and CPU prefetchers exploited.
 * Code locality: Since the logic is stored in systems, and systems are run on all entities that qualify, code locality is achieved.
 
+<a name="motivation"/>
 ## Motivation
 
 Entity Component Systems are effectively using the Relational Model to compose the entities. The entity id or index, is the entities primary-key while components are typically stored in arrays or similar data structures indexed by the entity index. Such data structures are equivalent to tables in databases. 
@@ -173,7 +184,7 @@ then, the fcc compiler, could merge both execution plans as follows:
 
 chaining the execution of UpdateVelocity with UpdatePosition, and thus, the Velocity table blocks would only be accessed once. Note also that there is an output dependency between UpdateVelocity and UpdatePosition systems, since UpdatePosition reads the Velocity value written by UpdateVelocity. Furious creates a dependency graph between systems to check for dependencies, and provides a mechanism to let the programmer break them when they are cyclic.
 
-
+<a name="compilation"/>
 ## Compilation and Installation
 
 Furious uses CMAKE and the Make toolchain to build on Linux, which is currently the only supported platform. To compile the project:
@@ -183,7 +194,7 @@ mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=<path/to/install/prefix> ..
 make && make install
 ```
-
+<a name="using"/>
 ## Using Furious 
 
 ### Game Engine integration
@@ -341,6 +352,11 @@ FURIOUS_REMOVE_REFERENCE(entity, "refname");
 
 ### Writting Furious scripts
 
+Furious scripts are typically composed by two parts: 1) a system (which implements the game logic, that is, how entity components are updated, and 2) one or more queries, which specify which entities should have the system applied to. Both parts must be defined between the ```cpp BEGIN_FURIOUS_SCRIPT``` and ```cpp END_FURIOUS_SCRIPT``` macros, which are used by the fcc compiler as an entry point for the scripts. Such macros and the rest of the furious script DSL is define in the ```cpp furious/lang/lang.h``` header, which must be included in all the scripts.
+
+Scripts can include any headers with component definition or other engine data structures to be used within the systems. For example, a header containing matrix and vector definitions, a mesh class, etc. The furious fcc compiler uses C++17 standard, but the produced output is guaranteed to follow the standard used in the scripts (as long as this is older than C++17). For instance, if you use C++11 in the scripts, the output of the fcc compiler will be C++11 compatible.
+
+The following is an example of a furious script, where a system and a query are specified.
 
 ```cpp                                                                                                                                                                                                                   
 
@@ -393,10 +409,139 @@ furious::match<Position, Velocity>().foreach<UpdatePosition>();
 END_FURIOUS_SCRIPT
 ```
 
+The system is a C++ struct with a run method with the following signature:
+```cpp
+void run(furious::Context,                                                                                                                                                                              
+           uint32_t,                                                                                                                                                                                            
+           ComponentA*,                                                                                                                                                                                
+           ComponentB*,
+           ...
+         );
+```
+The first parameter, of type ```cpp furious::Context```, is used to pass information to the system such as the delta time of the frame, or the user defined data provided by the ```cpp __furious_frame``` call. Also, it will be used in the future as a channel for sending commands back to the furious runtime.
+
+The second parameter is the id of the entity being processed. Then, the other parameters are the pointers to components the system uses. Such pointers can have the ```cpp const``` qualifier, which is used to tell furious that a given component will be only read and not written. This is important because this knowledge allows furious to know if it can apply certain optimizations like running systems in parallel or not.
+
+Systems can also have constructors which allows for their parametrization. In furious, the same system can have multiple instances and be run on different sets of entities.
+
+The query part of the scripts is the part where the user specifies the entities the system will run on to. A query always starts with a ```cpp furious::match<ComponentA, ComponentB, ...>()```, which tells furious to match all the entities with components ```cpp ComponentA```, ```cpp ComponentB```, etc. In the match clause, the ```cpp const``` qualifiers are ommited. 
+
+After the match part, the user indicates the operation be run on such entities. Currently, the only supported operation is the ```cpp foreach<T>()``` operation. The template parameter is the system to be run. Note that the order of the match template parameters (the component types) and that of the ```cpp run()``` method of the system and their types must match. Finally, the ```cpp foreach<T>()``` method can take the constructor parameters of the system, which will be forwarded to the corresponding system's constructor.
+
+For instance, the following query:
+
+```cpp
+furious::match<ComponentA, ComponentB>().foreach<SystemX>(1.0,"test");
+```
+
+Will run ```cpp SystemX```, constructed with parameters ```cpp 1.0``` and ```cpp "test"``` on all entities that have both components ```cpp ComponentA``` and ```cpp ComponentB```.
+
 #### Predicates 
+
+Different types of predicates can be added to queries, in order to restrict the set of entities to be matched.
+
+##### has_tag and hast_not_tag
+
+As explained above, entities can be tagged. Such tags are used to filter out entities to be matched on furious script queries, by means of the ```cpp has_tag``` and ```cpp has_not_tag``` functions. Here are two examples:
+
+```cpp
+furious::match<ComponentA, ComponentB>().has_tag("tag").foreach<SystemX>(1.0,"test");
+furious::match<ComponentA, ComponentB>().has_not_tag("tag").foreach<SystemX>(1.0,"test");
+```
+which, will only match those entities with the corresponding components that have the tag ```cpp "tag"``` and don't have the tag ```cpp "tag"```
+
+##### has_component and has_not_component
+
+Similar to tags, entities can also be filtered by whether they have a component or not. It might happen that we want to apply a system to entities that have a component, but in that system we do not need to access such component. Similarly, we might interested to apply a system to entities that do not have a given component type. Here you are two examples:
+
+```cpp
+furious::match<ComponentA, ComponentB>().has_component<ComponentC>().foreach<SystemX>(1.0,"test");
+furious::match<ComponentA, ComponentB>().has_not_component<ComponentC>().foreach<SystemX>(1.0,"test");
+```
+The first would match those entities with components ```cpp ComponentA``` and ```cpp ComponentB```, and that also have component ```cpp ComponentC``` but it is not needed in the system. The second would  match those entities with components ```cpp ComponentA``` and ```cpp ComponentB```, that do not have ```cpp ComponentC```
+
+##### filter
+
+The third way of filtering entities is by applying predicates with lambda expressions. For instance, we can have:
+
+```cpp
+furious::match<ComponentA, ComponentB>().filter([](const ComponentA* a, const ComponentB*  b) {
+     bool ret = false;
+     //...
+     return  ret;
+}).foreach<SystemX>(1.0,"test");
+```
+Which  would return ```cpp true``` if we want an entity to be matched and ```cpp false``` if we want to be discarded. The lambda expressions must receive the same component types as the system, but always with a ```cpp const``` qualifier.
 
 #### Expand
 
+Another feature of furious is the ability to define references between entities. Such references can be used when matching entities in queries, to access components from different entities in a system. Lets suppose we have the following script:
+
+
+```cpp                                                                                                                                                                                                                   
+
+#include <furious/lang/lang.h>      
+#include "components.h" // header defining components                   
+                                                                                                                                                                                                                  
+BEGIN_FURIOUS_SCRIPT                                                                                                                                                                                               
+   
+// The imperative part (System's implementation)
+struct SystemX                                                                                                                                                                                        
+{                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           ComponentA* component,                                                                                                                                                                                
+           const ComponentB* parent_component)                                                                                                                                                                            
+  {                                                                                                                                                                                                                
+        // ...
+  }                                                                                                                                                                                                                
+                                                                                                                                                                                                    
+};                                                                                                                                                                                                                 
+   
+// The declarative part (the query)
+furious::match<ComponentA>().expand<ComponentA>("reference_type").foreach<SystemX>();                                                                                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                   
+END_FURIOUS_SCRIPT
+```
+Such query would match those entities that have a component ```cpp ComponentA``` and have a reference of type ```cpp reference_type``` to another entity which also have the component ```cpp ComponentA```. Then, for each match, the system would be applied and both components would be given to the system's ```cpp run``` method. 
+
+The only restriction of the expand clause is that Components accessed through expand must always be read-only, that is, have the ```cpp const``` qualifier in the system. 
+
+Predicates can also be combined with the expand clause. For instance:
+
+```cpp
+furious::match<ComponentA>().has_tag("tag").expand<ComponentA>("reference_type").has_component<ComponentB>().foreach<SystemX>();  
+```
+would match those entities that have a component ```cpp ComponentA``` and are tagged with the tag ```cpp tag``` and have a reference of type ```cpp reference_type``` to another entity which also have the component ```cpp ComponentA``` and which at the same time has component ```cpp ComponentB```. 
+
+Finally, expand can take no template parameters. This allows matching entities that have references to other entities in cases that we are not interested on any component of the referenced entity. For instance, we could have:
+
+
+```cpp
+struct SystemY                                                                                                                                                                                        
+{                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           ComponentA* component)                                                                                                                                                                            
+  {                                                                                                                                                                                                                
+        // ...
+  }                                                                                                                                                                                                                
+                                                                                                                                                                                                    
+};   
+furious::match<ComponentA>().expand<>("reference_type").foreach<SystemX>();  
+```
+which would match those entities that have a component ```cpp ComponentA``` and a reference to another entity through the reference of ```cpp reference_type``` (without caring about any of its components).
+
+
 #### Setting priorities
+
+<a name="compiler"/>
+## Calling the furious fcc compiler
+
+<a name="todo"/>
+## TODO
+
+* add support for parallel execution
+* add optimization steps
 
 

@@ -6,10 +6,15 @@ Furious is an experimental Entity Component System  (ECS) library for game engin
 ## Table of Contents
 
 [ECS Overview](#overview)
+
 [Motivation](#motivation)
+
 [Compilation And Installation](#compilation)
+
 [Using Furious](#using)
+
 [Furious FCC Compiler](#compiler)
+
 [TODO](#todo)
 
 <a name="overview"/>

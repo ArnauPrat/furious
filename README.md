@@ -77,7 +77,7 @@ The following is a simple example of a furious script, which implements an "Upda
 #include "components/velocity.h"
                    
    
-/** Components code declared in position.h and velocity.h files
+/** Components code defined in position.h and velocity.h files
 
 struct Position
 {
@@ -369,7 +369,7 @@ The following is an example of a furious script, where a system and a query are 
 #include "components/velocity.h"
                    
    
-/** Components code declared in position.h and velocity.h files
+/** Components code defined in position.h and velocity.h files
 
 struct Position
 {

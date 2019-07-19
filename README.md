@@ -5,19 +5,16 @@ Furious is an experimental Entity Component System  (ECS) library for game engin
 
 ## Table of Contents
 
-[ECS Overview](#overview)
+* [ECS Overview](#overview)
+* [Motivation](#motivation)
+* [Compilation And Installation](#compilation)
+* [Using Furious](#using)
+* [Furious FCC Compiler](#compiler)
+* [TODO](#todo)
 
-[Motivation](#motivation)
-
-[Compilation And Installation](#compilation)
-
-[Using Furious](#using)
-
-[Furious FCC Compiler](#compiler)
-
-[TODO](#todo)
 
 <a name="overview"/>
+
 ## ECS Overview
 
 Entity Component Systems, which are very popular nowadays in commercial game engines such as Unity.
@@ -38,6 +35,7 @@ Such a way of building entities and expressing logic, have several advantages ov
 * Code locality: Since the logic is stored in systems, and systems are run on all entities that qualify, code locality is achieved.
 
 <a name="motivation"/>
+
 ## Motivation
 
 Entity Component Systems are effectively using the Relational Model to compose the entities. The entity id or index, is the entities primary-key while components are typically stored in arrays or similar data structures indexed by the entity index. Such data structures are equivalent to tables in databases. 
@@ -200,6 +198,7 @@ cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=<path/to/install/prefix>
 make && make install
 ```
 <a name="using"/>
+
 ## Using Furious 
 
 ### Game Engine integration
@@ -541,9 +540,11 @@ which would match those entities that have a component ```cpp ComponentA``` and 
 #### Setting priorities
 
 <a name="compiler"/>
+
 ## Calling the furious fcc compiler
 
 <a name="todo"/>
+
 ## TODO
 
 * add support for parallel execution

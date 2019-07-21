@@ -522,6 +522,7 @@ Finally, expand can take no template parameters. This allows matching entities t
 
 
 ```cpp
+BEGIN_FURIOUS_SCRIPT
 struct SystemY                                                                                                                                                                                        
 {                                                                                                                                                                                                                                                                                                                                                                                                                                   
   void run(furious::Context* context,                                                                                                                                                                              
@@ -532,12 +533,54 @@ struct SystemY
   }                                                                                                                                                                                                                
                                                                                                                                                                                                     
 };   
-furious::match<ComponentA>().expand<>("reference_type").foreach<SystemX>();  
+furious::match<ComponentA>().expand<>("reference_type").foreach<SystemX>();
+
+
+END_FURIOUS_SCRIPT
 ```
 which would match those entities that have a component ```cpp ComponentA``` and a reference to another entity through the reference of ```cpp reference_type``` (without caring about any of its components).
 
-
 #### Setting priorities
+
+Sometimes there are conflicting systems with mutual RAW (Read After Write) dependencies, forming a cyclic dependency that must be broken. The furious fcc compiler does not know how to break such dependencies, thus the user must provide a hint to help the compiler producing the user's desired output. Imagine the following example:
+
+
+```cpp
+BEGIN_FURIOUS_SCRIPT
+struct SystemX                                                                                                                                                                                        
+{                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           ComponentA* componentA,                                                                                                                                                                                
+           const ComponentB* componentB)                                                                                                                                                                            
+  {                                                                                                                                                                                                                
+        // ...
+  }                                                                                                                                                                                                                
+                                                                                                                                                                                                    
+};                                                                                                                                                                                                                 
+   
+furious::match<ComponentA, ComponentB>().foreach<SystemX>();   
+
+struct SystemY                                                                                                                                                                                        
+{                                                                                                                                                                                                                                                                                                                                                                                                                                   
+  void run(furious::Context* context,                                                                                                                                                                              
+           uint32_t id,                                                                                                                                                                                            
+           ComponentA* component)                                                                                                                                                                            
+  {                                                                                                                                                                                                                
+        // ...
+  }                                                                                                                                                                                                                
+                                                                                                                                                                                                    
+};   
+furious::match<ComponentA>().foreach<SystemY>();
+END_FURIOUS_SCRIPT
+```
+
+Both systems ```cpp SystemX``` and ```cpp SystemY``` access to component ```cpp ComponentA``` in read-write mode, thus they are dependant. The furious fcc compiler needs to know which to schedule. To do so, you can use the ```cpp set_priority()``` method to set the priority of a system execution. For example, we chould replace the second sytem call by:
+
+```cpp
+furious::match<ComponentA>().foreach<SystemY>().set_priority(1);
+```
+to tell furious to execute ```cpp SystemY``` after ```cpp SystemX```. By default, all systems have priority ```0```, which is the higher priority.  By setting ```cpp SystemY``` priority to ```1```, we are telling furious that it has a lower priority so it will be executed later.
 
 <a name="compiler"/>
 

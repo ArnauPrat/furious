@@ -586,6 +586,16 @@ to tell furious to execute ```cpp SystemY``` after ```cpp SystemX```. By default
 
 ## Calling the furious fcc compiler
 
+The furious fcc compiler can be called as follows:
+
+```
+fcc -o  <output_file> -i  <path_to_furious_h>  <script_1> <script_2> ... <script_n> -- --std=c++17 <other_clang_options>
+```
+
+* -o: the name of the generated .cpp file
+* -i: the path to th ```furious.h``` include. This will be used to generate the ```cpp #include <path_to_furious_h>``` of the generated source file
+
+
 <a name="todo"/>
 
 ## TODO

@@ -582,6 +582,15 @@ furious::match<ComponentA>().foreach<SystemY>().set_priority(1);
 ```
 to tell furious to execute ```cpp SystemY``` after ```cpp SystemX```. By default, all systems have priority ```0```, which is the higher priority.  By setting ```cpp SystemY``` priority to ```1```, we are telling furious that it has a lower priority so it will be executed later.
 
+#### Post-frame execution
+
+Sometimes is useful to execute systems at the end of the frame's execution, to, for instance, prepare some data for the next frame. This can be done with furious with the ```cpp set_post_frame()``` method. Such method configures a system to be called in the ```cpp __furious_post_frame()``` method instead of the ```cpp __furious_frame()``` method. For instance, we chould have something like:
+
+```cpp
+furious::match<ComponentA>().foreach<SystemY>().set_post_frame();
+```
+
+
 <a name="compiler"/>
 
 ## Calling the furious fcc compiler

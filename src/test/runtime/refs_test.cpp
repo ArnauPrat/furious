@@ -39,6 +39,7 @@ TEST(RefsTest,TagWorks)
   Entity entity2 = create_entity(database);
   Entity entity3 = create_entity(database);
 
+
   entity1.add_reference("test_ref", entity2);
   entity2.add_reference("test_ref", entity3);
 

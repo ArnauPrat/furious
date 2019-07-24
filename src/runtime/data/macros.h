@@ -40,7 +40,7 @@
 #define FURIOUS_CREATE_ENTITY(database) \
   create_entity(database)
 
-#define FURIOUS_DESTROY_ENTITY(database, entity) \
+#define FURIOUS_DESTROY_ENTITY(entity) \
   destroy_entity(entity)
 
 #define FURIOUS_ADD_COMPONENT(entity,Component, ...) \

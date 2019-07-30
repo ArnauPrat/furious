@@ -611,6 +611,7 @@ fcc -o  <output_file> -i  <path_to_furious_h>  <script_1> <script_2> ... <script
 
 * add support for parallel execution
 * add optimization steps
+* rethink Table memory layout
 * improve existing integreted webserver capabilities to query for database content
 
 

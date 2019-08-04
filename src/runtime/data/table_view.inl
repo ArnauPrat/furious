@@ -152,6 +152,12 @@ typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator()
   return BlockIterator{p_table->iterator()};
 }
 
+template<typename TComponent>
+typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator(uint32_t chunk_size, uint32_t offset, uint32_t stride) 
+{
+  return BlockIterator{p_table->iterator(chunk_size, offset, stride)};
+}
+
 template <typename TComponent>
 Table*
 TableView<TComponent>::get_raw()

@@ -12,24 +12,6 @@ struct FccMatch;
 struct FccOperator;
 
 /**
- * @brief Bootstraps an initial plan from an execution info
- *
- * @param exec_info The Exec info to bootstrap the plan from
- *
- * @return Retorns the root operator of the generated plan
- */
-FccOperator* 
-create_subplan(const FccMatch* exec_info);
-
-/**
- * \brief Destroys the given subplan
- *
- * \param operator The root of the subplan to destroy
- */
-void 
-destroy_subplan(FccOperator* root);
-
-/**
  * @brief  Merges two Foreach operators into a new one. The new Foreach operator
  * executes the functions of the two original foreach over the children table.
  *

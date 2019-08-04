@@ -12,7 +12,7 @@ class CodeGenContext;
 /**
  * \brief Visitor that implements the consume operation for generating code
  */
-class ConsumeVisitor : public FccExecPlanVisitor
+class ConsumeVisitor : public FccSubPlanVisitor
 {
 public:
 

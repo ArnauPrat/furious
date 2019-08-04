@@ -59,6 +59,7 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h
   ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
   ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/task/task.h
   )
 
 

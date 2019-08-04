@@ -132,20 +132,68 @@ TBlockIterator::reset(TBlock* block)
 
 Table::Iterator::Iterator(const BTree<TBlock>* blocks) : 
   p_blocks(blocks),
-  m_it(p_blocks->iterator())
+  m_it(p_blocks->iterator()),
+  m_chunk_size(1),
+  m_offset(0),
+  m_stride(1),
+  m_next(nullptr)
+{
+}
+
+Table::Iterator::Iterator(const BTree<TBlock>* blocks, 
+                          uint32_t chunk_size,
+                          uint32_t offset, 
+                          uint32_t stride) : 
+  p_blocks(blocks),
+  m_it(p_blocks->iterator()),
+  m_chunk_size(chunk_size),
+  m_offset(offset),
+  m_stride(stride),
+  m_next(nullptr)
 {
 }
 
 bool 
 Table::Iterator::has_next() const 
 { 
-  return m_it.has_next();
+  bool next_candidate = m_it.has_next();
+  while(next_candidate && (m_next == nullptr))
+  {
+    m_next = m_it.next().p_value;
+    uint32_t chunk_id = m_next->m_start / (TABLE_BLOCK_SIZE);
+    bool is_next = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
+    if(is_next)
+    {
+      return true;
+    }
+    m_next = nullptr;
+    next_candidate = m_it.has_next();
+  } 
+  return m_next != nullptr;;
 }
 
 TBlock* 
 Table::Iterator::next() 
 {
-  TBlock* next = m_it.next().p_value;
+  TBlock* next = nullptr;
+  if(m_next)
+  {
+    next = m_next;
+    m_next = nullptr;
+  }
+  else
+  {
+    bool found = false;
+    do 
+    {
+      next = m_it.next().p_value;
+      if(next != nullptr)
+      {
+        uint32_t chunk_id = next->m_start / (TABLE_BLOCK_SIZE);
+        found = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
+      }
+    } while (next != nullptr && !found);
+  }
   return next;
 }
 
@@ -349,6 +397,14 @@ Table::Iterator
 Table::iterator() 
 {
   return Iterator(&m_blocks);
+}
+
+Table::Iterator 
+Table::iterator(uint32_t chunk_size, 
+                uint32_t offset,
+                uint32_t stride) 
+{
+  return Iterator(&m_blocks, chunk_size, offset, stride);
 }
 
 std::string 

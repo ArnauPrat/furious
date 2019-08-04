@@ -12,6 +12,7 @@ namespace furious
 {
 
 extern void __furious_init(Database* database);
+
 extern void __furious_frame(float delta, 
                             Database* database,
                             void* user_data);

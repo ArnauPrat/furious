@@ -19,13 +19,13 @@ set(COMPILER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/dep_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/dep_graph.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.inl
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.inl
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/parsing.cpp

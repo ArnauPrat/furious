@@ -139,6 +139,17 @@ struct TableView
   BlockIterator 
   iterator();
 
+  /**
+   * @brief Gets an iterator of the table with an specific chunk_size, offset
+   * and stride
+   *
+   * @return A new iterator of the table. 
+   */
+  BlockIterator 
+  iterator(uint32_t chunk_size, 
+           uint32_t offset,
+           uint32_t stride);
+
 
   /**
    * \brief Gets the pointer to the raw table of this table view

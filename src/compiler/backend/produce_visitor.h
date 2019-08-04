@@ -12,7 +12,7 @@ class CodeGenContext;
 /**
  * \brief Visitor that implements the produce operation for generating code
  */
-class ProduceVisitor : public FccExecPlanVisitor
+class ProduceVisitor : public FccSubPlanVisitor 
 {
 public:
 

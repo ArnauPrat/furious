@@ -9,7 +9,7 @@
 namespace furious 
 {
   
-class ExecPlanPrinter : public FccExecPlanVisitor 
+class ExecPlanPrinter : public FccSubPlanVisitor 
 {
 public:
 
@@ -17,7 +17,7 @@ public:
   virtual ~ExecPlanPrinter() = default;
 
   virtual void
-  traverse(const FccExecPlan* plan);
+  traverse(const FccSubPlan* plan);
 
   virtual void 
   visit(const Foreach* foreach) override;

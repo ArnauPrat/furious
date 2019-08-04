@@ -1,11 +1,12 @@
 
 
-#include "codegen.h"
-#include "produce_visitor.h"
-#include "consume_visitor.h"
-#include "../clang_tools.h"
-#include "codegen_tools.h"
 #include "../../common/string_builder.h"
+#include "../clang_tools.h"
+#include "codegen.h"
+#include "codegen_tools.h"
+#include "consume_visitor.h"
+#include "../frontend/operator.h"
+#include "produce_visitor.h"
 
 #include <stdlib.h>
 #include <clang/AST/PrettyPrinter.h>
@@ -59,7 +60,7 @@ ProduceVisitor::visit(const Scan* scan)
     block_varname = generate_block_name(base_name,scan); 
   }
 
-  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", iter_varname.c_str(), table_varname.c_str());
+  fprintf(p_context->p_fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", iter_varname.c_str(), table_varname.c_str());
   fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname.c_str());
   fprintf(p_context->p_fd, "BlockCluster %s(%s.next().get_raw());\n", block_varname.c_str(), iter_varname.c_str());
 
@@ -263,7 +264,7 @@ ProduceVisitor::visit(const Gather* gather)
     std::string component_name = get_type_name(column->m_q_type); 
     std::string table_varname = generate_temp_table_name(component_name, gather);
     std::string iter_varname = generate_table_iter_name(table_varname);
-    fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+    fprintf(p_context->p_fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
             iter_varname.c_str(), 
             table_varname.c_str());
   }
@@ -410,7 +411,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
     std::string table_varname = generate_temp_table_name(component_name, casc_gather);
 
     std::string iter_varname = generate_table_iter_name(table_varname);
-    fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+    fprintf(p_context->p_fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
             iter_varname.c_str(), 
             table_varname.c_str());
   }

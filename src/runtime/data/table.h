@@ -21,7 +21,8 @@ constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 constexpr uint32_t TABLE_BLOCK_SIZE = 64;
 
 /**
- * \brief Represents a block of data in a table
+ * \brief Represents a block of data in a table. Each block contains
+ * TABLE_BLOCK_SIZE elements
  */
 struct TBlock
 {
@@ -94,6 +95,12 @@ struct Table
   struct Iterator
   {
     Iterator(const BTree<TBlock>* blocks);
+
+    Iterator(const BTree<TBlock>* blocks, 
+             uint32_t chunk_size,
+             uint32_t offset, 
+             uint32_t stride);
+
     ~Iterator() = default;
 
     /**
@@ -113,7 +120,11 @@ struct Table
 
   private:
     const BTree<TBlock>*          p_blocks;
-    BTree<TBlock>::Iterator       m_it;
+    mutable BTree<TBlock>::Iterator       m_it;
+    uint32_t                              m_chunk_size;
+    uint32_t                              m_offset;
+    uint32_t                              m_stride;
+    mutable TBlock*                       m_next;
   };
 
   Table(const std::string &name, 
@@ -177,6 +188,17 @@ struct Table
    */
   Iterator 
   iterator();
+
+  /**
+   * \brief Gets an iterator of the table with a specific chunksize, offset and
+   * stride
+   *
+   * \return Returns an iterator of the table.
+   */
+  Iterator 
+  iterator(uint32_t chunk_size, 
+           uint32_t offset, 
+           uint32_t stride);
 
   /**
    * \brief Gets the name of the table

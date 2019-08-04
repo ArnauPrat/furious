@@ -4,6 +4,7 @@
 #include "fcc_context.h"
 #include "clang_tools.h"
 #include "../common/string_builder.h"
+#include "operator.h"
 
 namespace furious
 {
@@ -17,14 +18,10 @@ ExecPlanPrinter::ExecPlanPrinter(bool add_comments)
   }
 }
 
-
 void
-ExecPlanPrinter::traverse(const FccExecPlan* plan) 
+ExecPlanPrinter::traverse(const FccSubPlan* plan) 
 {
-  for(uint32_t i = 0; i < plan->p_roots.size(); ++i)
-  {
-    plan->p_roots[i]->accept(this);
-  }
+  plan->p_root->accept(this);
 }
 
 std::string

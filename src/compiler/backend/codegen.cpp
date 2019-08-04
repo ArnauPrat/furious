@@ -5,6 +5,7 @@
 #include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
 #include "../frontend/execution_plan.h"
+#include "../frontend/operator.h"
 #include "codegen.h"
 #include "codegen_tools.h"
 #include "consume_visitor.h"
@@ -23,7 +24,7 @@ CodeGenRegistry* p_registry = nullptr;;
  * @brief Visitor used to extract the dependencies of an execution plan, which
  * include structures and headers including dependent structures
  */
-class DependenciesExtr : public FccExecPlanVisitor 
+class DependenciesExtr : public FccSubPlanVisitor 
 {
 public:
 
@@ -144,7 +145,7 @@ public:
  * \brief Extracts the components and tags used in an execution plan, which will
  * be used to declare the required variables in the generated code.
  */
-class VarsExtr : public FccExecPlanVisitor 
+class VarsExtr : public FccSubPlanVisitor 
 {
 public:
   std::set<CXXRecordDecl*> m_component_decls;
@@ -252,8 +253,17 @@ generate_code(const FccExecPlan* exec_plan,
 
   // LOOKING FOR DEPENDENCIES 
   DependenciesExtr deps_visitor;
-  deps_visitor.traverse(exec_plan);
-  deps_visitor.traverse(post_exec_plan);
+  uint32_t num_nodes = exec_plan->m_subplans.size();
+  for(uint32_t i = 0; i < num_nodes; ++i)
+  {
+    deps_visitor.traverse(&exec_plan->m_subplans[i]);
+  }
+
+  num_nodes = post_exec_plan->m_subplans.size();
+  for(uint32_t i = 0; i < num_nodes; ++i)
+  {
+    deps_visitor.traverse(&post_exec_plan->m_subplans[i]);
+  }
 
   // ADDING REQUIRED INCLUDES
   for(const std::string& incl : deps_visitor.m_include_files)
@@ -290,10 +300,19 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "\n\n\n");
   fprintf(fd,"// Variable declarations \n");
   VarsExtr vars_extr;
-  vars_extr.traverse(exec_plan);
-  vars_extr.traverse(post_exec_plan);
+  num_nodes = exec_plan->m_subplans.size();
+  for (uint32_t i = 0; i < num_nodes; ++i) 
+  {
+    vars_extr.traverse(&exec_plan->m_subplans[i]);
+  }
 
-  // TABLEVIEWS
+  num_nodes = post_exec_plan->m_nodes.size();
+  for (uint32_t i = 0; i < num_nodes; ++i) 
+  {
+    vars_extr.traverse(&post_exec_plan->m_subplans[i]);
+  }
+
+  // DECLARING TABLEVIEWS
   for(const std::string& component_name : vars_extr.m_components)
   {
     std::string table_varname = generate_table_name(component_name);
@@ -306,14 +325,14 @@ generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "TableView<entity_id_t> %s;\n", table_varname.c_str());
   }
 
-  // BITTABLES
+  // DECLARING BITTABLES
   for(const std::string& tag : vars_extr.m_tags)
   {
     std::string table_varname = generate_bittable_name(tag);
     fprintf(fd, "BitTable* %s;\n", table_varname.c_str());
   }
 
-  // SYSTEMWRAPPERS
+  // DECLARING SYSTEMWRAPPERS
   const DynArray<FccMatch*>& matches = p_fcc_context->p_matches;
   for(uint32_t i = 0; i < matches.size();++i)
   {
@@ -323,6 +342,32 @@ generate_code(const FccExecPlan* exec_plan,
                                                             match->p_system->m_id);
     fprintf(fd, "%s* %s;\n", system_name.c_str(), wrapper_name.c_str());
   }
+
+  // DEFINING TASKS CODE BASED ON EXECUTION PLAN ROOTS
+  p_registry = new CodeGenRegistry();
+  num_nodes = exec_plan->m_subplans.size();
+  for(uint32_t i = 0; i < num_nodes; ++i)
+  {
+    const FccOperator* root = exec_plan->m_subplans[i].p_root;
+    ExecPlanPrinter printer(true);
+    root->accept(&printer);
+    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
+    fprintf(fd,"void __task_%d(float delta,\n\
+                               Database* database,\n\
+                               void* user_data,\n\
+                               uint32_t chunk_size,\n\
+                               uint32_t offset,\n\
+                               uint32_t stride)\n", 
+            i);
+
+    fprintf(fd,"{\n");
+
+    fprintf(fd, "Context context(delta,database,user_data);\n");
+    produce(fd,root);
+    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
+    fprintf(fd,"}\n");
+  }
+  delete p_registry;
 
   /// GENERATING __furious__init  
   fprintf(fd, "\n\n\n");
@@ -397,54 +442,62 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd,"}\n");
 
   /// GENERATING __furious_frame CODE
+  {
   fprintf(fd,"\n\n\n");
   fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
-  fprintf(fd, "database->lock();\n");
-  fprintf(fd, "Context context(delta,database,user_data);\n");
+    fprintf(fd, "database->lock();\n");
+    DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
+    const uint32_t num_in_sequence = seq.size();
+    for (uint32_t j = 0; j < num_in_sequence; ++j) 
+    {
+      fprintf(fd, "__task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
+    }
+    fprintf(fd, "database->release();\n");
+    fprintf(fd, "}\n");
+  }
 
-  // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
+  // GENERATING TASKS CODE BASED ON EXECUTION PLAN ROOTS
   p_registry = new CodeGenRegistry();
-  for(uint32_t i = 0; i < exec_plan->p_roots.size(); ++i)
+  num_nodes = post_exec_plan->m_subplans.size();
+  for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    const FccOperator* root = exec_plan->p_roots[i];
+    const FccOperator* root = exec_plan->m_subplans[i].p_root;
     ExecPlanPrinter printer(true);
     root->accept(&printer);
     fprintf(fd,"%s", printer.m_string_builder.p_buffer);
+    fprintf(fd,"void __pf_task_%d(float delta,\n\
+                                  Database* database,\n\
+                                  void* user_data,\n\
+                                  uint32_t chunk_size,\n\
+                                  uint32_t offset,\n\
+                                  uint32_t stride)\n", i);
     fprintf(fd,"{\n");
+
+    fprintf(fd, "Context context(delta,database,user_data);\n");
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
   }
   delete p_registry;
-
-  fprintf(fd, "database->release();\n");
-  fprintf(fd, "}\n");
 
   /// GENERATING __furious_post_frame CODE
-  fprintf(fd,"\n\n\n");
-  fprintf(fd,"void __furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
-
-  fprintf(fd, "database->lock();\n");
-  fprintf(fd, "Context context(delta,database,user_data);\n");
-
-  // GENERATING CODE BASED ON EXECUTION PLAN ROOTS
-  p_registry = new CodeGenRegistry();
-  for(uint32_t i = 0; i < post_exec_plan->p_roots.size(); ++i)
   {
-    const FccOperator* root = post_exec_plan->p_roots[i];
-    ExecPlanPrinter printer(true);
-    root->accept(&printer);
-    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
-    fprintf(fd,"{\n");
-    produce(fd,root);
-    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
-    fprintf(fd,"}\n");
-  }
-  delete p_registry;
+    fprintf(fd,"\n\n\n");
+    fprintf(fd,"void __furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
 
-  fprintf(fd, "database->release();\n");
-  fprintf(fd, "}\n");
+    fprintf(fd, "database->lock();\n");
+
+    DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
+    const uint32_t num_in_sequence = seq.size();
+    for (uint32_t j = 0; j < num_in_sequence; ++j) 
+    {
+      fprintf(fd, "__pf_task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
+    }
+
+    fprintf(fd, "database->release();\n");
+    fprintf(fd, "}\n");
+  }
 
   // GENERATING __furious_release CODE
   fprintf(fd, "// Variable releases \n");

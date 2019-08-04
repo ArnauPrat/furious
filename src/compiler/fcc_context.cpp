@@ -16,8 +16,6 @@
 
 #include <clang/Tooling/Tooling.h>
 
-#define FCC_CONTEXT_ARRAY_GROWTH_FACTOR 8
-
 namespace furious 
 {
 
@@ -129,9 +127,6 @@ handle_compilation_error(FccCompilationErrorType type,
   {
     case FccCompilationErrorType::E_UNKNOWN_ERROR:
       str_builder.append("Unknown error: %s\n", err_msg.c_str());
-      break;
-    case FccCompilationErrorType::E_OUTPUT_DEPENDENCY:
-      str_builder.append("Found output dependency: %s\n", err_msg.c_str());
       break;
     case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
       str_builder.append("Cyclic dependency graph %s\n", err_msg.c_str());
@@ -255,38 +250,83 @@ Fcc_run(CommonOptionsParser& op,
   }
 
   // Build execution plan
-  FccExecPlan exec_plan;
-  FccCompilationErrorType err = exec_plan.bootstrap(FccMatchPlace::E_FRAME);
+  DynArray<const FccMatch*> frame_matches;
+  uint32_t num_matches = p_fcc_context->p_matches.size();
+  for(uint32_t i = 0; i < num_matches; ++i)
+  {
+    const FccMatch* next_match = p_fcc_context->p_matches[i];
+    if(next_match->m_place == FccMatchPlace::E_FRAME)
+    {
+      frame_matches.append(next_match);
+    }
+  }
+
+  FccExecPlan* exec_plan;
+  FccCompilationErrorType err = create_execplan(frame_matches.buffer(), 
+                                                frame_matches.size(), 
+                                                &exec_plan);
   if(err != FccCompilationErrorType::E_NO_ERROR)
   {
-    handle_compilation_error(err, 
-                             "");
+    handle_compilation_error(err, "");
   }
 
   // Build post execution plan
-  FccExecPlan post_exec_plan;
-  err = post_exec_plan.bootstrap(FccMatchPlace::E_POST_FRAME);
-  if(err != FccCompilationErrorType::E_NO_ERROR)
+  DynArray<const FccMatch*> post_matches;
+  num_matches = p_fcc_context->p_matches.size();
+  for(uint32_t i = 0; i < num_matches; ++i)
   {
-    handle_compilation_error(err, 
-                             "");
+    const FccMatch* next_match = p_fcc_context->p_matches[i];
+    if(next_match->m_place == FccMatchPlace::E_POST_FRAME)
+    {
+      post_matches.append(next_match);
+    }
   }
 
-  ExecPlanPrinter printer;
+  FccExecPlan* post_exec_plan;
+  err = create_execplan(post_matches.buffer(), 
+                        post_matches.size(), 
+                        &post_exec_plan);
+
+  if(err != FccCompilationErrorType::E_NO_ERROR)
+  {
+    handle_compilation_error(err, "");
+  }
+
   llvm::errs() << "Printing Frame execplan" << "\n";
-  printer.traverse(&exec_plan);
-  llvm::errs() << printer.m_string_builder.p_buffer << "\n";
+  {
+    ExecPlanPrinter printer;
+    DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
+    const uint32_t num_in_seq = seq.size();
+    for(uint32_t j = 0; 
+        j < num_in_seq; 
+        ++j)
+    {
+      printer.traverse(&exec_plan->m_subplans[seq[j]]);
+    }
+    llvm::errs() << printer.m_string_builder.p_buffer << "\n";
+  }
 
-  ExecPlanPrinter post_printer;
-  llvm::errs() << "Printing PostFrame execplan" << "\n"; 
-  post_printer.traverse(&post_exec_plan);
-  llvm::errs() << post_printer.m_string_builder.p_buffer << "\n";
+  {
+    ExecPlanPrinter post_printer;
+    llvm::errs() << "Printing PostFrame execplan" << "\n"; 
+    DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
+    const uint32_t num_in_seq = seq.size();
+    for(uint32_t j = 0; 
+        j < num_in_seq; 
+        ++j)
+    {
+      post_printer.traverse(&post_exec_plan->m_subplans[seq[j]]);
+    }
+    llvm::errs() << post_printer.m_string_builder.p_buffer << "\n";
+  }
   
-
-  generate_code(&exec_plan,
-                &post_exec_plan,
+  generate_code(exec_plan,
+                post_exec_plan,
                 output_file,
                 include_file);
+
+  destroy_execplan(exec_plan);
+  destroy_execplan(post_exec_plan);
   return result;
 }
 

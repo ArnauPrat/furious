@@ -4,6 +4,7 @@
 #include "../common/dyn_array.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
+#include "../frontend/operator.h"
 
 #include "codegen.h"
 #include "codegen_tools.h"

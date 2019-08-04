@@ -7,6 +7,7 @@
 #include "clang_tools.h"
 #include "codegen_tools.h"
 #include "codegen.h"
+#include "../frontend/operator.h"
 
 namespace furious 
 {

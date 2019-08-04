@@ -1,6 +1,9 @@
 
+#include "execution_plan.h"
+
 namespace furious 
 {
+
   
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -16,7 +19,7 @@ FccOperator(type, name)
 
 template<typename T>
 void
-FccOperatorTmplt<T>::accept(FccExecPlanVisitor* visitor) const 
+FccOperatorTmplt<T>::accept(FccSubPlanVisitor* visitor) const 
 {
   visitor->visit((const T*)(this));
 }

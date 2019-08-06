@@ -195,6 +195,7 @@ TEST(BTreeTest, btree_split_leaf)
     max_key = node->m_leaf.m_keys[i];
     delete (TestValue*) node->m_leaf.m_leafs[i];
   }
+  delete (TestValue*) node->m_leaf.m_leafs[0];
 
   for (uint32_t i = 1; i < BTREE_LEAF_MAX_ARITY && sibling->m_leaf.m_leafs[i] != nullptr; ++i) 
   {
@@ -202,6 +203,7 @@ TEST(BTreeTest, btree_split_leaf)
     ASSERT_TRUE(sibling->m_leaf.m_keys[i] > max_key);
     delete (TestValue*) sibling->m_leaf.m_leafs[i];
   }
+  delete (TestValue*) sibling->m_leaf.m_leafs[0];
 
   btree_destroy_node(sibling);
   btree_destroy_node(node);
@@ -352,6 +354,7 @@ TEST(BTreeTest, btree_remove_shift_leaf)
     ASSERT_NE(value, nullptr);
     ASSERT_EQ(value->m_val, i+1);
     ASSERT_EQ(node->m_leaf.m_keys[i], (i+1)*10);
+    delete value;
   }
   ASSERT_EQ(node->m_leaf.m_leafs[BTREE_LEAF_MAX_ARITY-1], nullptr);
 

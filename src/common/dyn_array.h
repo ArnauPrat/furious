@@ -31,8 +31,8 @@ struct DynArray
   void
   clear();
 
-  void
-  reset();
+  //void
+  //reset();
 
   void
   append(const T&);

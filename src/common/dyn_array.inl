@@ -1,6 +1,7 @@
 
 #include <utility>
 #include <new>
+#include <stdio.h>
 
 namespace furious
 {
@@ -11,11 +12,10 @@ namespace furious
 template<typename T>
 DynArray<T>::DynArray() : 
 p_data(nullptr),
-m_capacity(0),
+m_capacity(_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY),
 m_num_elements(0)
 {
   p_data = (char*)malloc(sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY);
-  m_capacity = _FURIOUS_DYN_ARRAY_INITIAL_CAPACITY;
 }
 
 template<typename T>
@@ -24,7 +24,6 @@ p_data(nullptr),
 m_capacity(0),
 m_num_elements(0)
 {
-  clear();
   p_data = (char*)malloc(sizeof(T)*other.m_capacity);
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
@@ -48,9 +47,10 @@ m_num_elements(0)
 template<typename T>
 DynArray<T>::DynArray(std::initializer_list<T> init) :
 p_data(nullptr),
-m_capacity(0),
+m_capacity(_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY),
 m_num_elements(0)
 {
+  p_data = (char*)malloc(sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY);
   for(auto it = init.begin();
       it != init.end();
       ++it)
@@ -63,31 +63,14 @@ template<typename T>
 DynArray<T>::~DynArray()
 {
   clear();
+  free(p_data);
 }
 
 template <typename T>
 void
 DynArray<T>::clear()
 {
-  if(p_data)
-  {
-    for(uint32_t i = 0; i < m_num_elements; ++i)
-    {
-      T* ptr = &(((T*)p_data)[i]);
-      ptr->~T();
-    }
-    free(p_data);
-    p_data = nullptr;
-    m_capacity = 0;
-    m_num_elements = 0;
-  }
-}
-
-template <typename T>
-void
-DynArray<T>::reset()
-{
-  if(p_data)
+  if(p_data && m_num_elements > 0)
   {
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
@@ -97,7 +80,6 @@ DynArray<T>::reset()
     m_num_elements = 0;
   }
 }
-
 
 template <typename T>
 uint32_t
@@ -118,6 +100,7 @@ DynArray<T>::append(const T& item)
     {
       void* ptr = temp + i*sizeof(T);
       new (ptr) T(((T*)p_data)[i]);
+      (((T*)p_data)[i]).~T();
     }
     free(p_data);
     p_data = temp;
@@ -200,6 +183,7 @@ DynArray<T>&
 DynArray<T>::operator=(const DynArray& other)
 {
   clear();
+  free(p_data);
   p_data = (char*)malloc(sizeof(T)*other.m_capacity);
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
@@ -216,6 +200,7 @@ DynArray<T>&
 DynArray<T>::operator=(DynArray&& other)
 {
   clear();
+  free(p_data);
   p_data = other.p_data;
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;

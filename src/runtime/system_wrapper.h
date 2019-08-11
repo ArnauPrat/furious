@@ -4,7 +4,6 @@
 
 #include "data/table.h"
 #include "data/context.h"
-#include "../common/traits.h"
 
 namespace furious 
 {

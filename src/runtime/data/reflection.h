@@ -4,9 +4,9 @@
 #ifndef _FURIOUS_REFLECTION_H_
 #define _FURIOUS_REFLECTION_H_ value
 
+#include "../../common/platform.h"
 #include "../../common/dyn_array.h"
 #include "../../common/refcount_ptr.h"
-#include <string>
 
 namespace furious
 {
@@ -43,7 +43,7 @@ enum class ReflType
 
 struct ReflData
 {
-  std::string           m_type_name;
+  char                  m_type_name[MAX_TYPE_NAME];
   DynArray<ReflField>   m_fields;
   bool                  m_is_union;
 };
@@ -55,7 +55,7 @@ struct ReflData
 
 struct ReflField
 {
-  std::string                 m_name;
+  char                        m_name[MAX_FIELD_NAME];
   ReflType                    m_type;
   size_t                      m_offset;
   bool                        m_anonymous;

@@ -1,13 +1,11 @@
 
 
 #include "transforms.h"
-#include "execution_plan.h"
+#include "exec_plan.h"
 #include "fcc_context.h"
-#include "clang_tools.h"
 
 namespace furious 
 {
-
 
 Foreach* 
 merge_foreach(const Foreach* foreach1, 

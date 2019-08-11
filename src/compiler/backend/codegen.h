@@ -3,11 +3,23 @@
 #ifndef _FURIOUS_COMPILER_CODEGEN_H_
 #define _FURIOUS_COMPILER_CODEGEN_H_ value
 
+#include "common/platform.h"
+
 #include <string>
 
 
 namespace furious 
 {
+
+constexpr uint32_t MAX_TABLE_VARNAME=MAX_TYPE_NAME+32;
+constexpr uint32_t MAX_REF_TABLE_VARNAME=MAX_TYPE_NAME+32;
+constexpr uint32_t MAX_TAG_TABLE_VARNAME=MAX_TYPE_NAME+32;
+constexpr uint32_t MAX_SYSTEM_WRAPPER_VARNAME=MAX_TYPE_NAME+32;
+constexpr uint32_t MAX_HASHTABLE_VARNAME=256;
+constexpr uint32_t MAX_CLUSTER_VARNAME=256;
+constexpr uint32_t MAX_ITER_VARNAME=256;
+constexpr uint32_t MAX_BLOCK_VARNAME=256;
+constexpr uint32_t MAX_INCLUDE_PATH_LENGTH=2048;
 
 struct FccExecPlan;
 class ProduceVisitor;
@@ -32,11 +44,11 @@ class FccOperator;
  * \param exec_plan The execution plan to generate the code for
  * \param filename The file where the code is going to be written.
  */
-void 
-generate_code(const FccExecPlan* exec_plan,
-              const FccExecPlan* post_exec_plan,
-              const std::string& filename,
-              const std::string& include_file);
+int32_t 
+fcc_generate_code(const FccExecPlan* exec_plan,
+                  const FccExecPlan* post_exec_plan,
+                  const char* filename,
+                  const char* include_file);
 
 
 

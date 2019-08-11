@@ -41,23 +41,23 @@ public:
   get_component();
 
   void 
-  add_tag(const std::string& tag);
+  add_tag(const char* tag);
 
   void 
-  remove_tag(const std::string& tag);
+  remove_tag(const char* tag);
 
   bool 
-  has_tag(const std::string& tag);
+  has_tag(const char* tag);
 
   void
-  add_reference(const std::string& ref_name,
+  add_reference(const char* ref_name,
                 Entity other);
 
   void
-  remove_reference(const std::string& ref_name);
+  remove_reference(const char* ref_name);
 
   Entity
-  get_reference(const std::string& ref_name);
+  get_reference(const char* ref_name);
 
   bool
   is_valid();

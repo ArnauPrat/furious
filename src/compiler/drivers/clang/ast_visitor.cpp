@@ -1,24 +1,25 @@
 
-#include "fccASTVisitor.h"
-#include "fcc_context.h"
-#include "parsing.h"
+#include "ast_visitor.h"
+#include "../../fcc_context.h"
+#include "clang_parsing.h"
 
 namespace furious 
 {
 
 FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context) : 
 p_ast_context(ast_context), 
-p_fcc_match(nullptr)
+p_fcc_stmt(nullptr)
 {
 }
 
-FccMatch*
+fcc_stmt_t*
 FuriousExprVisitor::parse_expression(Expr* expr)
 {
-  p_fcc_match = p_fcc_context->create_match(p_ast_context,
-                                            expr);
+  p_fcc_stmt = fcc_stmt_create();
+  p_fcc_stmt->m_expr.p_handler = expr;
+  p_fcc_context->p_stmts.append(p_fcc_stmt); 
   this->TraverseStmt(expr);
-  return p_fcc_match;
+  return p_fcc_stmt;
 }
 
 bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
@@ -48,66 +49,65 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       // Extracting operation type (e.g. foreach, etc.)
       if(func_name == "foreach") 
       {
-        p_fcc_match->m_operation_type = FccOperationType::E_FOREACH;
-        p_fcc_match->p_ast_context = p_ast_context;
+        p_fcc_stmt->m_operation_type = fcc_operation_type_t::E_FOREACH;
         return process_foreach(p_ast_context,
-                               p_fcc_match,
+                               p_fcc_stmt,
                                call);
       }
 
       if(func_name == "set_priority") 
       {
         return process_set_priority(p_ast_context,
-                                       p_fcc_match,
+                                       p_fcc_stmt,
                                        call);
       }
 
       if(func_name == "set_post_frame") 
       {
         return process_set_post_frame(p_ast_context,
-                                      p_fcc_match,
+                                      p_fcc_stmt,
                                       call);
       }
 
       if(func_name == "has_tag" ) 
       {
         return process_has_tag(p_ast_context,
-                               p_fcc_match,
+                               p_fcc_stmt,
                                call);
       }
 
       if(func_name == "has_not_tag" ) 
       {
         return process_has_not_tag(p_ast_context,
-                                   p_fcc_match,
+                                   p_fcc_stmt,
                                    call);
       }
 
       if(func_name == "has_component" ) 
       {
         return process_has_component(p_ast_context,
-                                     p_fcc_match,
+                                     p_fcc_stmt,
                                      call);
       }
 
       if(func_name == "has_not_component" ) 
       {
         return process_has_not_component(p_ast_context,
-                                         p_fcc_match,
+                                         p_fcc_stmt,
                                          call);
       }
 
       if(func_name == "filter" ) 
       {
         return process_filter(p_ast_context,
-                              p_fcc_match,
+                              p_fcc_stmt,
                               call);
       }
 
       if(func_name == "match" ) 
       {
         bool res = process_match(p_ast_context,
-                                 p_fcc_match,
+                                 p_fcc_stmt,
                                  call);
         return res;
       }
@@ -115,7 +115,7 @@ bool FuriousExprVisitor::VisitCallExpr(CallExpr* call)
       if(func_name == "expand" ) 
       {
         bool res = process_expand(p_ast_context,
-                                  p_fcc_match,
+                                  p_fcc_stmt,
                                   call);
         return res;
       }
@@ -164,18 +164,18 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
           {
             FuriousExprVisitor visitor(p_ast_context);
 
-            FccMatch* match = visitor.parse_expression(expr);
+            fcc_stmt_t* stmt = visitor.parse_expression(expr);
 
             // We register the execution information obtained with the visitor,
             // after checking it is well-formed.
-            Fcc_validate(match);
+            fcc_validate(stmt);
           }
           else 
           {
             SourceLocation location = expr->getSourceRange().getBegin();
-            report_parsing_error(p_ast_context,
+            report_parsing_error(p_ast_context->getSourceManager(),
                                  location,
-                                 FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
+                                 fcc_parsing_error_type_t::E_UNSUPPORTED_STATEMENT,
                                  "Unknown expression type");
             return false;
           }
@@ -195,14 +195,16 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
             {
               // OK
               const UsingDirectiveDecl* using_decl = cast<UsingDirectiveDecl>(decl);
-              p_fcc_context->p_using_decls.append(using_decl);
+              fcc_decl_t fcc_decl;
+              fcc_decl.p_handler = (void*)using_decl;
+              p_fcc_context->m_using_decls.append(fcc_decl);
             }
             else 
             {
               SourceLocation location = decl->getSourceRange().getBegin();
-              report_parsing_error(p_ast_context,
+              report_parsing_error(p_ast_context->getSourceManager(),
                                    location,
-                                   FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS,
+                                   fcc_parsing_error_type_t::E_UNSUPPORTED_VAR_DECLARATIONS,
                                    "");
               return false;
             }

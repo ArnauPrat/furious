@@ -24,7 +24,7 @@ Database::create_table()
     release();
     return TableView<T>(nullptr);
   }
-  Table* table =  new Table(T::_component_name(), hash_value, sizeof(T), &destructor<T>);
+  Table* table =  new Table(T::_component_name(), hash_value, sizeof(T), destructor<T>);
   m_tables.insert_copy(hash_value,&table);
   release();
   return TableView<T>(table); 
@@ -78,7 +78,7 @@ Database::find_or_create_table()
     release();
     return TableView<T>(*table);
   }
-  Table* table_ptr =  new Table(T::_component_name(), hash_value, sizeof(T), &destructor<T>);
+  Table* table_ptr =  new Table(T::_component_name(), hash_value, sizeof(T), destructor<T>);
   m_tables.insert_copy(hash_value,&table_ptr);
   release();
   return TableView<T>(table_ptr); 
@@ -96,7 +96,7 @@ bool Database::exists_table()
 
 template <typename T>
 TableView<T>
-Database::create_temp_table(const std::string& table_name)
+Database::create_temp_table(const char* table_name)
 {
   lock();
   TableView<T> res = create_temp_table_no_lock<T>(table_name);
@@ -106,9 +106,9 @@ Database::create_temp_table(const std::string& table_name)
 
 template <typename T>
 TableView<T>
-Database::create_temp_table_no_lock(const std::string& table_name)
+Database::create_temp_table_no_lock(const char* table_name)
 {
-  uint32_t hash_value = hash(table_name.c_str()); 
+  uint32_t hash_value = hash(table_name); 
   Table** table = m_temp_tables.get(hash_value);
   if(table != nullptr) {
     return TableView<T>(*table);
@@ -153,8 +153,9 @@ Database::create_global(Args...args)
     return nullptr;
   }
   GlobalInfo g_info;
-  g_info.p_global = new T{std::forward<Args>(args)...};
-  g_info.m_destructor = &destructor<T>;
+  char* buffer = new char[sizeof(T)];
+  g_info.p_global = new (buffer) T{std::forward<Args>(args)...};
+  g_info.m_destructor = destructor<T>;
   m_globals.insert_copy(hash_value,&g_info);
   release();
   return (T*)g_info.p_global; 
@@ -170,6 +171,7 @@ Database::remove_global()
   if(global != nullptr)
   {
     global->m_destructor(global->p_global);
+    delete [] ((char*)global->p_global); 
     m_globals.remove(hash_value);
   }
   release();
@@ -211,8 +213,9 @@ Database::find_or_create_global(Args...args)
     return global;
   }
   GlobalInfo g_info;
-  g_info.p_global = new T{std::forward<Args>(args)...};
-  g_info.m_destructor = &destructor<T>;
+  char* buffer = new char[sizeof(T)];
+  g_info.p_global = new(buffer) T{std::forward<Args>(args)...};
+  g_info.m_destructor = destructor<T>;
   m_globals.insert_copy(hash_value,&g_info);
   release();
   return g_info.p_global; 
@@ -233,7 +236,8 @@ template<typename T>
 void
 Database::add_refl_data(RefCountPtr<ReflData> refl_strct)
 {
-  assert(T::_component_name() == refl_strct.get()->m_type_name);
+  printf("%s %s\n",T::_component_name(),refl_strct.get()->m_type_name);
+  assert(strcmp(T::_component_name(), refl_strct.get()->m_type_name) == 0);
   lock();
   uint32_t hash_value = get_table_id<T>();
   m_refl_data.insert_copy(hash_value, &refl_strct);

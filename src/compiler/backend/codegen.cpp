@@ -1,10 +1,11 @@
 
 
-#include "../clang_tools.h"
+#include "../driver.h"
+#include "../drivers/clang/clang_tools.h"
 #include "../common/dyn_array.h"
 #include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
-#include "../frontend/execution_plan.h"
+#include "../frontend/exec_plan.h"
 #include "../frontend/operator.h"
 #include "codegen.h"
 #include "codegen_tools.h"
@@ -14,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <set>
 
 namespace furious 
 {
@@ -28,28 +30,54 @@ class DependenciesExtr : public FccSubPlanVisitor
 {
 public:
 
-  std::set<std::string>   m_include_files;
-  std::set<const Decl*>   m_declarations;
+  DynArray<char*>   m_include_files;
+  DynArray<fcc_decl_t>    m_declarations;
+
+  ~DependenciesExtr()
+  {
+    const uint32_t num_includes = m_include_files.size();
+    for (uint32_t i = 0; i < num_includes; ++i) 
+    {
+      delete [] m_include_files[i];
+    }
+  }
 
   void
   extract_dependencies(const DynArray<Dependency>& deps)
   {
-      for(uint32_t i = 0; i < deps.size(); ++i) 
+    for(uint32_t i = 0; i < deps.size(); ++i) 
+    {
+      const Dependency& dep = deps[i];
+      if(fcc_decl_is_valid(dep.m_decl))
       {
-        const Dependency& dep = deps[i];
-        if(dep.p_decl != nullptr) 
+        if(fcc_decl_is_variable_or_struct(dep.m_decl) || 
+           fcc_decl_is_function(dep.m_decl))
         {
-          const Decl* decl = dep.p_decl;
-          if(isa<TagDecl>(decl) || 
-            (isa<FunctionDecl>(decl) && !cast<FunctionDecl>(decl)->isCXXClassMember()))
+          bool found = false;
+          const uint32_t num_decls = m_declarations.size();
+          for (uint32_t i = 0; i < num_decls; ++i) 
           {
-            m_declarations.insert(dep.p_decl);
+            if(fcc_decl_is_same(dep.m_decl, m_declarations[i]))
+            {
+              found = true;
+              break;
+            }
           }
-        } else 
-        {
-          m_include_files.insert(dep.m_include_file);
+
+          if(!found)
+          {
+            m_declarations.append(dep.m_decl);
+          }
         }
+      } 
+      else 
+      {
+        char* buffer = new char[MAX_INCLUDE_PATH_LENGTH];
+        strncpy(buffer, dep.m_include_file.c_str(), MAX_INCLUDE_PATH_LENGTH);
+        FURIOUS_CHECK_STR_LENGTH(strlen(dep.m_include_file.c_str()), MAX_INCLUDE_PATH_LENGTH);
+        m_include_files.append(buffer);
       }
+    }
   }
 
   virtual void 
@@ -58,8 +86,8 @@ public:
     uint32_t size = foreach->p_systems.size();
     for(uint32_t i = 0; i < size; ++i)
     {
-      const FccSystem* system = foreach->p_systems[i];
-      extract_dependencies(get_dependencies(system->m_system_type));
+      const fcc_system_t* system = foreach->p_systems[i];
+      extract_dependencies(fcc_type_dependencies(system->m_system_type));
     }
     foreach->p_child.get()->accept(this);
   }
@@ -69,7 +97,7 @@ public:
   {
     if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
     {
-      extract_dependencies(get_dependencies(scan->m_columns[0].m_q_type));
+      extract_dependencies(fcc_type_dependencies(scan->m_columns[0].m_component_type));
     }
   } 
 
@@ -99,7 +127,7 @@ public:
   {
     if(fetch->m_columns[0].m_type == FccColumnType::E_GLOBAL)
     {
-      extract_dependencies(get_dependencies(fetch->m_columns[0].m_q_type));
+      extract_dependencies(fcc_type_dependencies(fetch->m_columns[0].m_component_type));
     }
   }
 
@@ -112,14 +140,14 @@ public:
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
-    extract_dependencies(get_dependencies(component_filter->m_filter_type));
+    extract_dependencies(fcc_type_dependencies(component_filter->m_filter_type));
     component_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const PredicateFilter* predicate_filter) 
   {
-    extract_dependencies(get_dependencies(predicate_filter->p_func_decl));
+    extract_dependencies(fcc_decl_dependencies(predicate_filter->m_func_decl));
     predicate_filter->p_child.get()->accept(this);
   }
 
@@ -147,11 +175,34 @@ public:
  */
 class VarsExtr : public FccSubPlanVisitor 
 {
+
 public:
-  std::set<CXXRecordDecl*> m_component_decls;
-  std::set<std::string>    m_components;
-  std::set<std::string> m_tags;
-  std::set<std::string> m_references;
+  DynArray<fcc_decl_t>    m_component_decls;
+  DynArray<char*>     m_tags;
+  DynArray<char*>     m_references;
+  DynArray<char*>     m_components;
+
+  ~VarsExtr()
+  {
+    const uint32_t num_components = m_components.size();
+    for (uint32_t i = 0; i < num_components; ++i) 
+    {
+      delete [] m_components[i];
+    }
+
+    const uint32_t num_tags = m_tags.size();
+    for (uint32_t i = 0; i < num_tags; ++i) 
+    {
+      delete [] m_tags[i];
+    }
+
+    const uint32_t num_refs = m_references.size();
+    for (uint32_t i = 0; i < num_refs; ++i) 
+    {
+      delete [] m_references[i];
+    }
+  }
+
 
   virtual void 
   visit(const Foreach* foreach)
@@ -164,12 +215,49 @@ public:
   {
     if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
     {
-      m_components.insert(get_type_name(scan->m_columns[0].m_q_type));
-      m_component_decls.insert(scan->m_columns[0].m_q_type->getAsCXXRecordDecl());
+      char tmp[MAX_TYPE_NAME];
+      const uint32_t length = fcc_type_name(scan->m_columns[0].m_component_type, 
+                                            tmp, MAX_TYPE_NAME);
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+      const uint32_t num_components = m_components.size();
+      bool found = false;
+      for(uint32_t i = 0; i < num_components; ++i)
+      {
+        if(strcmp(tmp, m_components[i]) == 0)
+        {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        char* buffer = new char [MAX_TYPE_NAME];
+        strncpy(buffer, tmp, MAX_TYPE_NAME);
+        m_components.append(buffer);
+        fcc_decl_t decl;
+        fcc_type_decl(scan->m_columns[0].m_component_type, &decl);
+        bool found = false;
+        const uint32_t num_decls = m_component_decls.size();
+        for (uint32_t i = 0; i < num_decls; ++i) 
+        {
+          if(fcc_decl_is_same(m_component_decls[i], decl))
+          {
+            found = true;
+            break;
+          }
+        }
+        if(!found)
+        {
+          m_component_decls.append(decl);
+        }
+      }
     }
     else
     {
-      m_references.insert(scan->m_columns[0].m_ref_name);
+      char* buffer = new char[MAX_REF_NAME];
+      strncpy(buffer, scan->m_columns[0].m_ref_name, MAX_REF_NAME);
+      m_references.append(buffer);
     }
   }
 
@@ -197,22 +285,61 @@ public:
   virtual void
   visit(const Fetch* fetch)
   {
-    m_component_decls.insert(fetch->m_columns[0].m_q_type->getAsCXXRecordDecl());
+      fcc_decl_t decl;
+      fcc_type_decl(fetch->m_columns[0].m_component_type, &decl);
+      bool found = false;
+      const uint32_t num_decls = m_component_decls.size();
+      for (uint32_t i = 0; i < num_decls; ++i) 
+      {
+        if(fcc_decl_is_same(decl, m_component_decls[i]))
+        {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+      {
+        m_component_decls.append(decl);
+      }
   }
 
   virtual void 
   visit(const TagFilter* tag_filter) 
   {
-    m_tags.insert(tag_filter->m_tag);
+    char* buffer = new char[MAX_TAG_NAME];
+    strncpy(buffer, tag_filter->m_tag, MAX_TAG_NAME);
+    m_tags.append(buffer);
     tag_filter->p_child.get()->accept(this);
   }
 
   virtual void
   visit(const ComponentFilter* component_filter) 
   {
-    m_components.insert(get_type_name(component_filter->m_filter_type));
-    m_component_decls.insert(component_filter->m_filter_type->getAsCXXRecordDecl());
-    component_filter->p_child.get()->accept(this);
+    char tmp[MAX_TYPE_NAME];
+    const uint32_t length = fcc_type_name(component_filter->m_filter_type, tmp, MAX_TYPE_NAME);
+    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+    bool found = false;
+    const uint32_t num_components = m_components.size();
+    for(uint32_t i = 0; i < num_components; ++i)
+    {
+      if(strcmp(m_components[i], tmp) == 0)
+      {
+        found = true;
+      }
+    }
+
+    if(!found)
+    {
+      char* buffer = new char[MAX_TYPE_NAME];
+      strncpy(buffer, tmp, MAX_TYPE_NAME);
+      m_components.append(buffer);
+      fcc_decl_t decl;
+      fcc_type_decl(component_filter->m_filter_type, &decl);
+      m_component_decls.append(decl);
+      component_filter->p_child.get()->accept(this);
+    }
   }
 
   virtual void
@@ -240,16 +367,18 @@ public:
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-void 
-generate_code(const FccExecPlan* exec_plan,
-              const FccExecPlan* post_exec_plan,
-              const std::string& filename,
-              const std::string& include_file)
+int32_t 
+fcc_generate_code(const FccExecPlan* exec_plan,
+                  const FccExecPlan* post_exec_plan,
+                  const char* filename,
+                  const char* include_file)
 {
-  FILE* fd = fopen(filename.c_str(), "w");
+  uint32_t code_buffer_length=4096;
+  char* code_buffer = new char[code_buffer_length];
+  FILE* fd = fopen(filename, "w");
   fprintf(fd, "\n\n\n");
   // ADDING FURIOUS INCLUDE 
-  fprintf(fd, "#include <%s> \n", include_file.c_str());
+  fprintf(fd, "#include <%s> \n", include_file);
 
   // LOOKING FOR DEPENDENCIES 
   DependenciesExtr deps_visitor;
@@ -266,31 +395,42 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // ADDING REQUIRED INCLUDES
-  for(const std::string& incl : deps_visitor.m_include_files)
+  const uint32_t num_includes = deps_visitor.m_include_files.size();
+  for (uint32_t i = 0; i < num_includes; ++i) 
   {
-    fprintf(fd, "#include \"%s\"\n", incl.c_str());
+    fprintf(fd, "#include \"%s\"\n", deps_visitor.m_include_files[i]);
   }
 
   fprintf(fd, "\n\n\n");
 
   // ADDING REQUIRED "USING NAMESPACE DIRECTIVES TODO: Add support for other
   // using clauses"
-  const DynArray<const UsingDirectiveDecl*>& usings = p_fcc_context->p_using_decls;
-  for(uint32_t i = 0; i < usings.size(); ++i)
+  const DynArray<fcc_decl_t>& usings = p_fcc_context->m_using_decls;
+  const uint32_t num_usings = usings.size();
+  for(uint32_t i = 0; i < num_usings; ++i)
   {
-    const UsingDirectiveDecl* decl = usings[i];
-    const SourceManager& sm = decl->getASTContext().getSourceManager();
-    std::string code = get_code(sm, decl->getSourceRange());
-    fprintf(fd,"%s;\n",code.c_str());
+    uint32_t length = 0;
+    while ((length = fcc_decl_code(usings[i], code_buffer, code_buffer_length)) >= code_buffer_length)
+    {
+      delete [] code_buffer;
+      code_buffer_length*=2;
+      code_buffer = new char[code_buffer_length];
+    }
+    fprintf(fd,"%s;\n",code_buffer);
   }
 
   // ADDING DECLARATIONS FOUND IN FURIOUS SCRIPTS
-  for(const Decl* decl : deps_visitor.m_declarations)
+  const uint32_t num_decls = deps_visitor.m_declarations.size();
+  for (uint32_t i = 0; i < num_decls; ++i) 
   {
-    const SourceManager& sm = decl->getASTContext().getSourceManager();
-    std::string code = get_code(sm,
-                                decl->getSourceRange());
-    fprintf(fd,"%s;\n\n", code.c_str());
+    uint32_t length = 0;
+    while ((length = fcc_decl_code(deps_visitor.m_declarations[i], code_buffer, code_buffer_length)) >= code_buffer_length)
+    {
+      delete [] code_buffer;
+      code_buffer_length*=2;
+      code_buffer = new char[code_buffer_length];
+    }
+    fprintf(fd,"%s;\n\n", code_buffer);
   }
 
   // STARTING CODE GENERATION
@@ -313,34 +453,66 @@ generate_code(const FccExecPlan* exec_plan,
   }
 
   // DECLARING TABLEVIEWS
-  for(const std::string& component_name : vars_extr.m_components)
+  const uint32_t num_components = vars_extr.m_components.size();
+  for (uint32_t i = 0; i < num_components; ++i) 
   {
-    std::string table_varname = generate_table_name(component_name);
-    fprintf(fd, "TableView<%s> %s;\n", component_name.c_str(), table_varname.c_str());
+    char tmp[MAX_TABLE_VARNAME];
+    const uint32_t length = generate_table_name(vars_extr.m_components[i], 
+                                                tmp,
+                                                MAX_TABLE_VARNAME);
+
+    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+
+    fprintf(fd, "TableView<%s> %s;\n", vars_extr.m_components[i], tmp);
   }
 
-  for(const std::string& ref_name : vars_extr.m_references)
+  const uint32_t num_references = vars_extr.m_references.size();
+  for (uint32_t i = 0; i < num_references; ++i) 
   {
-    std::string table_varname = generate_ref_table_name(ref_name);
-    fprintf(fd, "TableView<entity_id_t> %s;\n", table_varname.c_str());
+    char tmp[MAX_REF_TABLE_VARNAME];
+    const uint32_t length = generate_ref_table_name(vars_extr.m_references[i], 
+                                                    tmp, 
+                                                    MAX_REF_TABLE_VARNAME);
+
+    FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
+
+    fprintf(fd, "TableView<entity_id_t> %s;\n", tmp);
   }
 
   // DECLARING BITTABLES
-  for(const std::string& tag : vars_extr.m_tags)
+  const uint32_t num_tags = vars_extr.m_tags.size();
+  for (uint32_t i = 0; i < num_tags; ++i) 
   {
-    std::string table_varname = generate_bittable_name(tag);
-    fprintf(fd, "BitTable* %s;\n", table_varname.c_str());
+    char tmp[MAX_TAG_TABLE_VARNAME];
+    const uint32_t length = generate_bittable_name(vars_extr.m_tags[i],
+                                                   tmp,
+                                                   MAX_TAG_TABLE_VARNAME);
+
+    FURIOUS_CHECK_STR_LENGTH(length, MAX_TAG_TABLE_VARNAME);
+
+    fprintf(fd, "BitTable* %s;\n", tmp);
   }
 
   // DECLARING SYSTEMWRAPPERS
-  const DynArray<FccMatch*>& matches = p_fcc_context->p_matches;
-  for(uint32_t i = 0; i < matches.size();++i)
+  const DynArray<fcc_stmt_t*>& stmts = p_fcc_context->p_stmts;
+  for(uint32_t i = 0; i < stmts.size();++i)
   {
-    const FccMatch* match = matches[i];
-    std::string system_name = get_type_name(match->p_system->m_system_type);
-    std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->p_system->m_id);
-    fprintf(fd, "%s* %s;\n", system_name.c_str(), wrapper_name.c_str());
+    const fcc_stmt_t* match = stmts[i];
+    char system_name[MAX_TYPE_NAME];
+    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
+                  system_name, 
+                  MAX_TYPE_NAME);
+    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
+
+    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    const uint32_t wrapper_length = generate_system_wrapper_name(system_name, 
+                                                                 match->p_system->m_id,
+                                                                 wrapper_name, 
+                                                                 MAX_SYSTEM_WRAPPER_VARNAME);
+    FURIOUS_CHECK_STR_LENGTH(wrapper_length, MAX_SYSTEM_WRAPPER_VARNAME);
+
+
+    fprintf(fd, "%s* %s;\n", system_name, wrapper_name);
   }
 
   // DEFINING TASKS CODE BASED ON EXECUTION PLAN ROOTS
@@ -351,13 +523,13 @@ generate_code(const FccExecPlan* exec_plan,
     const FccOperator* root = exec_plan->m_subplans[i].p_root;
     ExecPlanPrinter printer(true);
     root->accept(&printer);
-    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
+    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __task_%d(float delta,\n\
-                               Database* database,\n\
-                               void* user_data,\n\
-                               uint32_t chunk_size,\n\
-                               uint32_t offset,\n\
-                               uint32_t stride)\n", 
+    Database* database,\n\
+            void* user_data,\n\
+            uint32_t chunk_size,\n\
+            uint32_t offset,\n\
+            uint32_t stride)\n", 
             i);
 
     fprintf(fd,"{\n");
@@ -375,67 +547,120 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "void __furious_init(Database* database)\n{\n");
 
   // INITIALIZING TABLEVIEWS 
-  for(const std::string& component_name : vars_extr.m_components)
   {
-    std::string table_varname = generate_table_name(component_name);
-    fprintf(fd,
-            "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
-            table_varname.c_str(),
-            component_name.c_str());
+    const uint32_t num_components = vars_extr.m_components.size();
+    for (uint32_t i = 0; i < num_components; ++i) 
+    {
+      char tmp[MAX_TABLE_VARNAME];
+      const uint32_t length = generate_table_name(vars_extr.m_components[i],
+                                                  tmp,
+                                                  MAX_TABLE_VARNAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+
+      fprintf(fd,
+              "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
+              tmp,
+              vars_extr.m_components[i]);
+    }
   }
 
-  for(const std::string& ref_name : vars_extr.m_references)
   {
-    std::string table_varname = generate_ref_table_name(ref_name);
-    fprintf(fd,
-            "%s  = database->get_references(\"%s\");\n",
-            table_varname.c_str(),
-            ref_name.c_str());
+    const uint32_t num_references = vars_extr.m_references.size();
+    for (uint32_t i = 0; i < num_references; ++i) 
+    {
+
+      char tmp[MAX_REF_TABLE_VARNAME];
+      const uint32_t length = generate_ref_table_name(vars_extr.m_references[i], 
+                                                      tmp, 
+                                                      MAX_REF_TABLE_VARNAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
+
+      fprintf(fd,
+              "%s  = database->get_references(\"%s\");\n",
+              tmp,
+              vars_extr.m_references[i]);
+    }
   }
 
   // INITIALIZING BITTABLES
-  for(const std::string& tag : vars_extr.m_tags)
   {
-    std::string table_name = generate_bittable_name(tag);
-    fprintf(fd,
-            "%s = database->get_tagged_entities(\"%s\");\n",
-            table_name.c_str(),
-            tag.c_str());
+    const uint32_t num_tags = vars_extr.m_tags.size();
+    for (uint32_t i = 0; i < num_tags; ++i) 
+    {
+      char tmp[MAX_TAG_TABLE_VARNAME];
+      const uint32_t length = generate_bittable_name(vars_extr.m_tags[i], 
+                                                     tmp, 
+                                                     MAX_TAG_TABLE_VARNAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TAG_TABLE_VARNAME);
+
+      fprintf(fd,
+              "%s = database->get_tagged_entities(\"%s\");\n",
+              tmp,
+              vars_extr.m_tags[i]);
+    }
   }
 
   // INITIALIZING SYSTEM WRAPPERS
-  for(uint32_t i = 0; i < matches.size(); ++i)
+  for(uint32_t i = 0; i < stmts.size(); ++i)
   {
-    const FccMatch* match = matches[i];
-    std::string system_name = get_type_name(match->p_system->m_system_type);
-    std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->p_system->m_id);
+    const fcc_stmt_t* match = stmts[i];
+    char system_name[MAX_TYPE_NAME];
+    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
+                                                 system_name, 
+                                                 MAX_TYPE_NAME);
+
+    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
+
+    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    generate_system_wrapper_name(system_name, 
+                                 match->p_system->m_id,
+                                 wrapper_name, 
+                                 MAX_SYSTEM_WRAPPER_VARNAME);
+
+
     fprintf(fd,
             "%s = new %s(",
-            wrapper_name.c_str(),
-            system_name.c_str());
+            wrapper_name,
+            system_name);
 
-    const DynArray<const Expr*>& ctor_params = match->p_system->m_ctor_params;
-    if( ctor_params.size() > 0) 
+    const DynArray<fcc_expr_t>& ctor_params = match->p_system->m_ctor_params;
+    if(ctor_params.size() > 0) 
     {
-      const Expr* param = ctor_params[0];
-      const SourceManager& sm = match->p_ast_context->getSourceManager();
-      std::string code = get_code(sm,param->getSourceRange());
-      fprintf(fd,"%s", code.c_str());
+      fcc_expr_t expr = ctor_params[0];
+      uint32_t length = 0;
+      while ((length = fcc_expr_code(expr, code_buffer, code_buffer_length)) >= code_buffer_length)
+      {
+        delete [] code_buffer;
+        code_buffer_length*=2;
+        code_buffer = new char[code_buffer_length];
+      }
+      fprintf(fd,"%s", code_buffer);
+
       for(size_t i = 1; i < ctor_params.size(); ++i)
       {
-        const Expr* param = ctor_params[i];
-        std::string code = get_code(sm,param->getSourceRange());
-        fprintf(fd,",%s",code.c_str());
+        fcc_expr_t expr = ctor_params[i];
+        while ((length = fcc_expr_code(expr, code_buffer, code_buffer_length)) >= code_buffer_length)
+        {
+          delete [] code_buffer;
+          code_buffer_length*=2;
+          code_buffer = new char[code_buffer_length];
+        }
+        fprintf(fd,",%s",code_buffer);
       }
     }
     fprintf(fd,");\n");
   }
 
   // GENERATING REFLECTION CODE
-  for(CXXRecordDecl* decl : vars_extr.m_component_decls)
   {
-    generate_reflection_code(fd, decl);
+    const uint32_t num_decls = vars_extr.m_component_decls.size();
+    for (uint32_t i = 0; i < num_decls; ++i) 
+    {
+      generate_reflection_code(fd, vars_extr.m_component_decls[i]);
+    }
   }
 
 
@@ -443,8 +668,8 @@ generate_code(const FccExecPlan* exec_plan,
 
   /// GENERATING __furious_frame CODE
   {
-  fprintf(fd,"\n\n\n");
-  fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
+    fprintf(fd,"\n\n\n");
+    fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
     fprintf(fd, "database->lock();\n");
     DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
@@ -465,13 +690,13 @@ generate_code(const FccExecPlan* exec_plan,
     const FccOperator* root = exec_plan->m_subplans[i].p_root;
     ExecPlanPrinter printer(true);
     root->accept(&printer);
-    fprintf(fd,"%s", printer.m_string_builder.p_buffer);
+    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __pf_task_%d(float delta,\n\
-                                  Database* database,\n\
-                                  void* user_data,\n\
-                                  uint32_t chunk_size,\n\
-                                  uint32_t offset,\n\
-                                  uint32_t stride)\n", i);
+    Database* database,\n\
+            void* user_data,\n\
+            uint32_t chunk_size,\n\
+            uint32_t offset,\n\
+            uint32_t stride)\n", i);
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data);\n");
@@ -503,17 +728,31 @@ generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "// Variable releases \n");
   fprintf(fd, "void __furious_release()\n{\n");
 
-  for(uint32_t i = 0; i < matches.size(); ++i)
+  for(uint32_t i = 0; i < stmts.size(); ++i)
   {
-    const FccMatch* match = matches[i];
-    std::string system_name = get_type_name(match->p_system->m_system_type);
-    std::string wrapper_name = generate_system_wrapper_name(system_name, 
-                                                            match->p_system->m_id);
-    fprintf(fd, "delete %s;\n", wrapper_name.c_str());
+    const fcc_stmt_t* match = stmts[i];
+    char system_name[MAX_TYPE_NAME];
+    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
+                                                 system_name, 
+                                                 MAX_TYPE_NAME);
+    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
+
+    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    const uint32_t wrapper_length = generate_system_wrapper_name(system_name, 
+                                                                 match->p_system->m_id,
+                                                                 wrapper_name, 
+                                                                 MAX_SYSTEM_WRAPPER_VARNAME);
+
+    FURIOUS_CHECK_STR_LENGTH(wrapper_length, MAX_SYSTEM_WRAPPER_VARNAME);
+
+
+    fprintf(fd, "delete %s;\n", wrapper_name);
   }
   fprintf(fd, "}\n");
   fprintf(fd, "}\n");
   fclose(fd);
+  delete [] code_buffer;
+  return 0;
 }
 
 void
@@ -521,5 +760,5 @@ generate_reflection_code(FILE* fp, const QualType& decl)
 {
 
 }
-  
+
 } /* furious */ 

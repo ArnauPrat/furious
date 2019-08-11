@@ -18,9 +18,8 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/platform.cpp
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
   ${CMAKE_SOURCE_DIR}/src/common/reference.h
-  ${CMAKE_SOURCE_DIR}/src/common/string_builder.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/string_builder.h
-  ${CMAKE_SOURCE_DIR}/src/common/traits.h
+  ${CMAKE_SOURCE_DIR}/src/common/str_builder.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/str_builder.h
   ${CMAKE_SOURCE_DIR}/src/common/types.h
   ${CMAKE_SOURCE_DIR}/src/common/utils.cpp
   ${CMAKE_SOURCE_DIR}/src/common/utils.h

@@ -3,7 +3,10 @@
 #include "table.h"
 #include "../memory/numa_alloc.h"
 
-namespace furious {
+#include <string.h>
+
+namespace furious 
+{
 
 /**
  * @brief Represents a decoded id, split into the block id and the offset
@@ -197,32 +200,24 @@ Table::Iterator::next()
   return next;
 }
 
-Table::Table(const std::string& name, 
+Table::Table(const char* name, 
              int64_t id, 
              size_t esize, 
              void (*destructor)(void* ptr)) :
-m_name(name),
 m_id(id),
 m_esize(esize),
 m_num_components(0),
 m_destructor(destructor) 
 {
+  size_t name_length =strlen(name)+1;
+  p_name = new char[name_length];
+  strncpy(p_name, name, name_length);
 }
 
-Table::Table(std::string&& name, 
-             int64_t id, 
-             size_t esize, 
-             void (*destructor)(void* ptr)) :
-m_name(name),
-m_id(id),
-m_esize(esize),
-m_num_components(0),
-m_destructor(destructor)
-{
-}
 
 Table::~Table() {
   clear();
+  delete [] p_name;
 }
 
 size_t
@@ -407,10 +402,10 @@ Table::iterator(uint32_t chunk_size,
   return Iterator(&m_blocks, chunk_size, offset, stride);
 }
 
-std::string 
+const char* 
 Table::name() const 
 {
-  return m_name;
+  return p_name;
 }
 
 TBlock* 

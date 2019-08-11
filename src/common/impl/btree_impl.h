@@ -277,7 +277,7 @@ btree_insert(BTRoot* root,
 /**
  * \brief Inserts a given element to the given node. This method assumes that a
  * pointer to the variable pointing to an nternal node is given. If there is not
- * space to such internal node, the given pointer to pointer will be override
+ * space to such internal node, the given pointer to pointer will be overriden
  * with a new value pointing to a new internal node. Effectively, this method is
  * growing the tree from the upper side
  *

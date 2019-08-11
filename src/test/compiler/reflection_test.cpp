@@ -34,14 +34,14 @@ TEST(ReflectionTest, ReflectionTest )
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
     const furious::ReflField* field = &refl_data->m_fields[i];
-    if(field->m_name == "m_x")
+    if(strcmp(field->m_name,"m_x")==0)
     {
       float* field_ptr = (float*)((char*)raw_pointer + field->m_offset);
       ASSERT_EQ(*field_ptr,1.0f);
       continue;
     }
 
-    if(field->m_name == "m_y")
+    if(strcmp(field->m_name, "m_y")==0)
     {
       printf("%ld\n", field->m_offset);
       float* field_ptr = (float*)((char*)raw_pointer + field->m_offset);
@@ -49,28 +49,28 @@ TEST(ReflectionTest, ReflectionTest )
       continue;
     }
 
-    if(field->m_name == "m_z")
+    if(strcmp(field->m_name, "m_z")==0)
     {
       float* field_ptr = (float*)((char*)raw_pointer + field->m_offset);
       ASSERT_EQ(*field_ptr , 3.0f);
       continue;
     }
 
-    if(field->m_name == "" && field->m_anonymous)
+    if(strcmp(field->m_name,"") == 0 && field->m_anonymous)
     {
       const furious::ReflData* child = field->p_strct_type.get();
       for(uint32_t j = 0; j < child->m_fields.size(); ++j)
       {
         const furious::ReflField* child_field = &child->m_fields[j];
 
-        if(child_field->m_name == "m_q")
+        if(strcmp(child_field->m_name,"m_q")==0)
         {
           float* field_ptr = (float*)((char*)raw_pointer + child_field->m_offset);
           ASSERT_EQ(*field_ptr , 4.0f);
           continue;
         }
 
-        if(child_field->m_name == "m_t")
+        if(strcmp(child_field->m_name, "m_t") == 0)
         {
           float* field_ptr = (float*)((char*)raw_pointer + child_field->m_offset);
           ASSERT_EQ(*field_ptr , 5.0f);
@@ -81,21 +81,21 @@ TEST(ReflectionTest, ReflectionTest )
       continue;
     }
 
-    if(field->m_name == "X" )
+    if(strcmp(field->m_name,"X") == 0)
     {
       const furious::ReflData* child = field->p_strct_type.get();
       for(uint32_t j = 0; j < child->m_fields.size(); ++j)
       {
         const furious::ReflField* child_field = &child->m_fields[j];
 
-        if(child_field->m_name == "m_a")
+        if(strcmp(child_field->m_name,"m_a") == 0)
         {
           float* field_ptr = (float*)((char*)raw_pointer + field->m_offset + child_field->m_offset);
           ASSERT_EQ(*field_ptr , 6.0f);
           continue;
         }
 
-        if(child_field->m_name == "m_b")
+        if(strcmp(child_field->m_name, "m_b") == 0)
         {
           float* field_ptr = (float*)((char*)raw_pointer + field->m_offset + child_field->m_offset);
           ASSERT_EQ(*field_ptr , 6.0f);

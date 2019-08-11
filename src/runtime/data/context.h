@@ -5,7 +5,6 @@
 
 #include "../../common/common.h"
 #include <vector>
-#include <string>
 
 namespace furious 
 {
@@ -26,11 +25,11 @@ public:
           void* user_data);
   ~Context() = default;
 
-  template<typename TComponent>
-    void enable_component(const std::string& component_name, int32_t id);
+  //template<typename TComponent>
+  //  void enable_component(const char* component_name, int32_t id);
 
-  template<typename TComponent>
-    void disable_component(const std::string& component_name, int32_t id);
+  //template<typename TComponent>
+  //  void disable_component(const char* component_name, int32_t id);
 
   const float m_dt;                 
   void*       p_user_data;

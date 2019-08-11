@@ -31,7 +31,7 @@ struct Intensity
 
 struct FieldMesh 
 {
-  FURIOUS_COMPONENT(Field);
+  FURIOUS_COMPONENT(FieldMesh);
 
   float m_x;
   float m_y;

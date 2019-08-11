@@ -3,6 +3,7 @@
 #define _FURIOUS_CODEGEN_TOOLS_H_
 
 #include "../common/dyn_array.h"
+#include "fcc_context.h"
 
 #include <string>
 #include <stdio.h>
@@ -21,6 +22,10 @@ class ConsumeVisitor;
  * procedure implemented through the visitors, we need to store the "state" of
  * the generation process at a given step produce/consume step.
  */
+
+constexpr uint32_t MAX_SOURCE_LENGTH = 512;
+
+
 struct CodeGenContext
 {
   CodeGenContext(FILE* fd);
@@ -29,7 +34,7 @@ struct CodeGenContext
   ProduceVisitor* p_producer;
   ConsumeVisitor* p_consumer;
 
-  std::string m_source;
+  char                    m_source[MAX_SOURCE_LENGTH];
   FILE*                   p_fd;
   const FccOperator*      p_caller;
 };
@@ -55,58 +60,83 @@ struct CodeGenRegistry
 void 
 consume(FILE* fd,
         const FccOperator* op,
-        const std::string& source,
+        const char* source,
         const FccOperator* caller);
 
 void 
 produce(FILE* fd,
         const FccOperator* op);
 
-std::string
-sanitize_name(const std::string& str);
+uint32_t
+sanitize_name(const char* str,
+              char* buffer,
+              uint32_t buffer_length);
 
-std::string
-generate_table_name(const std::string& type_name, 
+uint32_t
+generate_table_name(const char* type_name,
+                    char* buffer,
+                    uint32_t buffer_length, 
                     const FccOperator* op = nullptr);
 
-std::string
-generate_temp_table_name(const std::string& type_name, 
+uint32_t
+generate_temp_table_name(const char* type_name,
+                         char* buffer,
+                         uint32_t buffer_length, 
                          const FccOperator* op = nullptr);
 
-std::string
-generate_ref_table_name(const std::string& ref_name, 
+uint32_t
+generate_ref_table_name(const char* ref_name,
+                        char* buffer,
+                        uint32_t buffer_length, 
                         const FccOperator* op = nullptr);
 
-std::string
-generate_bittable_name(const std::string& tag_name,
+uint32_t
+generate_bittable_name(const char* tag_name,
+                       char* buffer,
+                       uint32_t buffer_length,
                        const FccOperator* op = nullptr);
 
-std::string
-generate_table_iter_name(const std::string& table_name,
+uint32_t
+generate_table_iter_name(const char* table_name,
+                         char* buffer,
+                         uint32_t buffer_length,
                          const FccOperator* op = nullptr);
 
-std::string
-generate_block_name(const std::string& type_name,
+uint32_t
+generate_block_name(const char* type_name,
+                    char* buffer,
+                    uint32_t buffer_length,
                     const FccOperator* op = nullptr);
 
-std::string
-generate_cluster_name(const FccOperator* op);
+uint32_t
+generate_cluster_name(const FccOperator* op,
+                      char* buffer,
+                      uint32_t buffer_length);
 
-std::string
-generate_ref_groups_name(const std::string& ref_name, 
+uint32_t
+generate_ref_groups_name(const char* ref_name,
+                         char* buffer,
+                         uint32_t buffer_length, 
                          const FccOperator* op);
 
-std::string
-generate_hashtable_name(const FccOperator* op);
+uint32_t
+generate_hashtable_name(const FccOperator* op,
+                        char* buffer,
+                        uint32_t buffer_length);
 
-std::string
-generate_system_wrapper_name(const std::string& system_name,
+uint32_t
+generate_system_wrapper_name(const char* system_name,
                              uint32_t system_id,
+                             char* buffer,
+                             uint32_t buffer_length,
                              const FccOperator* op = nullptr);
 
-std::string
-generate_global_name(const std::string& type_name, 
+uint32_t
+generate_global_name(const char* type_name,
+                     char* buffer,
+                     uint32_t buffer_length, 
                      const FccOperator* op = nullptr);
+
 
 } /* furious */ 
 

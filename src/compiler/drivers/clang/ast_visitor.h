@@ -24,11 +24,11 @@ private:
   ASTContext *p_ast_context; // used for getting additional AST info
 
 public:
-  FccMatch* p_fcc_match;
+  fcc_stmt_t* p_fcc_stmt;
 
   FuriousExprVisitor(ASTContext *ast_context);
 
-  FccMatch*  
+  fcc_stmt_t*  
   parse_expression(Expr* expr);
 
   virtual 

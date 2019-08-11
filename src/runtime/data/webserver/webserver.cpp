@@ -51,30 +51,32 @@ generate_json(WebServer* webserver)
   // generate json here
   char headers[] = "HTTP/1.1 200 OK\r\nServer: CPi\r\nContent-type: application/json\r\n\r\n";
   
-  webserver->m_builder.clear();
-  webserver->m_builder.append("%s { \"tables\" : [", 
-                               headers);
+  str_builder_clear(&webserver->m_builder);
+  str_builder_append(&webserver->m_builder,
+                     "%s { \"tables\" : [", 
+                     headers);
 
   uint32_t i = 0;
   for(; i < num_infos; ++i)
   {
 
-    webserver->m_builder.append("{\"name\" : \"%s\",\"size\" : \"%u\"},",
-                               webserver->m_table_infos[i].m_name, 
-                               webserver->m_table_infos[i].m_size);
+    str_builder_append(&webserver->m_builder, 
+                       "{\"name\" : \"%s\",\"size\" : \"%u\"},",
+                       webserver->m_table_infos[i].m_name, 
+                       webserver->m_table_infos[i].m_size);
   }
 
   if (i > 0)
   {
     webserver->m_builder.m_pos-=1; // removing the trailing comma
   }
-  webserver->m_builder.append("]}");
+  str_builder_append(&webserver->m_builder, "]}");
 }
 
 void
 server_thread_handler(WebServer* webserver, 
-                      const std::string& address,
-                      const std::string& port)
+                      const char* address,
+                      const char* port)
 {
 
   addrinfo hints, *server;
@@ -82,7 +84,7 @@ server_thread_handler(WebServer* webserver,
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
-  getaddrinfo(NULL, port.c_str(), &hints, &server);
+  getaddrinfo(NULL, port, &hints, &server);
 
 
   int socket_fd = socket( server->ai_family,
@@ -131,6 +133,7 @@ p_thread(nullptr),
 m_table_infos_capacity(0),
 m_table_infos(nullptr)
 {
+  str_builder_init(&m_builder);
 }
 
 WebServer::~WebServer()
@@ -139,12 +142,13 @@ WebServer::~WebServer()
   {
     stop(); 
   }
+  str_builder_release(&m_builder);
 }
 
 void
 WebServer::start(Database* database,
-                 const std::string& address,
-                 const std::string& port)
+                 const char* address,
+                 const char* port)
 {
   p_database = database;
   p_thread = new std::thread(server_thread_handler, 

@@ -12,7 +12,6 @@
 #include "../../common/hash_map.h"
 
 #include <assert.h>
-#include <string>
 #include <mutex>
 
 
@@ -144,7 +143,7 @@ struct Database
    * @param tag The tag to tag the entity with
    */
   void 
-  tag_entity(entity_id_t entity_id, const std::string& tag);
+  tag_entity(entity_id_t entity_id, const char* tag);
 
   /**
    * @brief Untags an entity from a given tag
@@ -153,7 +152,7 @@ struct Database
    * @param tag The tag to remove from the entity
    */
   void 
-  untag_entity(entity_id_t entity_id, const std::string& tag);
+  untag_entity(entity_id_t entity_id, const char* tag);
 
   /**
    * @brief Gets a bitset with the entities with a given tag
@@ -163,7 +162,7 @@ struct Database
    * @return Returns a bitset with the entities of the tag
    */
   BitTable*
-  get_tagged_entities(const std::string& tag);
+  get_tagged_entities(const char* tag);
 
   /**
    * \brief Gets a reference table
@@ -173,7 +172,7 @@ struct Database
    * \return Returns a TableView of the reference table
    */
   TableView<uint32_t>
-  get_references(const std::string& ref_name);
+  get_references(const char* ref_name);
 
   /**
    * @brief Adds a reference between two entities
@@ -183,7 +182,7 @@ struct Database
    * @param head The destination entity of the reference
    */
   void 
-  add_reference( const std::string& type, 
+  add_reference( const char* type, 
                  entity_id_t tail, 
                  entity_id_t head);
 
@@ -194,7 +193,7 @@ struct Database
    * @param tail The origin entity of the reference
    */
   void 
-  remove_reference( const std::string& type, 
+  remove_reference( const char* type, 
                     entity_id_t tail);
 
   /**
@@ -202,8 +201,8 @@ struct Database
    *
    */
   void
-  start_webserver(const std::string& address, 
-                  const std::string& port);
+  start_webserver(const char* address, 
+                  const char* port);
 
   /**
    * \brief Stops the web server
@@ -252,7 +251,7 @@ struct Database
    */
   template <typename T>
   TableView<T>
-  create_temp_table(const std::string& table_name);
+  create_temp_table(const char* table_name);
 
   /**
    * \brief Creates a temporal table for the given component type (withput locking the database). Meant to
@@ -264,7 +263,7 @@ struct Database
    */
   template <typename T>
   TableView<T>
-  create_temp_table_no_lock(const std::string& table_name);
+  create_temp_table_no_lock(const char* table_name);
 
   /**
    * \brief Destroys the given temporal table

@@ -1,20 +1,20 @@
 
 
-
 #ifndef _FURIOUS_COMPILER_PARSING_H_
 #define _FURIOUS_COMPILER_PARSING_H_ value
 
 #include <string>
 #include <clang/AST/AST.h>
 
+
 using namespace clang;
 
 namespace furious 
 {
 
-struct FccContext;
-struct FccMatch;
-enum class FccParsingErrorType;
+struct fcc_context_t;
+struct fcc_stmt_t;
+enum class fcc_parsing_error_type_t;
 
 /**
  * \brief Process a match call
@@ -27,7 +27,7 @@ enum class FccParsingErrorType;
  */
 bool 
 process_match(ASTContext* ast_context,
-              FccMatch* fcc_match,
+              fcc_stmt_t* fcc_match,
               const CallExpr* call);
 
 /**
@@ -41,7 +41,7 @@ process_match(ASTContext* ast_context,
  */
 bool 
 process_expand(ASTContext* ast_context,
-               FccMatch* fcc_match,
+               fcc_stmt_t* fcc_match,
                const CallExpr* call);
 
 
@@ -56,7 +56,7 @@ process_expand(ASTContext* ast_context,
  */
 bool 
 process_foreach(ASTContext* ast_context,
-                FccMatch*   fcc_match,
+                fcc_stmt_t*   fcc_match,
                 const CallExpr* call);
 
 /**
@@ -70,7 +70,7 @@ process_foreach(ASTContext* ast_context,
  */
 bool 
 process_set_priority(ASTContext* ast_context,
-                  FccMatch*   fcc_match,
+                  fcc_stmt_t*   fcc_match,
                   const CallExpr* call);
 
 /**
@@ -84,7 +84,7 @@ process_set_priority(ASTContext* ast_context,
  */
 bool 
 process_set_post_frame(ASTContext* ast_context,
-                       FccMatch*   fcc_match,
+                       fcc_stmt_t*   fcc_match,
                        const CallExpr* call);
 
 /**
@@ -98,7 +98,7 @@ process_set_post_frame(ASTContext* ast_context,
  */
 bool 
 process_has_tag(ASTContext* ast_context,
-                 FccMatch* fcc_match,
+                 fcc_stmt_t* fcc_match,
                  const CallExpr* call);
 
 /**
@@ -112,7 +112,7 @@ process_has_tag(ASTContext* ast_context,
  */
 bool 
 process_has_not_tag(ASTContext* ast_context,
-                    FccMatch* fcc_match,
+                    fcc_stmt_t* fcc_match,
                     const CallExpr* call);
 
 /**
@@ -126,7 +126,7 @@ process_has_not_tag(ASTContext* ast_context,
  */
 bool 
 process_has_component(ASTContext* ast_context,
-                      FccMatch* fcc_match,
+                      fcc_stmt_t* fcc_match,
                       const CallExpr* call);
 
 /**
@@ -140,7 +140,7 @@ process_has_component(ASTContext* ast_context,
  */
 bool 
 process_has_not_component(ASTContext* ast_context,
-                          FccMatch* fcc_match,
+                          fcc_stmt_t* fcc_match,
                           const CallExpr* call);
 
 /**
@@ -154,16 +154,16 @@ process_has_not_component(ASTContext* ast_context,
  */
 bool 
 process_filter(ASTContext* ast_context,
-               FccMatch* fcc_match,
+               fcc_stmt_t* fcc_match,
                const CallExpr* call);
 
 
-
-void 
-report_parsing_error(const ASTContext* ast_context, 
+void
+report_parsing_error(const SourceManager& sm,
                      const SourceLocation& location,
-                     const FccParsingErrorType& type,
-                     const std::string& message);
+                     fcc_parsing_error_type_t error_type,
+                     const char* message);
+
 
 } /* furious */ 
 

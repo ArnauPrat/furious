@@ -40,26 +40,26 @@ Entity::remove_entity(Entity entity)
 }
 
 void 
-Entity::add_tag(const std::string& tag) 
+Entity::add_tag(const char* tag) 
 {
   p_database->tag_entity(m_id, tag);
 }
 
 void 
-Entity::remove_tag(const std::string& tag) 
+Entity::remove_tag(const char* tag) 
 {
   p_database->untag_entity(m_id, tag);
 }
 
 bool 
-Entity::has_tag(const std::string& tag)
+Entity::has_tag(const char* tag)
 {
   const BitTable* bit_table = p_database->get_tagged_entities(tag);
   return bit_table->exists(m_id);
 }
 
 void
-Entity::add_reference(const std::string& ref_name,
+Entity::add_reference(const char* ref_name,
                       Entity other)
 {
   p_database->add_reference(ref_name, 
@@ -68,14 +68,14 @@ Entity::add_reference(const std::string& ref_name,
 }
 
 void
-Entity::remove_reference(const std::string& ref_name)
+Entity::remove_reference(const char* ref_name)
 {
   p_database->remove_reference(ref_name, 
                                m_id);
 }
 
 Entity
-Entity::get_reference(const std::string& ref_name)
+Entity::get_reference(const char* ref_name)
 {
   TableView<uint32_t> ref_table = p_database->get_references(ref_name);
   uint32_t* other = ref_table.get_component(m_id);

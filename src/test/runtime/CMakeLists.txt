@@ -31,8 +31,8 @@ SET(TESTS
   table_test
   database_test
   tags_test
-  traits_test
   refs_test
+  dyn_array_test
   )
 
 foreach( TEST ${TESTS} )

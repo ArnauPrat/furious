@@ -4,10 +4,13 @@
 
 #include "../common/dyn_array.h"
 #include "fcc_context.h"
+#include "../../backend/codegen_tools.h"
 
 #include <string>
 #include <clang/Basic/SourceManager.h>
 #include <clang/AST/Type.h>
+
+#include "../../driver.h"
 
 using namespace clang;
 
@@ -34,11 +37,6 @@ get_code(const SourceManager &sm,
          SourceRange range);
 
 
-struct Dependency 
-{
-  std::string m_include_file = "";
-  const Decl*       p_decl         = nullptr;
-};
 
 /**
  * @brief Gets the dependencies of a given declaration
@@ -64,31 +62,43 @@ get_dependencies(const QualType& type);
  * \brief Gets the name of a QualType
  *
  * \param type The QualType to get the name from
+ * \param buffer The buffer where the name will be written to 
+ * \param type The length of the buffer 
  *
- * \return Returns the name of the QualType
+ * \return The length of the type name
  */
-std::string 
-get_type_name(const QualType& type);
+uint32_t 
+get_type_name(const QualType& type,
+              char* buffer, 
+              uint32_t buffer_length);
 
 /**
  * \brief Gets the name of a QualType, including the namespace
  *
  * \param type The QualType to get the name from
+ * \param buffer The buffer where the name will be written to 
+ * \param type The length of the buffer 
  *
- * \return Returns the name of the QualType
+ * \return Returns the length of the tagged type name
  */
-std::string 
-get_tagged_type_name(const QualType& type);
+uint32_t
+get_tagged_type_name(const QualType& type,
+                     char* buffer, 
+                     uint32_t buffer_length);
 
 /**
  * \brief Gets the fully qualified name of a QualType
  *
  * \param type The QualType to get the fully qualified type name from
+ * \param buffer The buffer where the name will be written to 
+ * \param type The length of the buffer 
  *
- * \return Returns the fully qualify name of the QualType
+ * \return Returns the length of the qualified type name
  */
-std::string 
-get_qualified_type_name(const QualType& type);
+uint32_t 
+get_qualified_type_name(const QualType& type,
+                        char* buffer, 
+                        uint32_t buffer_length);
 
 /**
  * \brief Gets the declaration of a QualType
@@ -109,7 +119,7 @@ get_type_decl(const QualType& type);
  *
  * \return The access mode of the component
  */
-FccAccessMode
+fcc_access_mode_t
 get_access_mode(const QualType& type);
 
 

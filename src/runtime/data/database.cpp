@@ -57,6 +57,7 @@ void Database::clear()
   {
     BTree<GlobalInfo>::Entry entry = it_globals.next();
     entry.p_value->m_destructor(entry.p_value->p_global);
+    delete [] ((char*)entry.p_value->p_global);
   }
   m_globals.clear();
   release();
@@ -86,9 +87,9 @@ Database::clear_entity(entity_id_t id)
 }
 
 void Database::tag_entity(entity_id_t entity_id, 
-                          const std::string& tag) 
+                          const char* tag) 
 {
-  uint32_t hash_value = hash(tag.c_str());
+  uint32_t hash_value = hash(tag);
   lock();
   BitTable** bit_table = m_tags.get(hash_value);
   BitTable* bit_table_ptr = nullptr;
@@ -106,10 +107,10 @@ void Database::tag_entity(entity_id_t entity_id,
 }
 
 void Database::untag_entity(entity_id_t entity_id, 
-                          const std::string& tag) 
+                            const char* tag) 
 {
   lock();
-  uint32_t hash_value = hash(tag.c_str());
+  uint32_t hash_value = hash(tag);
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
   {
@@ -119,9 +120,9 @@ void Database::untag_entity(entity_id_t entity_id,
 }
 
 BitTable* 
-Database::get_tagged_entities(const std::string& tag) 
+Database::get_tagged_entities(const char* tag) 
 {
-  uint32_t hash_value = hash(tag.c_str());
+  uint32_t hash_value = hash(tag);
   lock();
   BitTable** bit_table = m_tags.get(hash_value);
   if(bit_table != nullptr) 
@@ -136,15 +137,15 @@ Database::get_tagged_entities(const std::string& tag)
 }
 
 TableView<uint32_t>
-Database::get_references(const std::string& ref_name)
+Database::get_references(const char* ref_name)
 {
-  uint32_t hash_value = hash(ref_name.c_str());
+  uint32_t hash_value = hash(ref_name);
   lock();
   Table* table_ptr = nullptr;
   Table** ref_table = m_references.get(hash_value);
   if (ref_table == nullptr) 
   {
-    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), &destructor<uint32_t>);
+    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
     m_references.insert_copy( hash_value, &table_ptr);
   } 
   else
@@ -156,17 +157,17 @@ Database::get_references(const std::string& ref_name)
 }
 
 void 
-Database::add_reference( const std::string& ref_name, 
+Database::add_reference( const char* ref_name, 
                          entity_id_t tail, 
                          entity_id_t head) 
 {
-  uint32_t hash_value = hash(ref_name.c_str());
+  uint32_t hash_value = hash(ref_name);
   lock();
   Table* table_ptr = nullptr;
   Table** ref_table = m_references.get(hash_value);
   if (ref_table == nullptr) 
   {
-    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), &destructor<uint32_t>);
+    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
     m_references.insert_copy( hash_value, &table_ptr);
   } 
   else
@@ -180,10 +181,10 @@ Database::add_reference( const std::string& ref_name,
 }
 
 void 
-Database::remove_reference( const std::string& ref_name, 
+Database::remove_reference( const char* ref_name, 
                             entity_id_t tail) 
 {
-  uint32_t hash_value = hash(ref_name.c_str());
+  uint32_t hash_value = hash(ref_name);
   lock();
   Table** ref_table = m_references.get(hash_value);
   if (ref_table != nullptr) 
@@ -196,8 +197,8 @@ Database::remove_reference( const std::string& ref_name,
 }
 
 void
-Database::start_webserver(const std::string& address, 
-                          const std::string& port)
+Database::start_webserver(const char* address, 
+                          const char* port)
 {
   p_webserver = new WebServer();
   p_webserver->start(this,
@@ -234,7 +235,7 @@ Database::meta_data(TableInfo* data, uint32_t capacity)
   while(it.has_next() && count < capacity)
   {
     Table* table = *it.next().p_value;
-    strncpy(&data[count].m_name[0], table->name().c_str(), _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
+    strncpy(&data[count].m_name[0], table->name(), _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
     data[count].m_size = table->size();
     count++;
   }

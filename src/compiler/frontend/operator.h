@@ -7,11 +7,12 @@
 
 #include "fcc_context.h"
 
-#include <clang/AST/AST.h>
 #include <string>
 
 namespace furious
 {
+
+#define MAX_OPERATOR_NAME 256
 
 class FccSubPlanVisitor;
 
@@ -37,10 +38,10 @@ enum class FccColumnType
 
 struct FccColumn
 {
-  FccColumnType m_type;
-  QualType      m_q_type;
-  std::string   m_ref_name;
-  FccAccessMode m_access_mode;
+  FccColumnType     m_type;
+  fcc_type_t        m_component_type;
+  char              m_ref_name[MAX_REF_NAME];
+  fcc_access_mode_t m_access_mode;
 };
 
 
@@ -49,7 +50,7 @@ class FccOperator
 public:
 
   FccOperator(FccOperatorType type, 
-              const std::string& name);
+              const char* name);
 
   virtual
   ~FccOperator() = default;
@@ -58,7 +59,7 @@ public:
   accept(FccSubPlanVisitor* visitor) const = 0;  
 
   FccOperatorType       m_type;
-  std::string           m_name;
+  char                  m_name[MAX_OPERATOR_NAME];
   const FccOperator*    p_parent;
   DynArray<FccColumn>   m_columns;
   uint32_t              m_id;
@@ -72,7 +73,7 @@ class FccOperatorTmplt : public FccOperator
 {
 public:
   FccOperatorTmplt(FccOperatorType type,
-                   const std::string& name);
+                   const char* name);
 
   virtual 
   ~FccOperatorTmplt() = default;
@@ -86,10 +87,10 @@ public:
  */
 struct Scan : public FccOperatorTmplt<Scan> 
 {
-  explicit Scan(const std::string& ref_name);
+  explicit Scan(const char* ref_name);
 
-  explicit Scan(QualType component,
-                FccAccessMode access_mode);
+  explicit Scan(fcc_type_t component,
+                fcc_access_mode_t access_mode);
 
   virtual 
   ~Scan() = default;
@@ -149,13 +150,13 @@ struct CrossJoin : public FccOperatorTmplt<CrossJoin>
  */
 struct Fetch : public FccOperatorTmplt<Fetch> 
 {
-  Fetch(QualType global_type,
-        FccAccessMode access_mode);
+  Fetch(fcc_type_t global_type,
+        fcc_access_mode_t access_mode);
 
   virtual 
   ~Fetch();
 
-  QualType m_global_type;
+  fcc_type_t m_global_type;
 };
 
 /**
@@ -165,7 +166,7 @@ template<typename T>
 struct Filter : public FccOperatorTmplt<T> 
 {
   Filter(RefCountPtr<FccOperator> child,
-         const std::string& name);
+         const char* name);
 
   virtual 
   ~Filter();
@@ -177,11 +178,11 @@ struct Filter : public FccOperatorTmplt<T>
 struct PredicateFilter : public Filter<PredicateFilter>
 {
   PredicateFilter(RefCountPtr<FccOperator> child,
-                  const FunctionDecl* func_decl);
+                  fcc_decl_t func_decl);
   virtual 
   ~PredicateFilter() = default;
 
-  const FunctionDecl* p_func_decl;
+  fcc_decl_t m_func_decl;
 };
 
 enum class FccFilterOpType
@@ -193,14 +194,14 @@ enum class FccFilterOpType
 struct TagFilter : public Filter<TagFilter> 
 {
   TagFilter(RefCountPtr<FccOperator> child,
-            const std::string& tag,
+            const char* tag,
             FccFilterOpType op_type,
             bool on_column = false);
 
   virtual 
   ~TagFilter() = default;
 
-  const std::string m_tag;
+  char              m_tag[MAX_TYPE_NAME];
   bool              m_on_column;
   FccFilterOpType   m_op_type;
 };
@@ -208,16 +209,16 @@ struct TagFilter : public Filter<TagFilter>
 struct ComponentFilter : public Filter<ComponentFilter>
 {
   ComponentFilter(RefCountPtr<FccOperator> child,
-                  QualType component_type,
+                  fcc_type_t component_type,
                   FccFilterOpType op_type,
                   bool on_column = false);
 
   virtual 
   ~ComponentFilter() = default;
 
-  QualType          m_filter_type;
-  bool              m_on_column;
-  FccFilterOpType   m_op_type;
+  fcc_type_t          m_filter_type;
+  bool                m_on_column;
+  FccFilterOpType     m_op_type;
 };
 
 
@@ -227,12 +228,12 @@ struct ComponentFilter : public Filter<ComponentFilter>
 struct Foreach : public FccOperatorTmplt<Foreach>  
 {
   Foreach(RefCountPtr<FccOperator> child, 
-          const DynArray<const FccSystem*>& systems);
+          const DynArray<const fcc_system_t*>& systems);
 
   virtual 
   ~Foreach();
 
-  DynArray<const FccSystem*>      p_systems;
+  DynArray<const fcc_system_t*>      p_systems;
   RefCountPtr<FccOperator>        p_child;
 };
 

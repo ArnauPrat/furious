@@ -3,33 +3,38 @@ include_directories(./)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBCLANG_CXXFLAGS}")
 
+set(DRIVER_SRC
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_tools.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_tools.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_parsing.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_parsing.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/ast_visitor.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/ast_visitor.h
+  )
+
 set(COMPILER_SRC
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/driver.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/clang_tools.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/clang_tools.h
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan_printer.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/execution_plan.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.inl
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/fccASTVisitor.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/parsing.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/parsing.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.h
   )
@@ -37,6 +42,7 @@ set(COMPILER_SRC
 add_executable( fcc 
   ${COMMON_SRC}
   ${COMPILER_SRC}
+  ${DRIVER_SRC}
   )
 
 set(LLVM_LINK_COMPONENTS support)

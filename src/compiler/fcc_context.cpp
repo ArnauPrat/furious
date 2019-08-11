@@ -1,12 +1,12 @@
 
 
 
+#include "driver.h"
 #include "fcc_context.h"
-#include "frontend/fccASTVisitor.h"
-#include "frontend/execution_plan.h"
+#include "frontend/exec_plan.h"
 #include "frontend/exec_plan_printer.h"
-#include "frontend/parsing.h"
-#include "clang_tools.h"
+#include "drivers/clang/clang_parsing.h"
+#include "drivers/clang/clang_tools.h"
 #include "backend/codegen.h"
 
 #include "stdlib.h"
@@ -14,137 +14,144 @@
 #include <stdio.h>
 #include <vector>
 
-#include <clang/Tooling/Tooling.h>
-
 namespace furious 
 {
 
-FccContext* p_fcc_context = nullptr;
+fcc_context_t* p_fcc_context = nullptr;
 
-FccMatch::~FccMatch()
+fcc_entity_match_t* 
+fcc_entity_match_create()
 {
-  for(uint32_t i = 0; i < p_entity_matches.size(); ++i)
-  {
-    delete p_entity_matches[i];
-  }
-
-  if(p_system != nullptr)
-  {
-    delete p_system;
-  }
-}
-
-FccEntityMatch* 
-FccMatch::create_entity_match()
-{
-  FccEntityMatch* e_match = new FccEntityMatch(); 
-  p_entity_matches.append(e_match);
+  fcc_entity_match_t* e_match = new fcc_entity_match_t(); 
+  e_match->m_from_expand = false;
   return e_match;
 }
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-FccContext::FccContext(): 
-p_pecallback(nullptr),
-p_cecallback(nullptr)
+void
+fcc_entity_match_destroy(fcc_entity_match_t* fcc_entity_match)
 {
-}
-
-FccContext::~FccContext()
-{
-  for(uint32_t i = 0; i < p_matches.size(); ++i)
+  uint32_t num_tags = fcc_entity_match->m_has_tags.size();
+  for (uint32_t i = 0; i < num_tags; ++i) 
   {
-      delete p_matches[i];
+    delete [] fcc_entity_match->m_has_tags[i];
+    
   }
+
+  num_tags = fcc_entity_match->m_has_not_tags.size();
+  for (uint32_t i = 0; i < num_tags; ++i) 
+  {
+    delete [] fcc_entity_match->m_has_not_tags[i];
+  }
+
+  delete fcc_entity_match;
 }
 
-FccMatch*
-FccContext::create_match(ASTContext* ast_context,
-                         Expr* expr)
+fcc_stmt_t*
+fcc_stmt_create()
 {
-  FccMatch* match = new FccMatch();
-  match->p_ast_context = ast_context;
-  match->p_expr = expr;
-  p_matches.append(match); 
-  return match;
+  fcc_stmt_t* fcc_match = new fcc_stmt_t();
+  fcc_match->m_operation_type  = fcc_operation_type_t::E_UNKNOWN;  
+  fcc_match->p_system          = nullptr;                      
+  fcc_match->m_priority        = 1;                            
+  fcc_match->m_place           = fcc_match_place_t::E_FRAME;   
+  return fcc_match;
 }
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
+void
+fcc_stmt_destroy(fcc_stmt_t* fcc_match)
+{
+  const uint32_t num_entity_matches = fcc_match->p_entity_matches.size();
+  for(uint32_t i = 0; i < num_entity_matches; ++i)
+  {
+    fcc_entity_match_destroy(fcc_match->p_entity_matches[i]);
+  }
+
+  if(fcc_match->p_system != nullptr)
+  {
+    delete fcc_match->p_system;
+  }
+  delete fcc_match;
+}
 
 void 
-handle_parsing_error(FccParsingErrorType type,
-                     const std::string& filename, 
+handle_parsing_error(fcc_parsing_error_type_t type,
+                     const char* filename, 
                      int line,
                      int column,
-                     const std::string& message
+                     const char* message
                     )
 {
 
-  StringBuilder str_builder;
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
   switch(type) 
   {
-    case FccParsingErrorType::E_UNKNOWN_ERROR:
-      str_builder.append("Unknown error");
+    case fcc_parsing_error_type_t::E_UNKNOWN_ERROR:
+      str_builder_append(&str_builder, "Unknown error");
       break;
-    case FccParsingErrorType::E_UNKNOWN_FURIOUS_OPERATION:
-      str_builder.append("Unknown furious operation"); 
+    case fcc_parsing_error_type_t::E_UNKNOWN_FURIOUS_OPERATION:
+      str_builder_append(&str_builder, "Unknown furious operation"); 
       break;
-    case FccParsingErrorType::E_INCOMPLETE_FURIOUS_STATEMENT:
-      str_builder.append("Incomplete furious statement ");
+    case fcc_parsing_error_type_t::E_INCOMPLETE_FURIOUS_STATEMENT:
+      str_builder_append(&str_builder, "Incomplete furious statement ");
       break;
-    case FccParsingErrorType::E_UNSUPPORTED_STATEMENT:
-      str_builder.append("Non furious staetment");
+    case fcc_parsing_error_type_t::E_UNSUPPORTED_STATEMENT:
+      str_builder_append(&str_builder, "Non furious staetment");
       break;
-    case FccParsingErrorType::E_UNSUPPORTED_VAR_DECLARATIONS:
-      str_builder.append("Non allowed var declaration");
+    case fcc_parsing_error_type_t::E_UNSUPPORTED_VAR_DECLARATIONS:
+      str_builder_append(&str_builder, "Non allowed var declaration");
       break;
-    case FccParsingErrorType::E_UNSUPPORTED_TYPE_MODIFIER:
-      str_builder.append("Unsupported type modifier");
+    case fcc_parsing_error_type_t::E_UNSUPPORTED_TYPE_MODIFIER:
+      str_builder_append(&str_builder, "Unsupported type modifier");
       break;
-    case FccParsingErrorType::E_EXPECTED_STRING_LITERAL:
-      str_builder.append("Expected String Literal error");
+    case fcc_parsing_error_type_t::E_EXPECTED_STRING_LITERAL:
+      str_builder_append(&str_builder, "Expected String Literal error");
       break;
-    case FccParsingErrorType::E_NO_ERROR:
-      str_builder.append("No Error. This should never be reported");
+    case fcc_parsing_error_type_t::E_NO_ERROR:
+      str_builder_append(&str_builder, "No Error. This should never be reported");
       break;
   }
 
-  str_builder.append(" found in %s:%d:%d. %s\n", filename.c_str(), line, column, message.c_str());
+  str_builder_append(&str_builder, 
+                        " found in %s:%d:%d. %s\n", 
+                        filename, 
+                        line, 
+                        column, 
+                        message);
   llvm::errs() << str_builder.p_buffer;
+  str_builder_release(&str_builder);
   abort();
 }
 
 void 
-handle_compilation_error(FccCompilationErrorType type,
-                         const std::string& err_msg)
+handle_compilation_error(fcc_compilation_error_type_t type,
+                         const char* err_msg)
 {
-  StringBuilder str_builder;
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
   switch(type) 
   {
-    case FccCompilationErrorType::E_UNKNOWN_ERROR:
-      str_builder.append("Unknown error: %s\n", err_msg.c_str());
+    case fcc_compilation_error_type_t::E_UNKNOWN_ERROR:
+      str_builder_append(&str_builder, "Unknown error: %s\n", err_msg);
       break;
-    case FccCompilationErrorType::E_CYCLIC_DEPENDENCY_GRAPH:
-      str_builder.append("Cyclic dependency graph %s\n", err_msg.c_str());
+    case fcc_compilation_error_type_t::E_CYCLIC_DEPENDENCY_GRAPH:
+      str_builder_append(&str_builder, "Cyclic dependency graph %s\n", err_msg);
       break;
-    case FccCompilationErrorType::E_INVALID_COLUMN_TYPE:
-      str_builder.append("Invalid Column Type: %s\n", err_msg.c_str());
+    case fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE:
+      str_builder_append(&str_builder, "Invalid Column Type: %s\n", err_msg);
       break;
-    case FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND:
-      str_builder.append("Invalid access mode: %s\n", err_msg.c_str());
+    case fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND:
+      str_builder_append(&str_builder, "Invalid access mode: %s\n", err_msg);
       break;
-    case FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS:
-      str_builder.append("System invalid number of components: %s\n", err_msg.c_str());
+    case fcc_compilation_error_type_t::E_SYSTEM_INVALID_NUMBER_COMPONENTS:
+      str_builder_append(&str_builder, "System invalid number of components: %s\n", err_msg);
       break;
-    case FccCompilationErrorType::E_NO_ERROR:
-      str_builder.append("No Error. This should never be reported");
+    case fcc_compilation_error_type_t::E_NO_ERROR:
+      str_builder_append(&str_builder, "No Error. This should never be reported");
       break;
   }
   llvm::errs() << str_builder.p_buffer;
+  str_builder_release(&str_builder);
   abort();
 }
 
@@ -152,131 +159,145 @@ handle_compilation_error(FccCompilationErrorType type,
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-void Fcc_create_context() 
+void
+fcc_context_create() 
 {
-  p_fcc_context = new FccContext();
-  p_fcc_context->set_parsing_error_callback(handle_parsing_error);
-  p_fcc_context->set_compilation_error_callback(handle_compilation_error);
+  p_fcc_context = new fcc_context_t();
+  p_fcc_context->p_pecallback = nullptr;
+  p_fcc_context->p_cecallback = nullptr;
+  fcc_context_set_parsing_error_callback(handle_parsing_error);
+  fcc_context_set_compilation_error_callback(handle_compilation_error);
 }
 
 void 
-Fcc_release_context()
+fcc_context_release()
 {
+  const uint32_t num_matches = p_fcc_context->p_stmts.size();
+  for(uint32_t i = 0; i < num_matches; ++i)
+  {
+      fcc_stmt_destroy(p_fcc_context->p_stmts[i]);
+  }
   delete p_fcc_context;
 }
 
+//fcc_stmt_t*
+//fcc_context_create_match(ASTContext* ast_context,
+//                         Expr* expr)
+//{
+//  fcc_stmt_t* match = fcc_match_create();
+//  match->p_ast_context = ast_context;
+//  match->p_expr = expr;
+//  p_fcc_context->p_stmts.append(match); 
+//  return match;
+//}
+
 void 
-FccContext::set_parsing_error_callback(FCC_PARSING_ERROR_CALLBACK callback)
+fcc_context_set_parsing_error_callback(FCC_PARSING_ERROR_CALLBACK callback)
 {
-  p_pecallback = callback;
+  p_fcc_context->p_pecallback = callback;
 }
 
 void 
-FccContext::set_compilation_error_callback(FCC_COMP_ERROR_CALLBACK callback)
+fcc_context_set_compilation_error_callback(FCC_COMP_ERROR_CALLBACK callback)
 {
-  p_cecallback = callback;
+  p_fcc_context->p_cecallback = callback;
 }
 
 void 
-FccContext::report_parsing_error(FccParsingErrorType error_type,
-                                 const std::string& filename,
+fcc_context_report_parsing_error(fcc_parsing_error_type_t error_type,
+                                 const char* filename,
                                  int32_t line,
                                  int32_t column,
-                                 const std::string& message) const
+                                 const char* message)
 {
-  if(p_pecallback != nullptr) 
+  if(p_fcc_context->p_pecallback != nullptr) 
   {
-    p_pecallback(error_type,
-                 filename,
-                 line,
-                 column,
-                 message);
+    p_fcc_context->p_pecallback(error_type,
+                                filename,
+                                line,
+                                column,
+                                message);
   }
   abort();
 }
 
 void 
-FccContext::report_compilation_error(FccCompilationErrorType error_type,
-                                     const std::string& err_msg) const
+fcc_context_report_compilation_error(fcc_compilation_error_type_t error_type,
+                                     const char* err_msg)
 {
-  if(p_cecallback != nullptr) 
+  if(p_fcc_context->p_cecallback != nullptr) 
   {
-    p_cecallback(error_type,
-                 err_msg);
+    p_fcc_context->p_cecallback(error_type,
+                                err_msg);
   }
   abort();
 }
 
 int 
-Fcc_run(CommonOptionsParser& op,
-        const std::string& output_file,
-        const std::string& include_file)
+fcc_run(int argc, 
+        const char** argv)
 {
-  int result = 0;
-  if(op.getSourcePathList().size() > 0)
+
+  fcc_context_create();
+
+  const char* output_file = "furious_generated.cpp"; 
+  const char* include_file = "furious/furious.h"; 
+
+  for (int32_t i = 0; i < argc; ++i) 
   {
-    ClangTool tool(op.getCompilations(), op.getSourcePathList());
-    std::vector<std::unique_ptr<ASTUnit>> asts;
-    result = tool.buildASTs(asts);
-    if(result != 0)
+    if(strcmp("-o", argv[i]) == 0)
     {
-      return result;
+      if(i+1 < argc)
+      {
+        output_file = argv[i+1];
+      }
     }
 
-    for(uint32_t i = 0; i < asts.size();++i)
+    if(strcmp("-i", argv[i]) == 0)
     {
-      p_fcc_context->p_asts.append(std::move(asts[i]));
+      if(i+1 < argc)
+      {
+        include_file = argv[i+1];
+      }
     }
-
-#ifndef NDEBUG
-    llvm::errs() << "\n";
-    llvm::errs() << "Parsing furious scripts" << "\n";
-#endif
-
-    // Parse and visit all compilation units (furious scripts)
-    const DynArray<std::unique_ptr<ASTUnit>>& casts = p_fcc_context->p_asts;
-    for(uint32_t i = 0; i < casts.size(); ++i) 
-    {
-      ASTUnit* ast = casts[i].get();
-      ASTContext& ast_context = ast->getASTContext();
-      FccASTVisitor visitor(&ast_context);
-      visitor.TraverseDecl(ast_context.getTranslationUnitDecl());
-    }
-
-#ifndef NDEBUG
-    llvm::errs() << "\n";
-    llvm::errs() << "Building Query Plan" << "\n";
-#endif
+    
   }
 
+  fcc_driver_init();
+
+  // Parsing scripts
+  int32_t result = fcc_parse_scripts(argc, 
+                                     argv, 
+                                     p_fcc_context);
+
   // Build execution plan
-  DynArray<const FccMatch*> frame_matches;
-  uint32_t num_matches = p_fcc_context->p_matches.size();
+  DynArray<const fcc_stmt_t*> frame_matches;
+  uint32_t num_matches = p_fcc_context->p_stmts.size();
   for(uint32_t i = 0; i < num_matches; ++i)
   {
-    const FccMatch* next_match = p_fcc_context->p_matches[i];
-    if(next_match->m_place == FccMatchPlace::E_FRAME)
+    const fcc_stmt_t* next_match = p_fcc_context->p_stmts[i];
+    if(next_match->m_place == fcc_match_place_t::E_FRAME)
     {
       frame_matches.append(next_match);
     }
   }
 
   FccExecPlan* exec_plan;
-  FccCompilationErrorType err = create_execplan(frame_matches.buffer(), 
+  fcc_compilation_error_type_t err = create_execplan(frame_matches.buffer(), 
                                                 frame_matches.size(), 
                                                 &exec_plan);
-  if(err != FccCompilationErrorType::E_NO_ERROR)
+  if(err != fcc_compilation_error_type_t::E_NO_ERROR)
   {
     handle_compilation_error(err, "");
   }
 
   // Build post execution plan
-  DynArray<const FccMatch*> post_matches;
-  num_matches = p_fcc_context->p_matches.size();
+  DynArray<const fcc_stmt_t*> post_matches;
+  num_matches = p_fcc_context->p_stmts.size();
   for(uint32_t i = 0; i < num_matches; ++i)
   {
-    const FccMatch* next_match = p_fcc_context->p_matches[i];
-    if(next_match->m_place == FccMatchPlace::E_POST_FRAME)
+    const fcc_stmt_t* next_match = p_fcc_context->p_stmts[i];
+    if(next_match->m_place == fcc_match_place_t::E_POST_FRAME)
     {
       post_matches.append(next_match);
     }
@@ -287,7 +308,7 @@ Fcc_run(CommonOptionsParser& op,
                         post_matches.size(), 
                         &post_exec_plan);
 
-  if(err != FccCompilationErrorType::E_NO_ERROR)
+  if(err != fcc_compilation_error_type_t::E_NO_ERROR)
   {
     handle_compilation_error(err, "");
   }
@@ -303,7 +324,7 @@ Fcc_run(CommonOptionsParser& op,
     {
       printer.traverse(&exec_plan->m_subplans[seq[j]]);
     }
-    llvm::errs() << printer.m_string_builder.p_buffer << "\n";
+    llvm::errs() << printer.m_str_builder.p_buffer << "\n";
   }
 
   {
@@ -317,56 +338,76 @@ Fcc_run(CommonOptionsParser& op,
     {
       post_printer.traverse(&post_exec_plan->m_subplans[seq[j]]);
     }
-    llvm::errs() << post_printer.m_string_builder.p_buffer << "\n";
+    llvm::errs() << post_printer.m_str_builder.p_buffer << "\n";
   }
-  
-  generate_code(exec_plan,
-                post_exec_plan,
-                output_file,
-                include_file);
 
+  result = fcc_generate_code(exec_plan,
+                             post_exec_plan,
+                             output_file,
+                             include_file);
+  
   destroy_execplan(exec_plan);
   destroy_execplan(post_exec_plan);
+  fcc_driver_release();
+  fcc_context_release();
   return result;
 }
 
-void
-Fcc_validate(const FccMatch* match)
+
+static void 
+report_parsing_error_helper(fcc_expr_t expr,
+                            fcc_parsing_error_type_t error_type,
+                            const char* message)
 {
-  if(match->m_operation_type == FccOperationType::E_UNKNOWN)
+  uint32_t line, column;
+  char filename[2048];
+  uint32_t length = fcc_expr_code_location(expr, 
+                                           filename, 
+                                           2048, 
+                                           &line, 
+                                           &column);
+  FURIOUS_CHECK_STR_LENGTH(length, 2048);
+  fcc_context_report_parsing_error(error_type,
+                                   filename,
+                                   line,
+                                   column,
+                                   message);
+}
+
+
+void
+fcc_validate(const fcc_stmt_t* match)
+{
+  if(match->m_operation_type == fcc_operation_type_t::E_UNKNOWN)
   {
-    SourceLocation location = match->p_expr->getSourceRange().getBegin();
-    report_parsing_error(match->p_ast_context,
-                         location,
-                         FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
-                         "");
+    report_parsing_error_helper(match->m_expr,
+                                fcc_parsing_error_type_t::E_UNSUPPORTED_STATEMENT,
+                                "");
   }
 
-  const DynArray<FccEntityMatch*>& e_matches = match->p_entity_matches;
+  const DynArray<fcc_entity_match_t*>& e_matches = match->p_entity_matches;
   uint32_t num_matches = e_matches.size();
   if( num_matches == 0 )
   {
-    SourceLocation location = match->p_expr->getSourceRange().getBegin();
-    report_parsing_error(match->p_ast_context,
-                         location,
-                         FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
-                         "At least one match must exist");
+
+    report_parsing_error_helper(match->m_expr,
+                                fcc_parsing_error_type_t::E_UNSUPPORTED_STATEMENT,
+                                "At least one match must exist");
   }
 
   if( num_matches > 2)
   {
-    SourceLocation location = match->p_expr->getSourceRange().getBegin();
-    report_parsing_error(match->p_ast_context,
-                         location,
-                         FccParsingErrorType::E_UNSUPPORTED_STATEMENT,
-                         "More than 2 expands found. The maximum number of expands per statement is 1");
+
+    report_parsing_error_helper(match->m_expr,
+                                fcc_parsing_error_type_t::E_UNSUPPORTED_STATEMENT,
+                                "More than 2 expands found. The maximum number of expands per statement is 1");
   }
 
   DynArray<bool> allow_writes;
   DynArray<bool> allow_globals;
 
-  FccEntityMatch* e_match = e_matches[num_matches - 1];
-  for(uint32_t i = 0; i < e_match->m_match_types.size(); ++i)
+  fcc_entity_match_t* e_match = e_matches[num_matches - 1];
+  for(uint32_t i = 0; i < e_match->m_component_types.size(); ++i)
   {
     allow_writes.append(true);
     allow_globals.append(true);
@@ -375,57 +416,95 @@ Fcc_validate(const FccMatch* match)
   for(int32_t i = num_matches - 2; i >= 0; --i)
   {
     e_match = e_matches[i];
-    for(uint32_t j = 0; j < e_match->m_match_types.size(); ++j)
+    for(uint32_t j = 0; j < e_match->m_component_types.size(); ++j)
     {
       allow_writes.append(false);
       allow_globals.append(false);
     }
   }
 
-  const DynArray<FccMatchType>& match_types = match->p_system->m_match_types;
-  if(allow_writes.size() != match_types.size())
+  const DynArray<fcc_component_match_t>& matches = match->p_system->m_component_types;
+  if(allow_writes.size() != matches.size())
   {
-      StringBuilder str_builder;
-      str_builder.append("Match: %u, System: %u", allow_writes.size(), match_types.size());
-      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_SYSTEM_INVALID_NUMBER_COMPONENTS,
-                                              str_builder.p_buffer);
+      str_builder_t str_builder;
+      str_builder_init(&str_builder);
+      str_builder_append(&str_builder,"Match: %u, System: %u", allow_writes.size(), matches.size());
+      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_SYSTEM_INVALID_NUMBER_COMPONENTS,
+                                           str_builder.p_buffer);
+      str_builder_release(&str_builder);
   }
 
   bool all_globals = true;
-  for(uint32_t i = 0; i < match_types.size(); ++i)
+  for(uint32_t i = 0; i < matches.size(); ++i)
   {
-    const FccMatchType* match_type = &match_types[i];
+    const fcc_component_match_t* match_type = &matches[i];
     if(allow_writes[i] == false &&
        !match_type->m_is_read_only)
     {
-      StringBuilder str_builder;
-      str_builder.append("\"%s\" access mode after expand must be read-only", get_type_name(match_type->m_type).c_str());
-      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                                     str_builder.p_buffer);
+      char ctype[MAX_TYPE_NAME];
+      uint32_t length = fcc_type_name(match_type->m_type,
+                                      ctype,
+                                      MAX_TYPE_NAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+      str_builder_t str_builder;
+      str_builder_init(&str_builder);
+      str_builder_append(&str_builder, 
+                            "\"%s\" access mode after expand\
+                            must be read-only", 
+                            ctype);
+      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                           str_builder.p_buffer);
+      str_builder_release(&str_builder);
     }
 
     if(allow_globals[i] == false &&
        match_type->m_is_global)
     {
-      StringBuilder str_builder;
-      str_builder.append("\"%s\" scope modifier after expand cannot be global", get_type_name(match_type->m_type).c_str());
-      p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                                     str_builder.p_buffer);
+      char ctype[MAX_TYPE_NAME];
+      const uint32_t length = fcc_type_name(match_type->m_type,
+                                            ctype,
+                                            MAX_TYPE_NAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+      str_builder_t str_builder;
+      str_builder_init(&str_builder);
+      str_builder_append(&str_builder,
+                            "\"%s\" scope modifier after\
+                            expand cannot be global", 
+                            ctype);
+      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                           str_builder.p_buffer);
+      str_builder_release(&str_builder);
     }
     all_globals &= match_type->m_is_global;
   }
 
   if(!all_globals)
   {
-    for(uint32_t i = 0; i < match_types.size(); ++i)
+    for(uint32_t i = 0; i < matches.size(); ++i)
     {
-      const FccMatchType* match_type = &match_types[i];
+      const fcc_component_match_t* match_type = &matches[i];
       if(!match_type->m_is_read_only && match_type->m_is_global)
       {
-        StringBuilder str_builder;
-        str_builder.append("\"%s\" read-write access mode on globals is only allowed \"global-only\" systems", get_type_name(match_type->m_type).c_str());
-        p_fcc_context->report_compilation_error(FccCompilationErrorType::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                                       str_builder.p_buffer);
+        char ctype[MAX_TYPE_NAME];
+        const uint32_t length = fcc_type_name(match_type->m_type,
+                                              ctype,
+                                              MAX_TYPE_NAME);
+
+        FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+        str_builder_t str_builder;
+        str_builder_init(&str_builder);
+        str_builder_append(&str_builder, 
+                              "\"%s\" read-write access mode on globals is \
+                              only allowed \"global-only\" systems", 
+                              ctype);
+        fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                             str_builder.p_buffer);
+        str_builder_release(&str_builder);
       }
     }
   }

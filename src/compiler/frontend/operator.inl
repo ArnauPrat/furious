@@ -1,5 +1,5 @@
 
-#include "execution_plan.h"
+#include "exec_plan.h"
 
 namespace furious 
 {
@@ -11,7 +11,7 @@ namespace furious
 
 template<typename T>
 FccOperatorTmplt<T>::FccOperatorTmplt(FccOperatorType type,
-                                      const std::string& name) : 
+                                      const char* name) : 
 FccOperator(type, name)
 {
 
@@ -25,7 +25,7 @@ FccOperatorTmplt<T>::accept(FccSubPlanVisitor* visitor) const
 }
 
 template<typename T>
-Filter<T>::Filter(RefCountPtr<FccOperator> child, const std::string& name) :
+Filter<T>::Filter(RefCountPtr<FccOperator> child, const char* name) :
 FccOperatorTmplt<T>(FccOperatorType::E_FILTER, name),
 p_child(child) 
 {

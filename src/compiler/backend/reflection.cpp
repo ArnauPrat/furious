@@ -1,9 +1,10 @@
 
 
-#include "../../common/string_builder.h"
+#include "../common/common.h"
+#include "../../common/str_builder.h"
 #include "reflection.h"
 #include "codegen_tools.h"
-#include "../clang_tools.h"
+#include "../drivers/clang/clang_tools.h"
 #include "../../runtime/data/reflection.h"
 #include "../../common/dyn_array.h"
 
@@ -55,11 +56,18 @@ public:
     if(isa<ClassTemplateSpecializationDecl>(decl))
     {
       const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(decl);
-      p_refl_data.get()->m_type_name = get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal());
+      uint32_t length = get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal(),
+                                      p_refl_data.get()->m_type_name,
+                                      MAX_TYPE_NAME);
+
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
     }
     else
     {
-      p_refl_data.get()->m_type_name = decl->getName();
+      std::string str = decl->getName();
+      FURIOUS_CHECK_STR_LENGTH(str.size(), MAX_TYPE_NAME);
+      strcpy(p_refl_data.get()->m_type_name, str.c_str());
+
     }
     p_refl_data.get()->m_is_union = decl->getTypeForDecl()->isUnionType();
 
@@ -75,7 +83,10 @@ public:
       if(child_decl->getKind() == Decl::Field )
       {
         FieldDecl* field  = cast<FieldDecl>(*child_decl);
-        refl_field.m_name = field->getName();
+        std::string str = field->getName();
+        FURIOUS_CHECK_STR_LENGTH(str.size(), MAX_FIELD_NAME);
+        strcpy(refl_field.m_name, str.c_str());
+
         refl_field.m_type = ReflType::E_UNKNOWN;
         refl_field.m_anonymous = field->isAnonymousStructOrUnion();
         qtype = field->getType();
@@ -186,7 +197,10 @@ public:
 
       if(type->isRecordType())
       {
-        if(get_tagged_type_name(qtype) == "std::string")
+        char tmp[MAX_TYPE_NAME];
+        uint32_t length = get_tagged_type_name(qtype, tmp, MAX_TYPE_NAME);  
+        FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+        if(strncmp(tmp, "std::string", MAX_TYPE_NAME) == 0)
         {
           refl_field.m_type = ReflType::E_STD_STRING;
         }
@@ -221,50 +235,63 @@ public:
 std::string
 generate_reflection_code(FILE* fd, 
                          ReflData* refl_data, 
-                         const std::string& root, 
-                         const std::string& path)
+                         const char* root, 
+                         const char* path)
 {
-  std::string refl_data_varname = "ref_data_"+sanitize_name(refl_data->m_type_name);
+  char tmp[MAX_TYPE_NAME];
+  const uint32_t length = sanitize_name(refl_data->m_type_name, tmp, MAX_TYPE_NAME);
+  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "ref_data_");
+  str_builder_append(&str_builder, tmp);
+  std::string refl_data_varname = str_builder.p_buffer;
+  str_builder_release(&str_builder);
+
   fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", refl_data_varname.c_str());
   fprintf(fd, 
-          "%s.get()->m_type_name = \"%s\";\n", 
+          "strcpy(%s.get()->m_type_name,\"%s\");\n", 
           refl_data_varname.c_str(),
-          refl_data->m_type_name.c_str());
+          refl_data->m_type_name);
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
     ReflField* field = &refl_data->m_fields[i];
     fprintf(fd,"{\n");
     fprintf(fd, "ReflField field;\n");
-    fprintf(fd, "field.m_name = \"%s\";\n", field->m_name.c_str());
+    fprintf(fd, "strcpy(field.m_name,\"%s\");\n", field->m_name);
     fprintf(fd, "field.m_type = %s;\n", ReflType_str[(uint32_t)field->m_type]);
     fprintf(fd, "field.m_anonymous = %s;\n", field->m_anonymous ? "true" : "false");
-    StringBuilder str_builder;
+    str_builder_t str_builder;
+    str_builder_init(&str_builder);
     if(field->m_anonymous)
     {
       fprintf(fd, "field.m_offset = 0;\n");
-      if(path == "") // is first level
+      if(strcmp(path,"")==0) // is first level
       {
-        str_builder.append("%s", "");
+        str_builder_append(&str_builder, "%s", "");
       }
       else
       {
-        str_builder.append("%s", path.c_str());
+        str_builder_append(&str_builder, "%s", path);
       }
     }
     else
     {
-      if(path == "") // is first level
+      if(strcmp(path,"")==0) // is first level
       {
-        str_builder.append("%s", field->m_name.c_str());
-        fprintf(fd, "field.m_offset = offsetof(%s, %s);\n", root.c_str(), str_builder.p_buffer);
+        str_builder_append(&str_builder,  "%s", field->m_name);
+        fprintf(fd, "field.m_offset = offsetof(%s, %s);\n", root, str_builder.p_buffer);
       }
       else
       {
-        str_builder.append("%s.%s", path.c_str(), field->m_name.c_str());
+        str_builder_append(&str_builder, "%s.%s", path, field->m_name);
 
         fprintf(fd, "field.m_offset = offsetof(%s, %s) - offsetof(%s, %s);\n", 
-                root.c_str(), str_builder.p_buffer,
-                root.c_str(), path.c_str());
+                root, 
+                str_builder.p_buffer,
+                root, 
+                path);
       }
     }
 
@@ -275,19 +302,20 @@ generate_reflection_code(FILE* fd,
     }
     fprintf(fd, "%s.get()->m_fields.append(field);\n", refl_data_varname.c_str());
     fprintf(fd,"}\n");
+    str_builder_release(&str_builder);
   }
   return refl_data_varname;
 }
 
 void
-generate_reflection_code(FILE* fd, CXXRecordDecl* decl)
+generate_reflection_code(FILE* fd, fcc_decl_t decl)
 {
   RecordDeclVisitor record_decl_visitor;
-  record_decl_visitor.TraverseCXXRecordDecl(decl);
+  record_decl_visitor.TraverseCXXRecordDecl(cast<CXXRecordDecl>((Decl*)decl.p_handler));
   fprintf(fd,"{\n");
   ReflData* refl_data = record_decl_visitor.p_refl_data.get();
   std::string var_name = generate_reflection_code(fd, refl_data, refl_data->m_type_name, "");
-  fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data->m_type_name.c_str(), var_name.c_str());
+  fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data->m_type_name, var_name.c_str());
   fprintf(fd,"}\n");
 }
   

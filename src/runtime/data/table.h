@@ -5,7 +5,6 @@
 #include "../../common/btree.h"
 #include "../../common/bitmap.h"
 
-#include <string>
 #include <mutex>
 
 namespace furious
@@ -127,12 +126,7 @@ struct Table
     mutable TBlock*                       m_next;
   };
 
-  Table(const std::string &name, 
-        int64_t id, 
-        size_t esize, 
-        void (*destructor)(void *ptr));
-
-  Table(std::string &&name, 
+  Table(const char* name, 
         int64_t id, 
         size_t esize, 
         void (*destructor)(void *ptr));
@@ -205,7 +199,7 @@ struct Table
    *
    * \return Returns the name of the able
    */
-  std::string 
+  const char* 
   name() const;
 
   /**
@@ -274,13 +268,13 @@ struct Table
   dealloc_and_destroy_component(entity_id_t id);
 
 private:
-  std::string m_name; // The name of the table
-  uint64_t m_id;
-  size_t m_esize; // The size of each component in bytes
+  char*                 p_name; // The name of the table
+  uint64_t              m_id;
+  size_t                m_esize; // The size of each component in bytes
   mutable BTree<TBlock> m_blocks;
-  size_t m_num_components;
+  size_t                m_num_components;
   void (*m_destructor)(void *ptr);
-  mutable std::mutex  m_mutex;
+  mutable std::mutex    m_mutex;
 };
 
 } // namespace furious

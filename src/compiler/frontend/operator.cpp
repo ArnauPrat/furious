@@ -1,15 +1,17 @@
 
 #include "operator.h"
+#include "string.h"
 
 namespace furious 
 {
 
 FccOperator::FccOperator(FccOperatorType type, 
-                         const std::string& name) :
+                         const char* name) :
 m_type(type),
-m_name(name),
 p_parent(nullptr)
 {
+  strncpy(m_name, name, MAX_OPERATOR_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(name), MAX_OPERATOR_NAME);
   static uint32_t id = 0;
   m_id = id;
   ++id;
@@ -20,23 +22,23 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Scan::Scan(const std::string& ref_name) : 
+Scan::Scan(const char* ref_name) : 
 FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_REFERENCE;
-  column.m_ref_name = ref_name;
-  column.m_access_mode = FccAccessMode::E_READ;
+  strncpy(column.m_ref_name,ref_name, MAX_REF_NAME);
+  column.m_access_mode = fcc_access_mode_t::E_READ;
   m_columns.append(column);
 }
 
-Scan::Scan(QualType component, 
-           FccAccessMode access_mode) : 
+Scan::Scan(fcc_type_t component, 
+           fcc_access_mode_t access_mode) : 
 FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
 {
   FccColumn column;
   column.m_type = FccColumnType::E_COMPONENT;
-  column.m_q_type = component;
+  column.m_component_type = component;
   column.m_access_mode = access_mode;
   m_columns.append(column);
 }
@@ -107,14 +109,14 @@ CrossJoin::~CrossJoin()
 ////////////////////////////////////////////////
 
 
-Fetch::Fetch(QualType global_type,
-             FccAccessMode access_mode) : 
+Fetch::Fetch(fcc_type_t global_type,
+             fcc_access_mode_t access_mode) : 
 FccOperatorTmplt<Fetch>(FccOperatorType::E_FETCH, "Fetch"),
 m_global_type(global_type)
 {
   FccColumn column;
   column.m_access_mode = access_mode;
-  column.m_q_type = global_type;
+  column.m_component_type = global_type;
   column.m_type = FccColumnType::E_GLOBAL;
   m_columns.append(column);
 }
@@ -128,9 +130,9 @@ Fetch::~Fetch()
 ////////////////////////////////////////////////
 
 PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
-                                 const FunctionDecl* func_decl) :
+                                 fcc_decl_t func_decl) :
 Filter<PredicateFilter>(child, "PredicateFilter"),
-p_func_decl(func_decl)
+m_func_decl(func_decl)
 {
 }
 
@@ -140,14 +142,15 @@ p_func_decl(func_decl)
 
 
 TagFilter::TagFilter(RefCountPtr<FccOperator> child,
-                     const std::string& tag,
+                     const char* tag,
                      FccFilterOpType op_type,
                      bool on_column) :
 Filter(child, "TagFilter"),
-m_tag(tag),
 m_on_column(on_column),
 m_op_type(op_type)
 {
+  strncpy(m_tag, tag, MAX_TAG_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(tag), MAX_TAG_NAME);
 }
 
 ////////////////////////////////////////////////
@@ -155,7 +158,7 @@ m_op_type(op_type)
 ////////////////////////////////////////////////
 
 ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
-                                 QualType component_type,
+                                 fcc_type_t component_type,
                                  FccFilterOpType op_type,
                                  bool on_column) :
 Filter<ComponentFilter>(child, "ComponentFilter"),
@@ -170,7 +173,7 @@ m_op_type(op_type)
 ////////////////////////////////////////////////
 
 Foreach::Foreach(RefCountPtr<FccOperator> child,
-                 const DynArray<const FccSystem*>& systems) :
+                 const DynArray<const fcc_system_t*>& systems) :
 FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH, "Foreach"), 
 p_systems(systems), 
 p_child(child) 

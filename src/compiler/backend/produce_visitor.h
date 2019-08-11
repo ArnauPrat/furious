@@ -2,7 +2,7 @@
 #ifndef _FURIOUS_COMPILER_PRODUCE_VISITOR_H_
 #define _FURIOUS_COMPILER_PRODUCE_VISITOR_H_ value
 
-#include "frontend/execution_plan.h"
+#include "frontend/exec_plan.h"
 
 namespace furious 
 {

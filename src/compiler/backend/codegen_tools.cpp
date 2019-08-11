@@ -5,9 +5,13 @@
 #include "consume_visitor.h"
 #include "produce_visitor.h"
 #include "../frontend/operator.h"
+#include "driver.h"
 
 #include "codegen.h"
 #include "codegen_tools.h"
+
+#include <string.h>
+#include <algorithm>
 
 namespace furious 
 {
@@ -67,11 +71,12 @@ CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
 void 
 consume(FILE* fd,
         const FccOperator* op,
-        const std::string& source,
+        const char* source,
         const FccOperator* caller)
 {
   CodeGenContext* context = p_registry->find_or_create(op,fd);
-  context->m_source = source;
+  FURIOUS_PERMA_ASSERT(strlen(source) <= MAX_SOURCE_LENGTH);
+  strcpy(context->m_source,source);
   context->p_caller = caller;
   op->accept(context->p_consumer);
 }
@@ -84,8 +89,10 @@ produce(FILE* fd,
   op->accept(context->p_producer);
 }
 
-std::string
-sanitize_name(const std::string& name)
+uint32_t
+sanitize_name(const char* name,
+              char* buffer,
+              uint32_t buffer_length)
 {
     std::string base_name = name;
     std::transform(base_name.begin(), 
@@ -102,102 +109,168 @@ sanitize_name(const std::string& name)
                    '_');
     }
 
-    return base_name;
+    FURIOUS_CHECK_STR_LENGTH(base_name.size(), buffer_length);
+    strcpy(buffer, base_name.c_str());
+
+    return base_name.size();
 }
 
-std::string
-generate_table_name(const std::string& type_name, 
+uint32_t
+generate_table_name(const char* type_name, 
+                    char *buffer,
+                    uint32_t buffer_length,
                     const FccOperator* op)
 {
-    std::string base_name = sanitize_name(type_name); 
-    std::string table_varname = "table_"+base_name;
+  char tmp[MAX_TYPE_NAME];
+  sanitize_name(type_name,
+                tmp,
+                MAX_TYPE_NAME); 
 
-    if(op != nullptr)
-    {
-      table_varname = table_varname+"_"+std::to_string(op->m_id);
-    }
+  std::string table_varname = "table_"+std::string(tmp);
 
-    return table_varname;
+  if(op != nullptr)
+  {
+    table_varname = table_varname+"_"+std::to_string(op->m_id);
+  }
+
+  FURIOUS_CHECK_STR_LENGTH(table_varname.size(), buffer_length);
+
+  strcpy(buffer, table_varname.c_str());
+
+  return table_varname.size();
 }
 
-std::string
-generate_temp_table_name(const std::string& type_name, 
+uint32_t
+generate_temp_table_name(const char* type_name, 
+                         char * buffer,
+                         uint32_t buffer_length,
                          const FccOperator* op)
 {
-  std::string table_name = generate_table_name(type_name, op);
-  table_name = "temp_"+table_name;
-  return table_name;
+  char tmp[MAX_TABLE_VARNAME];
+  generate_table_name(type_name, 
+                      tmp,
+                      MAX_TABLE_VARNAME,
+                      op);
+  std::string table_name = "temp_"+std::string(tmp);
+
+  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
+  strcpy(buffer, table_name.c_str());
+  return table_name.size();
 }
 
-std::string
-generate_ref_table_name(const std::string& ref_name, 
-                              const FccOperator* op)
+uint32_t
+generate_ref_table_name(const char* ref_name, 
+                        char* buffer,
+                        uint32_t buffer_length,
+                        const FccOperator* op)
 {
-  std::string table_name = generate_table_name(ref_name, op);
-  table_name = "ref_"+table_name;
-  return table_name;
+  char tmp[MAX_TABLE_VARNAME];
+  generate_table_name(ref_name, 
+                      tmp,
+                      MAX_TABLE_VARNAME,
+                      op);
+
+  std::string table_name = "ref_"+std::string(tmp);
+  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
+  strcpy(buffer, table_name.c_str());
+  return table_name.size();
 }
 
-std::string
-generate_bittable_name(const std::string& tag_name,
+uint32_t
+generate_bittable_name(const char* tag_name,
+                       char* buffer,
+                       uint32_t buffer_length,
                        const FccOperator* op)
 {
-  std::string table_name = "tagged_"+tag_name;
+  std::string table_name = "tagged_"+std::string(tag_name);
   if(op != nullptr)
   {
     table_name = table_name+"_"+std::to_string(op->m_id);
   }
-  return table_name;
+  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
+  strcpy(buffer, table_name.c_str());
+  return table_name.size();
 }
 
-std::string
-generate_table_iter_name(const std::string& table_name,
+uint32_t
+generate_table_iter_name(const char* table_name,
+                         char* buffer,
+                         uint32_t buffer_length,
                          const FccOperator* op)
 {
-  std::string iter_name = "iter_"+table_name;
+  std::string iter_name = "iter_"+std::string(table_name);
   if(op != nullptr)
   {
     iter_name = iter_name + "_"+std::to_string(op->m_id);
   }
-  return iter_name;
+  FURIOUS_CHECK_STR_LENGTH(iter_name.size(), buffer_length);
+  strcpy(buffer, iter_name.c_str());
+  return iter_name.size();
 }
 
-std::string
-generate_block_name(const std::string& type_name,
+uint32_t
+generate_block_name(const char* type_name,
+                    char* buffer,
+                    uint32_t buffer_length,
                     const FccOperator* op)
 {
-    std::string base_name = sanitize_name(type_name);
-    std::string block_name =  "block_"+base_name; 
-    if(op != nullptr)
-    {
-      block_name = block_name + "_"+std::to_string(op->m_id);
-    }
-    return block_name;
+  char tmp[MAX_TYPE_NAME];
+  sanitize_name(type_name,
+                tmp,
+                MAX_TYPE_NAME);
+  std::string block_name =  "block_"+std::string(tmp); 
+  if(op != nullptr)
+  {
+    block_name = block_name + "_"+std::to_string(op->m_id);
+  }
+  FURIOUS_CHECK_STR_LENGTH(block_name.size(), buffer_length);
+  strcpy(buffer, block_name.c_str());
+  return block_name.size();
 }
 
-std::string
-generate_cluster_name(const FccOperator* op)
+uint32_t
+generate_cluster_name(const FccOperator* op,
+                      char* buffer,
+                      uint32_t buffer_length)
 {
-  return "cluster_"+std::to_string(op->m_id);
+  std::string cluster_name =  "cluster_"+std::to_string(op->m_id);
+  FURIOUS_CHECK_STR_LENGTH(cluster_name.size(), buffer_length);
+  strcpy(buffer, cluster_name.c_str());
+  return cluster_name.size();
 }
 
-std::string
-generate_ref_groups_name(const std::string& ref_name,
+uint32_t
+generate_ref_groups_name(const char* ref_name,
+                         char* buffer,
+                         uint32_t buffer_length,
                          const FccOperator* op)
 {
-    std::string base_name = sanitize_name(ref_name);
-  return "ref_"+base_name+"_groups_"+std::to_string(op->m_id);
+  char tmp[MAX_TYPE_NAME];
+  sanitize_name(ref_name,
+                tmp,
+                MAX_TYPE_NAME);
+  std::string groups_name ="ref_"+std::string(tmp)+"_groups_"+std::to_string(op->m_id);
+  FURIOUS_CHECK_STR_LENGTH(groups_name.size(), buffer_length);
+  strcpy(buffer, groups_name.c_str());
+  return groups_name.size();
 }
 
-std::string
-generate_hashtable_name(const FccOperator* op)
+uint32_t
+generate_hashtable_name(const FccOperator* op,
+                        char* buffer,
+                        uint32_t buffer_length)
 {
-  return "hashtable_"+std::to_string(op->m_id);
+  std::string hashtable =  "hashtable_"+std::to_string(op->m_id);
+  FURIOUS_CHECK_STR_LENGTH(hashtable.size(), buffer_length);
+  strcpy(buffer, hashtable.c_str());
+  return hashtable.size();
 }
 
-std::string
-generate_system_wrapper_name(const std::string& system_name,
+uint32_t
+generate_system_wrapper_name(const char* system_name,
                              uint32_t system_id,
+                             char* buffer,
+                             uint32_t buffer_length,
                              const FccOperator* op)
 {
   std::string base_name = system_name;
@@ -209,23 +282,34 @@ generate_system_wrapper_name(const std::string& system_name,
   {
     wrapper_name =  wrapper_name +"_"+std::to_string(op->m_id);
   }
-  return wrapper_name;
+  FURIOUS_CHECK_STR_LENGTH(wrapper_name.size(), buffer_length);
+  strcpy(buffer, wrapper_name.c_str());
+  return wrapper_name.size();
 }
 
-std::string
-generate_global_name(const std::string& type_name, 
-                    const FccOperator* op)
+uint32_t
+generate_global_name(const char* type_name, 
+                     char* buffer,
+                     uint32_t buffer_length,
+                     const FccOperator* op)
 {
-    std::string base_name = sanitize_name(type_name);
+  char tmp[MAX_TYPE_NAME];
+  sanitize_name(type_name,
+                tmp,
+                MAX_TYPE_NAME);
 
-    std::string global_varname = "global_"+base_name;
+  std::string global_varname = "global_"+std::string(tmp);
 
-    if(op != nullptr)
-    {
-      global_varname = global_varname+"_"+std::to_string(op->m_id);
-    }
+  if(op != nullptr)
+  {
+    global_varname = global_varname+"_"+std::to_string(op->m_id);
+  }
 
-    return global_varname;
+  FURIOUS_CHECK_STR_LENGTH(global_varname.size(), buffer_length);
+  strcpy(buffer, global_varname.c_str());
+
+  return global_varname.size();
 }
+
 
 } /* furious */ 

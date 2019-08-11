@@ -8,15 +8,13 @@
 
 #include "fcc_context.h"
 
-using namespace clang;
-
 namespace furious 
 {
 
+struct fcc_system_t;
 struct CascadingGather;
 struct CrossJoin;
 struct FccOperator;
-struct FccSystem;
 struct Fetch;
 template<typename T>
 struct Filter;
@@ -36,7 +34,6 @@ class FccSubPlanVisitor;
 
 struct FccSubPlan
 {
-  ASTContext*   p_ast;
   FccOperator*  p_root;
 };
 
@@ -49,7 +46,7 @@ struct FccSubPlan
  *
  */
 void 
-init_subplan(const FccMatch* exec_info, 
+init_subplan(const fcc_stmt_t* stmt, 
              FccSubPlan* subplan);
 
 /**
@@ -79,20 +76,20 @@ struct FccExecPlan
   DynArray<uint32_t>          m_roots;
 
   // Node attributes
-  DynArray<const FccMatch*>   p_matches;
+  DynArray<const fcc_stmt_t*> p_stmts;
   DynArray<FccSubPlan>        m_subplans;
 };
 
 /**
- * \brief Inserts a FccMatch to the dependency graph
+ * \brief Inserts a fcc_stmt_t to the dependency graph
  *
- * \param exec_plan The exec_plan to insert the match to 
- * \param match     The FccMatch to add
+ * \param exec_plan The exec_plan to insert the stmts to 
+ * \param stmt      The fcc_stmt_t to add
  *
  */
 void
 insert(FccExecPlan* exec_plan, 
-       const FccMatch* match);
+       const fcc_stmt_t* stmt);
 
 
 /**
@@ -115,17 +112,17 @@ DynArray<uint32_t>
 get_valid_exec_sequence(const FccExecPlan* exec_plan);
 
 /**
- * \brief Creates an excution plan out of a sequence of FccMatch statements
+ * \brief Creates an excution plan out of a sequence of fcc_stmt_t statements
  *
- * \param matches[]   The array of FccMatch
- * \param num_matches The number of matches in the array
+ * \param stmts[]   The array of fcc_stmt_t
+ * \param num_stmts The number of matches in the array
  * \param exec_plan   The output execution plan
  *
  * \return Returns NO_ERROR if succeeds. The corresponding error code otherwise
  */
-FccCompilationErrorType
-create_execplan(const FccMatch* matches[], 
-                uint32_t num_matches,
+fcc_compilation_error_type_t
+create_execplan(const fcc_stmt_t* stmts[], 
+                uint32_t num_stmts,
                 FccExecPlan** exec_plan);
 
 /**

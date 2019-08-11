@@ -2,8 +2,8 @@
 #ifndef _FURIOUS_COMPILER_PRITER_H_
 #define _FURIOUS_COMPILER_PRITER_H_
 
-#include "execution_plan.h"
-#include "../common/string_builder.h"
+#include "exec_plan.h"
+#include "../common/str_builder.h"
 #include "../common/dyn_array.h"
 
 namespace furious 
@@ -14,7 +14,7 @@ class ExecPlanPrinter : public FccSubPlanVisitor
 public:
 
   ExecPlanPrinter(bool add_comments = false);
-  virtual ~ExecPlanPrinter() = default;
+  virtual ~ExecPlanPrinter();
 
   virtual void
   traverse(const FccSubPlan* plan);
@@ -61,9 +61,9 @@ public:
   void
   print(const std::string& str);
 
-  int32_t m_indents = 0;
-  StringBuilder       m_string_builder;
-  DynArray<char>      m_offsets;
+  int32_t               m_indents = 0;
+  str_builder_t         m_str_builder;
+  DynArray<char>        m_offsets;
 };
 
 } /* furious */ 

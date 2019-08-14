@@ -66,6 +66,12 @@ Given a set of "furious scripts" implementing the game logic, the fcc compiler u
 * take advantage of common system's subqueries to reduce the amount of times the same data is fetched from memory every frame, improving data locality
 * understanding dependencies between systems and their components access modes (READ or READ_WRITE), allowing for an automatic and safe parallelization of the execution plans
 
+The compiler implements ideas extracted from the following papers:
+* Efficiently compiling efficient query plans for modern hardware
+T Neumann - Proceedings of the VLDB Endowment, 2011 - dl.acm.org
+* Morsel-driven parallelism: a NUMA-aware query evaluation framework for the many-core age
+V Leis, P Boncz, A Kemper, T Neumann - Proceedings of the 2014 ACM …, 2014 - dl.acm.or
+
 Additionally, thanks to the source to source furious compiler, system's code can be kept into independent modular scripts, making the code presumably more maintainable since no hand-crafted optimizations need to be performed.
 
 The following is a simple example of a furious script, which implements an "UpdatePosition" system.
@@ -611,5 +617,9 @@ fcc -o  <output_file> -i  <path_to_furious_h>  <script_1> <script_2> ... <script
 
 * add support for parallel execution
 * add optimization steps
+* rethink Table memory layout
+* improve existing integreted webserver capabilities to query for database content
+* improve reflection metadata generation
+* add support for Windows and Mac
 
 

@@ -14,67 +14,66 @@ namespace furious
 
 class FccSubPlanVisitor;
 
-enum class FccOperatorType 
+enum class fcc_operator_type_t 
 {
   E_SCAN,
   E_JOIN,
   E_LEFT_FILTER_JOIN,
   E_CROSS_JOIN,
   E_FETCH,
-  E_FILTER,
+  E_TAG_FILTER,
+  E_PREDICATE_FILTER,
+  E_COMPONENT_FILTER,
   E_FOREACH,
   E_GATHER,
   E_CASCADING_GATHER,
 };
 
-enum class FccColumnType
+enum class fcc_column_type_t 
 {
   E_REFERENCE,
   E_COMPONENT,
   E_GLOBAL,
 };
 
-struct FccColumn
+struct fcc_column_t 
 {
-  FccColumnType     m_type;
-  fcc_type_t        m_component_type;
-  char              m_ref_name[MAX_REF_NAME];
-  fcc_access_mode_t m_access_mode;
+  fcc_column_type_t     m_type;
+  fcc_type_t            m_component_type;
+  char                  m_ref_name[MAX_REF_NAME];
+  fcc_access_mode_t     m_access_mode;
 };
 
 
-class FccOperator
+struct fcc_operator_t 
 {
-public:
-
-  FccOperator(FccOperatorType type, 
-              const char* name);
+  fcc_operator_t(fcc_operator_type_t type, 
+                 const char* name);
 
   virtual
-  ~FccOperator() = default;
+  ~fcc_operator_t() = default;
 
   virtual void
   accept(FccSubPlanVisitor* visitor) const = 0;  
 
-  FccOperatorType       m_type;
-  char                  m_name[MAX_OPERATOR_NAME];
-  const FccOperator*    p_parent;
-  DynArray<FccColumn>   m_columns;
-  uint32_t              m_id;
+  fcc_operator_type_t       m_type;
+  char                      m_name[MAX_OPERATOR_NAME];
+  const fcc_operator_t*     p_parent;
+  DynArray<fcc_column_t>    m_columns;
+  uint32_t                  m_id;
 };
 
 /**
  * @brief Base structure for an operator 
  */
 template<typename T>
-class FccOperatorTmplt : public FccOperator
+struct fcc_operator_tmplt_t : public fcc_operator_t 
 {
-public:
-  FccOperatorTmplt(FccOperatorType type,
-                   const char* name);
+  fcc_operator_tmplt_t(fcc_operator_type_t type,
+                       const char* name);
 
   virtual 
-  ~FccOperatorTmplt() = default;
+  ~fcc_operator_tmplt_t() = default;
 
   virtual void
   accept(FccSubPlanVisitor* visitor) const override; 
@@ -83,7 +82,7 @@ public:
 /**
  * @brief Scan operator. Streams components from tables
  */
-struct Scan : public FccOperatorTmplt<Scan> 
+struct Scan : public fcc_operator_tmplt_t<Scan> 
 {
   explicit Scan(const char* ref_name);
 
@@ -98,55 +97,55 @@ struct Scan : public FccOperatorTmplt<Scan>
 /**
  * @brief Join operator. Joins two tables by entity id
  */
-struct Join : public FccOperatorTmplt<Join> 
+struct Join : public fcc_operator_tmplt_t<Join> 
 {
-  Join(RefCountPtr<FccOperator> left, 
-       RefCountPtr<FccOperator> right);
+  Join(RefCountPtr<fcc_operator_t> left, 
+       RefCountPtr<fcc_operator_t> right);
   virtual 
   ~Join();
 
   uint32_t m_split_point;
-  RefCountPtr<FccOperator> p_left;
-  RefCountPtr<FccOperator> p_right;
+  RefCountPtr<fcc_operator_t> p_left;
+  RefCountPtr<fcc_operator_t> p_right;
 };
 
 /**
  * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
  * left table. Do not confuse with Left Joins.
  */
-struct LeftFilterJoin : public FccOperatorTmplt<LeftFilterJoin> 
+struct LeftFilterJoin : public fcc_operator_tmplt_t<LeftFilterJoin> 
 {
-  LeftFilterJoin(RefCountPtr<FccOperator> left, 
-                 RefCountPtr<FccOperator> right);
+  LeftFilterJoin(RefCountPtr<fcc_operator_t> left, 
+                 RefCountPtr<fcc_operator_t> right);
   virtual 
   ~LeftFilterJoin();
 
   uint32_t m_split_point;
-  RefCountPtr<FccOperator> p_left;
-  RefCountPtr<FccOperator> p_right;
+  RefCountPtr<fcc_operator_t> p_left;
+  RefCountPtr<fcc_operator_t> p_right;
 };
 
 /**
  * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
  * left table. Do not confuse with Left Joins.
  */
-struct CrossJoin : public FccOperatorTmplt<CrossJoin> 
+struct CrossJoin : public fcc_operator_tmplt_t<CrossJoin> 
 {
-  CrossJoin(RefCountPtr<FccOperator> left, 
-            RefCountPtr<FccOperator> right);
+  CrossJoin(RefCountPtr<fcc_operator_t> left, 
+            RefCountPtr<fcc_operator_t> right);
   virtual 
   ~CrossJoin();
 
   uint32_t m_split_point;
-  RefCountPtr<FccOperator> p_left;
-  RefCountPtr<FccOperator> p_right;
+  RefCountPtr<fcc_operator_t> p_left;
+  RefCountPtr<fcc_operator_t> p_right;
 };
 
 /**
  * \brief LeftFilterJoin. Joins two tables but only returns those rows from the
  * left table. Do not confuse with Left Joins.
  */
-struct Fetch : public FccOperatorTmplt<Fetch> 
+struct Fetch : public fcc_operator_tmplt_t<Fetch> 
 {
   Fetch(fcc_type_t global_type,
         fcc_access_mode_t access_mode);
@@ -161,21 +160,22 @@ struct Fetch : public FccOperatorTmplt<Fetch>
  * @brief Filter operator. Filter components by entity tags
  */
 template<typename T>
-struct Filter : public FccOperatorTmplt<T> 
+struct Filter : public fcc_operator_tmplt_t<T> 
 {
-  Filter(RefCountPtr<FccOperator> child,
+  Filter(RefCountPtr<fcc_operator_t> child,
+         fcc_operator_type_t type,
          const char* name);
 
   virtual 
   ~Filter();
 
-  RefCountPtr<FccOperator> p_child;
+  RefCountPtr<fcc_operator_t> p_child;
 
 };
 
 struct PredicateFilter : public Filter<PredicateFilter>
 {
-  PredicateFilter(RefCountPtr<FccOperator> child,
+  PredicateFilter(RefCountPtr<fcc_operator_t> child,
                   fcc_decl_t func_decl);
   virtual 
   ~PredicateFilter() = default;
@@ -191,7 +191,7 @@ enum class FccFilterOpType
 
 struct TagFilter : public Filter<TagFilter> 
 {
-  TagFilter(RefCountPtr<FccOperator> child,
+  TagFilter(RefCountPtr<fcc_operator_t> child,
             const char* tag,
             FccFilterOpType op_type,
             bool on_column = false);
@@ -206,7 +206,7 @@ struct TagFilter : public Filter<TagFilter>
 
 struct ComponentFilter : public Filter<ComponentFilter>
 {
-  ComponentFilter(RefCountPtr<FccOperator> child,
+  ComponentFilter(RefCountPtr<fcc_operator_t> child,
                   fcc_type_t component_type,
                   FccFilterOpType op_type,
                   bool on_column = false);
@@ -223,46 +223,46 @@ struct ComponentFilter : public Filter<ComponentFilter>
 /**
  * @brief Foreach operator. Applies a system for each table row
  */
-struct Foreach : public FccOperatorTmplt<Foreach>  
+struct Foreach : public fcc_operator_tmplt_t<Foreach>  
 {
-  Foreach(RefCountPtr<FccOperator> child, 
+  Foreach(RefCountPtr<fcc_operator_t> child, 
           const DynArray<const fcc_system_t*>& systems);
 
   virtual 
   ~Foreach();
 
   DynArray<const fcc_system_t*>      p_systems;
-  RefCountPtr<FccOperator>        p_child;
+  RefCountPtr<fcc_operator_t>        p_child;
 };
 
 /**
  * @brief Foreach operator. Applies a system for each table row
  */
-struct Gather : public FccOperatorTmplt<Gather>  
+struct Gather : public fcc_operator_tmplt_t<Gather>  
 {
-  Gather(RefCountPtr<FccOperator> ref_table,
-         RefCountPtr<FccOperator> child);
+  Gather(RefCountPtr<fcc_operator_t> ref_table,
+         RefCountPtr<fcc_operator_t> child);
 
   virtual 
   ~Gather();
 
-  RefCountPtr<FccOperator> p_ref_table;
-  RefCountPtr<FccOperator> p_child;
+  RefCountPtr<fcc_operator_t> p_ref_table;
+  RefCountPtr<fcc_operator_t> p_child;
 };
 
 /**
  * @brief Foreach operator. Applies a system for each table row
  */
-struct CascadingGather : public FccOperatorTmplt<CascadingGather>  
+struct CascadingGather : public fcc_operator_tmplt_t<CascadingGather>  
 {
-  CascadingGather(RefCountPtr<FccOperator> ref_table,
-                  RefCountPtr<FccOperator> child);
+  CascadingGather(RefCountPtr<fcc_operator_t> ref_table,
+                  RefCountPtr<fcc_operator_t> child);
 
   virtual 
   ~CascadingGather();
 
-  RefCountPtr<FccOperator> p_ref_table;
-  RefCountPtr<FccOperator> p_child;
+  RefCountPtr<fcc_operator_t> p_ref_table;
+  RefCountPtr<fcc_operator_t> p_child;
 };
   
 } /* furious */ 

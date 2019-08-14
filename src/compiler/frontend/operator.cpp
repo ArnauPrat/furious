@@ -5,7 +5,7 @@
 namespace furious 
 {
 
-FccOperator::FccOperator(FccOperatorType type, 
+fcc_operator_t::fcc_operator_t(fcc_operator_type_t type, 
                          const char* name) :
 m_type(type),
 p_parent(nullptr)
@@ -23,10 +23,10 @@ p_parent(nullptr)
 ////////////////////////////////////////////////
 
 Scan::Scan(const char* ref_name) : 
-FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
+fcc_operator_tmplt_t<Scan>(fcc_operator_type_t::E_SCAN, "Scan") 
 {
-  FccColumn column;
-  column.m_type = FccColumnType::E_REFERENCE;
+  fcc_column_t column;
+  column.m_type = fcc_column_type_t::E_REFERENCE;
   strncpy(column.m_ref_name,ref_name, MAX_REF_NAME);
   column.m_access_mode = fcc_access_mode_t::E_READ;
   m_columns.append(column);
@@ -34,10 +34,10 @@ FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan")
 
 Scan::Scan(fcc_type_t component, 
            fcc_access_mode_t access_mode) : 
-FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan") 
+fcc_operator_tmplt_t<Scan>(fcc_operator_type_t::E_SCAN, "Scan") 
 {
-  FccColumn column;
-  column.m_type = FccColumnType::E_COMPONENT;
+  fcc_column_t column;
+  column.m_type = fcc_column_type_t::E_COMPONENT;
   column.m_component_type = component;
   column.m_access_mode = access_mode;
   m_columns.append(column);
@@ -47,9 +47,9 @@ FccOperatorTmplt<Scan>(FccOperatorType::E_SCAN, "Scan")
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Join::Join(RefCountPtr<FccOperator> left, 
-           RefCountPtr<FccOperator> right) :
-FccOperatorTmplt<Join>(FccOperatorType::E_JOIN, "Join"), 
+Join::Join(RefCountPtr<fcc_operator_t> left, 
+           RefCountPtr<fcc_operator_t> right) :
+fcc_operator_tmplt_t<Join>(fcc_operator_type_t::E_JOIN, "Join"), 
 p_left(left),
 p_right(right) 
 {
@@ -68,9 +68,9 @@ Join::~Join()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-LeftFilterJoin::LeftFilterJoin(RefCountPtr<FccOperator> left, 
-                               RefCountPtr<FccOperator> right) :
-FccOperatorTmplt<LeftFilterJoin>(FccOperatorType::E_LEFT_FILTER_JOIN, "LeftFilterJoin"), 
+LeftFilterJoin::LeftFilterJoin(RefCountPtr<fcc_operator_t> left, 
+                               RefCountPtr<fcc_operator_t> right) :
+fcc_operator_tmplt_t<LeftFilterJoin>(fcc_operator_type_t::E_LEFT_FILTER_JOIN, "LeftFilterJoin"), 
 p_left(left),
 p_right(right) 
 {
@@ -87,9 +87,9 @@ LeftFilterJoin::~LeftFilterJoin()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-CrossJoin::CrossJoin(RefCountPtr<FccOperator> left, 
-                     RefCountPtr<FccOperator> right) :
-FccOperatorTmplt<CrossJoin>(FccOperatorType::E_CROSS_JOIN, "CrossJoin"), 
+CrossJoin::CrossJoin(RefCountPtr<fcc_operator_t> left, 
+                     RefCountPtr<fcc_operator_t> right) :
+fcc_operator_tmplt_t<CrossJoin>(fcc_operator_type_t::E_CROSS_JOIN, "CrossJoin"), 
 p_left(left),
 p_right(right) 
 {
@@ -111,13 +111,13 @@ CrossJoin::~CrossJoin()
 
 Fetch::Fetch(fcc_type_t global_type,
              fcc_access_mode_t access_mode) : 
-FccOperatorTmplt<Fetch>(FccOperatorType::E_FETCH, "Fetch"),
+fcc_operator_tmplt_t<Fetch>(fcc_operator_type_t::E_FETCH, "Fetch"),
 m_global_type(global_type)
 {
-  FccColumn column;
+  fcc_column_t column;
   column.m_access_mode = access_mode;
   column.m_component_type = global_type;
-  column.m_type = FccColumnType::E_GLOBAL;
+  column.m_type = fcc_column_type_t::E_GLOBAL;
   m_columns.append(column);
 }
 
@@ -129,9 +129,9 @@ Fetch::~Fetch()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-PredicateFilter::PredicateFilter(RefCountPtr<FccOperator> child,
+PredicateFilter::PredicateFilter(RefCountPtr<fcc_operator_t> child,
                                  fcc_decl_t func_decl) :
-Filter<PredicateFilter>(child, "PredicateFilter"),
+Filter<PredicateFilter>(child, fcc_operator_type_t::E_PREDICATE_FILTER, "PredicateFilter"),
 m_func_decl(func_decl)
 {
 }
@@ -141,11 +141,11 @@ m_func_decl(func_decl)
 ////////////////////////////////////////////////
 
 
-TagFilter::TagFilter(RefCountPtr<FccOperator> child,
+TagFilter::TagFilter(RefCountPtr<fcc_operator_t> child,
                      const char* tag,
                      FccFilterOpType op_type,
                      bool on_column) :
-Filter(child, "TagFilter"),
+Filter(child, fcc_operator_type_t::E_TAG_FILTER, "TagFilter"),
 m_on_column(on_column),
 m_op_type(op_type)
 {
@@ -157,11 +157,13 @@ m_op_type(op_type)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-ComponentFilter::ComponentFilter(RefCountPtr<FccOperator> child,
+ComponentFilter::ComponentFilter(RefCountPtr<fcc_operator_t> child,
                                  fcc_type_t component_type,
                                  FccFilterOpType op_type,
                                  bool on_column) :
-Filter<ComponentFilter>(child, "ComponentFilter"),
+Filter<ComponentFilter>(child, 
+                        fcc_operator_type_t::E_COMPONENT_FILTER,
+                        "ComponentFilter"),
 m_filter_type(component_type),
 m_on_column(on_column),
 m_op_type(op_type)
@@ -172,9 +174,9 @@ m_op_type(op_type)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-Foreach::Foreach(RefCountPtr<FccOperator> child,
+Foreach::Foreach(RefCountPtr<fcc_operator_t> child,
                  const DynArray<const fcc_system_t*>& systems) :
-FccOperatorTmplt<Foreach>(FccOperatorType::E_FOREACH, "Foreach"), 
+fcc_operator_tmplt_t<Foreach>(fcc_operator_type_t::E_FOREACH, "Foreach"), 
 p_systems(systems), 
 p_child(child) 
 {
@@ -194,9 +196,9 @@ Foreach::~Foreach()
 ////////////////////////////////////////////////
 
 
-Gather::Gather(RefCountPtr<FccOperator> ref_table,
-               RefCountPtr<FccOperator> child) :
-FccOperatorTmplt<Gather>(FccOperatorType::E_GATHER, "Gather"),
+Gather::Gather(RefCountPtr<fcc_operator_t> ref_table,
+               RefCountPtr<fcc_operator_t> child) :
+fcc_operator_tmplt_t<Gather>(fcc_operator_type_t::E_GATHER, "Gather"),
 p_ref_table(ref_table),
 p_child(child)
 {
@@ -213,9 +215,9 @@ Gather::~Gather()
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-CascadingGather::CascadingGather(RefCountPtr<FccOperator> ref_table,
-                                 RefCountPtr<FccOperator> child) :
-FccOperatorTmplt<CascadingGather>(FccOperatorType::E_CASCADING_GATHER, "CascadingGather"),
+CascadingGather::CascadingGather(RefCountPtr<fcc_operator_t> ref_table,
+                                 RefCountPtr<fcc_operator_t> child) :
+fcc_operator_tmplt_t<CascadingGather>(fcc_operator_type_t::E_CASCADING_GATHER, "CascadingGather"),
 p_ref_table(ref_table),
 p_child(child)
 {

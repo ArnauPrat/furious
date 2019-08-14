@@ -9,25 +9,84 @@
 namespace furious
 {
 
-ExecPlanPrinter::ExecPlanPrinter(bool add_comments)
+static constexpr uint32_t buffer_length = 2048;
+static char buffer[buffer_length];
+
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          fcc_operator_t* fcc_operator);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Scan* scan);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Join* join);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const CrossJoin* crossjoin);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const LeftFilterJoin* left_filter_join);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Foreach* foreach);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Fetch* fetch);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const TagFilter* tag_filter);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const PredicateFilter* predicate_filter);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const ComponentFilter* component_filter);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Gather* gather);
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const CascadingGather* gather);
+
+static void
+fcc_subplan_printer_incr_level(fcc_subplan_printer_t* printer,
+                               bool sibling)
 {
-  if(add_comments)
+  if(sibling)
   {
-    m_offsets.append('/');
-    m_offsets.append('/');
+    printer->m_offsets.append(' ');
+    printer->m_offsets.append('|');
+  } 
+  else 
+  {
+    printer->m_offsets.append(' ');
+    printer->m_offsets.append(' ');
   }
-  str_builder_init(&m_str_builder);
 }
 
-ExecPlanPrinter::~ExecPlanPrinter()
+static void
+fcc_subplan_printer_decr_level(fcc_subplan_printer_t* printer)
 {
-  str_builder_release(&m_str_builder);
+  printer->m_offsets.pop();
+  printer->m_offsets.pop();
 }
 
-void
-ExecPlanPrinter::traverse(const FccSubPlan* plan) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const char* str)
 {
-  plan->p_root->accept(this);
+  for(int32_t i = 0;
+      i < (int32_t)printer->m_offsets.size();
+      ++i) 
+  {
+    str_builder_append(&printer->m_str_builder,
+                       "%c", 
+                       printer->m_offsets[i]);
+  }
+  str_builder_append(&printer->m_str_builder, 
+                     "- %s\n", 
+                     str);
 }
 
 static std::string
@@ -78,29 +137,30 @@ to_string(const fcc_system_t* info)
   return ret;
 }
 
-void 
-ExecPlanPrinter::visit(const Foreach* foreach) 
+static void 
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Foreach* foreach) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
   const fcc_system_t* info = foreach->p_systems[0];
-  str_builder_append(&str_builder, "foreach (%u) - \"%s\"",
-                        foreach->m_id, 
-                        to_string(info).c_str());
-  print(str_builder.p_buffer);
-  incr_level(false);
-  foreach->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, buffer_length, "foreach (%u) - \"%s\"",
+           foreach->m_id, 
+           to_string(info).c_str());
+
+  fcc_subplan_printer_print(printer, 
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer,
+                                 false);
+  fcc_subplan_printer_print(printer, foreach->p_child.get());
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void 
-ExecPlanPrinter::visit(const Scan* scan) 
+static void 
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const Scan* scan) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  const FccColumn* column = &scan->m_columns[0];
-  if(column->m_type == FccColumnType::E_COMPONENT)
+  const fcc_column_t* column = &scan->m_columns[0];
+  if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
     char ctype[MAX_TYPE_NAME];
     const uint32_t length = fcc_type_name(column->m_component_type,
@@ -109,68 +169,99 @@ ExecPlanPrinter::visit(const Scan* scan)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
-    str_builder_append(&str_builder, "scan (%u) - \"%s\"",
-                          scan->m_id, 
-                          ctype);
+    snprintf(buffer, 
+             buffer_length,
+             "scan (%u) - \"%s\"",
+             scan->m_id, 
+             ctype);
 
   }
   else
   {
-    str_builder_append(&str_builder,"scan (%u) - #REFERENCE \"%s\"",
-                          scan->m_id, 
-                          column->m_ref_name);
+    snprintf(buffer,
+             buffer_length,
+             "scan (%u) - #REFERENCE \"%s\"",
+             scan->m_id, 
+             column->m_ref_name);
   }
 
-  print(str_builder.p_buffer);
-  incr_level(false);
-  decr_level();
-  str_builder_release(&str_builder);
+  fcc_subplan_printer_print(printer,
+                            buffer);
+
 }
 
-void
-ExecPlanPrinter::visit(const Join* join) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const Join* join) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  str_builder_append(&str_builder, "join(%u)", join->m_id);
-  print(str_builder.p_buffer);
-  incr_level(true);
-  join->p_left.get()->accept(this);
-  join->p_right.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, 
+           buffer_length,
+           "join(%u)", join->m_id);
+
+  fcc_subplan_printer_print(printer, 
+                            buffer);
+  fcc_subplan_printer_incr_level(printer, 
+                                 true);
+  // print left child
+  fcc_subplan_printer_print(printer, 
+                            join->p_left.get());
+
+  // print right child
+  fcc_subplan_printer_print(printer,
+                            join->p_right.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const LeftFilterJoin* left_filter_join) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const LeftFilterJoin* left_filter_join) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  str_builder_append(&str_builder, "left_filter_join(%u)", left_filter_join->m_id);
-  print(str_builder.p_buffer);
-  incr_level(true);
-  left_filter_join->p_left.get()->accept(this);
-  left_filter_join->p_right.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer,
+           buffer_length,
+           "left_filter_join(%u)", left_filter_join->m_id);
+  fcc_subplan_printer_print(printer,
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer, 
+                                 true);
+  // print left child
+  fcc_subplan_printer_print(printer, 
+                            left_filter_join->p_left.get());
+
+  // print right child
+  fcc_subplan_printer_print(printer,
+                            left_filter_join->p_right.get());
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const CrossJoin* cross_join) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const CrossJoin* cross_join) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  str_builder_append(&str_builder,"cross_join(%u)", cross_join->m_id);
-  print(str_builder.p_buffer);
-  incr_level(true);
-  cross_join->p_left.get()->accept(this);
-  cross_join->p_right.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, 
+           buffer_length,
+           "cross_join(%u)", 
+           cross_join->m_id);
+
+  fcc_subplan_printer_print(printer,
+                            buffer);
+  fcc_subplan_printer_incr_level(printer,
+                                 true);
+  // print left hicld
+  fcc_subplan_printer_print(printer,
+                            cross_join->p_left.get());
+
+  // print right child
+  fcc_subplan_printer_print(printer,
+                            cross_join->p_right.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const Fetch* fetch) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Fetch* fetch) 
 {
 
   char ctype[MAX_TYPE_NAME];
@@ -180,20 +271,19 @@ ExecPlanPrinter::visit(const Fetch* fetch)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  str_builder_append(&str_builder,
-                        "fetch(%u) - GLOBAL %s", 
-                        fetch->m_id, ctype);
-  print(str_builder.p_buffer);
-  str_builder_release(&str_builder);
+  snprintf(buffer, 
+           buffer_length, 
+           "fetch(%u) - GLOBAL %s", 
+           fetch->m_id, ctype);
+
+  fcc_subplan_printer_print(printer,
+                            buffer);
 }
 
-void 
-ExecPlanPrinter::visit(const TagFilter* tag_filter) 
+static void 
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const TagFilter* tag_filter) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
   char* type;
   char has_type[] ="has";
   char has_not_type[] ="has not";
@@ -218,24 +308,30 @@ ExecPlanPrinter::visit(const TagFilter* tag_filter)
     column_type = on_key;
   }
 
-  str_builder_append(&str_builder, "tag_filter (%u) - %s - \"%s\" - %s", 
-                        tag_filter->m_id, 
-                        type, 
-                        tag_filter->m_tag,
-                        column_type); 
+  snprintf(buffer,
+           buffer_length,
+           "tag_filter (%u) - %s - \"%s\" - %s", 
+           tag_filter->m_id, 
+           type, 
+           tag_filter->m_tag,
+           column_type); 
 
-  print(str_builder.p_buffer);
-  incr_level(false);
-  tag_filter->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  fcc_subplan_printer_print(printer,
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer, 
+                                 false);
+
+  fcc_subplan_printer_print(printer,
+                            tag_filter->p_child.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const ComponentFilter* component_filter) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const ComponentFilter* component_filter) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
   char* type;
   char has_type[] ="has";
   char has_not_type[] ="has not";
@@ -256,15 +352,22 @@ ExecPlanPrinter::visit(const ComponentFilter* component_filter)
   FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
 
-  str_builder_append(&str_builder,"component_filter (%u) - %s - \"%s\"", 
-                        component_filter->m_id, 
-                        type, 
-                        ctype);
-  print(str_builder.p_buffer);
-  incr_level(false);
-  component_filter->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer,
+           buffer_length,
+           "component_filter (%u) - %s - \"%s\"", 
+           component_filter->m_id, 
+           type, 
+           ctype);
+
+  fcc_subplan_printer_print(printer,
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer,false);
+
+  fcc_subplan_printer_print(printer, 
+                            component_filter->p_child.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
 std::string
@@ -279,8 +382,9 @@ to_string(fcc_decl_t decl)
   return buffer;
 }
 
-void
-ExecPlanPrinter::visit(const PredicateFilter* predicate_filter) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
+                          const PredicateFilter* predicate_filter) 
 {
   uint32_t function_name_length = 2048;
   char function_name[function_name_length];
@@ -288,91 +392,141 @@ ExecPlanPrinter::visit(const PredicateFilter* predicate_filter)
                                            function_name,
                                            function_name_length);
   FURIOUS_CHECK_STR_LENGTH(length, function_name_length);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  str_builder_append(&str_builder, "predicate_filter (%u) - %s", 
-                        predicate_filter->m_id, 
-                        function_name);
-  print(str_builder.p_buffer);
-  incr_level(false);
-  predicate_filter->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, buffer_length, "predicate_filter (%u) - %s", 
+           predicate_filter->m_id, 
+           function_name);
+
+  fcc_subplan_printer_print(printer,
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer,
+                                 false);
+  fcc_subplan_printer_print(printer, 
+                            predicate_filter->p_child.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const Gather* gather) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const Gather* gather) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  FccColumn* ref_column = &gather->p_ref_table.p_ptr->m_columns[0];
-  if(ref_column->m_type != FccColumnType::E_REFERENCE)
+  fcc_column_t* ref_column = &gather->p_ref_table.p_ptr->m_columns[0];
+  if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
   {
     //TODO: handle error
   }
-  str_builder_append(&str_builder, "gather (%u)", 
-                        gather->m_id);
-  print(str_builder.p_buffer);
-  incr_level(false);
-  gather->p_ref_table.get()->accept(this);
-  gather->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, 
+           buffer_length,
+           "gather (%u)", 
+           gather->m_id);
+
+  fcc_subplan_printer_print(printer,
+                            buffer);
+  fcc_subplan_printer_incr_level(printer,
+                                 false);
+  fcc_subplan_printer_print(printer, 
+                            gather->p_ref_table.get());
+
+  fcc_subplan_printer_print(printer, 
+                            gather->p_child.get());
+
+  fcc_subplan_printer_decr_level(printer);
 }
 
-void
-ExecPlanPrinter::visit(const CascadingGather* casc_gather) 
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const CascadingGather* casc_gather) 
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
-  FccColumn* ref_column = &casc_gather->p_ref_table.p_ptr->m_columns[0];
-  if(ref_column->m_type != FccColumnType::E_REFERENCE)
+  fcc_column_t* ref_column = &casc_gather->p_ref_table.p_ptr->m_columns[0];
+  if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
   {
     //TODO: handle error
   }
-  str_builder_append(&str_builder,"cascading_gather (%u)", 
-                        casc_gather->m_id);
-  print(str_builder.p_buffer);
-  incr_level(false);
-  casc_gather->p_ref_table.get()->accept(this);
-  casc_gather->p_child.get()->accept(this);
-  decr_level();
-  str_builder_release(&str_builder);
+  snprintf(buffer, buffer_length,"cascading_gather (%u)", 
+           casc_gather->m_id);
+
+  fcc_subplan_printer_print(printer, 
+                            buffer);
+
+  fcc_subplan_printer_incr_level(printer, 
+                                 false);
+  fcc_subplan_printer_print(printer, 
+                            casc_gather->p_ref_table.get());
+
+  fcc_subplan_printer_print(printer,
+                            casc_gather->p_child.get());
+
+  fcc_subplan_printer_decr_level(printer);
+}
+
+static void
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          fcc_operator_t* fcc_operator)
+{
+  switch(fcc_operator->m_type)
+  {
+    case fcc_operator_type_t::E_SCAN:
+      fcc_subplan_printer_print(printer, (Scan*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_FOREACH:
+      fcc_subplan_printer_print(printer, (Foreach*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_JOIN:
+      fcc_subplan_printer_print(printer, (Join*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
+      fcc_subplan_printer_print(printer, (LeftFilterJoin*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_CROSS_JOIN:
+      fcc_subplan_printer_print(printer, (CrossJoin*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_FETCH:
+      fcc_subplan_printer_print(printer, (Fetch*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_GATHER:
+      fcc_subplan_printer_print(printer, (Gather*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_CASCADING_GATHER:
+      fcc_subplan_printer_print(printer, (CascadingGather*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_TAG_FILTER:
+      fcc_subplan_printer_print(printer, (TagFilter*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_PREDICATE_FILTER:
+      fcc_subplan_printer_print(printer, (PredicateFilter*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_COMPONENT_FILTER:
+      fcc_subplan_printer_print(printer, (ComponentFilter*)fcc_operator);
+      break;
+  };
 }
 
 void
-ExecPlanPrinter::incr_level(bool sibling)
+fcc_subplan_printer_init(fcc_subplan_printer_t* printer, 
+                         bool add_comments)
 {
-  if(sibling)
+  printer->m_indents = 0;
+  if(add_comments)
   {
-    m_offsets.append(' ');
-    m_offsets.append('|');
-  } 
-  else 
-  {
-    m_offsets.append(' ');
-    m_offsets.append(' ');
+    printer->m_offsets.append('/');
+    printer->m_offsets.append('/');
   }
+  str_builder_init(&printer->m_str_builder);
 }
 
 void
-ExecPlanPrinter::decr_level()
+fcc_subplan_printer_release(fcc_subplan_printer_t* printer)
 {
-  m_offsets.pop();
-  m_offsets.pop();
+  str_builder_release(&printer->m_str_builder);
 }
 
 void
-ExecPlanPrinter::print(const char* str)
+fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
+                          const FccSubPlan* plan) 
 {
-  for(int32_t i = 0;
-      i < (int32_t)m_offsets.size();
-      ++i) 
-  {
-    str_builder_append(&m_str_builder,"%c", m_offsets[i]);
-  }
-  str_builder_append(&m_str_builder, "- %s\n", str);
+  fcc_subplan_printer_print(printer, plan->p_root);
 }
 
-} /* furious
-*/ 
+
+} 

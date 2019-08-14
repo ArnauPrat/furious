@@ -95,7 +95,7 @@ DependenciesExtr::visit(const Foreach* foreach)
 void 
 DependenciesExtr::visit(const Scan* scan) 
 {
-  if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+  if(scan->m_columns[0].m_type == fcc_column_type_t::E_COMPONENT)
   {
     extract_dependencies(fcc_type_dependencies(scan->m_columns[0].m_component_type));
   }
@@ -125,7 +125,7 @@ DependenciesExtr::visit(const CrossJoin* cross_join)
 void
 DependenciesExtr::visit(const Fetch* fetch) 
 {
-  if(fetch->m_columns[0].m_type == FccColumnType::E_GLOBAL)
+  if(fetch->m_columns[0].m_type == fcc_column_type_t::E_GLOBAL)
   {
     extract_dependencies(fcc_type_dependencies(fetch->m_columns[0].m_component_type));
   }
@@ -198,7 +198,7 @@ VarsExtr::visit(const Foreach* foreach)
 void 
 VarsExtr::visit(const Scan* scan) 
 {
-  if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+  if(scan->m_columns[0].m_type == fcc_column_type_t::E_COMPONENT)
   {
     char tmp[MAX_TYPE_NAME];
     const uint32_t length = fcc_type_name(scan->m_columns[0].m_component_type, 
@@ -395,7 +395,7 @@ CodeGenRegistry::~CodeGenRegistry()
 }
 
 CodeGenContext* 
-CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
+CodeGenRegistry::find_or_create(const fcc_operator_t* op, FILE* fd)
 {
   for(uint32_t i = 0; i < m_contexts.size(); ++i)
   {
@@ -418,9 +418,9 @@ CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
 
 void 
 consume(FILE* fd,
-        const FccOperator* op,
+        const fcc_operator_t* op,
         const char* source,
-        const FccOperator* caller)
+        const fcc_operator_t* caller)
 {
   CodeGenContext* context = p_registry->find_or_create(op,fd);
   FURIOUS_PERMA_ASSERT(strlen(source) <= MAX_SOURCE_LENGTH);
@@ -431,7 +431,7 @@ consume(FILE* fd,
 
 void 
 produce(FILE* fd,
-        const FccOperator* op)
+        const fcc_operator_t* op)
 {
   CodeGenContext* context = p_registry->find_or_create(op,fd);
   op->accept(context->p_producer);
@@ -481,7 +481,7 @@ uint32_t
 generate_table_name(const char* type_name, 
                     char *buffer,
                     uint32_t buffer_length,
-                    const FccOperator* op)
+                    const fcc_operator_t* op)
 {
   char tmp[MAX_TYPE_NAME];
   strncpy(tmp, type_name, MAX_TYPE_NAME);
@@ -508,7 +508,7 @@ uint32_t
 generate_temp_table_name(const char* type_name, 
                          char * buffer,
                          uint32_t buffer_length,
-                         const FccOperator* op)
+                         const fcc_operator_t* op)
 {
   char tmp[MAX_TABLE_VARNAME];
   generate_table_name(type_name, 
@@ -531,7 +531,7 @@ uint32_t
 generate_ref_table_name(const char* ref_name, 
                         char* buffer,
                         uint32_t buffer_length,
-                        const FccOperator* op)
+                        const fcc_operator_t* op)
 {
   char tmp[MAX_TABLE_VARNAME];
   generate_table_name(ref_name, 
@@ -553,7 +553,7 @@ uint32_t
 generate_bittable_name(const char* tag_name,
                        char* buffer,
                        uint32_t buffer_length,
-                       const FccOperator* op)
+                       const fcc_operator_t* op)
 {
 
   str_builder_t str_builder;
@@ -574,7 +574,7 @@ uint32_t
 generate_table_iter_name(const char* table_name,
                          char* buffer,
                          uint32_t buffer_length,
-                         const FccOperator* op)
+                         const fcc_operator_t* op)
 {
   str_builder_t str_builder;
   str_builder_init(&str_builder);
@@ -594,7 +594,7 @@ uint32_t
 generate_block_name(const char* type_name,
                     char* buffer,
                     uint32_t buffer_length,
-                    const FccOperator* op)
+                    const fcc_operator_t* op)
 {
   char tmp[MAX_TYPE_NAME];
   strncpy(tmp, type_name, MAX_TYPE_NAME);
@@ -616,7 +616,7 @@ generate_block_name(const char* type_name,
 }
 
 uint32_t
-generate_cluster_name(const FccOperator* op,
+generate_cluster_name(const fcc_operator_t* op,
                       char* buffer,
                       uint32_t buffer_length)
 {
@@ -634,7 +634,7 @@ uint32_t
 generate_ref_groups_name(const char* ref_name,
                          char* buffer,
                          uint32_t buffer_length,
-                         const FccOperator* op)
+                         const fcc_operator_t* op)
 {
   char tmp[MAX_REF_NAME];
   strncpy(tmp, ref_name, MAX_REF_NAME);
@@ -651,7 +651,7 @@ generate_ref_groups_name(const char* ref_name,
 }
 
 uint32_t
-generate_hashtable_name(const FccOperator* op,
+generate_hashtable_name(const fcc_operator_t* op,
                         char* buffer,
                         uint32_t buffer_length)
 {
@@ -670,7 +670,7 @@ generate_system_wrapper_name(const char* system_name,
                              uint32_t system_id,
                              char* buffer,
                              uint32_t buffer_length,
-                             const FccOperator* op)
+                             const fcc_operator_t* op)
 {
   char base_name[MAX_TYPE_NAME];
   strncpy(base_name, system_name, MAX_TYPE_NAME);
@@ -696,7 +696,7 @@ uint32_t
 generate_global_name(const char* type_name, 
                      char* buffer,
                      uint32_t buffer_length,
-                     const FccOperator* op)
+                     const fcc_operator_t* op)
 {
   char tmp[MAX_TYPE_NAME];
   strncpy(tmp, type_name, buffer_length);

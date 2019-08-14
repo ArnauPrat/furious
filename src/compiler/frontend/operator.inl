@@ -10,23 +10,25 @@ namespace furious
 ////////////////////////////////////////////////
 
 template<typename T>
-FccOperatorTmplt<T>::FccOperatorTmplt(FccOperatorType type,
+fcc_operator_tmplt_t<T>::fcc_operator_tmplt_t(fcc_operator_type_t type,
                                       const char* name) : 
-FccOperator(type, name)
+fcc_operator_t(type, name)
 {
 
 }
 
 template<typename T>
 void
-FccOperatorTmplt<T>::accept(FccSubPlanVisitor* visitor) const 
+fcc_operator_tmplt_t<T>::accept(FccSubPlanVisitor* visitor) const 
 {
   visitor->visit((const T*)(this));
 }
 
 template<typename T>
-Filter<T>::Filter(RefCountPtr<FccOperator> child, const char* name) :
-FccOperatorTmplt<T>(FccOperatorType::E_FILTER, name),
+Filter<T>::Filter(RefCountPtr<fcc_operator_t> child, 
+                  fcc_operator_type_t type,
+                  const char* name) :
+fcc_operator_tmplt_t<T>(type, name),
 p_child(child) 
 {
   p_child.get()->p_parent = this;

@@ -170,9 +170,11 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    const FccOperator* root = exec_plan->m_subplans[i].p_root;
-    ExecPlanPrinter printer(true);
-    printer.traverse(&exec_plan->m_subplans[i]);
+    const fcc_operator_t* root = exec_plan->m_subplans[i].p_root;
+    fcc_subplan_printer_t printer;
+    fcc_subplan_printer_init(&printer, true);
+    fcc_subplan_printer_print(&printer, 
+                              &exec_plan->m_subplans[i]);
     fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __task_%d(float delta,\n\
     Database* database,\n\
@@ -188,6 +190,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
+    fcc_subplan_printer_release(&printer);
   }
   delete p_registry;
 
@@ -332,14 +335,16 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     fprintf(fd, "}\n");
   }
 
-  // GENERATING TASKS CODE BASED ON EXECUTION PLAN ROOTS
+  // DEFINING TASKS CODE BASED ON POST FRAME EXECUTION PLAN ROOTS
   p_registry = new CodeGenRegistry();
   num_nodes = post_exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    const FccOperator* root = exec_plan->m_subplans[i].p_root;
-    ExecPlanPrinter printer(true);
-    printer.traverse(&exec_plan->m_subplans[i]);
+    const fcc_operator_t* root = post_exec_plan->m_subplans[i].p_root;
+    fcc_subplan_printer_t printer;
+    fcc_subplan_printer_init(&printer, true);
+    fcc_subplan_printer_print(&printer, 
+                              &post_exec_plan->m_subplans[i]);
     fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __pf_task_%d(float delta,\n\
     Database* database,\n\
@@ -353,6 +358,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
+    fcc_subplan_printer_release(&printer);
   }
   delete p_registry;
 

@@ -14,7 +14,7 @@ namespace furious
 struct fcc_system_t;
 struct CascadingGather;
 struct CrossJoin;
-struct FccOperator;
+struct fcc_operator_t;
 struct Fetch;
 template<typename T>
 struct Filter;
@@ -34,7 +34,7 @@ class FccSubPlanVisitor;
 
 struct FccSubPlan
 {
-  FccOperator*  p_root;
+  fcc_operator_t*  p_root;
 };
 
 

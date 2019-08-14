@@ -146,19 +146,19 @@ struct CodeGenContext
 
   char                    m_source[MAX_SOURCE_LENGTH];
   FILE*                   p_fd;
-  const FccOperator*      p_caller;
+  const fcc_operator_t*      p_caller;
 };
 
 struct CodeGenRegistry
 {
   struct Entry
   {
-    const FccOperator*  p_operator;
+    const fcc_operator_t*  p_operator;
     CodeGenContext*     p_context;
   };
 
   CodeGenContext* 
-  find_or_create(const FccOperator*, FILE* fd);
+  find_or_create(const fcc_operator_t*, FILE* fd);
 
   CodeGenRegistry();
   ~CodeGenRegistry();
@@ -169,13 +169,13 @@ struct CodeGenRegistry
 
 void 
 consume(FILE* fd,
-        const FccOperator* op,
+        const fcc_operator_t* op,
         const char* source,
-        const FccOperator* caller);
+        const fcc_operator_t* caller);
 
 void 
 produce(FILE* fd,
-        const FccOperator* op);
+        const fcc_operator_t* op);
 
 void
 sanitize_name(char* str);
@@ -184,40 +184,40 @@ uint32_t
 generate_table_name(const char* type_name,
                     char* buffer,
                     uint32_t buffer_length, 
-                    const FccOperator* op = nullptr);
+                    const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_temp_table_name(const char* type_name,
                          char* buffer,
                          uint32_t buffer_length, 
-                         const FccOperator* op = nullptr);
+                         const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_ref_table_name(const char* ref_name,
                         char* buffer,
                         uint32_t buffer_length, 
-                        const FccOperator* op = nullptr);
+                        const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_bittable_name(const char* tag_name,
                        char* buffer,
                        uint32_t buffer_length,
-                       const FccOperator* op = nullptr);
+                       const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_table_iter_name(const char* table_name,
                          char* buffer,
                          uint32_t buffer_length,
-                         const FccOperator* op = nullptr);
+                         const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_block_name(const char* type_name,
                     char* buffer,
                     uint32_t buffer_length,
-                    const FccOperator* op = nullptr);
+                    const fcc_operator_t* op = nullptr);
 
 uint32_t
-generate_cluster_name(const FccOperator* op,
+generate_cluster_name(const fcc_operator_t* op,
                       char* buffer,
                       uint32_t buffer_length);
 
@@ -225,10 +225,10 @@ uint32_t
 generate_ref_groups_name(const char* ref_name,
                          char* buffer,
                          uint32_t buffer_length, 
-                         const FccOperator* op);
+                         const fcc_operator_t* op);
 
 uint32_t
-generate_hashtable_name(const FccOperator* op,
+generate_hashtable_name(const fcc_operator_t* op,
                         char* buffer,
                         uint32_t buffer_length);
 
@@ -237,13 +237,13 @@ generate_system_wrapper_name(const char* system_name,
                              uint32_t system_id,
                              char* buffer,
                              uint32_t buffer_length,
-                             const FccOperator* op = nullptr);
+                             const fcc_operator_t* op = nullptr);
 
 uint32_t
 generate_global_name(const char* type_name,
                      char* buffer,
                      uint32_t buffer_length, 
-                     const FccOperator* op = nullptr);
+                     const fcc_operator_t* op = nullptr);
 
 
 } /* furious */ 

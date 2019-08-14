@@ -137,6 +137,5 @@ generate_reflection_code(FILE* fd, fcc_decl_t decl)
   fprintf(fd,"}\n");
 }
 
-  
 } /* furious */ 
 

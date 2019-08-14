@@ -26,7 +26,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
   bool all_globals = true;
   for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
   {
-    if(foreach->m_columns[i].m_type != FccColumnType::E_GLOBAL)
+    if(foreach->m_columns[i].m_type != fcc_column_type_t::E_GLOBAL)
     {
       all_globals = false;
       break;
@@ -36,8 +36,8 @@ ConsumeVisitor::visit(const Foreach* foreach)
   int param_index = 0;
   for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
   {
-    const FccColumn* column = &foreach->m_columns[i];
-    if(column->m_type == FccColumnType::E_REFERENCE)
+    const fcc_column_t* column = &foreach->m_columns[i];
+    if(column->m_type == fcc_column_type_t::E_REFERENCE)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -56,7 +56,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
 
     FURIOUS_PERMA_ASSERT( length < (MAX_TYPE_NAME +32) && "Qualified type name exceeds maximum length");
 
-    if(column->m_type == FccColumnType::E_COMPONENT)
+    if(column->m_type == fcc_column_type_t::E_COMPONENT)
     {
       fprintf(p_context->p_fd,
               "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
@@ -66,7 +66,7 @@ ConsumeVisitor::visit(const Foreach* foreach)
               p_context->m_source, 
               param_index);
     }
-    else if (column->m_type == FccColumnType::E_GLOBAL)
+    else if (column->m_type == fcc_column_type_t::E_GLOBAL)
     {
       fprintf(p_context->p_fd,
               "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
@@ -118,12 +118,12 @@ ConsumeVisitor::visit(const Foreach* foreach)
 
     for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
     {
-      const FccColumn* column = &foreach->m_columns[i];
-      if(column->m_type == FccColumnType::E_COMPONENT)
+      const fcc_column_t* column = &foreach->m_columns[i];
+      if(column->m_type == fcc_column_type_t::E_COMPONENT)
       {
         str_builder_append(&str_builder,",\n&data_%d[i]",i);
       }
-      else if (column->m_type == FccColumnType::E_GLOBAL)
+      else if (column->m_type == fcc_column_type_t::E_GLOBAL)
       {
         str_builder_append(&str_builder,",\ndata_%d",i);
       }
@@ -383,7 +383,7 @@ ConsumeVisitor::visit(const TagFilter* tag_filter)
   }
   else
   {
-    if(tag_filter->m_columns[0].m_type != FccColumnType::E_REFERENCE)
+    if(tag_filter->m_columns[0].m_type != fcc_column_type_t::E_REFERENCE)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -446,8 +446,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   int param_index = 0;
   for(uint32_t i = 0; i < predicate_filter->m_columns.size(); ++i)  
   {
-    const FccColumn* column = &predicate_filter->m_columns[i];
-    if(column->m_type == FccColumnType::E_REFERENCE)
+    const fcc_column_t* column = &predicate_filter->m_columns[i];
+    if(column->m_type == fcc_column_type_t::E_REFERENCE)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -466,7 +466,7 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
                                                     MAX_QUALIFIED_TYPE_NAME);
     FURIOUS_CHECK_STR_LENGTH(length, MAX_QUALIFIED_TYPE_NAME);
 
-    if(column->m_type == FccColumnType::E_COMPONENT)
+    if(column->m_type == fcc_column_type_t::E_COMPONENT)
     {
       fprintf(p_context->p_fd,
               "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n",
@@ -520,8 +520,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
           p_context->m_source,
           func_name);
 
-  const FccColumn* column = &predicate_filter->m_columns[0];
-  if(column->m_type == FccColumnType::E_COMPONENT)
+  const fcc_column_t* column = &predicate_filter->m_columns[0];
+  if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
     fprintf(p_context->p_fd, "&data_0[i]");
   }
@@ -531,8 +531,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
   }
   for(size_t i = 1; i <predicate_filter->m_columns.size(); ++i)
   {
-    const FccColumn* column = &predicate_filter->m_columns[i];
-    if(column->m_type == FccColumnType::E_COMPONENT)
+    const fcc_column_t* column = &predicate_filter->m_columns[i];
+    if(column->m_type == fcc_column_type_t::E_COMPONENT)
     {
       fprintf(p_context->p_fd, ",&data_%zu[i]", i);
     }
@@ -579,10 +579,10 @@ ConsumeVisitor::visit(const Gather* gather)
     fprintf(p_context->p_fd,"gather(&%s,%s",
             groups_varname,
             p_context->m_source);
-    DynArray<FccColumn>& child_columns = gather->p_child.get()->m_columns;
+    DynArray<fcc_column_t>& child_columns = gather->p_child.get()->m_columns;
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
-      FccColumn* column = &child_columns[i];
+      fcc_column_t* column = &child_columns[i];
       char tmp[MAX_TYPE_NAME];
       uint32_t length = fcc_type_name(column->m_component_type,
                                                  tmp,

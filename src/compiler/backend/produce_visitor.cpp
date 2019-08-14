@@ -35,8 +35,8 @@ ProduceVisitor::visit(const Scan* scan)
   char blockname[MAX_BLOCK_VARNAME];
   char itername[MAX_ITER_VARNAME];
 
-  const FccColumn* column = &scan->m_columns[0];
-  if(column->m_type == FccColumnType::E_COMPONENT)
+  const fcc_column_t* column = &scan->m_columns[0];
+  if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
@@ -350,12 +350,12 @@ ProduceVisitor::visit(const Gather* gather)
   produce(p_context->p_fd, gather->p_ref_table.get());
 
   // Generating temporal tables
-  DynArray<FccColumn>& child_columns = gather->p_child.get()->m_columns;
+  DynArray<fcc_column_t>& child_columns = gather->p_child.get()->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
 
-    if(child_columns[i].m_type == FccColumnType::E_REFERENCE)
+    if(child_columns[i].m_type == fcc_column_type_t::E_REFERENCE)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -410,7 +410,7 @@ ProduceVisitor::visit(const Gather* gather)
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
                                     ctype,
@@ -439,7 +439,7 @@ ProduceVisitor::visit(const Gather* gather)
             tablename);
   }
 
-  FccColumn* column = &child_columns[0];
+  fcc_column_t* column = &child_columns[0];
 
   char ctype[MAX_TYPE_NAME];
   uint32_t length = fcc_type_name(column->m_component_type,
@@ -476,7 +476,7 @@ ProduceVisitor::visit(const Gather* gather)
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
 
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
@@ -546,12 +546,12 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   produce(p_context->p_fd, casc_gather->p_child.get());
 
   // CREATE TEMPORAL TABLES
-  DynArray<FccColumn>& child_columns = casc_gather->p_child.get()->m_columns;
+  DynArray<fcc_column_t>& child_columns = casc_gather->p_child.get()->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
 
-    if(child_columns[i].m_type == FccColumnType::E_REFERENCE)
+    if(child_columns[i].m_type == fcc_column_type_t::E_REFERENCE)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -623,7 +623,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   // CLEARING TEMPORAL TABLES
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
                                     ctype,
@@ -664,7 +664,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
                                     ctype,
@@ -689,7 +689,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   // ITERATE OVER TEMPORAL TABLES
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
                                     ctype,
@@ -717,7 +717,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
             tablename);
   }
 
-  FccColumn* column = &child_columns[0];
+  fcc_column_t* column = &child_columns[0];
   char ctype[MAX_TYPE_NAME];
   length = fcc_type_name(column->m_component_type,
                 ctype,
@@ -753,7 +753,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    FccColumn* column = &child_columns[i];
+    fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
                                     ctype,

@@ -14,12 +14,12 @@ namespace furious
 ////////////////////////////////////////////////
 
 
-FccOperator* 
+fcc_operator_t* 
 apply_predicate_filters(const fcc_stmt_t* match,
                         const fcc_entity_match_t* entity_match,
-                        FccOperator* root)
+                        fcc_operator_t* root)
 {
-  FccOperator* local_root = root;
+  fcc_operator_t* local_root = root;
 
   // Create predicate filters
   for(uint32_t i = 0; i < entity_match->m_filter_func.size(); ++i)
@@ -30,13 +30,13 @@ apply_predicate_filters(const fcc_stmt_t* match,
   return local_root;
 }
 
-FccOperator*
+fcc_operator_t*
 apply_filters(const fcc_stmt_t* match, 
               const fcc_entity_match_t* entity_match, 
-              FccOperator* root)
+              fcc_operator_t* root)
 {
 
-  FccOperator* local_root = root;
+  fcc_operator_t* local_root = root;
 
   // Create without Tag Filters
   for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
@@ -73,13 +73,13 @@ apply_filters(const fcc_stmt_t* match,
   return local_root;
 }
 
-FccOperator*
+fcc_operator_t*
 apply_filters_reference(const fcc_stmt_t* match, 
                         const fcc_entity_match_t* entity_match, 
-                        FccOperator* root)
+                        fcc_operator_t* root)
 {
 
-  FccOperator* local_root = root;
+  fcc_operator_t* local_root = root;
 
   // Create without Tag Filters
   for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
@@ -124,14 +124,14 @@ void
 init_subplan(const fcc_stmt_t* match,
              FccSubPlan* subplan)
 {
-  FccOperator* root = nullptr;
+  fcc_operator_t* root = nullptr;
 
   int32_t size = match->p_entity_matches.size();
   for(int32_t i = size - 1; i >= 0; --i)
   {
     fcc_entity_match_t* entity_match = match->p_entity_matches[i];
     uint32_t num_components = entity_match->m_component_types.size();
-    FccOperator* local_root = nullptr;
+    fcc_operator_t* local_root = nullptr;
     for(uint32_t j = 0; j < num_components; ++j)
     {
       fcc_component_match_t* match_type = &entity_match->m_component_types[j];
@@ -152,7 +152,7 @@ init_subplan(const fcc_stmt_t* match,
       }
       else 
       {
-        FccOperator* right = nullptr;
+        fcc_operator_t* right = nullptr;
         if(match_type->m_is_global)
         {
           right = new Fetch(entity_match->m_component_types[j].m_type, 
@@ -181,7 +181,7 @@ init_subplan(const fcc_stmt_t* match,
     bool non_component_expand = local_root == nullptr; 
     if(entity_match->m_from_expand)
     {
-      FccOperator* ref_scan = new Scan(entity_match->m_ref_name);
+      fcc_operator_t* ref_scan = new Scan(entity_match->m_ref_name);
 
       if(!non_component_expand)
       {

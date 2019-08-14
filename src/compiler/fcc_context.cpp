@@ -315,20 +315,24 @@ fcc_run(int argc,
 
   llvm::errs() << "Printing Frame execplan" << "\n";
   {
-    ExecPlanPrinter printer;
+    fcc_subplan_printer_t printer;
+    fcc_subplan_printer_init(&printer);
     DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
     const uint32_t num_in_seq = seq.size();
     for(uint32_t j = 0; 
         j < num_in_seq; 
         ++j)
     {
-      printer.traverse(&exec_plan->m_subplans[seq[j]]);
+      fcc_subplan_printer_print(&printer, 
+                                &exec_plan->m_subplans[seq[j]]);
     }
     llvm::errs() << printer.m_str_builder.p_buffer << "\n";
+    fcc_subplan_printer_release(&printer);
   }
 
   {
-    ExecPlanPrinter post_printer;
+    fcc_subplan_printer_t post_printer;
+    fcc_subplan_printer_init(&post_printer);
     llvm::errs() << "Printing PostFrame execplan" << "\n"; 
     DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
     const uint32_t num_in_seq = seq.size();
@@ -336,9 +340,11 @@ fcc_run(int argc,
         j < num_in_seq; 
         ++j)
     {
-      post_printer.traverse(&post_exec_plan->m_subplans[seq[j]]);
+      fcc_subplan_printer_print(&post_printer, 
+                                &post_exec_plan->m_subplans[seq[j]]);
     }
     llvm::errs() << post_printer.m_str_builder.p_buffer << "\n";
+    fcc_subplan_printer_release(&post_printer);
   }
 
   result = fcc_generate_code(exec_plan,

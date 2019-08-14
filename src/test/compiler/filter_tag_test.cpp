@@ -10,7 +10,8 @@
 TEST(FilterTagTest, FilterTagTest ) 
 {
   furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", "8080");
+  database->start_webserver("localhost", 
+                            "8080");
   furious::__furious_init(database);
 
   std::vector<furious::Entity> entities;

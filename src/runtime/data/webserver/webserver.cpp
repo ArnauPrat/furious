@@ -171,6 +171,6 @@ WebServer::stop()
     m_table_infos_capacity = 0;
   }
 }
-  
+
 } /* furious
  */ 

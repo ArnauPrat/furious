@@ -2,19 +2,129 @@
 #ifndef _FURIOUS_CODEGEN_TOOLS_H_
 #define _FURIOUS_CODEGEN_TOOLS_H_
 
+#include "../../common/platform.h"
 #include "../common/dyn_array.h"
-#include "fcc_context.h"
+#include "../driver.h"
+#include "../fcc_context.h"
+#include "../frontend/exec_plan.h"
 
-#include <string>
 #include <stdio.h>
+#include <string.h>
 
 namespace furious 
 {
 
 struct FccContext;
-class FccOperator;
 class ProduceVisitor;
 class ConsumeVisitor;
+
+/**
+ * @brief Visitor used to extract the dependencies of an execution plan, which
+ * include structures and headers including dependent structures
+ */
+class DependenciesExtr : public FccSubPlanVisitor 
+{
+public:
+  ~DependenciesExtr();
+
+  void
+  extract_dependencies(const DynArray<Dependency>& deps);
+
+  virtual void 
+  visit(const Foreach* foreach);
+
+  virtual void 
+  visit(const Scan* scan);
+
+  virtual void
+  visit(const Join* join);
+
+  virtual void
+  visit(const LeftFilterJoin* left_filter_join);
+
+  virtual void
+  visit(const CrossJoin* cross_join);
+
+  virtual void
+  visit(const Fetch* fetch);
+
+  virtual void 
+  visit(const TagFilter* tag_filter);
+
+  virtual void
+  visit(const ComponentFilter* component_filter); 
+
+  virtual void
+  visit(const PredicateFilter* predicate_filter); 
+
+  virtual void
+  visit(const Gather* gather); 
+
+  virtual void
+  visit(const CascadingGather* casc_gather);
+
+  DynArray<char*>         m_include_files;
+  DynArray<fcc_decl_t>    m_declarations;
+};
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+/**
+ * \brief Extracts the components and tags used in an execution plan, which will
+ * be used to declare the required variables in the generated code.
+ */
+class VarsExtr : public FccSubPlanVisitor 
+{
+
+public:
+
+  ~VarsExtr();
+
+  virtual void 
+  visit(const Foreach* foreach);
+
+  virtual void 
+  visit(const Scan* scan); 
+
+  virtual void
+  visit(const Join* join); 
+
+  virtual void
+  visit(const LeftFilterJoin* left_filter_join); 
+
+  virtual void
+  visit(const CrossJoin* cross_join); 
+
+  virtual void
+  visit(const Fetch* fetch);
+
+  virtual void 
+  visit(const TagFilter* tag_filter); 
+
+  virtual void
+  visit(const ComponentFilter* component_filter); 
+
+  virtual void
+  visit(const PredicateFilter* predicate_filter); 
+
+  virtual void
+  visit(const Gather* gather);
+
+  virtual void
+  visit(const CascadingGather* casc_gather);
+
+  DynArray<fcc_decl_t>    m_component_decls;
+  DynArray<char*>         m_tags;
+  DynArray<char*>         m_references;
+  DynArray<char*>         m_components;
+};
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
 /**
  * \brief This class represents the context of the code generation process at a
@@ -67,10 +177,8 @@ void
 produce(FILE* fd,
         const FccOperator* op);
 
-uint32_t
-sanitize_name(const char* str,
-              char* buffer,
-              uint32_t buffer_length);
+void
+sanitize_name(char* str);
 
 uint32_t
 generate_table_name(const char* type_name,

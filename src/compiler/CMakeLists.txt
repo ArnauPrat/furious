@@ -9,6 +9,7 @@ set(DRIVER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_tools.h
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_parsing.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_parsing.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang_reflection.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/ast_visitor.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/ast_visitor.h
   )

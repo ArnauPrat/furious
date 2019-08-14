@@ -236,7 +236,6 @@ template<typename T>
 void
 Database::add_refl_data(RefCountPtr<ReflData> refl_strct)
 {
-  printf("%s %s\n",T::_component_name(),refl_strct.get()->m_type_name);
   assert(strcmp(T::_component_name(), refl_strct.get()->m_type_name) == 0);
   lock();
   uint32_t hash_value = get_table_id<T>();

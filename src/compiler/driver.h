@@ -2,6 +2,7 @@
 #define _FURIOUS_DRIVER_H value
 
 #include "../common/common.h"
+#include "../runtime/data/reflection.h"
 #include "fcc_context.h"
 
 namespace furious
@@ -12,7 +13,7 @@ struct FccExecPlan;
 
 struct Dependency 
 {
-  std::string     m_include_file        = "";
+  char            m_include_file[MAX_INCLUDE_PATH_LENGTH];
   fcc_decl_t      m_decl;
 };
 
@@ -89,6 +90,57 @@ fcc_type_dependencies(fcc_type_t type);
 
 
 /**
+ * \brief Gets the type of a declaration
+ *
+ * \param decl The declaration to get the type of
+ * \param type The returned type
+ */
+void
+fcc_decl_type(fcc_decl_t decl, fcc_type_t* type);
+
+/**
+ * \brief Gets the number of parameters for this declaration, in case it is a
+ * function declaration
+ *
+ * \param decl The declaration to get the number of parameters for
+ *
+ * \return The number of parameters if the provided declaration is a function
+ * declaration
+ */
+uint32_t
+fcc_decl_function_num_params(fcc_decl_t decl);
+
+/**
+ * \brief Gets the type of a function parameter
+ *
+ * \param decl The function declaration
+ * \param i The index of the parameter to get
+ * \param type A pointer to set to type to
+ *
+ * \return True if the given parameter actually exists
+ */
+bool
+fcc_decl_function_param_type(fcc_decl_t decl, 
+                             uint32_t i, 
+                             fcc_type_t* type);
+
+/**
+ * \brief Gets the name of the parameter
+ *
+ * \param decl The funciton declaration to get the parameter for
+ * \param i The index of the parameter to get
+ * \param buffer The buffer to store the parameter to
+ * \param buffer_length The length of the buffer
+ *
+ * \return  The length of the parameter name
+ */
+uint32_t
+fcc_decl_function_param_name(fcc_decl_t decl, 
+                             uint32_t i, 
+                             char* buffer,
+                             uint32_t buffer_length);
+
+/**
  * \brief Returns true if the declaration handler is valid
  *
  * \param decl The declaration handler to check
@@ -129,7 +181,7 @@ fcc_decl_is_function(fcc_decl_t decl);
  * otherwise
  */
 bool
-fcc_decl_is_lambda(fcc_decl_t decl);
+fcc_decl_is_member(fcc_decl_t decl);
 
 /**
  * \brief Gets the code of a declaration
@@ -211,12 +263,33 @@ fcc_expr_code(fcc_expr_t expr,
               char* buffer, 
               uint32_t buffer_length);
 
+/**
+ * \brief Gets the location of an fcc_expr_t in the code
+ *
+ * \param expr The expression to get the location from 
+ * \param filename_buffer The buffer to store the file name
+ * \param filename_buffer_length The length of the buffer
+ * \param line The line in the file where this expression is
+ * \param column The column in the file where this expresion is
+ *
+ * \return  The length of the file name
+ */
 uint32_t 
 fcc_expr_code_location(fcc_expr_t expr,
                        char* filename_buffer,
                        uint32_t filename_buffer_length,
                        uint32_t* line,
-                       uint32_t* number);
+                       uint32_t* column);
+
+/**
+ * \brief Gets the reflection data structure for the provided declaration
+ *
+ * \param decl The declaration to get the reflection data from
+ *
+ * \return  Returns the reflection data of the given declaration 
+ */
+ReflData
+get_reflection_data(fcc_decl_t decl);
 
 
 } /* furious */ 

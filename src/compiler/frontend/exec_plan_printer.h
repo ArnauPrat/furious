@@ -59,7 +59,7 @@ public:
   decr_level();
 
   void
-  print(const std::string& str);
+  print(const char* str);
 
   int32_t               m_indents = 0;
   str_builder_t         m_str_builder;

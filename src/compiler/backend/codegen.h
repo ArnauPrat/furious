@@ -5,21 +5,8 @@
 
 #include "common/platform.h"
 
-#include <string>
-
-
 namespace furious 
 {
-
-constexpr uint32_t MAX_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_REF_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_TAG_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_SYSTEM_WRAPPER_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_HASHTABLE_VARNAME=256;
-constexpr uint32_t MAX_CLUSTER_VARNAME=256;
-constexpr uint32_t MAX_ITER_VARNAME=256;
-constexpr uint32_t MAX_BLOCK_VARNAME=256;
-constexpr uint32_t MAX_INCLUDE_PATH_LENGTH=2048;
 
 struct FccExecPlan;
 class ProduceVisitor;

@@ -23,7 +23,7 @@ struct UpdatePosition
 };
 
 furious::match<Position,Velocity>().has_tag("affected")
-                                    .has_not_tag("not_affected")
-                                    .foreach<UpdatePosition>(1.0f);
+                                   .has_not_tag("not_affected")
+                                   .foreach<UpdatePosition>(1.0f);
 
 END_FURIOUS_SCRIPT

@@ -1,6 +1,7 @@
 
 
 #include "../common/types.h"
+#include "../common/str_builder.h"
 #include "../common/dyn_array.h"
 #include "consume_visitor.h"
 #include "produce_visitor.h"
@@ -11,12 +12,357 @@
 #include "codegen_tools.h"
 
 #include <string.h>
-#include <algorithm>
 
 namespace furious 
 {
 
 extern CodeGenRegistry* p_registry;
+
+DependenciesExtr::~DependenciesExtr()
+{
+  const uint32_t num_includes = m_include_files.size();
+  for (uint32_t i = 0; i < num_includes; ++i) 
+  {
+    delete [] m_include_files[i];
+  }
+}
+
+void
+DependenciesExtr::extract_dependencies(const DynArray<Dependency>& deps)
+{
+  for(uint32_t i = 0; i < deps.size(); ++i) 
+  {
+    const Dependency& dep = deps[i];
+    if(fcc_decl_is_valid(dep.m_decl))
+    {
+      bool is_var_or_struct = fcc_decl_is_variable_or_struct(dep.m_decl);
+      bool is_function = fcc_decl_is_function(dep.m_decl);
+      bool is_member = fcc_decl_is_member(dep.m_decl);
+      if( is_var_or_struct || (is_function && !is_member))
+      {
+        bool found = false;
+        const uint32_t num_decls = m_declarations.size();
+        for (uint32_t j = 0; j < num_decls; ++j) 
+        {
+          if(fcc_decl_is_same(dep.m_decl, m_declarations[j]))
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          m_declarations.append(dep.m_decl);
+        }
+      }
+    } 
+    else 
+    {
+      bool found = false;
+      const uint32_t num_includes = m_include_files.size();
+      for (uint32_t j = 0; j < num_includes; ++j) 
+      {
+        if(strcmp(m_include_files[j], dep.m_include_file) == 0)
+        {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        char* buffer = new char[MAX_INCLUDE_PATH_LENGTH];
+        strncpy(buffer, dep.m_include_file, MAX_INCLUDE_PATH_LENGTH);
+        FURIOUS_CHECK_STR_LENGTH(strlen(dep.m_include_file), MAX_INCLUDE_PATH_LENGTH);
+        m_include_files.append(buffer);
+      }
+    }
+  }
+}
+
+void 
+DependenciesExtr::visit(const Foreach* foreach)
+{
+  uint32_t size = foreach->p_systems.size();
+  for(uint32_t i = 0; i < size; ++i)
+  {
+    const fcc_system_t* system = foreach->p_systems[i];
+    extract_dependencies(fcc_type_dependencies(system->m_system_type));
+  }
+  foreach->p_child.get()->accept(this);
+}
+
+void 
+DependenciesExtr::visit(const Scan* scan) 
+{
+  if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+  {
+    extract_dependencies(fcc_type_dependencies(scan->m_columns[0].m_component_type));
+  }
+} 
+
+void
+DependenciesExtr::visit(const Join* join) 
+{
+  join->p_left.get()->accept(this);
+  join->p_right.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const LeftFilterJoin* left_filter_join) 
+{
+  left_filter_join->p_left.get()->accept(this);
+  left_filter_join->p_right.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const CrossJoin* cross_join) 
+{
+  cross_join->p_left.get()->accept(this);
+  cross_join->p_right.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const Fetch* fetch) 
+{
+  if(fetch->m_columns[0].m_type == FccColumnType::E_GLOBAL)
+  {
+    extract_dependencies(fcc_type_dependencies(fetch->m_columns[0].m_component_type));
+  }
+}
+
+void 
+DependenciesExtr::visit(const TagFilter* tag_filter) 
+{
+  tag_filter->p_child.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const ComponentFilter* component_filter) 
+{
+  extract_dependencies(fcc_type_dependencies(component_filter->m_filter_type));
+  component_filter->p_child.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const PredicateFilter* predicate_filter) 
+{
+  extract_dependencies(fcc_decl_dependencies(predicate_filter->m_func_decl));
+  predicate_filter->p_child.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const Gather* gather) 
+{
+  gather->p_child.get()->accept(this);
+}
+
+void
+DependenciesExtr::visit(const CascadingGather* casc_gather) 
+{
+  casc_gather->p_child.get()->accept(this);
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+VarsExtr::~VarsExtr()
+{
+  const uint32_t num_components = m_components.size();
+  for (uint32_t i = 0; i < num_components; ++i) 
+  {
+    delete [] m_components[i];
+  }
+
+  const uint32_t num_tags = m_tags.size();
+  for (uint32_t i = 0; i < num_tags; ++i) 
+  {
+    delete [] m_tags[i];
+  }
+
+  const uint32_t num_refs = m_references.size();
+  for (uint32_t i = 0; i < num_refs; ++i) 
+  {
+    delete [] m_references[i];
+  }
+}
+
+
+void 
+VarsExtr::visit(const Foreach* foreach)
+{
+  foreach->p_child.get()->accept(this);
+}
+
+void 
+VarsExtr::visit(const Scan* scan) 
+{
+  if(scan->m_columns[0].m_type == FccColumnType::E_COMPONENT)
+  {
+    char tmp[MAX_TYPE_NAME];
+    const uint32_t length = fcc_type_name(scan->m_columns[0].m_component_type, 
+                                          tmp, MAX_TYPE_NAME);
+    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+    const uint32_t num_components = m_components.size();
+    bool found = false;
+    for(uint32_t i = 0; i < num_components; ++i)
+    {
+      if(strcmp(tmp, m_components[i]) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+    if(!found)
+    {
+      char* buffer = new char [MAX_TYPE_NAME];
+      strncpy(buffer, tmp, MAX_TYPE_NAME);
+      m_components.append(buffer);
+      fcc_decl_t decl;
+      fcc_type_decl(scan->m_columns[0].m_component_type, &decl);
+      bool found = false;
+      const uint32_t num_decls = m_component_decls.size();
+      for (uint32_t i = 0; i < num_decls; ++i) 
+      {
+        if(fcc_decl_is_same(m_component_decls[i], decl))
+        {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        m_component_decls.append(decl);
+      }
+    }
+  }
+  else
+  {
+    bool found = false;
+    const uint32_t num_references = m_references.size();
+    for (uint32_t i = 0; i < num_references; ++i) 
+    {
+      if(strcmp(m_references[i], scan->m_columns[0].m_ref_name) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+    if (!found) 
+    {
+      char* buffer = new char[MAX_REF_NAME];
+      strncpy(buffer, scan->m_columns[0].m_ref_name, MAX_REF_NAME);
+      m_references.append(buffer);
+    }
+  }
+}
+
+void
+VarsExtr::visit(const Join* join) 
+{
+  join->p_left.get()->accept(this);
+  join->p_right.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const LeftFilterJoin* left_filter_join) 
+{
+  left_filter_join->p_left.get()->accept(this);
+  left_filter_join->p_right.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const CrossJoin* cross_join) 
+{
+  cross_join->p_left.get()->accept(this);
+  cross_join->p_right.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const Fetch* fetch)
+{
+  fcc_decl_t decl;
+  fcc_type_decl(fetch->m_columns[0].m_component_type, &decl);
+  bool found = false;
+  const uint32_t num_decls = m_component_decls.size();
+  for (uint32_t i = 0; i < num_decls; ++i) 
+  {
+    if(fcc_decl_is_same(decl, m_component_decls[i]))
+    {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found)
+  {
+    m_component_decls.append(decl);
+  }
+}
+
+void 
+VarsExtr::visit(const TagFilter* tag_filter) 
+{
+  char* buffer = new char[MAX_TAG_NAME];
+  strncpy(buffer, tag_filter->m_tag, MAX_TAG_NAME);
+  m_tags.append(buffer);
+  tag_filter->p_child.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const ComponentFilter* component_filter) 
+{
+  char tmp[MAX_TYPE_NAME];
+  const uint32_t length = fcc_type_name(component_filter->m_filter_type, tmp, MAX_TYPE_NAME);
+  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+
+  bool found = false;
+  const uint32_t num_components = m_components.size();
+  for(uint32_t i = 0; i < num_components; ++i)
+  {
+    if(strcmp(m_components[i], tmp) == 0)
+    {
+      found = true;
+    }
+  }
+
+  if(!found)
+  {
+    char* buffer = new char[MAX_TYPE_NAME];
+    strncpy(buffer, tmp, MAX_TYPE_NAME);
+    m_components.append(buffer);
+    fcc_decl_t decl;
+    fcc_type_decl(component_filter->m_filter_type, &decl);
+    m_component_decls.append(decl);
+    component_filter->p_child.get()->accept(this);
+  }
+}
+
+void
+VarsExtr::visit(const PredicateFilter* predicate_filter) 
+{
+  predicate_filter->p_child.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const Gather* gather)
+{
+  gather->p_ref_table.get()->accept(this);
+  gather->p_child.get()->accept(this);
+}
+
+void
+VarsExtr::visit(const CascadingGather* casc_gather)
+{
+  casc_gather->p_ref_table.get()->accept(this);
+  casc_gather->p_child.get()->accept(this);
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
 CodeGenContext::CodeGenContext(FILE* fd) :
 p_fd(fd)
@@ -68,6 +414,8 @@ CodeGenRegistry::find_or_create(const FccOperator* op, FILE* fd)
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
+
+
 void 
 consume(FILE* fd,
         const FccOperator* op,
@@ -89,30 +437,44 @@ produce(FILE* fd,
   op->accept(context->p_producer);
 }
 
-uint32_t
-sanitize_name(const char* name,
-              char* buffer,
-              uint32_t buffer_length)
+static
+void tolower(char* str)
 {
-    std::string base_name = name;
-    std::transform(base_name.begin(), 
-                   base_name.end(), 
-                   base_name.begin(), ::tolower);
-
-    char special_chars[] = {':','<','>',',','.',' '};
-
-    for(uint32_t i = 0; i < sizeof(special_chars); ++i)
+  uint32_t i = 0; 
+  while (str[i] != '\0') 
+  {
+    if (str[i] >= 'A' && str[i] <= 'Z') 
     {
-      std::replace(base_name.begin(),
-                   base_name.end(),
-                   special_chars[i],
-                   '_');
+      str[i] = str[i] + 32;
     }
+    i++;
+  }
+}
 
-    FURIOUS_CHECK_STR_LENGTH(base_name.size(), buffer_length);
-    strcpy(buffer, base_name.c_str());
+static
+void replace_special(char* str)
+{
+  char special_chars[] = {':','<','>',',','.',' '};
 
-    return base_name.size();
+  for(uint32_t i = 0; i < sizeof(special_chars); ++i)
+  {
+    uint32_t j = 0;
+    while(str[j] != '\0')
+    {
+      if(str[j] == special_chars[i])
+      {
+        str[j] = '_';
+      }
+      ++j;
+    }
+  }
+}
+
+void
+sanitize_name(char* str)
+{
+  tolower(str);
+  replace_special(str);
 }
 
 uint32_t
@@ -122,22 +484,24 @@ generate_table_name(const char* type_name,
                     const FccOperator* op)
 {
   char tmp[MAX_TYPE_NAME];
-  sanitize_name(type_name,
-                tmp,
-                MAX_TYPE_NAME); 
+  strncpy(tmp, type_name, MAX_TYPE_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(type_name), MAX_TYPE_NAME);
+  sanitize_name(tmp);
 
-  std::string table_varname = "table_"+std::string(tmp);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "table_%s", tmp);
 
   if(op != nullptr)
   {
-    table_varname = table_varname+"_"+std::to_string(op->m_id);
+    str_builder_append(&str_builder,"_%u",op->m_id);
   }
 
-  FURIOUS_CHECK_STR_LENGTH(table_varname.size(), buffer_length);
-
-  strcpy(buffer, table_varname.c_str());
-
-  return table_varname.size();
+  const uint32_t length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -151,11 +515,16 @@ generate_temp_table_name(const char* type_name,
                       tmp,
                       MAX_TABLE_VARNAME,
                       op);
-  std::string table_name = "temp_"+std::string(tmp);
 
-  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
-  strcpy(buffer, table_name.c_str());
-  return table_name.size();
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "temp_%s", tmp);
+
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -170,10 +539,14 @@ generate_ref_table_name(const char* ref_name,
                       MAX_TABLE_VARNAME,
                       op);
 
-  std::string table_name = "ref_"+std::string(tmp);
-  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
-  strcpy(buffer, table_name.c_str());
-  return table_name.size();
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "ref_%s", tmp);
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -182,14 +555,19 @@ generate_bittable_name(const char* tag_name,
                        uint32_t buffer_length,
                        const FccOperator* op)
 {
-  std::string table_name = "tagged_"+std::string(tag_name);
+
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "tagged_%s", tag_name);
   if(op != nullptr)
   {
-    table_name = table_name+"_"+std::to_string(op->m_id);
+    str_builder_append(&str_builder, "_%u", op->m_id);
   }
-  FURIOUS_CHECK_STR_LENGTH(table_name.size(), buffer_length);
-  strcpy(buffer, table_name.c_str());
-  return table_name.size();
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -198,14 +576,18 @@ generate_table_iter_name(const char* table_name,
                          uint32_t buffer_length,
                          const FccOperator* op)
 {
-  std::string iter_name = "iter_"+std::string(table_name);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "iter_%s", table_name);
   if(op != nullptr)
   {
-    iter_name = iter_name + "_"+std::to_string(op->m_id);
+    str_builder_append(&str_builder, "_%u", op->m_id);
   }
-  FURIOUS_CHECK_STR_LENGTH(iter_name.size(), buffer_length);
-  strcpy(buffer, iter_name.c_str());
-  return iter_name.size();
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -215,17 +597,22 @@ generate_block_name(const char* type_name,
                     const FccOperator* op)
 {
   char tmp[MAX_TYPE_NAME];
-  sanitize_name(type_name,
-                tmp,
-                MAX_TYPE_NAME);
-  std::string block_name =  "block_"+std::string(tmp); 
+  strncpy(tmp, type_name, MAX_TYPE_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(type_name), MAX_TYPE_NAME);
+  sanitize_name(tmp);
+
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "block_%s", tmp);
   if(op != nullptr)
   {
-    block_name = block_name + "_"+std::to_string(op->m_id);
+  str_builder_append(&str_builder, "_%u", op->m_id);
   }
-  FURIOUS_CHECK_STR_LENGTH(block_name.size(), buffer_length);
-  strcpy(buffer, block_name.c_str());
-  return block_name.size();
+  const uint32_t length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -233,10 +620,14 @@ generate_cluster_name(const FccOperator* op,
                       char* buffer,
                       uint32_t buffer_length)
 {
-  std::string cluster_name =  "cluster_"+std::to_string(op->m_id);
-  FURIOUS_CHECK_STR_LENGTH(cluster_name.size(), buffer_length);
-  strcpy(buffer, cluster_name.c_str());
-  return cluster_name.size();
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "cluster_%u", op->m_id);
+  const uint32_t length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -245,14 +636,18 @@ generate_ref_groups_name(const char* ref_name,
                          uint32_t buffer_length,
                          const FccOperator* op)
 {
-  char tmp[MAX_TYPE_NAME];
-  sanitize_name(ref_name,
-                tmp,
-                MAX_TYPE_NAME);
-  std::string groups_name ="ref_"+std::string(tmp)+"_groups_"+std::to_string(op->m_id);
-  FURIOUS_CHECK_STR_LENGTH(groups_name.size(), buffer_length);
-  strcpy(buffer, groups_name.c_str());
-  return groups_name.size();
+  char tmp[MAX_REF_NAME];
+  strncpy(tmp, ref_name, MAX_REF_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(ref_name), MAX_REF_NAME);
+  sanitize_name(tmp);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "ref_%s_groups_%u", tmp, op->m_id);
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -260,10 +655,14 @@ generate_hashtable_name(const FccOperator* op,
                         char* buffer,
                         uint32_t buffer_length)
 {
-  std::string hashtable =  "hashtable_"+std::to_string(op->m_id);
-  FURIOUS_CHECK_STR_LENGTH(hashtable.size(), buffer_length);
-  strcpy(buffer, hashtable.c_str());
-  return hashtable.size();
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "hashtable_%u",op->m_id);
+  const uint32_t length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -273,18 +672,24 @@ generate_system_wrapper_name(const char* system_name,
                              uint32_t buffer_length,
                              const FccOperator* op)
 {
-  std::string base_name = system_name;
-  std::transform(base_name.begin(), 
-                 base_name.end(), 
-                 base_name.begin(), ::tolower);
-  std::string wrapper_name = base_name+"_"+std::to_string(system_id);
+  char base_name[MAX_TYPE_NAME];
+  strncpy(base_name, system_name, MAX_TYPE_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(system_name), MAX_TYPE_NAME);
+
+  tolower(base_name);
+
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "%s_%d",base_name, system_id  );
   if(op != nullptr)
   {
-    wrapper_name =  wrapper_name +"_"+std::to_string(op->m_id);
+    str_builder_append(&str_builder, "_%u", op->m_id);
   }
-  FURIOUS_CHECK_STR_LENGTH(wrapper_name.size(), buffer_length);
-  strcpy(buffer, wrapper_name.c_str());
-  return wrapper_name.size();
+  const uint32_t length = str_builder.m_pos;
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 uint32_t
@@ -294,21 +699,22 @@ generate_global_name(const char* type_name,
                      const FccOperator* op)
 {
   char tmp[MAX_TYPE_NAME];
-  sanitize_name(type_name,
-                tmp,
-                MAX_TYPE_NAME);
-
-  std::string global_varname = "global_"+std::string(tmp);
-
+  strncpy(tmp, type_name, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(strlen(type_name),MAX_TYPE_NAME);
+  sanitize_name(tmp);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, "global_%s", tmp);
   if(op != nullptr)
   {
-    global_varname = global_varname+"_"+std::to_string(op->m_id);
+    str_builder_append(&str_builder, "_%u", op->m_id);
   }
 
-  FURIOUS_CHECK_STR_LENGTH(global_varname.size(), buffer_length);
-  strcpy(buffer, global_varname.c_str());
-
-  return global_varname.size();
+  const uint32_t length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  str_builder_release(&str_builder);
+  return length;
 }
 
 

@@ -11,46 +11,84 @@
 namespace furious
 {
 
-/*const Decl*
-get_type_decl(const QualType& type)
+/**
+ * @brief Visitor used to extract the dependencies from a declaration, either
+ * as include files or in-place declarations.
+ */
+class DependenciesVisitor : public RecursiveASTVisitor<DependenciesVisitor>
 {
-  //printf("PROCESING %s\n", get_type_name(type).c_str());
-  SplitQualType unqual = type.getSplitUnqualifiedType();
-  const clang::Type* t = unqual.Ty;
+public:
+  const ASTContext*             p_ast_context;
+  DynArray<Dependency>          m_dependencies;
 
-  if(t->isAnyPointerType()) 
+  DependenciesVisitor(const ASTContext* context) :
+  p_ast_context(context)
   {
-    t = t->getPointeeType().getTypePtr();
-    //printf("Is Pointer Type %s\n", get_type_name(type).c_str());
-  } 
 
-  if(t->isCanonicalUnqualified())
-  {
-    //printf("Processed Type %s\n", get_type_name(type).c_str());
-    return t->getAsTagDecl();
-  }
-  else
-  {
-    const TypedefType* tdef = t->getAs<TypedefType>();
-    if(tdef)
-    {
-      //printf("Non Cannonical but found typedef %s\n", get_type_name(type).c_str());
-      return tdef->getDecl();
-    }
-
-    if(t->isFunctionType())
-    {
-      //printf("Non Cannonical Function Type %s\n", get_type_name(type).c_str());
-      return t->getAsTagDecl();
-    }
   }
 
-  //printf("NOT PROCESSED Type %s\n", get_type_name(type).c_str());
-    
-  return nullptr;
+  bool process_decl(Decl* decl) 
+  {
+    const SourceManager& sm = p_ast_context->getSourceManager();
+    if(decl->getSourceRange().isValid())
+    {
+      std::string str_ref = sm.getFilename(decl->getSourceRange().getBegin());
+
+      if(str_ref != "")
+      {
+        const char* filename = str_ref.c_str();
+        const char* extension = strrchr(filename, '.');
+        Dependency dependency;
+        if( (extension != nullptr &&
+            strcmp(extension, ".cpp") != 0 && 
+            strcmp(extension, ".c") != 0 &&
+            strcmp(extension, ".inl") != 0))
+        {
+          FURIOUS_ASSERT(strcmp(filename, "") != 0);
+          strncpy(dependency.m_include_file, filename, MAX_INCLUDE_PATH_LENGTH);
+          FURIOUS_CHECK_STR_LENGTH(str_ref.size(), MAX_INCLUDE_PATH_LENGTH);
+        } 
+        else 
+        {
+          dependency.m_decl.p_handler = decl;
+        }
+        m_dependencies.append(dependency);
+      }
+    }
+    return true;
+  }
+
+  virtual
+  bool VisitExpr(Expr* expr)
+  {
+    if(expr->getReferencedDeclOfCallee())
+    {
+      return process_decl(expr->getReferencedDeclOfCallee());
+    }
+    const QualType& qtype = expr->getType();
+    Decl* vdecl = get_type_decl(qtype);
+    if(vdecl)
+    {
+      return process_decl(vdecl);
+    }
+    return true;
+  }
+
+  virtual
+  bool VisitDecl(Decl* decl) 
+  {
+    return process_decl(decl);
+  }
+};
+
+DynArray<Dependency> 
+get_dependencies(const Decl* decl)
+{
+  const ASTContext& ast_context = decl->getASTContext();
+  DependenciesVisitor dep_visitor{&ast_context};
+  dep_visitor.TraverseDecl(const_cast<Decl*>(decl));
+  return dep_visitor.m_dependencies;
 }
-*/
-
 
 uint32_t 
 get_type_name(const QualType& type,
@@ -90,6 +128,21 @@ get_qualified_type_name(const QualType& type,
   std::string str = QualType::getAsString(type.split(), policy);
   strncpy(buffer, str.c_str(), buffer_length-1);
   return str.size();
+}
+
+std::string 
+get_code(const SourceManager &sm,
+         SourceRange range)
+{
+
+
+  SourceLocation loc = clang::Lexer::getLocForEndOfToken(range.getEnd(),
+                                                         0,
+                                                         sm,
+                                                         LangOptions());
+  clang::SourceLocation token_end(loc);
+  return std::string(sm.getCharacterData(range.getBegin()),
+                     sm.getCharacterData(token_end) - sm.getCharacterData(range.getBegin()));
 }
 
 
@@ -132,12 +185,15 @@ public:
 
 };
 
-std::string
-get_string_literal(const Expr* expr)
+uint32_t
+get_string_literal(const Expr* expr,
+                   char* buffer,
+                   uint32_t buffer_length)
 {
   LiteralVisitor visitor;
   visitor.TraverseStmt(const_cast<Expr*>(expr));
-  return visitor.str;
+  strncpy(buffer, visitor.str.c_str(), buffer_length);
+  return visitor.str.size();
 }
 
 uint32_t
@@ -146,6 +202,50 @@ get_uint32_literal(const Expr* expr)
   LiteralVisitor visitor;
   visitor.TraverseStmt(const_cast<Expr*>(expr));
   return visitor.uint32;
+}
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+Decl*
+get_type_decl(const QualType& type)
+{
+  SplitQualType unqual = type.getSplitUnqualifiedType();
+  const clang::Type* t = unqual.Ty;
+
+  if(t->isAnyPointerType()) 
+  {
+    t = t->getPointeeType().getTypePtr();
+  } 
+
+  /*if(t->isCanonicalUnqualified())
+  {
+    return t->getAsTagDecl();
+  }
+  else
+  {
+  */
+    const TypedefType* tdef = t->getAs<TypedefType>();
+    if(tdef)
+    {
+      return tdef->getDecl();
+    }
+
+    if(t->isFunctionType())
+    {
+      return t->getAsTagDecl();
+    }
+
+    if(t->isRecordType())
+    {
+      return t->getAsCXXRecordDecl();
+    }
+
+  //}
+    
+  return t->getAsTagDecl();
 }
 
 } /* furious*/

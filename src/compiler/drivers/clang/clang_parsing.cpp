@@ -185,12 +185,14 @@ process_expand(ASTContext* ast_context,
     return false;
   }
 
-  const Expr* param_expr = call->getArg(0);
-  std::string str = get_string_literal(param_expr);
   const DynArray<fcc_entity_match_t*>& e_matches = stmt->p_entity_matches;
   fcc_entity_match_t* entity_match = e_matches[e_matches.size()-1];
-  strncpy(entity_match->m_ref_name,str.c_str(), MAX_REF_NAME);
-  FURIOUS_CHECK_STR_LENGTH(str.length(), MAX_REF_NAME);
+
+  const Expr* param_expr = call->getArg(0);
+  const uint32_t length = get_string_literal(param_expr,
+                                             entity_match->m_ref_name,
+                                             MAX_REF_NAME);
+  FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_NAME);
 
   entity_match->m_from_expand = true;
 
@@ -354,6 +356,7 @@ process_filter(ASTContext* ast_context,
     if(isa<FunctionDecl>(decl))
     {
       func_decl = cast<FunctionDecl>(decl);
+      printf("found function decl: %ld\n", (long)func_decl);
       fcc_decl_t fcc_decl;
       fcc_decl.p_handler = (void*)func_decl;
       entity_match->m_filter_func.append(fcc_decl);
@@ -394,7 +397,7 @@ process_has_tag(ASTContext* ast_context,
     if(literal != nullptr)
     {
       char* buffer = new char[MAX_TAG_NAME];
-      strncpy(buffer, literal->getString().data(), MAX_TAG_NAME);
+      strncpy(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
       FURIOUS_CHECK_STR_LENGTH(strlen(literal->getString().data()), MAX_TAG_NAME);
       entity_match->m_has_tags.append(buffer);
     } 

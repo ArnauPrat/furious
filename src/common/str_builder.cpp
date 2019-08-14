@@ -15,6 +15,7 @@ str_builder_init(str_builder_t* str_builder)
 {
   str_builder->m_capacity = 2048;
   str_builder->p_buffer = new char[str_builder->m_capacity];
+  str_builder->p_buffer[0] = '\0';
   str_builder->m_pos = 0;
   str_builder->p_buffer[str_builder->m_pos] = 0;
 }
@@ -50,6 +51,7 @@ str_builder_append(str_builder_t* str_builder,
            str_builder->m_capacity = new_capacity;
          }
   str_builder->m_pos += nwritten;
+  str_builder->p_buffer[str_builder->m_pos] = '\0';
 
   /* Clean up the va_list */
   va_end(myargs);

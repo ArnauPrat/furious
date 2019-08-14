@@ -363,7 +363,7 @@ ExecPlanPrinter::decr_level()
 }
 
 void
-ExecPlanPrinter::print(const std::string& str)
+ExecPlanPrinter::print(const char* str)
 {
   for(int32_t i = 0;
       i < (int32_t)m_offsets.size();
@@ -371,7 +371,7 @@ ExecPlanPrinter::print(const std::string& str)
   {
     str_builder_append(&m_str_builder,"%c", m_offsets[i]);
   }
-  str_builder_append(&m_str_builder, "- %s\n", str.c_str());
+  str_builder_append(&m_str_builder, "- %s\n", str);
 }
 
 } /* furious

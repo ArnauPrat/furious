@@ -7,8 +7,6 @@
 
 #include "fcc_context.h"
 
-#include <string>
-
 namespace furious
 {
 

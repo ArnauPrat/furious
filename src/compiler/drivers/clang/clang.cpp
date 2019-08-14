@@ -10,10 +10,13 @@
 #include <clang/Rewrite/Core/Rewriter.h>
 
 #include "ast_visitor.h"
+#include "clang_tools.h"
 #include "../../frontend/exec_plan.h"
 #include "../../../common/common.h"
 #include "../../../common/str_builder.h"
 #include "../../driver.h"
+
+#include "string.h"
 
 using namespace clang::driver;
 using namespace clang::tooling;
@@ -51,142 +54,6 @@ push_expr(ASTContext* ctx,
   p_exprs.append(handler);
   return handler;
 }
-
-
-static Decl*
-get_type_decl(const QualType& type)
-{
-  SplitQualType unqual = type.getSplitUnqualifiedType();
-  const clang::Type* t = unqual.Ty;
-
-  if(t->isAnyPointerType()) 
-  {
-    t = t->getPointeeType().getTypePtr();
-  } 
-
-  /*if(t->isCanonicalUnqualified())
-  {
-    return t->getAsTagDecl();
-  }
-  else
-  {
-  */
-    const TypedefType* tdef = t->getAs<TypedefType>();
-    if(tdef)
-    {
-      return tdef->getDecl();
-    }
-
-    if(t->isFunctionType())
-    {
-      return t->getAsTagDecl();
-    }
-
-    if(t->isRecordType())
-    {
-      return t->getAsCXXRecordDecl();
-    }
-
-  //}
-    
-  return t->getAsTagDecl();
-}
-
-static uint32_t 
-get_type_name(const QualType& type,
-              char* buffer,
-              uint32_t buffer_length)
-{
-  QualType aux = type;
-  aux.removeLocalConst();
-  PrintingPolicy policy{{}};
-  policy.SuppressTagKeyword = true;
-  std::string str = QualType::getAsString(aux.split(), policy);
-  strncpy(buffer, str.c_str(), buffer_length);
-  return str.size();
-}
-
-static std::string 
-get_code(const SourceManager &sm,
-         SourceRange range)
-{
-
-
-  SourceLocation loc = clang::Lexer::getLocForEndOfToken(range.getEnd(),
-                                                         0,
-                                                         sm,
-                                                         LangOptions());
-  clang::SourceLocation token_end(loc);
-  return std::string(sm.getCharacterData(range.getBegin()),
-                     sm.getCharacterData(token_end) - sm.getCharacterData(range.getBegin()));
-}
-
-/**
- * @brief Visitor used to extract the dependencies from a declaration, either
- * as include files or in-place declarations.
- */
-class DependenciesVisitor : public RecursiveASTVisitor<DependenciesVisitor>
-{
-public:
-  const ASTContext*             p_ast_context;
-  DynArray<Dependency>          m_dependencies;
-
-  DependenciesVisitor(const ASTContext* context) :
-  p_ast_context(context)
-  {
-
-  }
-
-  bool process_decl(Decl* decl) 
-  {
-    const SourceManager& sm = p_ast_context->getSourceManager();
-    if(decl->getSourceRange().isValid())
-    {
-      std::string filename = sm.getFilename(decl->getSourceRange().getBegin());
-      std::string file_extension = filename.substr(filename.find_last_of(".") + 1 );
-
-      if(filename != "")
-      {
-        Dependency dependency;
-        if( file_extension != "cpp" && 
-            file_extension != "c" &&
-            file_extension != "inl")
-        {
-          FURIOUS_ASSERT(filename != "");
-          dependency.m_include_file = filename;
-        } 
-        else 
-        {
-          dependency.m_decl.p_handler = decl;
-        }
-        m_dependencies.append(dependency);
-      }
-    }
-    return true;
-  }
-
-  virtual
-  bool VisitExpr(Expr* expr)
-  {
-    if(expr->getReferencedDeclOfCallee())
-    {
-      return process_decl(expr->getReferencedDeclOfCallee());
-    }
-    const QualType& qtype = expr->getType();
-    Decl* vdecl = get_type_decl(qtype);
-    if(vdecl)
-    {
-      return process_decl(vdecl);
-    }
-    return true;
-  }
-
-  virtual
-  bool VisitDecl(Decl* decl) 
-  {
-    return process_decl(decl);
-  }
-};
 
 
 ////////////////////////////////////////////////
@@ -277,22 +144,16 @@ fcc_type_qualified_name(fcc_type_t type,
                         uint32_t buffer_length) 
 {
   QualType aux = *(QualType*)type.p_handler;
-  PrintingPolicy policy{{}};
-  policy.SuppressTagKeyword = true;
-  std::string str = QualType::getAsString(aux.split(), policy);
-  strncpy(buffer, str.c_str(), buffer_length);
-  return str.size();
+  return get_qualified_type_name(aux, 
+                          buffer,
+                          buffer_length);
 }
 
 fcc_access_mode_t
 fcc_type_access_mode(fcc_type_t type)
 {
   QualType aux = *(QualType*)type.p_handler;
-  if(aux.isConstQualified())
-  {
-    return fcc_access_mode_t::E_READ;
-  }
-  return fcc_access_mode_t::E_READ_WRITE;
+  return get_access_mode(aux);
 }
 
 bool
@@ -324,18 +185,26 @@ fcc_decl_is_variable_or_struct(fcc_decl_t decl)
 bool
 fcc_decl_is_function(fcc_decl_t decl)
 {
-  return (isa<FunctionDecl>((Decl*)decl.p_handler) && 
-          !cast<FunctionDecl>((Decl*)decl.p_handler)->isCXXClassMember());
+  bool res = (isa<FunctionDecl>((Decl*)decl.p_handler) /*&& 
+          !cast<FunctionDecl>((Decl*)decl.p_handler)->isCXXClassMember()*/);
+  return res;
 }
 
 bool
-fcc_decl_is_lambda(fcc_decl_t decl)
+fcc_decl_is_member(fcc_decl_t decl)
 {
-  Decl* clang_decl = ((Decl*)decl.p_handler);
+  Decl* clang_decl = (Decl*)decl.p_handler;
+  if(isa<TagDecl>(clang_decl))
+  {
+    if(cast<TagDecl>(clang_decl)->isCXXClassMember())
+    {
+      return true;
+    }
+  }
+
   if(isa<FunctionDecl>(clang_decl))
   {
-    const FunctionDecl* func_decl = cast<FunctionDecl>(clang_decl);
-    if(func_decl->isCXXClassMember())
+    if(cast<FunctionDecl>(clang_decl)->isCXXClassMember())
     {
       return true;
     }
@@ -353,7 +222,7 @@ fcc_decl_code(fcc_decl_t decl,
     if(fcc_decl_is_function(decl))
     {
       FunctionDecl* func_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
-      if(fcc_decl_is_lambda(decl))
+      if(fcc_decl_is_member(decl))
       {
         str_builder_t str_builder;
         str_builder_init(&str_builder);
@@ -371,18 +240,10 @@ fcc_decl_code(fcc_decl_t decl,
           FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
           str_builder_append(&str_builder, ",%s%s", tmp, array[i]->getNameAsString().c_str());
         }
-        uint32_t code_length = 4096;
-        char * code_buffer = new char[code_length];
-        length = 0;
-        while((length = fcc_decl_code(decl, code_buffer, code_length) ) >= code_length)
-        {
-          delete [] code_buffer;
-          code_length *= 2;
-          code_buffer = new char[code_length];
-        }
-        str_builder_append(&str_builder, "%s;\n", code_buffer);
-        delete [] code_buffer;
+        std::string function_body = get_code(func_decl->getASTContext().getSourceManager(),
+                                             func_decl->getSourceRange());
         
+        str_builder_append(&str_builder, "%s;\n", function_body.c_str());
         const uint32_t total_length = str_builder.m_pos;
         if(total_length < buffer_length)
         {
@@ -393,12 +254,14 @@ fcc_decl_code(fcc_decl_t decl,
       } 
       else
       {
-        return 0;
+        std::string function_code = get_code(func_decl->getASTContext().getSourceManager(),
+                                             func_decl->getSourceRange());
+        strncpy(buffer, function_code.c_str(), buffer_length);
+        return function_code.length();
       }
     }
     else
     {
-
       Decl* clang_decl = (Decl*)decl.p_handler;
       const SourceManager& sm = clang_decl->getASTContext().getSourceManager();
 
@@ -419,17 +282,19 @@ fcc_decl_function_name(fcc_decl_t decl,
 {
   if(fcc_decl_is_function(decl))
   {
+    if(fcc_decl_is_member(decl))
+    {
+      char str[] = "predicate";
+      strncpy(buffer, str, buffer_length);
+      return strlen(str);
+    }
+    else
+    {
       FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
       std::string name = clang_decl->getName();
       strncpy(buffer, name.c_str(), buffer_length);
       return name.length();
-  }
-
-  if(fcc_decl_is_lambda(decl))
-  {
-    char str[] = "predicate";
-    strncpy(buffer, str, buffer_length);
-    return strlen(str);
+    }
   }
 
   return 0;
@@ -446,6 +311,7 @@ fcc_decl_code_available(fcc_decl_t decl)
   return false;
 }
 
+
 DynArray<Dependency> 
 fcc_type_dependencies(fcc_type_t type)
 {
@@ -457,14 +323,63 @@ fcc_type_dependencies(fcc_type_t type)
   return DynArray<Dependency>();
 }
 
+
 DynArray<Dependency> 
 fcc_decl_dependencies(fcc_decl_t decl)
 {
   Decl* clang_decl = (Decl*)decl.p_handler;
-  const ASTContext& ast_context = clang_decl->getASTContext();
-  DependenciesVisitor dep_visitor{&ast_context};
-  dep_visitor.TraverseDecl(const_cast<Decl*>(clang_decl));
-  return dep_visitor.m_dependencies;
+  return get_dependencies(clang_decl);
+}
+
+uint32_t
+fcc_decl_function_num_params(fcc_decl_t decl)
+{
+  if(fcc_decl_is_function(decl))
+  {
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    return clang_decl->getNumParams();
+  }
+  return 0;
+}
+
+bool
+fcc_decl_function_param_type(fcc_decl_t decl, 
+                             uint32_t i, 
+                             fcc_type_t* type)
+{
+  if(fcc_decl_is_function(decl))
+  {
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    if(i >= clang_decl->getNumParams())
+    {
+      return false;
+    }
+    ParmVarDecl* param_decl  = clang_decl->parameters()[i];
+    QualType* qtype = push_type(param_decl->getType());
+    type->p_handler = qtype;
+    return true;
+  }
+  return false;
+}
+
+uint32_t
+fcc_decl_function_param_name(fcc_decl_t decl, 
+                             uint32_t i, 
+                             char* buffer,
+                             uint32_t buffer_length)
+{
+  if(fcc_decl_is_function(decl))
+  {
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    if(i >= clang_decl->getNumParams())
+    {
+      return 0;
+    }
+    ParmVarDecl* param_decl  = clang_decl->parameters()[i];
+    strncpy(buffer, param_decl->getNameAsString().c_str(), buffer_length);
+    return param_decl->getNameAsString().size();
+  }
+  return 0;
 }
 
 bool
@@ -519,7 +434,6 @@ get_filename(const SourceManager& sm,
   strncpy(buffer, filename.c_str(), buffer_length);
   return filename.length();
 }
-
 
 uint32_t 
 fcc_expr_code_location(fcc_expr_t expr,

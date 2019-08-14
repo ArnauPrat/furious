@@ -185,8 +185,8 @@ ConsumeVisitor::visit(const Join* join)
 
   char hashtable[MAX_HASHTABLE_VARNAME];
   const uint32_t length = generate_hashtable_name(join,
-                                          hashtable,
-                                          MAX_HASHTABLE_VARNAME);
+                                                  hashtable,
+                                                  MAX_HASHTABLE_VARNAME);
 
   FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
 
@@ -489,12 +489,8 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
     param_index++;
   }
 
-
-  char func_name[2048];
-  uint32_t length = fcc_decl_function_name(predicate_filter->m_func_decl, func_name, 2048);
-  FURIOUS_CHECK_STR_LENGTH(length, 2048);
-
-  if(fcc_decl_is_lambda(predicate_filter->m_func_decl))
+  if(fcc_decl_is_function(predicate_filter->m_func_decl) && 
+     fcc_decl_is_member(predicate_filter->m_func_decl))
   {
     uint32_t code_length = 4096;
     char* code = new char[code_length];
@@ -506,10 +502,13 @@ ConsumeVisitor::visit(const PredicateFilter* predicate_filter)
       code = new char[code_length];
     }
 
-    fprintf(p_context->p_fd, "auto %s = [] (%s;\n\n", func_name, code);
-
-
+    fprintf(p_context->p_fd, "%s", code);
+    delete [] code;
   }
+
+  char func_name[2048];
+  uint32_t length = fcc_decl_function_name(predicate_filter->m_func_decl, func_name, 2048);
+  FURIOUS_CHECK_STR_LENGTH(length, 2048);
 
 
   fprintf(p_context->p_fd,

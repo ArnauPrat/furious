@@ -2,7 +2,7 @@
 #include "lang/lang.h"
 #include "filter_func_test_header.h"
 
-static bool predicate(const Position* pos, const Velocity* vel)
+static bool filter(const Position* pos, const Velocity* vel)
 {
   return vel->m_x < 2.0f && vel->m_y < 2.0f && vel->m_z < 2.0f;
 }
@@ -26,7 +26,7 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::match<Position,Velocity>().filter(predicate)
+furious::match<Position,Velocity>().filter(filter)
                                     .foreach<UpdatePosition>(1.0f);
 
 END_FURIOUS_SCRIPT

@@ -5,8 +5,6 @@
 #include "../common/dyn_array.h"
 #include "../common/platform.h"
 
-#include <string>
-
 namespace furious 
 {
 

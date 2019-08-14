@@ -6,13 +6,6 @@
 #include <stdio.h>
 #include "../fcc_context.h"
 
-namespace clang
-{
-class CXXRecordDecl;
-}
-
-using namespace clang;
-
 namespace furious
 {
 

@@ -6,7 +6,6 @@
 #include "fcc_context.h"
 #include "../../backend/codegen_tools.h"
 
-#include <string>
 #include <clang/Basic/SourceManager.h>
 #include <clang/AST/Type.h>
 

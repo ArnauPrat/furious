@@ -4,9 +4,9 @@
 #include "../../common/str_builder.h"
 #include "reflection.h"
 #include "codegen_tools.h"
-#include "../drivers/clang/clang_tools.h"
 #include "../../runtime/data/reflection.h"
-#include "../../common/dyn_array.h"
+
+#include <string.h>
 
 namespace furious
 {
@@ -33,11 +33,13 @@ const char* ReflType_str[(uint32_t)ReflType::E_NUM_TYPES] = {
 };
 
 
-std::string
+uint32_t
 generate_reflection_code(FILE* fd, 
                          ReflData* refl_data, 
                          const char* root, 
-                         const char* path)
+                         const char* path,
+                         char* buffer,
+                         uint32_t buffer_length)
 {
   char tmp[MAX_TYPE_NAME];
   strncpy(tmp, refl_data->m_type_name, MAX_TYPE_NAME);
@@ -48,13 +50,15 @@ generate_reflection_code(FILE* fd,
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, "ref_data_");
   str_builder_append(&str_builder, tmp);
-  std::string refl_data_varname = str_builder.p_buffer;
+  const uint32_t ret_length = str_builder.m_pos;
+  strncpy(buffer, str_builder.p_buffer, buffer_length);
+  FURIOUS_CHECK_STR_LENGTH(str_builder.m_pos, buffer_length);
   str_builder_release(&str_builder);
 
-  fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", refl_data_varname.c_str());
+  fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", buffer);
   fprintf(fd, 
           "strcpy(%s.get()->m_type_name,\"%s\");\n", 
-          refl_data_varname.c_str(),
+          buffer,
           refl_data->m_type_name);
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
@@ -99,14 +103,21 @@ generate_reflection_code(FILE* fd,
 
     if(field->m_type == ReflType::E_STRUCT || field->m_type == ReflType::E_UNION)
     {
-      std::string var  = generate_reflection_code(fd, field->p_strct_type.get(), root, str_builder.p_buffer);
-      fprintf(fd, "field.p_strct_type = %s;\n", var.c_str());
+      char field_name[MAX_FIELD_NAME];
+      const uint32_t length  = generate_reflection_code(fd, 
+                                                        field->p_strct_type.get(), 
+                                                        root, 
+                                                        str_builder.p_buffer,
+                                                        field_name,
+                                                        MAX_FIELD_NAME);
+      FURIOUS_CHECK_STR_LENGTH(length, MAX_FIELD_NAME);
+      fprintf(fd, "field.p_strct_type = %s;\n", field_name);
     }
-    fprintf(fd, "%s.get()->m_fields.append(field);\n", refl_data_varname.c_str());
+    fprintf(fd, "%s.get()->m_fields.append(field);\n", buffer);
     fprintf(fd,"}\n");
     str_builder_release(&str_builder);
   }
-  return refl_data_varname;
+  return ret_length;
 }
 
 void
@@ -114,8 +125,15 @@ generate_reflection_code(FILE* fd, fcc_decl_t decl)
 {
   fprintf(fd,"{\n");
   ReflData refl_data = get_reflection_data(decl);
-  std::string var_name = generate_reflection_code(fd, &refl_data, refl_data.m_type_name, "");
-  fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data.m_type_name, var_name.c_str());
+  char var_name[MAX_FIELD_NAME];
+  const uint32_t length = generate_reflection_code(fd, 
+                                                  &refl_data, 
+                                                  refl_data.m_type_name, 
+                                                  "", 
+                                                  var_name, 
+                                                  MAX_FIELD_NAME);
+  FURIOUS_CHECK_STR_LENGTH(length, MAX_FIELD_NAME);
+  fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data.m_type_name, var_name);
   fprintf(fd,"}\n");
 }
 

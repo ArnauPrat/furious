@@ -133,51 +133,6 @@ create_execplan(const fcc_stmt_t* stmts[],
 void
 destroy_execplan(FccExecPlan* exec_plan);
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-
-class FccSubPlanVisitor
-{
-public:
-  void
-  traverse(const FccSubPlan* subplan);
-
-  virtual void 
-  visit(const Foreach* foreach) = 0;
-
-  virtual void 
-  visit(const Scan* scan) = 0;
-
-  virtual void
-  visit(const Join* join) = 0;
-
-  virtual void
-  visit(const LeftFilterJoin* left_filter_join) = 0;
-
-  virtual void
-  visit(const CrossJoin* cross_join) = 0;
-
-  virtual void
-  visit(const Fetch* fetch) = 0;
-
-  virtual void 
-  visit(const TagFilter* tag_filter) = 0;
-
-  virtual void
-  visit(const ComponentFilter* component_filter) = 0;
-
-  virtual void
-  visit(const PredicateFilter* predicate_filter) = 0;
-
-  virtual void
-  visit(const Gather* gather) = 0;
-
-  virtual void
-  visit(const CascadingGather* casc_gather) = 0;
-};
-
 }  
 
 

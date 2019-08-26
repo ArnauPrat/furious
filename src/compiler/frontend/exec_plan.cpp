@@ -584,15 +584,4 @@ destroy_execplan(FccExecPlan* exec_plan)
   delete exec_plan;
 }
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-void
-FccSubPlanVisitor::traverse(const FccSubPlan* subplan)
-{
-    subplan->p_root->accept(this);
-}
-
-
 } /* furious */ 

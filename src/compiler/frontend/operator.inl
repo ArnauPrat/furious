@@ -18,13 +18,6 @@ fcc_operator_t(type, name)
 }
 
 template<typename T>
-void
-fcc_operator_tmplt_t<T>::accept(FccSubPlanVisitor* visitor) const 
-{
-  visitor->visit((const T*)(this));
-}
-
-template<typename T>
 Filter<T>::Filter(RefCountPtr<fcc_operator_t> child, 
                   fcc_operator_type_t type,
                   const char* name) :

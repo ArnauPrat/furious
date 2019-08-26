@@ -4,31 +4,117 @@
 #include "../drivers/clang/clang_tools.h"
 #include "codegen.h"
 #include "codegen_tools.h"
-#include "consume_visitor.h"
+#include "consumer.h"
 #include "../frontend/operator.h"
-#include "produce_visitor.h"
+#include "producer.h"
 
 #include <stdlib.h>
-#include <string>
-#include <algorithm>
 
 namespace furious 
 {
 
-ProduceVisitor::ProduceVisitor(CodeGenContext* context) :
-p_context{context}
-{
-}
+void
+produce(FILE* fd, 
+        const fcc_operator_t* fcc_operator);
+
+static void
+produce(FILE* fd,
+        const Scan* scan);
+
+static void
+produce(FILE* fd,
+        const Foreach* foreach);
+
+static void
+produce(FILE* fd,
+        const Join* join);
+
+static void
+produce(FILE* fd,
+        const CrossJoin* cross_join);
+
+static void
+produce(FILE* fd,
+        const LeftFilterJoin* left_filter_join);
+
+static void
+produce(FILE* fd,
+        const Gather* gather);
+
+static void
+produce(FILE* fd,
+        const CascadingGather* casc_gather);
+
+static void
+produce(FILE* fd,
+        const Fetch* fetch);
+
+static void
+produce(FILE* fd,
+        const TagFilter* tag_filter);
+
+static void
+produce(FILE* fd,
+        const PredicateFilter* predicate_filter);
+
+static void
+produce(FILE* fd,
+        const ComponentFilter* component_filter);
 
 void 
-ProduceVisitor::visit(const Foreach* foreach)
+produce(FILE* fd,
+        const fcc_operator_t* fcc_operator)
 {
-  produce(p_context->p_fd,
+  switch(fcc_operator->m_type)
+  {
+    case fcc_operator_type_t::E_SCAN:
+      produce(fd, (Scan*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_FOREACH:
+      produce(fd, (Foreach*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_JOIN:
+      produce(fd, (Join*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
+      produce(fd, (LeftFilterJoin*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_CROSS_JOIN:
+      produce(fd, (CrossJoin*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_FETCH:
+      produce(fd, (Fetch*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_GATHER:
+      produce(fd, (Gather*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_CASCADING_GATHER:
+      produce(fd, (CascadingGather*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_TAG_FILTER:
+      produce(fd, (TagFilter*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_PREDICATE_FILTER:
+      produce(fd, (PredicateFilter*)fcc_operator);
+      break;
+    case fcc_operator_type_t::E_COMPONENT_FILTER:
+      produce(fd, (ComponentFilter*)fcc_operator);
+      break;
+  };
+}
+
+
+void 
+produce(FILE* fd,
+        const Foreach* foreach)
+{
+  produce(fd,
           foreach->p_child.get());
 }
 
 void 
-ProduceVisitor::visit(const Scan* scan)
+produce(FILE* fd,
+        const Scan* scan)
 {
   static uint32_t id = 0;
   char tablename[MAX_TABLE_VARNAME];
@@ -99,7 +185,7 @@ ProduceVisitor::visit(const Scan* scan)
     FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
   }
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "auto %s = %s.iterator(chunk_size, offset, stride);\n\
            while(%s.has_next())\n\
            {\n\
@@ -116,19 +202,20 @@ ProduceVisitor::visit(const Scan* scan)
                         "(&%s)", 
                         blockname);
 
-  consume(p_context->p_fd,
+  consume(fd,
           scan->p_parent,
           str_builder.p_buffer,
           scan);
 
   str_builder_release(&str_builder);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "}\n\n");
 }
 
 void
-ProduceVisitor::visit(const Join* join)
+produce(FILE* fd,
+        const Join* join)
 {
   char hashtable[MAX_HASHTABLE_VARNAME];
   const uint32_t length = generate_hashtable_name(join,
@@ -137,13 +224,14 @@ ProduceVisitor::visit(const Join* join)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
-  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(p_context->p_fd,join->p_left.get());
-  produce(p_context->p_fd,join->p_right.get());
+  fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
+  produce(fd,join->p_left.get());
+  produce(fd,join->p_right.get());
 }
 
 void
-ProduceVisitor::visit(const LeftFilterJoin* left_filter_join)
+produce(FILE* fd,
+        const LeftFilterJoin* left_filter_join)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -153,13 +241,14 @@ ProduceVisitor::visit(const LeftFilterJoin* left_filter_join)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
-  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(p_context->p_fd,left_filter_join->p_left.get());
-  produce(p_context->p_fd,left_filter_join->p_right.get());
+  fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
+  produce(fd,left_filter_join->p_left.get());
+  produce(fd,left_filter_join->p_right.get());
 }
 
 void
-ProduceVisitor::visit(const CrossJoin* cross_join)
+produce(FILE* fd,
+        const CrossJoin* cross_join)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -172,21 +261,21 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
   str_builder_t str_builder_left;
   str_builder_init(&str_builder_left);
   str_builder_append(&str_builder_left, "left_%s", hashtable);
-  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", str_builder_left.p_buffer);
+  fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_left.p_buffer);
 
-  produce(p_context->p_fd,cross_join->p_left.get());
+  produce(fd,cross_join->p_left.get());
 
   str_builder_t str_builder_right;
   str_builder_init(&str_builder_right);
   str_builder_append(&str_builder_right, "right_%s", hashtable);
-  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", str_builder_right.p_buffer);
-  produce(p_context->p_fd,cross_join->p_right.get());
+  fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_right.p_buffer);
+  produce(fd,cross_join->p_right.get());
 
   std::string iter_varname_left = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
-  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+  fprintf(fd, "auto %s = %s.iterator();\n", 
           iter_varname_left.c_str(), 
           str_builder_left.p_buffer);
-  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname_left.c_str());
+  fprintf(fd, "while(%s.has_next())\n{\n", iter_varname_left.c_str());
 
   char cluster[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(cross_join, 
@@ -198,21 +287,21 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
   str_builder_t str_builder_cluster_left;
   str_builder_init(&str_builder_cluster_left);
   str_builder_append(&str_builder_cluster_left,"left_%s", cluster);
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "BlockCluster* %s = %s.next().p_value;\n", 
           str_builder_cluster_left.p_buffer,
           iter_varname_left.c_str());
 
   std::string iter_varname_right = "right_iter_hashtable_"+std::to_string(cross_join->m_id);
-  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+  fprintf(fd, "auto %s = %s.iterator();\n", 
           iter_varname_right.c_str(), 
           str_builder_right.p_buffer);
-  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", iter_varname_right.c_str());
+  fprintf(fd, "while(%s.has_next())\n{\n", iter_varname_right.c_str());
 
   str_builder_t str_builder_cluster_right;
   str_builder_init(&str_builder_cluster_right);
   str_builder_append(&str_builder_cluster_right,"right_%s", cluster);
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "BlockCluster* %s = %s.next().p_value;\n", 
           str_builder_cluster_right.p_buffer,
           iter_varname_right.c_str());
@@ -225,12 +314,12 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "BlockCluster %s(*%s);\n", 
           joined_cluster,
           str_builder_cluster_left.p_buffer);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "%s.append(%s);\n", 
           joined_cluster,
           str_builder_cluster_right.p_buffer);
@@ -238,14 +327,14 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
   str_builder_t str_builder_joined_cluster;
   str_builder_init(&str_builder_joined_cluster);
   str_builder_append(&str_builder_joined_cluster,"(&%s)", joined_cluster);
-  consume(p_context->p_fd,
+  consume(fd,
           cross_join->p_parent,
           str_builder_joined_cluster.p_buffer,
           cross_join);
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "}\n"); 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "}\n"); 
 
   str_builder_release(&str_builder_joined_cluster);
@@ -256,10 +345,11 @@ ProduceVisitor::visit(const CrossJoin* cross_join)
 }
 
 void
-ProduceVisitor::visit(const Fetch* fetch)
+produce(FILE* fd,
+        const Fetch* fetch)
 {
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "{\n"); 
 
   char globaltype[MAX_TYPE_NAME];
@@ -281,21 +371,21 @@ ProduceVisitor::visit(const Fetch* fetch)
                                                         MAX_CLUSTER_VARNAME);
   FURIOUS_CHECK_STR_LENGTH(cluster_length, MAX_CLUSTER_VARNAME);
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "%s* %s = database->find_global_no_lock<%s>();\n", 
           globaltype,
           globalname,
           globaltype);
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "if(%s != nullptr )\n{\n", 
           globalname);
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "BlockCluster %s;\n", 
           clustername); 
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "%s.append_global(%s);\n", 
           clustername,
           globalname); 
@@ -303,7 +393,7 @@ ProduceVisitor::visit(const Fetch* fetch)
   str_builder_t str_builder;
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, "(&%s)", clustername);
-  consume(p_context->p_fd,
+  consume(fd,
           fetch->p_parent,
           str_builder.p_buffer,
           fetch);
@@ -311,34 +401,38 @@ ProduceVisitor::visit(const Fetch* fetch)
   str_builder_release(&str_builder);
 
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "}\n"); 
 
-  fprintf(p_context->p_fd, 
+  fprintf(fd, 
           "}\n"); 
 
 }
 
 void 
-ProduceVisitor::visit(const TagFilter* tag_filter)
+produce(FILE* fd,
+        const TagFilter* tag_filter)
 {
-  produce(p_context->p_fd,tag_filter->p_child.get());
+  produce(fd,tag_filter->p_child.get());
 }
 
 void
-ProduceVisitor::visit(const ComponentFilter* component_filter)
+produce(FILE* fd,
+        const ComponentFilter* component_filter)
 {
-  produce(p_context->p_fd,component_filter->p_child.get());
+  produce(fd,component_filter->p_child.get());
 }
 
 void
-ProduceVisitor::visit(const PredicateFilter* predicate_filter)
+produce(FILE* fd,
+        const PredicateFilter* predicate_filter)
 {
-  produce(p_context->p_fd,predicate_filter->p_child.get());
+  produce(fd,predicate_filter->p_child.get());
 }
 
 void
-ProduceVisitor::visit(const Gather* gather)
+produce(FILE* fd,
+        const Gather* gather)
 {
   char refname[MAX_REF_TABLE_VARNAME];
   generate_ref_groups_name(gather->p_ref_table.get()->m_columns[0].m_ref_name, 
@@ -346,8 +440,8 @@ ProduceVisitor::visit(const Gather* gather)
                            MAX_REF_TABLE_VARNAME,
                            gather);
 
-  fprintf(p_context->p_fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
-  produce(p_context->p_fd, gather->p_ref_table.get());
+  fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
+  produce(fd, gather->p_ref_table.get());
 
   // Generating temporal tables
   DynArray<fcc_column_t>& child_columns = gather->p_child.get()->m_columns;
@@ -396,17 +490,17 @@ ProduceVisitor::visit(const Gather* gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
+    fprintf(fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
             ctype,
             temptablename,
             ctype,
             temptablename);
 
-    fprintf(p_context->p_fd,"%s.clear();\n", 
+    fprintf(fd,"%s.clear();\n", 
             temptablename);
   }
 
-  produce(p_context->p_fd, gather->p_child.get());
+  produce(fd, gather->p_child.get());
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
@@ -434,7 +528,7 @@ ProduceVisitor::visit(const Gather* gather)
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
 
-    fprintf(p_context->p_fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
+    fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
             itername, 
             tablename);
   }
@@ -463,7 +557,7 @@ ProduceVisitor::visit(const Gather* gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", itername);
+  fprintf(fd, "while(%s.has_next())\n{\n", itername);
 
   char clustername[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(gather,
@@ -472,7 +566,7 @@ ProduceVisitor::visit(const Gather* gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
-  fprintf(p_context->p_fd, "BlockCluster %s;\n", clustername);
+  fprintf(fd, "BlockCluster %s;\n", clustername);
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
@@ -500,7 +594,7 @@ ProduceVisitor::visit(const Gather* gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-    fprintf(p_context->p_fd, "%s.append(%s.next().get_raw());\n", 
+    fprintf(fd, "%s.append(%s.next().get_raw());\n", 
             clustername, 
             itername);
   }
@@ -508,18 +602,19 @@ ProduceVisitor::visit(const Gather* gather)
   str_builder_t str_builder;
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, "(&%s)", clustername);
-  consume(p_context->p_fd,
+  consume(fd,
           gather->p_parent,
           str_builder.p_buffer,
           gather);
   str_builder_release(&str_builder);
 
-  fprintf(p_context->p_fd,"}\n\n");
+  fprintf(fd,"}\n\n");
 
 }
 
 void
-ProduceVisitor::visit(const CascadingGather* casc_gather)
+produce(FILE* fd,
+        const CascadingGather* casc_gather)
 {
   // GENERATING REFERENCE GROUPS
 
@@ -531,8 +626,8 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
 
-  fprintf(p_context->p_fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
-  produce(p_context->p_fd, casc_gather->p_ref_table.get());
+  fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
+  produce(fd, casc_gather->p_ref_table.get());
 
   // GENERATING HASHTABLE WITH CHILD BLOCKS 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -542,8 +637,8 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
-  fprintf(p_context->p_fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(p_context->p_fd, casc_gather->p_child.get());
+  fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
+  produce(fd, casc_gather->p_child.get());
 
   // CREATE TEMPORAL TABLES
   DynArray<fcc_column_t>& child_columns = casc_gather->p_child.get()->m_columns;
@@ -591,7 +686,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(p_context->p_fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
+    fprintf(fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
             ctype,
             tablename,
             ctype,
@@ -599,24 +694,24 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   }
 
   // DECLARE BITTABLES FOR CASCADING
-  fprintf(p_context->p_fd,"BitTable bittable1_%u;\n", casc_gather->m_id);
-  fprintf(p_context->p_fd,"BitTable bittable2_%u;\n", casc_gather->m_id);
-  fprintf(p_context->p_fd,
+  fprintf(fd,"BitTable bittable1_%u;\n", casc_gather->m_id);
+  fprintf(fd,"BitTable bittable2_%u;\n", casc_gather->m_id);
+  fprintf(fd,
           "BitTable* current_frontier_%u = &bittable1_%u;\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "BitTable* next_frontier_%u = &bittable2_%u;\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "find_roots(&%s, current_frontier_%u);\n", 
           groups,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "while(current_frontier_%u->size() > 0)\n{\n", 
           casc_gather->m_id);
 
@@ -639,7 +734,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(p_context->p_fd,"%s.clear();\n", 
+    fprintf(fd,"%s.clear();\n", 
             tablename);
   }
 
@@ -648,12 +743,12 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   str_builder_t str_builder_iter;
   str_builder_init(&str_builder_iter);
   str_builder_append(&str_builder_iter, "iter_hashtable_%d",casc_gather->m_id);
-  fprintf(p_context->p_fd, "auto %s = %s.iterator();\n", 
+  fprintf(fd, "auto %s = %s.iterator();\n", 
           str_builder_iter.p_buffer, 
           hashtable);
 
-  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", str_builder_iter.p_buffer);
-  fprintf(p_context->p_fd,
+  fprintf(fd, "while(%s.has_next())\n{\n", str_builder_iter.p_buffer);
+  fprintf(fd,
           "gather(&%s,%s.next().p_value,current_frontier_%u, next_frontier_%u",
           groups,
           str_builder_iter.p_buffer,
@@ -679,11 +774,11 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(p_context->p_fd,",&%s",
+    fprintf(fd,",&%s",
             tablename);
   }
-  fprintf(p_context->p_fd,");\n");
-  fprintf(p_context->p_fd,"}\n");
+  fprintf(fd,");\n");
+  fprintf(fd,"}\n");
 
 
   // ITERATE OVER TEMPORAL TABLES
@@ -712,7 +807,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-    fprintf(p_context->p_fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
+    fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
             itername, 
             tablename);
   }
@@ -740,7 +835,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-  fprintf(p_context->p_fd, "while(%s.has_next())\n{\n", itername);
+  fprintf(fd, "while(%s.has_next())\n{\n", itername);
 
   char clustername[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(casc_gather,
@@ -749,7 +844,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
-  fprintf(p_context->p_fd, "BlockCluster %s;\n", clustername);
+  fprintf(fd, "BlockCluster %s;\n", clustername);
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
@@ -776,7 +871,7 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-    fprintf(p_context->p_fd, "%s.append(%s.next().get_raw());\n", 
+    fprintf(fd, "%s.append(%s.next().get_raw());\n", 
             clustername, 
             itername);
   }
@@ -784,35 +879,35 @@ ProduceVisitor::visit(const CascadingGather* casc_gather)
   str_builder_t str_builder_cluster;
   str_builder_init(&str_builder_cluster);
   str_builder_append(&str_builder_cluster, "(&%s)", clustername);
-  consume(p_context->p_fd,
+  consume(fd,
           casc_gather->p_parent,
           str_builder_cluster.p_buffer,
           casc_gather);
   str_builder_release(&str_builder_cluster);
 
-  fprintf(p_context->p_fd,"}\n");
+  fprintf(fd,"}\n");
 
   //SWAP FRONTIERS
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "BitTable* temp_frontier_%u = current_frontier_%u;\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "current_frontier_%u = next_frontier_%u;\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "next_frontier_%u = temp_frontier_%u;\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "next_frontier_%u->clear();\n", 
           casc_gather->m_id);
 
-  fprintf(p_context->p_fd,
+  fprintf(fd,
           "}\n\n");
 
 }

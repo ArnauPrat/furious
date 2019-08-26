@@ -53,9 +53,6 @@ struct fcc_operator_t
   virtual
   ~fcc_operator_t() = default;
 
-  virtual void
-  accept(FccSubPlanVisitor* visitor) const = 0;  
-
   fcc_operator_type_t       m_type;
   char                      m_name[MAX_OPERATOR_NAME];
   const fcc_operator_t*     p_parent;
@@ -74,9 +71,6 @@ struct fcc_operator_tmplt_t : public fcc_operator_t
 
   virtual 
   ~fcc_operator_tmplt_t() = default;
-
-  virtual void
-  accept(FccSubPlanVisitor* visitor) const override; 
 };
 
 /**
@@ -104,7 +98,6 @@ struct Join : public fcc_operator_tmplt_t<Join>
   virtual 
   ~Join();
 
-  uint32_t m_split_point;
   RefCountPtr<fcc_operator_t> p_left;
   RefCountPtr<fcc_operator_t> p_right;
 };
@@ -120,7 +113,6 @@ struct LeftFilterJoin : public fcc_operator_tmplt_t<LeftFilterJoin>
   virtual 
   ~LeftFilterJoin();
 
-  uint32_t m_split_point;
   RefCountPtr<fcc_operator_t> p_left;
   RefCountPtr<fcc_operator_t> p_right;
 };
@@ -136,7 +128,6 @@ struct CrossJoin : public fcc_operator_tmplt_t<CrossJoin>
   virtual 
   ~CrossJoin();
 
-  uint32_t m_split_point;
   RefCountPtr<fcc_operator_t> p_left;
   RefCountPtr<fcc_operator_t> p_right;
 };

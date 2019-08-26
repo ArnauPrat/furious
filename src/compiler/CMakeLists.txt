@@ -22,10 +22,10 @@ set(COMPILER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/reflection.h
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/backend/codegen_tools.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consume_visitor.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.cpp
-  ${CMAKE_SOURCE_DIR}/src/compiler/backend/produce_visitor.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consumer.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/consumer.h
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/producer.cpp
+  ${CMAKE_SOURCE_DIR}/src/compiler/backend/producer.h
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/fcc_context.h

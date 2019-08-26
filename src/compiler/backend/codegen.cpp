@@ -5,6 +5,7 @@
 #include "../frontend/exec_plan_printer.h"
 #include "codegen.h"
 #include "codegen_tools.h"
+#include "producer.h"
 #include "reflection.h"
 
 #include <stdio.h>
@@ -13,9 +14,6 @@
 
 namespace furious 
 {
-
-CodeGenRegistry* p_registry = nullptr;;
-
 
 int32_t 
 fcc_generate_code(const FccExecPlan* exec_plan,
@@ -31,24 +29,25 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   fprintf(fd, "#include <%s> \n", include_file);
 
   // LOOKING FOR DEPENDENCIES 
-  DependenciesExtr deps_visitor;
+  fcc_deps_extr_t deps_extr;
+  fcc_deps_extr_init(&deps_extr);
   uint32_t num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    deps_visitor.traverse(&exec_plan->m_subplans[i]);
+    fcc_deps_extr_extract(&deps_extr, &exec_plan->m_subplans[i]);
   }
 
   num_nodes = post_exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    deps_visitor.traverse(&post_exec_plan->m_subplans[i]);
+    fcc_deps_extr_extract(&deps_extr, &post_exec_plan->m_subplans[i]);
   }
 
   // ADDING REQUIRED INCLUDES
-  const uint32_t num_includes = deps_visitor.m_include_files.size();
+  const uint32_t num_includes = deps_extr.m_include_files.size();
   for (uint32_t i = 0; i < num_includes; ++i) 
   {
-    fprintf(fd, "#include \"%s\"\n", deps_visitor.m_include_files[i]);
+    fprintf(fd, "#include \"%s\"\n", deps_extr.m_include_files[i]);
   }
 
   fprintf(fd, "\n\n\n");
@@ -70,11 +69,11 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   }
 
   // ADDING DECLARATIONS FOUND IN FURIOUS SCRIPTS
-  const uint32_t num_decls = deps_visitor.m_declarations.size();
+  const uint32_t num_decls = deps_extr.m_declarations.size();
   for (uint32_t i = 0; i < num_decls; ++i) 
   {
     uint32_t length = 0;
-    while ((length = fcc_decl_code(deps_visitor.m_declarations[i], code_buffer, code_buffer_length)) >= code_buffer_length)
+    while ((length = fcc_decl_code(deps_extr.m_declarations[i], code_buffer, code_buffer_length)) >= code_buffer_length)
     {
       delete [] code_buffer;
       code_buffer_length*=2;
@@ -82,6 +81,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     }
     fprintf(fd,"%s;\n\n", code_buffer);
   }
+  fcc_deps_extr_release(&deps_extr);
 
   // STARTING CODE GENERATION
   fprintf(fd,"namespace furious \n{\n");
@@ -89,17 +89,18 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   /// DECLARE VARIABLES (e.g. TABLEVIEWS, BITTABLES, etc.)
   fprintf(fd, "\n\n\n");
   fprintf(fd,"// Variable declarations \n");
-  VarsExtr vars_extr;
+  fcc_vars_extr_t vars_extr;
+  fcc_vars_extr_init(&vars_extr);
   num_nodes = exec_plan->m_subplans.size();
   for (uint32_t i = 0; i < num_nodes; ++i) 
   {
-    vars_extr.traverse(&exec_plan->m_subplans[i]);
+    fcc_vars_extr_extract(&vars_extr, &exec_plan->m_subplans[i]);
   }
 
   num_nodes = post_exec_plan->m_nodes.size();
   for (uint32_t i = 0; i < num_nodes; ++i) 
   {
-    vars_extr.traverse(&post_exec_plan->m_subplans[i]);
+    fcc_vars_extr_extract(&vars_extr, &post_exec_plan->m_subplans[i]);
   }
 
   // DECLARING TABLEVIEWS
@@ -166,7 +167,6 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   }
 
   // DEFINING TASKS CODE BASED ON EXECUTION PLAN ROOTS
-  p_registry = new CodeGenRegistry();
   num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
@@ -192,7 +192,6 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
-  delete p_registry;
 
   /// GENERATING __furious__init  
   fprintf(fd, "\n\n\n");
@@ -315,6 +314,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
       generate_reflection_code(fd, vars_extr.m_component_decls[i]);
     }
   }
+  fcc_vars_extr_release(&vars_extr);
 
 
   fprintf(fd,"}\n");
@@ -336,7 +336,6 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   }
 
   // DEFINING TASKS CODE BASED ON POST FRAME EXECUTION PLAN ROOTS
-  p_registry = new CodeGenRegistry();
   num_nodes = post_exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
@@ -360,7 +359,6 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
-  delete p_registry;
 
   /// GENERATING __furious_post_frame CODE
   {

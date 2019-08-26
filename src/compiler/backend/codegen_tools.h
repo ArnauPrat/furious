@@ -6,7 +6,6 @@
 #include "../common/dyn_array.h"
 #include "../driver.h"
 #include "../fcc_context.h"
-#include "../frontend/exec_plan.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -14,168 +13,59 @@
 namespace furious 
 {
 
-struct FccContext;
-class ProduceVisitor;
-class ConsumeVisitor;
+struct FccSubPlan;
+struct fcc_operator_t;
 
 /**
- * @brief Visitor used to extract the dependencies of an execution plan, which
+ * @brief Tool used to extract the dependencies of an execution plan, which
  * include structures and headers including dependent structures
  */
-class DependenciesExtr : public FccSubPlanVisitor 
+struct fcc_deps_extr_t  
 {
-public:
-  ~DependenciesExtr();
-
-  void
-  extract_dependencies(const DynArray<Dependency>& deps);
-
-  virtual void 
-  visit(const Foreach* foreach);
-
-  virtual void 
-  visit(const Scan* scan);
-
-  virtual void
-  visit(const Join* join);
-
-  virtual void
-  visit(const LeftFilterJoin* left_filter_join);
-
-  virtual void
-  visit(const CrossJoin* cross_join);
-
-  virtual void
-  visit(const Fetch* fetch);
-
-  virtual void 
-  visit(const TagFilter* tag_filter);
-
-  virtual void
-  visit(const ComponentFilter* component_filter); 
-
-  virtual void
-  visit(const PredicateFilter* predicate_filter); 
-
-  virtual void
-  visit(const Gather* gather); 
-
-  virtual void
-  visit(const CascadingGather* casc_gather);
-
   DynArray<char*>         m_include_files;
   DynArray<fcc_decl_t>    m_declarations;
 };
 
+void
+fcc_deps_extr_init(fcc_deps_extr_t* deps_extr);
+
+void
+fcc_deps_extr_release(fcc_deps_extr_t* deps_extr);
+
+void
+fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
+                      const FccSubPlan* subplan);
+
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
 
 /**
- * \brief Extracts the components and tags used in an execution plan, which will
+ * \brief Tool to extracts the components and tags used in an execution plan, which will
  * be used to declare the required variables in the generated code.
  */
-class VarsExtr : public FccSubPlanVisitor 
+struct fcc_vars_extr_t  
 {
-
-public:
-
-  ~VarsExtr();
-
-  virtual void 
-  visit(const Foreach* foreach);
-
-  virtual void 
-  visit(const Scan* scan); 
-
-  virtual void
-  visit(const Join* join); 
-
-  virtual void
-  visit(const LeftFilterJoin* left_filter_join); 
-
-  virtual void
-  visit(const CrossJoin* cross_join); 
-
-  virtual void
-  visit(const Fetch* fetch);
-
-  virtual void 
-  visit(const TagFilter* tag_filter); 
-
-  virtual void
-  visit(const ComponentFilter* component_filter); 
-
-  virtual void
-  visit(const PredicateFilter* predicate_filter); 
-
-  virtual void
-  visit(const Gather* gather);
-
-  virtual void
-  visit(const CascadingGather* casc_gather);
-
   DynArray<fcc_decl_t>    m_component_decls;
   DynArray<char*>         m_tags;
   DynArray<char*>         m_references;
   DynArray<char*>         m_components;
 };
 
+void
+fcc_vars_extr_init(fcc_vars_extr_t* vars_extr);
+
+void
+fcc_vars_extr_release(fcc_vars_extr_t* vars_extr);
+
+void
+fcc_vars_extr_extract(fcc_vars_extr_t* vars_extr,
+                      const FccSubPlan* subplan);
+
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
-
-/**
- * \brief This class represents the context of the code generation process at a
- * given code generation step. Since the code generation is a recursive
- * procedure implemented through the visitors, we need to store the "state" of
- * the generation process at a given step produce/consume step.
- */
-
-constexpr uint32_t MAX_SOURCE_LENGTH = 512;
-
-
-struct CodeGenContext
-{
-  CodeGenContext(FILE* fd);
-  ~CodeGenContext();
-
-  ProduceVisitor* p_producer;
-  ConsumeVisitor* p_consumer;
-
-  char                    m_source[MAX_SOURCE_LENGTH];
-  FILE*                   p_fd;
-  const fcc_operator_t*      p_caller;
-};
-
-struct CodeGenRegistry
-{
-  struct Entry
-  {
-    const fcc_operator_t*  p_operator;
-    CodeGenContext*     p_context;
-  };
-
-  CodeGenContext* 
-  find_or_create(const fcc_operator_t*, FILE* fd);
-
-  CodeGenRegistry();
-  ~CodeGenRegistry();
-
-  DynArray<Entry> m_contexts; 
-};
-
-
-void 
-consume(FILE* fd,
-        const fcc_operator_t* op,
-        const char* source,
-        const fcc_operator_t* caller);
-
-void 
-produce(FILE* fd,
-        const fcc_operator_t* op);
 
 void
 sanitize_name(char* str);

@@ -56,7 +56,6 @@ p_right(right)
   p_left.get()->p_parent = this;
   p_right.get()->p_parent = this;
   m_columns.append(p_left.get()->m_columns);
-  m_split_point = m_columns.size();
   m_columns.append(p_right.get()->m_columns);
 }
 
@@ -96,7 +95,6 @@ p_right(right)
   p_left.get()->p_parent = this;
   p_right.get()->p_parent = this;
   m_columns.append(p_left.get()->m_columns);
-  m_split_point = m_columns.size();
   m_columns.append(p_right.get()->m_columns);
 }
 

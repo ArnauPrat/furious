@@ -18,48 +18,48 @@ produce(FILE* fd,
         const fcc_operator_t* fcc_operator);
 
 static void
-produce(FILE* fd,
-        const Scan* scan);
+produce_scan(FILE* fd,
+        const fcc_operator_t* scan);
 
 static void
-produce(FILE* fd,
-        const Foreach* foreach);
+produce_foreach(FILE* fd,
+                const fcc_operator_t* foreach);
 
 static void
-produce(FILE* fd,
-        const Join* join);
+produce_join(FILE* fd,
+             const fcc_operator_t* join);
 
 static void
-produce(FILE* fd,
-        const CrossJoin* cross_join);
+produce_cross_join(FILE* fd,
+        const fcc_operator_t* cross_join);
 
 static void
-produce(FILE* fd,
-        const LeftFilterJoin* left_filter_join);
+produce_leftfilter_join(FILE* fd,
+                        const fcc_operator_t* left_filter_join);
 
 static void
-produce(FILE* fd,
-        const Gather* gather);
+produce_gather(FILE* fd,
+               const fcc_operator_t* gather);
 
 static void
-produce(FILE* fd,
-        const CascadingGather* casc_gather);
+produce_cascading_gather(FILE* fd,
+                         const fcc_operator_t* casc_gather);
 
 static void
-produce(FILE* fd,
-        const Fetch* fetch);
+produce_fetch(FILE* fd,
+              const fcc_operator_t* fetch);
 
 static void
-produce(FILE* fd,
-        const TagFilter* tag_filter);
+produce_tag_filter(FILE* fd,
+        const fcc_operator_t* tag_filter);
 
 static void
-produce(FILE* fd,
-        const PredicateFilter* predicate_filter);
+produce_predicate_filter(FILE* fd,
+        const fcc_operator_t* predicate_filter);
 
 static void
-produce(FILE* fd,
-        const ComponentFilter* component_filter);
+produce_component_filter(FILE* fd,
+        const fcc_operator_t* component_filter);
 
 void 
 produce(FILE* fd,
@@ -68,53 +68,54 @@ produce(FILE* fd,
   switch(fcc_operator->m_type)
   {
     case fcc_operator_type_t::E_SCAN:
-      produce(fd, (Scan*)fcc_operator);
+      produce_scan(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_FOREACH:
-      produce(fd, (Foreach*)fcc_operator);
+      produce_foreach(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_JOIN:
-      produce(fd, (Join*)fcc_operator);
+      produce_join(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
-      produce(fd, (LeftFilterJoin*)fcc_operator);
+      produce_leftfilter_join(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_CROSS_JOIN:
-      produce(fd, (CrossJoin*)fcc_operator);
+      produce_cross_join(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_FETCH:
-      produce(fd, (Fetch*)fcc_operator);
+      produce_fetch(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_GATHER:
-      produce(fd, (Gather*)fcc_operator);
+      produce_gather(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_CASCADING_GATHER:
-      produce(fd, (CascadingGather*)fcc_operator);
+      produce_cascading_gather(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_TAG_FILTER:
-      produce(fd, (TagFilter*)fcc_operator);
+      produce_tag_filter(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_PREDICATE_FILTER:
-      produce(fd, (PredicateFilter*)fcc_operator);
+      produce_predicate_filter(fd, fcc_operator);
       break;
     case fcc_operator_type_t::E_COMPONENT_FILTER:
-      produce(fd, (ComponentFilter*)fcc_operator);
+      produce_component_filter(fd, fcc_operator);
       break;
   };
 }
 
 
 void 
-produce(FILE* fd,
-        const Foreach* foreach)
+produce_foreach(FILE* fd,
+                const fcc_operator_t* foreach)
 {
+  fcc_subplan_t* subplan = foreach->p_subplan;
   produce(fd,
-          foreach->p_child.get());
+          &subplan->m_nodes[foreach->m_foreach.m_child]);
 }
 
 void 
-produce(FILE* fd,
-        const Scan* scan)
+produce_scan(FILE* fd,
+        const fcc_operator_t* scan)
 {
   static uint32_t id = 0;
   char tablename[MAX_TABLE_VARNAME];
@@ -202,8 +203,9 @@ produce(FILE* fd,
                         "(&%s)", 
                         blockname);
 
+  fcc_subplan_t* subplan = scan->p_subplan;
   consume(fd,
-          scan->p_parent,
+          &subplan->m_nodes[scan->m_parent],
           str_builder.p_buffer,
           scan);
 
@@ -214,8 +216,8 @@ produce(FILE* fd,
 }
 
 void
-produce(FILE* fd,
-        const Join* join)
+produce_join(FILE* fd,
+             const fcc_operator_t* join)
 {
   char hashtable[MAX_HASHTABLE_VARNAME];
   const uint32_t length = generate_hashtable_name(join,
@@ -225,13 +227,14 @@ produce(FILE* fd,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(fd,join->p_left.get());
-  produce(fd,join->p_right.get());
+  fcc_subplan_t* subplan = join->p_subplan;
+  produce(fd,&subplan->m_nodes[join->m_join.m_left]);
+  produce(fd,&subplan->m_nodes[join->m_join.m_right]);
 }
 
 void
-produce(FILE* fd,
-        const LeftFilterJoin* left_filter_join)
+produce_leftfilter_join(FILE* fd,
+                        const fcc_operator_t* left_filter_join)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -242,13 +245,14 @@ produce(FILE* fd,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(fd,left_filter_join->p_left.get());
-  produce(fd,left_filter_join->p_right.get());
+  fcc_subplan_t* subplan = left_filter_join->p_subplan;
+  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_left]);
+  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right]);
 }
 
 void
-produce(FILE* fd,
-        const CrossJoin* cross_join)
+produce_cross_join(FILE* fd,
+        const fcc_operator_t* cross_join)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -263,13 +267,14 @@ produce(FILE* fd,
   str_builder_append(&str_builder_left, "left_%s", hashtable);
   fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_left.p_buffer);
 
-  produce(fd,cross_join->p_left.get());
+  fcc_subplan_t* subplan = cross_join->p_subplan;
+  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_left]);
 
   str_builder_t str_builder_right;
   str_builder_init(&str_builder_right);
   str_builder_append(&str_builder_right, "right_%s", hashtable);
   fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_right.p_buffer);
-  produce(fd,cross_join->p_right.get());
+  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right]);
 
   std::string iter_varname_left = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
   fprintf(fd, "auto %s = %s.iterator();\n", 
@@ -328,7 +333,7 @@ produce(FILE* fd,
   str_builder_init(&str_builder_joined_cluster);
   str_builder_append(&str_builder_joined_cluster,"(&%s)", joined_cluster);
   consume(fd,
-          cross_join->p_parent,
+          &subplan->m_nodes[cross_join->m_parent],
           str_builder_joined_cluster.p_buffer,
           cross_join);
 
@@ -345,8 +350,8 @@ produce(FILE* fd,
 }
 
 void
-produce(FILE* fd,
-        const Fetch* fetch)
+produce_fetch(FILE* fd,
+        const fcc_operator_t* fetch)
 {
 
   fprintf(fd, 
@@ -393,8 +398,9 @@ produce(FILE* fd,
   str_builder_t str_builder;
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, "(&%s)", clustername);
+  fcc_subplan_t* subplan = fetch->p_subplan;
   consume(fd,
-          fetch->p_parent,
+          &subplan->m_nodes[fetch->m_parent],
           str_builder.p_buffer,
           fetch);
 
@@ -410,41 +416,47 @@ produce(FILE* fd,
 }
 
 void 
-produce(FILE* fd,
-        const TagFilter* tag_filter)
+produce_tag_filter(FILE* fd,
+        const fcc_operator_t* tag_filter)
 {
-  produce(fd,tag_filter->p_child.get());
+  fcc_subplan_t* subplan = tag_filter->p_subplan;
+  produce(fd, &subplan->m_nodes[tag_filter->m_tag_filter.m_child]);
 }
 
 void
-produce(FILE* fd,
-        const ComponentFilter* component_filter)
+produce_component_filter(FILE* fd,
+        const fcc_operator_t* component_filter)
 {
-  produce(fd,component_filter->p_child.get());
+  fcc_subplan_t* subplan = component_filter->p_subplan;
+  produce(fd, &subplan->m_nodes[component_filter->m_component_filter.m_child]);
 }
 
 void
-produce(FILE* fd,
-        const PredicateFilter* predicate_filter)
+produce_predicate_filter(FILE* fd,
+        const fcc_operator_t* predicate_filter)
 {
-  produce(fd,predicate_filter->p_child.get());
+  fcc_subplan_t* subplan = predicate_filter->p_subplan;
+  produce(fd, &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child]);
 }
 
 void
-produce(FILE* fd,
-        const Gather* gather)
+produce_gather(FILE* fd,
+        const fcc_operator_t* gather)
 {
   char refname[MAX_REF_TABLE_VARNAME];
-  generate_ref_groups_name(gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+  fcc_subplan_t* subplan = gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
+  generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
                            refname,
                            MAX_REF_TABLE_VARNAME,
                            gather);
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
-  produce(fd, gather->p_ref_table.get());
+  produce(fd, ref_table);
 
   // Generating temporal tables
-  DynArray<fcc_column_t>& child_columns = gather->p_child.get()->m_columns;
+  fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
+  DynArray<fcc_column_t>& child_columns = child->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
@@ -500,7 +512,7 @@ produce(FILE* fd,
             temptablename);
   }
 
-  produce(fd, gather->p_child.get());
+  produce(fd, child);
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
@@ -603,7 +615,7 @@ produce(FILE* fd,
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, "(&%s)", clustername);
   consume(fd,
-          gather->p_parent,
+          &subplan->m_nodes[gather->m_parent],
           str_builder.p_buffer,
           gather);
   str_builder_release(&str_builder);
@@ -613,13 +625,15 @@ produce(FILE* fd,
 }
 
 void
-produce(FILE* fd,
-        const CascadingGather* casc_gather)
+produce_cascading_gather(FILE* fd,
+                         const fcc_operator_t* casc_gather)
 {
   // GENERATING REFERENCE GROUPS
 
   char groups[MAX_REF_TABLE_VARNAME];
-  uint32_t length = generate_ref_groups_name(casc_gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+  fcc_subplan_t* subplan = casc_gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
+  uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
                            groups, 
                            MAX_REF_TABLE_VARNAME,
                            casc_gather);
@@ -627,7 +641,7 @@ produce(FILE* fd,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
-  produce(fd, casc_gather->p_ref_table.get());
+  produce(fd, ref_table);
 
   // GENERATING HASHTABLE WITH CHILD BLOCKS 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -638,10 +652,11 @@ produce(FILE* fd,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
-  produce(fd, casc_gather->p_child.get());
+  fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
+  produce(fd, child);
 
   // CREATE TEMPORAL TABLES
-  DynArray<fcc_column_t>& child_columns = casc_gather->p_child.get()->m_columns;
+  DynArray<fcc_column_t>& child_columns = child->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
@@ -880,7 +895,7 @@ produce(FILE* fd,
   str_builder_init(&str_builder_cluster);
   str_builder_append(&str_builder_cluster, "(&%s)", clustername);
   consume(fd,
-          casc_gather->p_parent,
+          &subplan->m_nodes[casc_gather->m_parent],
           str_builder_cluster.p_buffer,
           casc_gather);
   str_builder_release(&str_builder_cluster);

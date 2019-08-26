@@ -8,10 +8,7 @@
 namespace furious 
 {
 
-struct FccExecPlan;
-class ProduceVisitor;
-class ConsumeVisitor;
-class FccOperator;
+struct fcc_exec_plan_t;
 
 /**
  * \brief This function generates the code for a given execution plan and prints
@@ -32,8 +29,8 @@ class FccOperator;
  * \param filename The file where the code is going to be written.
  */
 int32_t 
-fcc_generate_code(const FccExecPlan* exec_plan,
-                  const FccExecPlan* post_exec_plan,
+fcc_generate_code(const fcc_exec_plan_t* exec_plan,
+                  const fcc_exec_plan_t* post_exec_plan,
                   const char* filename,
                   const char* include_file);
 

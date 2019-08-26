@@ -24,7 +24,7 @@ fcc_subplan_printer_release(fcc_subplan_printer_t* printer);
 
 void
 fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const FccSubPlan* plan);
+                          const fcc_subplan_t* plan);
 
 } /* furious */ 
 

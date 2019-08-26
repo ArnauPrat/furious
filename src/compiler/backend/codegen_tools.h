@@ -13,7 +13,7 @@
 namespace furious 
 {
 
-struct FccSubPlan;
+struct fcc_subplan_t;
 struct fcc_operator_t;
 
 /**
@@ -34,7 +34,7 @@ fcc_deps_extr_release(fcc_deps_extr_t* deps_extr);
 
 void
 fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
-                      const FccSubPlan* subplan);
+                      const fcc_subplan_t* subplan);
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -61,7 +61,7 @@ fcc_vars_extr_release(fcc_vars_extr_t* vars_extr);
 
 void
 fcc_vars_extr_extract(fcc_vars_extr_t* vars_extr,
-                      const FccSubPlan* subplan);
+                      const fcc_subplan_t* subplan);
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////

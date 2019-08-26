@@ -14,40 +14,40 @@ static char buffer[buffer_length];
 
 static void
 fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          fcc_operator_t* fcc_operator);
+                          const fcc_operator_t* fcc_operator);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Scan* scan);
+fcc_subplan_printer_print_scan(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* scan);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Join* join);
+fcc_subplan_printer_print_join(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* join);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const CrossJoin* crossjoin);
+fcc_subplan_printer_print_cross_join(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* crossjoin);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const LeftFilterJoin* left_filter_join);
+fcc_subplan_printer_print_left_filter_join(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* left_filter_join);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Foreach* foreach);
+fcc_subplan_printer_print_foreach(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* foreach);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Fetch* fetch);
+fcc_subplan_printer_print_fetch(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* fetch);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const TagFilter* tag_filter);
+fcc_subplan_printer_print_tag_filter(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* tag_filter);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const PredicateFilter* predicate_filter);
+fcc_subplan_printer_print_predicate_filter(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* predicate_filter);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const ComponentFilter* component_filter);
+fcc_subplan_printer_print_component_filter(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* component_filter);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Gather* gather);
+fcc_subplan_printer_print_gather(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* gather);
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const CascadingGather* gather);
+fcc_subplan_printer_print_cascading_gather(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* casc_gather);
 
 static void
 fcc_subplan_printer_incr_level(fcc_subplan_printer_t* printer,
@@ -138,10 +138,10 @@ to_string(const fcc_system_t* info)
 }
 
 static void 
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Foreach* foreach) 
+fcc_subplan_printer_print_foreach(fcc_subplan_printer_t* printer,
+                                  const fcc_operator_t* foreach) 
 {
-  const fcc_system_t* info = foreach->p_systems[0];
+  const fcc_system_t* info = foreach->m_foreach.p_system;
   snprintf(buffer, buffer_length, "foreach (%u) - \"%s\"",
            foreach->m_id, 
            to_string(info).c_str());
@@ -151,13 +151,14 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
   fcc_subplan_printer_incr_level(printer,
                                  false);
-  fcc_subplan_printer_print(printer, foreach->p_child.get());
+  fcc_subplan_t* subplan = foreach->p_subplan;
+  fcc_subplan_printer_print(printer, &subplan->m_nodes[foreach->m_foreach.m_child]);
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void 
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const Scan* scan) 
+fcc_subplan_printer_print_scan(fcc_subplan_printer_t* printer, 
+                          const fcc_operator_t* scan) 
 {
   const fcc_column_t* column = &scan->m_columns[0];
   if(column->m_type == fcc_column_type_t::E_COMPONENT)
@@ -191,8 +192,8 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const Join* join) 
+fcc_subplan_printer_print_join(fcc_subplan_printer_t* printer, 
+                               const fcc_operator_t* join) 
 {
   snprintf(buffer, 
            buffer_length,
@@ -202,20 +203,21 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
                             buffer);
   fcc_subplan_printer_incr_level(printer, 
                                  true);
+  fcc_subplan_t* subplan = join->p_subplan;
   // print left child
   fcc_subplan_printer_print(printer, 
-                            join->p_left.get());
+                            &subplan->m_nodes[join->m_join.m_left]);
 
   // print right child
   fcc_subplan_printer_print(printer,
-                            join->p_right.get());
+                            &subplan->m_nodes[join->m_join.m_right]);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const LeftFilterJoin* left_filter_join) 
+fcc_subplan_printer_print_left_filter_join(fcc_subplan_printer_t* printer, 
+                                           const fcc_operator_t* left_filter_join) 
 {
   snprintf(buffer,
            buffer_length,
@@ -225,19 +227,20 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
   fcc_subplan_printer_incr_level(printer, 
                                  true);
+  fcc_subplan_t* subplan = left_filter_join->p_subplan;
   // print left child
   fcc_subplan_printer_print(printer, 
-                            left_filter_join->p_left.get());
+                            &subplan->m_nodes[left_filter_join->m_leftfilter_join.m_left]);
 
   // print right child
   fcc_subplan_printer_print(printer,
-                            left_filter_join->p_right.get());
+                            &subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right]);
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const CrossJoin* cross_join) 
+fcc_subplan_printer_print_cross_join(fcc_subplan_printer_t* printer, 
+                                     const fcc_operator_t* cross_join) 
 {
   snprintf(buffer, 
            buffer_length,
@@ -248,20 +251,21 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
                             buffer);
   fcc_subplan_printer_incr_level(printer,
                                  true);
+  fcc_subplan_t* subplan = cross_join->p_subplan;
   // print left hicld
   fcc_subplan_printer_print(printer,
-                            cross_join->p_left.get());
+                            &subplan->m_nodes[cross_join->m_cross_join.m_left]);
 
   // print right child
   fcc_subplan_printer_print(printer,
-                            cross_join->p_right.get());
+                            &subplan->m_nodes[cross_join->m_cross_join.m_right]);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Fetch* fetch) 
+fcc_subplan_printer_print_fetch(fcc_subplan_printer_t* printer,
+                                const fcc_operator_t* fetch) 
 {
 
   char ctype[MAX_TYPE_NAME];
@@ -281,13 +285,13 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 }
 
 static void 
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const TagFilter* tag_filter) 
+fcc_subplan_printer_print_tag_filter(fcc_subplan_printer_t* printer, 
+                                     const fcc_operator_t* tag_filter) 
 {
   char* type;
   char has_type[] ="has";
   char has_not_type[] ="has not";
-  if(tag_filter->m_op_type == FccFilterOpType::E_HAS) 
+  if(tag_filter->m_tag_filter.m_op_type == fcc_filter_op_type_t::E_HAS) 
   {
     type = has_type;
   }
@@ -299,7 +303,7 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
   char* column_type;
   char on_key[] = "on_key";
   char on_ref_column[] = "on_ref_column";
-  if(tag_filter->m_on_column)
+  if(tag_filter->m_tag_filter.m_on_column)
   {
     column_type = on_ref_column;
   }
@@ -313,7 +317,7 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
            "tag_filter (%u) - %s - \"%s\" - %s", 
            tag_filter->m_id, 
            type, 
-           tag_filter->m_tag,
+           tag_filter->m_tag_filter.m_tag,
            column_type); 
 
   fcc_subplan_printer_print(printer,
@@ -322,20 +326,21 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
   fcc_subplan_printer_incr_level(printer, 
                                  false);
 
+  fcc_subplan_t* subplan = tag_filter->p_subplan;
   fcc_subplan_printer_print(printer,
-                            tag_filter->p_child.get());
+                            &subplan->m_nodes[tag_filter->m_tag_filter.m_child]);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const ComponentFilter* component_filter) 
+fcc_subplan_printer_print_component_filter(fcc_subplan_printer_t* printer,
+                                           const fcc_operator_t* component_filter) 
 {
   char* type;
   char has_type[] ="has";
   char has_not_type[] ="has not";
-  if(component_filter->m_op_type == FccFilterOpType::E_HAS) 
+  if(component_filter->m_component_filter.m_op_type == fcc_filter_op_type_t::E_HAS) 
   {
     type = has_type;
   }
@@ -345,7 +350,7 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
   }
 
   char ctype[MAX_TYPE_NAME];
-  const uint32_t length = fcc_type_name(component_filter->m_filter_type,
+  const uint32_t length = fcc_type_name(component_filter->m_component_filter.m_filter_type,
                                         ctype,
                                         MAX_TYPE_NAME);
 
@@ -364,8 +369,9 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
   fcc_subplan_printer_incr_level(printer,false);
 
+  fcc_subplan_t* subplan = component_filter->p_subplan;
   fcc_subplan_printer_print(printer, 
-                            component_filter->p_child.get());
+                            &subplan->m_nodes[component_filter->m_component_filter.m_child]);
 
   fcc_subplan_printer_decr_level(printer);
 }
@@ -383,12 +389,12 @@ to_string(fcc_decl_t decl)
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer, 
-                          const PredicateFilter* predicate_filter) 
+fcc_subplan_printer_print_predicate_filter(fcc_subplan_printer_t* printer, 
+                          const fcc_operator_t* predicate_filter) 
 {
   uint32_t function_name_length = 2048;
   char function_name[function_name_length];
-  uint32_t length = fcc_decl_function_name(predicate_filter->m_func_decl,
+  uint32_t length = fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl,
                                            function_name,
                                            function_name_length);
   FURIOUS_CHECK_STR_LENGTH(length, function_name_length);
@@ -401,17 +407,20 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
   fcc_subplan_printer_incr_level(printer,
                                  false);
+  fcc_subplan_t* subplan = predicate_filter->p_subplan;
   fcc_subplan_printer_print(printer, 
-                            predicate_filter->p_child.get());
+                            &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child]);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const Gather* gather) 
+fcc_subplan_printer_print_gather(fcc_subplan_printer_t* printer,
+                          const fcc_operator_t* gather) 
 {
-  fcc_column_t* ref_column = &gather->p_ref_table.p_ptr->m_columns[0];
+  fcc_subplan_t* subplan = gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
+  fcc_column_t* ref_column = &ref_table->m_columns[0];
   if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
   {
     //TODO: handle error
@@ -426,19 +435,22 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
   fcc_subplan_printer_incr_level(printer,
                                  false);
   fcc_subplan_printer_print(printer, 
-                            gather->p_ref_table.get());
+                            ref_table);
 
+  fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
   fcc_subplan_printer_print(printer, 
-                            gather->p_child.get());
+                            child);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
-fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const CascadingGather* casc_gather) 
+fcc_subplan_printer_print_cascading_gather(fcc_subplan_printer_t* printer,
+                                      const fcc_operator_t* casc_gather) 
 {
-  fcc_column_t* ref_column = &casc_gather->p_ref_table.p_ptr->m_columns[0];
+  fcc_subplan_t* subplan = casc_gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_cascading_gather.m_ref_table];
+  fcc_column_t* ref_column = &ref_table->m_columns[0];
   if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
   {
     //TODO: handle error
@@ -451,53 +463,55 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
   fcc_subplan_printer_incr_level(printer, 
                                  false);
-  fcc_subplan_printer_print(printer, 
-                            casc_gather->p_ref_table.get());
 
+  fcc_subplan_printer_print(printer, 
+                            ref_table);
+
+  fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_cascading_gather.m_child];
   fcc_subplan_printer_print(printer,
-                            casc_gather->p_child.get());
+                            child);
 
   fcc_subplan_printer_decr_level(printer);
 }
 
 static void
 fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          fcc_operator_t* fcc_operator)
+                          const fcc_operator_t* fcc_operator)
 {
   switch(fcc_operator->m_type)
   {
     case fcc_operator_type_t::E_SCAN:
-      fcc_subplan_printer_print(printer, (Scan*)fcc_operator);
+      fcc_subplan_printer_print_scan(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_FOREACH:
-      fcc_subplan_printer_print(printer, (Foreach*)fcc_operator);
+      fcc_subplan_printer_print_foreach(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_JOIN:
-      fcc_subplan_printer_print(printer, (Join*)fcc_operator);
+      fcc_subplan_printer_print_join(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
-      fcc_subplan_printer_print(printer, (LeftFilterJoin*)fcc_operator);
+      fcc_subplan_printer_print_left_filter_join(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_CROSS_JOIN:
-      fcc_subplan_printer_print(printer, (CrossJoin*)fcc_operator);
+      fcc_subplan_printer_print_cross_join(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_FETCH:
-      fcc_subplan_printer_print(printer, (Fetch*)fcc_operator);
+      fcc_subplan_printer_print_fetch(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_GATHER:
-      fcc_subplan_printer_print(printer, (Gather*)fcc_operator);
+      fcc_subplan_printer_print_gather(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_CASCADING_GATHER:
-      fcc_subplan_printer_print(printer, (CascadingGather*)fcc_operator);
+      fcc_subplan_printer_print_cascading_gather(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_TAG_FILTER:
-      fcc_subplan_printer_print(printer, (TagFilter*)fcc_operator);
+      fcc_subplan_printer_print_tag_filter(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_PREDICATE_FILTER:
-      fcc_subplan_printer_print(printer, (PredicateFilter*)fcc_operator);
+      fcc_subplan_printer_print_predicate_filter(printer, fcc_operator);
       break;
     case fcc_operator_type_t::E_COMPONENT_FILTER:
-      fcc_subplan_printer_print(printer, (ComponentFilter*)fcc_operator);
+      fcc_subplan_printer_print_component_filter(printer, fcc_operator);
       break;
   };
 }
@@ -523,9 +537,9 @@ fcc_subplan_printer_release(fcc_subplan_printer_t* printer)
 
 void
 fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
-                          const FccSubPlan* plan) 
+                          const fcc_subplan_t* plan) 
 {
-  fcc_subplan_printer_print(printer, plan->p_root);
+  fcc_subplan_printer_print(printer, &plan->m_nodes[plan->m_root]);
 }
 
 

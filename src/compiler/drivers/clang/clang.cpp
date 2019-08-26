@@ -159,7 +159,7 @@ fcc_type_access_mode(fcc_type_t type)
 bool
 fcc_type_decl(fcc_type_t type, fcc_decl_t* decl)
 {
-
+  decl->p_handler = nullptr;
   QualType qtype = *(QualType*)type.p_handler;
   Decl* clang_decl = get_type_decl(qtype);
   if(clang_decl)
@@ -316,6 +316,7 @@ DynArray<Dependency>
 fcc_type_dependencies(fcc_type_t type)
 {
   fcc_decl_t decl;
+  decl.p_handler = nullptr;
   if(fcc_type_decl(type, &decl))
   {
     return fcc_decl_dependencies(decl);

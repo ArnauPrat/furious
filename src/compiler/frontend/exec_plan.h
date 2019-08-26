@@ -4,7 +4,6 @@
 
 #include "../common/types.h"
 #include "../common/dyn_array.h"
-#include "../common/refcount_ptr.h"
 
 #include "fcc_context.h"
 
@@ -12,72 +11,27 @@ namespace furious
 {
 
 struct fcc_system_t;
-struct CascadingGather;
-struct CrossJoin;
-struct fcc_operator_t;
-struct Fetch;
-template<typename T>
-struct Filter;
-struct PredicateFilter;
-struct TagFilter;
-struct ComponentFilter;
-struct Foreach;
-struct Gather;
-struct Join;
-struct LeftFilterJoin;
-struct Scan;
-class FccSubPlanVisitor;
+struct fcc_subplan_t;
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-struct FccSubPlan
-{
-  fcc_operator_t*  p_root;
-};
-
-
-/**
- * @brief Bootstraps an initial plan from an execution info
- *
- * @param exec_info The Exec info to bootstrap the plan from
- * @param subplan   The Subplan to initialize 
- *
- */
-void 
-init_subplan(const fcc_stmt_t* stmt, 
-             FccSubPlan* subplan);
-
-/**
- * \brief Destroys the given subplan
- *
- * \param subplan The subplan to release
- */
-void 
-release_subplan(FccSubPlan* subplan);
-
-
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-struct FccExecPlanNode 
+struct fcc_exec_plan_node_t 
 {
   DynArray<uint32_t>            m_parents;
   DynArray<uint32_t>            m_children;
 };
 
-struct FccExecPlan
+struct fcc_exec_plan_t 
 {
   // Graph members
-  DynArray<FccExecPlanNode>   m_nodes;
-  DynArray<uint32_t>          m_roots;
+  DynArray<fcc_exec_plan_node_t>   m_nodes;
+  DynArray<uint32_t>            m_roots;
 
   // Node attributes
   DynArray<const fcc_stmt_t*> p_stmts;
-  DynArray<FccSubPlan>        m_subplans;
+  DynArray<fcc_subplan_t*>     m_subplans;
 };
 
 /**
@@ -88,7 +42,7 @@ struct FccExecPlan
  *
  */
 void
-insert(FccExecPlan* exec_plan, 
+insert(fcc_exec_plan_t* exec_plan, 
        const fcc_stmt_t* stmt);
 
 
@@ -98,7 +52,7 @@ insert(FccExecPlan* exec_plan,
  * \return Returns true if the graph is acyclyc
  */
 bool 
-is_acyclic(const FccExecPlan* exec_plan);
+is_acyclic(const fcc_exec_plan_t* exec_plan);
 
 /**
  * \brief Gets a valid execution sequence from a given root node
@@ -109,7 +63,7 @@ is_acyclic(const FccExecPlan* exec_plan);
  * \return An array with the sequence of node ids.
  */
 DynArray<uint32_t>
-get_valid_exec_sequence(const FccExecPlan* exec_plan);
+get_valid_exec_sequence(const fcc_exec_plan_t* exec_plan);
 
 /**
  * \brief Creates an excution plan out of a sequence of fcc_stmt_t statements
@@ -123,7 +77,7 @@ get_valid_exec_sequence(const FccExecPlan* exec_plan);
 fcc_compilation_error_type_t
 create_execplan(const fcc_stmt_t* stmts[], 
                 uint32_t num_stmts,
-                FccExecPlan** exec_plan);
+                fcc_exec_plan_t** exec_plan);
 
 /**
  * \brief Destroys the execution plan
@@ -131,7 +85,7 @@ create_execplan(const fcc_stmt_t* stmts[],
  * \param exec_plan The execution plan to destroy
  */
 void
-destroy_execplan(FccExecPlan* exec_plan);
+destroy_execplan(fcc_exec_plan_t* exec_plan);
 
 }  
 

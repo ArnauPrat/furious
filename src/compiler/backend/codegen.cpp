@@ -3,6 +3,7 @@
 #include "../common/dyn_array.h"
 #include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
+#include "../frontend/operator.h"
 #include "codegen.h"
 #include "codegen_tools.h"
 #include "producer.h"
@@ -16,8 +17,8 @@ namespace furious
 {
 
 int32_t 
-fcc_generate_code(const FccExecPlan* exec_plan,
-                  const FccExecPlan* post_exec_plan,
+fcc_generate_code(const fcc_exec_plan_t* exec_plan,
+                  const fcc_exec_plan_t* post_exec_plan,
                   const char* filename,
                   const char* include_file)
 {
@@ -34,13 +35,13 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   uint32_t num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    fcc_deps_extr_extract(&deps_extr, &exec_plan->m_subplans[i]);
+    fcc_deps_extr_extract(&deps_extr, exec_plan->m_subplans[i]);
   }
 
   num_nodes = post_exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    fcc_deps_extr_extract(&deps_extr, &post_exec_plan->m_subplans[i]);
+    fcc_deps_extr_extract(&deps_extr, post_exec_plan->m_subplans[i]);
   }
 
   // ADDING REQUIRED INCLUDES
@@ -94,13 +95,13 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   num_nodes = exec_plan->m_subplans.size();
   for (uint32_t i = 0; i < num_nodes; ++i) 
   {
-    fcc_vars_extr_extract(&vars_extr, &exec_plan->m_subplans[i]);
+    fcc_vars_extr_extract(&vars_extr, exec_plan->m_subplans[i]);
   }
 
   num_nodes = post_exec_plan->m_nodes.size();
   for (uint32_t i = 0; i < num_nodes; ++i) 
   {
-    fcc_vars_extr_extract(&vars_extr, &post_exec_plan->m_subplans[i]);
+    fcc_vars_extr_extract(&vars_extr, post_exec_plan->m_subplans[i]);
   }
 
   // DECLARING TABLEVIEWS
@@ -170,11 +171,10 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    const fcc_operator_t* root = exec_plan->m_subplans[i].p_root;
     fcc_subplan_printer_t printer;
     fcc_subplan_printer_init(&printer, true);
     fcc_subplan_printer_print(&printer, 
-                              &exec_plan->m_subplans[i]);
+                              exec_plan->m_subplans[i]);
     fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __task_%d(float delta,\n\
     Database* database,\n\
@@ -187,6 +187,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data);\n");
+    const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
@@ -339,11 +340,10 @@ fcc_generate_code(const FccExecPlan* exec_plan,
   num_nodes = post_exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
-    const fcc_operator_t* root = post_exec_plan->m_subplans[i].p_root;
     fcc_subplan_printer_t printer;
     fcc_subplan_printer_init(&printer, true);
     fcc_subplan_printer_print(&printer, 
-                              &post_exec_plan->m_subplans[i]);
+                              post_exec_plan->m_subplans[i]);
     fprintf(fd,"%s", printer.m_str_builder.p_buffer);
     fprintf(fd,"void __pf_task_%d(float delta,\n\
     Database* database,\n\
@@ -354,6 +354,7 @@ fcc_generate_code(const FccExecPlan* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data);\n");
+    const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");

@@ -356,7 +356,7 @@ process_filter(ASTContext* ast_context,
     if(isa<FunctionDecl>(decl))
     {
       func_decl = cast<FunctionDecl>(decl);
-      printf("found function decl: %ld\n", (long)func_decl);
+      //printf("found function decl: %ld\n", (long)func_decl);
       fcc_decl_t fcc_decl;
       fcc_decl.p_handler = (void*)func_decl;
       entity_match->m_filter_func.append(fcc_decl);

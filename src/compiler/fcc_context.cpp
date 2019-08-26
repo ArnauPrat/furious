@@ -282,7 +282,7 @@ fcc_run(int argc,
     }
   }
 
-  FccExecPlan* exec_plan;
+  fcc_exec_plan_t* exec_plan;
   fcc_compilation_error_type_t err = create_execplan(frame_matches.buffer(), 
                                                 frame_matches.size(), 
                                                 &exec_plan);
@@ -303,7 +303,7 @@ fcc_run(int argc,
     }
   }
 
-  FccExecPlan* post_exec_plan;
+  fcc_exec_plan_t* post_exec_plan;
   err = create_execplan(post_matches.buffer(), 
                         post_matches.size(), 
                         &post_exec_plan);
@@ -324,7 +324,7 @@ fcc_run(int argc,
         ++j)
     {
       fcc_subplan_printer_print(&printer, 
-                                &exec_plan->m_subplans[seq[j]]);
+                                exec_plan->m_subplans[seq[j]]);
     }
     llvm::errs() << printer.m_str_builder.p_buffer << "\n";
     fcc_subplan_printer_release(&printer);
@@ -341,7 +341,7 @@ fcc_run(int argc,
         ++j)
     {
       fcc_subplan_printer_print(&post_printer, 
-                                &post_exec_plan->m_subplans[seq[j]]);
+                                post_exec_plan->m_subplans[seq[j]]);
     }
     llvm::errs() << post_printer.m_str_builder.p_buffer << "\n";
     fcc_subplan_printer_release(&post_printer);

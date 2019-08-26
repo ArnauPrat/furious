@@ -9,285 +9,13 @@
 namespace furious 
 {
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-
-fcc_operator_t* 
-apply_predicate_filters(const fcc_stmt_t* match,
-                        const fcc_entity_match_t* entity_match,
-                        fcc_operator_t* root)
-{
-  fcc_operator_t* local_root = root;
-
-  // Create predicate filters
-  for(uint32_t i = 0; i < entity_match->m_filter_func.size(); ++i)
-  {
-    local_root = new PredicateFilter(local_root, 
-                                     entity_match->m_filter_func[i]);
-  }
-  return local_root;
-}
-
-fcc_operator_t*
-apply_filters(const fcc_stmt_t* match, 
-              const fcc_entity_match_t* entity_match, 
-              fcc_operator_t* root)
-{
-
-  fcc_operator_t* local_root = root;
-
-  // Create without Tag Filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
-  {
-    local_root = new TagFilter(local_root, 
-                               entity_match->m_has_not_tags[i],
-                               FccFilterOpType::E_HAS_NOT);
-  }
-
-  // Create with tag filters
-  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
-  {
-    local_root = new TagFilter(local_root, 
-                               entity_match->m_has_tags[i],
-                               FccFilterOpType::E_HAS);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
-  {
-    local_root = new ComponentFilter(local_root, 
-                                     entity_match->m_has_not_components[i],
-                                     FccFilterOpType::E_HAS_NOT);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
-  {
-    local_root = new ComponentFilter(local_root, 
-                                     entity_match->m_has_components[i],
-                                     FccFilterOpType::E_HAS);
-  }
-
-  return local_root;
-}
-
-fcc_operator_t*
-apply_filters_reference(const fcc_stmt_t* match, 
-                        const fcc_entity_match_t* entity_match, 
-                        fcc_operator_t* root)
-{
-
-  fcc_operator_t* local_root = root;
-
-  // Create without Tag Filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
-  {
-    local_root = new TagFilter(local_root, 
-                               entity_match->m_has_not_tags[i],
-                               FccFilterOpType::E_HAS_NOT,
-                               true);
-  }
-
-  // Create with tag filters
-  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
-  {
-    local_root = new TagFilter(local_root, 
-                               entity_match->m_has_tags[i],
-                               FccFilterOpType::E_HAS,
-                               true);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
-  {
-    local_root = new ComponentFilter(local_root, 
-                                     entity_match->m_has_not_components[i],
-                                     FccFilterOpType::E_HAS_NOT, 
-                                     true);
-  }
-
-  // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
-  {
-    local_root = new ComponentFilter(local_root, 
-                                     entity_match->m_has_components[i],
-                                     FccFilterOpType::E_HAS, 
-                                     true);
-  }
-
-  return local_root;
-}
-
-void 
-init_subplan(const fcc_stmt_t* match,
-             FccSubPlan* subplan)
-{
-  fcc_operator_t* root = nullptr;
-
-  int32_t size = match->p_entity_matches.size();
-  for(int32_t i = size - 1; i >= 0; --i)
-  {
-    fcc_entity_match_t* entity_match = match->p_entity_matches[i];
-    uint32_t num_components = entity_match->m_component_types.size();
-    fcc_operator_t* local_root = nullptr;
-    for(uint32_t j = 0; j < num_components; ++j)
-    {
-      fcc_component_match_t* match_type = &entity_match->m_component_types[j];
-
-      fcc_access_mode_t access_mode = match_type->m_is_read_only ? fcc_access_mode_t::E_READ : fcc_access_mode_t::E_READ_WRITE;
-      if(local_root == nullptr)
-      {
-        if(match_type->m_is_global)
-        {
-          local_root = new Fetch(entity_match->m_component_types[j].m_type, 
-                                 access_mode);
-        }
-        else
-        {
-          local_root = new Scan(entity_match->m_component_types[j].m_type, 
-                                access_mode);
-        }
-      }
-      else 
-      {
-        fcc_operator_t* right = nullptr;
-        if(match_type->m_is_global)
-        {
-          right = new Fetch(entity_match->m_component_types[j].m_type, 
-                                 access_mode);
-
-          local_root = new CrossJoin(local_root, 
-                                     right);
-        }
-        else
-        {
-          right = new Scan(entity_match->m_component_types[j].m_type, 
-                           access_mode);
-
-          local_root = new Join(local_root, 
-                                right);
-        }
-
-      }
-    }
-
-    if(local_root != nullptr)
-    {
-      local_root = apply_filters(match, entity_match, local_root);
-    }
-
-    bool non_component_expand = local_root == nullptr; 
-    if(entity_match->m_from_expand)
-    {
-      fcc_operator_t* ref_scan = new Scan(entity_match->m_ref_name);
-
-      if(!non_component_expand)
-      {
-        bool cascading = false;
-        for(uint32_t j = 0; j < num_components; ++j)
-        {
-          fcc_type_t expand_type = entity_match->m_component_types[j].m_type;
-          uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_component_types.size();
-          for(uint32_t k = 0; j < num_match_components; ++j)
-          {
-            fcc_type_t match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_component_types[k].m_type;
-
-            char expand_type_name[MAX_TYPE_NAME];
-            const uint32_t expand_length = fcc_type_name(expand_type, 
-                                                         expand_type_name,
-                                                         MAX_TYPE_NAME);
-            FURIOUS_CHECK_STR_LENGTH(expand_length, MAX_TYPE_NAME);
-
-            char match_type_name[MAX_TYPE_NAME];
-            const uint32_t match_length = fcc_type_name(match_type, 
-                                                        match_type_name,
-                                                        MAX_TYPE_NAME);
-            FURIOUS_CHECK_STR_LENGTH(match_length, MAX_TYPE_NAME);
-
-            if(!(fcc_type_access_mode(match_type) == fcc_access_mode_t::E_READ) &&
-               strcmp(expand_type_name, match_type_name) == 0)
-            {
-              cascading = true;
-              break;
-            }
-          }
-        }
-
-        if(cascading)
-        {
-          local_root = new CascadingGather(ref_scan, 
-                                           local_root);
-        }
-        else
-        {
-          local_root = new Gather(ref_scan, 
-                                  local_root);
-        }
-      }
-      else
-      {
-        local_root = apply_filters_reference(match, entity_match, ref_scan);
-      }
-    }
-
-    if(root == nullptr)
-    {
-      root = local_root;
-    }
-    else
-    {
-      if(non_component_expand)
-      {
-        root = new LeftFilterJoin(root, 
-                                  local_root);
-      }
-      else
-      {
-        root = new Join(root, 
-                        local_root);
-      }
-    }
-
-    root = apply_predicate_filters(match, entity_match, root);
-  }
-
-
-  // Create Operation operator
-  switch(match->m_operation_type)
-  {
-    case fcc_operation_type_t::E_UNKNOWN:
-      assert(false && "Operatoion Type is not set");
-      break;
-    case fcc_operation_type_t::E_FOREACH:
-      // * Read basic coponent types and create one scan for each of them.
-      // * Create joins to create the final table to the system will operate on
-      // * Create filters for with_component, without_component, with_tag,
-      //  without_tag and filter predicate.
-      // * Create Foreach operator
-      DynArray<const fcc_system_t*> arr;
-      arr.append(match->p_system);
-      root = new Foreach(root, 
-                         arr);
-      break;
-  };
-
-  subplan->p_root = root;
-}
-
-void 
-release_subplan(FccSubPlan* subplan)
-{
-  delete subplan->p_root;
-}
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
 static bool
-is_dependent(const FccExecPlan* exec_plan, 
+is_dependent(const fcc_exec_plan_t* exec_plan, 
              uint32_t node_a, 
              uint32_t node_b)
 {
@@ -347,17 +75,17 @@ is_dependent(const FccExecPlan* exec_plan,
 }
 
 void
-insert(FccExecPlan* exec_plan, 
+insert(fcc_exec_plan_t* exec_plan, 
        const fcc_stmt_t* stmt)
 {
-  exec_plan->m_nodes.append(FccExecPlanNode());
+  exec_plan->m_nodes.append(fcc_exec_plan_node_t());
   exec_plan->p_stmts.append(stmt);
-  exec_plan->m_subplans.append({nullptr});
+  exec_plan->m_subplans.append(new fcc_subplan_t);
 
   // Adding for dependencies (if any)
   uint32_t num_nodes = exec_plan->m_nodes.size();
   uint32_t added_node_id = num_nodes -1; 
-  FccExecPlanNode* added_node = &exec_plan->m_nodes[added_node_id];
+  fcc_exec_plan_node_t* added_node = &exec_plan->m_nodes[added_node_id];
   const fcc_stmt_t* added_node_match = exec_plan->p_stmts[added_node_id];
   char added_system_name[MAX_TYPE_NAME];
   const uint32_t length = fcc_type_name(added_node_match->p_system->m_system_type,
@@ -366,14 +94,14 @@ insert(FccExecPlan* exec_plan,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
   init_subplan(added_node_match, 
-               &exec_plan->m_subplans[added_node_id]);
+               exec_plan->m_subplans[added_node_id]);
 
   for(uint32_t i = 0; 
       i < num_nodes - 1; 
       ++i)
   {
     uint32_t next_node_id = i;
-    FccExecPlanNode* next_node = &exec_plan->m_nodes[next_node_id];
+    fcc_exec_plan_node_t* next_node = &exec_plan->m_nodes[next_node_id];
     const fcc_stmt_t* next_node_match = exec_plan->p_stmts[next_node_id];
     char next_system_name[MAX_TYPE_NAME];
     const uint32_t length = fcc_type_name(next_node_match->p_system->m_system_type,
@@ -417,14 +145,14 @@ insert(FccExecPlan* exec_plan,
 }
 
 void
-dfs(const FccExecPlan* exec_plan, 
+dfs(const fcc_exec_plan_t* exec_plan, 
     bool* visited,
     uint32_t* departure,
     uint32_t* time,
     uint32_t node_id)
 {
   visited[node_id] = true;
-  const FccExecPlanNode* node = &exec_plan->m_nodes[node_id];
+  const fcc_exec_plan_node_t* node = &exec_plan->m_nodes[node_id];
   const uint32_t size = node->m_children.size();
   for(uint32_t i = 0; i < size; ++i)
   {
@@ -445,7 +173,7 @@ dfs(const FccExecPlan* exec_plan,
 }
 
 bool
-is_acyclic(const FccExecPlan* exec_plan)
+is_acyclic(const fcc_exec_plan_t* exec_plan)
 {
   uint32_t num_nodes = exec_plan->m_nodes.size();
   bool visited[num_nodes];
@@ -469,7 +197,7 @@ is_acyclic(const FccExecPlan* exec_plan)
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
     uint32_t node_id = i;
-    const FccExecPlanNode* node = &exec_plan->m_nodes[node_id];
+    const fcc_exec_plan_node_t* node = &exec_plan->m_nodes[node_id];
     const uint32_t num_children = node->m_children.size();
     for(uint32_t ii = 0; ii < num_children; ++ii)
     {
@@ -485,7 +213,7 @@ is_acyclic(const FccExecPlan* exec_plan)
 
 
 static bool
-all_visited_parents(const FccExecPlan* exec_plan, 
+all_visited_parents(const fcc_exec_plan_t* exec_plan, 
                     uint32_t node_id,
                     bool * visited)
 {
@@ -502,7 +230,7 @@ all_visited_parents(const FccExecPlan* exec_plan,
 }
 
 DynArray<uint32_t>
-get_valid_exec_sequence(const FccExecPlan* exec_plan)
+get_valid_exec_sequence(const fcc_exec_plan_t* exec_plan)
 {
   DynArray<uint32_t> ret;
   const uint32_t num_nodes = exec_plan->m_nodes.size();
@@ -528,7 +256,7 @@ get_valid_exec_sequence(const FccExecPlan* exec_plan)
           {
             const uint32_t next_node_id = current_frontier[ii];
             ret.append(next_node_id);
-            const FccExecPlanNode* next_node = &exec_plan->m_nodes[next_node_id]; 
+            const fcc_exec_plan_node_t* next_node = &exec_plan->m_nodes[next_node_id]; 
             const DynArray<uint32_t>& children = next_node->m_children;
             const uint32_t num_children = children.size();
             for(uint32_t j = 0; j < num_children; ++j)
@@ -553,10 +281,10 @@ get_valid_exec_sequence(const FccExecPlan* exec_plan)
 fcc_compilation_error_type_t
 create_execplan(const fcc_stmt_t* stmts[], 
                    uint32_t num_stmts,
-                   FccExecPlan** exec_plan)
+                   fcc_exec_plan_t** exec_plan)
 {
   *exec_plan = nullptr;
-  FccExecPlan* ret_exec_plan = new FccExecPlan();
+  fcc_exec_plan_t* ret_exec_plan = new fcc_exec_plan_t();
   for(uint32_t i = 0; i < num_stmts; ++i)
   {
       insert(ret_exec_plan, stmts[i]);
@@ -572,14 +300,15 @@ create_execplan(const fcc_stmt_t* stmts[],
 }
 
 void
-destroy_execplan(FccExecPlan* exec_plan)
+destroy_execplan(fcc_exec_plan_t* exec_plan)
 {
   uint32_t num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; 
       i < num_nodes; 
       ++i)
   {
-    release_subplan(&exec_plan->m_subplans[i]);
+    release_subplan(exec_plan->m_subplans[i]);
+    delete exec_plan->m_subplans[i];
   }
   delete exec_plan;
 }

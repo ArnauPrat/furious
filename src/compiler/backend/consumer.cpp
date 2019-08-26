@@ -19,70 +19,70 @@ consume(FILE* fd,
         const fcc_operator_t* caller);
 
 static void
-consume(FILE*fd,
-        const Scan* scan,
+consume_scan(FILE*fd,
+             const fcc_operator_t* scan,
+             const char* source,
+             const fcc_operator_t* caller);
+
+static void
+consume_foreach(FILE*fd,
+                const fcc_operator_t* foreach,
+                const char* source,
+                const fcc_operator_t* caller);
+
+static void
+consume_join(FILE*fd,
+             const fcc_operator_t* join,
+             const char* source,
+             const fcc_operator_t* caller);
+
+static void
+consume_cross_join(FILE*fd,
+                   const fcc_operator_t* cross_join,
+                   const char* source,
+                   const fcc_operator_t* caller);
+
+static void
+consume_leftfilter_join(FILE*fd,
+                        const fcc_operator_t* left_filter_join,
+                        const char* source,
+                        const fcc_operator_t* caller);
+
+static void
+consume_gather(FILE*fd,
+               const fcc_operator_t* gather,
+               const char* source,
+               const fcc_operator_t* caller);
+
+static void
+consume_cascading_gather(FILE*fd,
+                         const fcc_operator_t* casc_gather,
+                         const char* source,
+                         const fcc_operator_t* caller);
+
+static void
+consume_fetch(FILE*fd,
+        const fcc_operator_t* fetch,
         const char* source,
         const fcc_operator_t* caller);
 
 static void
-consume(FILE*fd,
-        const Foreach* foreach,
+consume_tag_filter(FILE*fd,
+                   const fcc_operator_t* tag_filter,
+                   const char* source,
+                   const fcc_operator_t* caller);
+
+static void
+consume_predicate_filter(FILE*fd,
+        const fcc_operator_t* predicate_filter,
         const char* source,
         const fcc_operator_t* caller);
 
 static void
-consume(FILE*fd,
-        const Join* join,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const CrossJoin* cross_join,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const LeftFilterJoin* left_filter_join,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const Gather* gather,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const CascadingGather* casc_gather,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const Fetch* fetch,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const TagFilter* tag_filter,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const PredicateFilter* predicate_filter,
-        const char* source,
-        const fcc_operator_t* caller);
-
-static void
-consume(FILE*fd,
-        const ComponentFilter* component_filter,
-        const char* source,
-        const fcc_operator_t* caller);
+consume_component_filter(FILE*fd,
+                         const fcc_operator_t* component_filter,
+                         const char* source,
+                         const fcc_operator_t* caller);
 
 void 
 consume(FILE*fd,
@@ -93,44 +93,44 @@ consume(FILE*fd,
   switch(fcc_operator->m_type)
   {
     case fcc_operator_type_t::E_SCAN:
-      consume(fd, (Scan*)fcc_operator, source, caller);
+      consume_scan(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_FOREACH:
-      consume(fd, (Foreach*)fcc_operator, source, caller);
+      consume_foreach(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_JOIN:
-      consume(fd, (Join*)fcc_operator, source, caller);
+      consume_join(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
-      consume(fd, (LeftFilterJoin*)fcc_operator, source, caller);
+      consume_leftfilter_join(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_CROSS_JOIN:
-      consume(fd, (CrossJoin*)fcc_operator, source, caller);
+      consume_cross_join(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_FETCH:
-      consume(fd, (Fetch*)fcc_operator, source, caller);
+      consume_fetch(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_GATHER:
-      consume(fd, (Gather*)fcc_operator, source, caller);
+      consume_gather(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_CASCADING_GATHER:
-      consume(fd, (CascadingGather*)fcc_operator, source, caller);
+      consume_cascading_gather(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_TAG_FILTER:
-      consume(fd, (TagFilter*)fcc_operator, source, caller);
+      consume_tag_filter(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_PREDICATE_FILTER:
-      consume(fd, (PredicateFilter*)fcc_operator, source, caller);
+      consume_predicate_filter(fd, fcc_operator, source, caller);
       break;
     case fcc_operator_type_t::E_COMPONENT_FILTER:
-      consume(fd, (ComponentFilter*)fcc_operator, source, caller);
+      consume_component_filter(fd, fcc_operator, source, caller);
       break;
   };
 }
 
 void 
-consume(FILE*fd, 
-        const Foreach* foreach,
+consume_foreach(FILE*fd, 
+        const fcc_operator_t* foreach,
         const char* source,
         const fcc_operator_t* caller)
 {
@@ -195,10 +195,11 @@ consume(FILE*fd,
 
   str_builder_t str_builder;
   str_builder_init(&str_builder);
-  uint32_t size = foreach->p_systems.size();
-  for(uint32_t i = 0; i < size; ++i)
+  //uint32_t size = foreach->p_systems.size();
+  //for(uint32_t i = 0; i < size; ++i)
   {
-    const fcc_system_t* info = foreach->p_systems[i];
+    //const fcc_system_t* info = foreach->p_systems[i];
+    const fcc_system_t* info = foreach->m_foreach.p_system;
 
     char system_name[MAX_TYPE_NAME];
     const uint32_t system_length = fcc_type_name(info->m_system_type, 
@@ -228,16 +229,16 @@ consume(FILE*fd,
                          source);
     }
 
-    for(size_t i = 0; i <  foreach->m_columns.size(); ++i) 
+    for(size_t j = 0; j <  foreach->m_columns.size(); ++j) 
     {
-      const fcc_column_t* column = &foreach->m_columns[i];
+      const fcc_column_t* column = &foreach->m_columns[j];
       if(column->m_type == fcc_column_type_t::E_COMPONENT)
       {
-        str_builder_append(&str_builder,",\n&data_%d[i]",i);
+        str_builder_append(&str_builder,",\n&data_%d[i]",j);
       }
       else if (column->m_type == fcc_column_type_t::E_GLOBAL)
       {
-        str_builder_append(&str_builder,",\ndata_%d",i);
+        str_builder_append(&str_builder,",\ndata_%d",j);
       }
     }
     str_builder_append(&str_builder,");\n"); 
@@ -287,16 +288,16 @@ consume(FILE*fd,
 }
 
 void 
-consume(FILE*fd,
-        const Scan* scan,
+consume_scan(FILE*fd,
+        const fcc_operator_t* scan,
         const char* source,
         const fcc_operator_t* caller)
 {
 }
 
 void
-consume(FILE*fd, 
-        const Join* join,
+consume_join(FILE*fd, 
+        const fcc_operator_t* join,
         const char* source,
         const fcc_operator_t* caller)
 {
@@ -308,7 +309,7 @@ consume(FILE*fd,
 
   FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
 
-  if(caller == join->p_left.get()) 
+  if(caller->m_id == join->m_join.m_left) 
   {
     fprintf(fd, 
             "%s.insert_copy(%s->m_start, %s);\n", 
@@ -344,8 +345,9 @@ consume(FILE*fd,
       str_builder_t str_builder;
       str_builder_init(&str_builder);
       str_builder_append(&str_builder, "(&%s)", clustername);
+      fcc_subplan_t* subplan = join->p_subplan;
       consume(fd,
-              join->p_parent,
+              &subplan->m_nodes[join->m_parent],
               str_builder.p_buffer,
               join);
       str_builder_release(&str_builder);
@@ -356,8 +358,8 @@ consume(FILE*fd,
 }
 
 void
-consume(FILE*fd, 
-        const LeftFilterJoin* left_filter_join,
+consume_leftfilter_join(FILE*fd, 
+        const fcc_operator_t* left_filter_join,
         const char* source,
         const fcc_operator_t* caller)
 {
@@ -368,7 +370,7 @@ consume(FILE*fd,
 
   FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
 
-  if(caller == left_filter_join->p_left.get()) 
+  if(caller->m_id == left_filter_join->m_leftfilter_join.m_left) 
   {
     fprintf(fd, 
             "%s.insert_copy(%s->m_start, %s);\n", 
@@ -404,8 +406,9 @@ consume(FILE*fd,
     str_builder_t str_builder;
     str_builder_init(&str_builder);
     str_builder_append(&str_builder, "(&%s)", clustername);
+    fcc_subplan_t* subplan = left_filter_join->p_subplan;
     consume(fd,
-            left_filter_join->p_parent,
+            &subplan->m_nodes[left_filter_join->m_parent],
             str_builder.p_buffer,
             left_filter_join);
     str_builder_release(&str_builder);
@@ -416,8 +419,8 @@ consume(FILE*fd,
 }
 
 void
-consume(FILE*fd, 
-        const CrossJoin* join,
+consume_cross_join(FILE*fd, 
+        const fcc_operator_t* join,
         const char* source,
         const fcc_operator_t* caller)
 {
@@ -429,7 +432,7 @@ consume(FILE*fd,
 
   FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
 
-  if(caller == join->p_left.get()) 
+  if(caller->m_id == join->m_cross_join.m_left) 
   {
     str_builder_t str_builder;
     str_builder_init(&str_builder);
@@ -456,45 +459,45 @@ consume(FILE*fd,
 }
 
 void
-consume(FILE*fd, 
-        const Fetch* fetch,
-        const char* source,
-        const fcc_operator_t* caller)
+consume_fetch(FILE*fd, 
+              const fcc_operator_t* fetch,
+              const char* source,
+              const fcc_operator_t* caller)
 {
 
 
 }
 
 void 
-consume(FILE*fd, 
-        const TagFilter* tag_filter,
-        const char* source,
-        const fcc_operator_t* caller)
+consume_tag_filter(FILE*fd, 
+                   const fcc_operator_t* tag_filter,
+                   const char* source,
+                   const fcc_operator_t* caller)
 {
 
   char bittable_name[MAX_TAG_TABLE_VARNAME];
-  const uint32_t length =  generate_bittable_name(tag_filter->m_tag,
+  const uint32_t length =  generate_bittable_name(tag_filter->m_tag_filter.m_tag,
                                                   bittable_name,
                                                   MAX_TAG_TABLE_VARNAME);
   FURIOUS_PERMA_ASSERT( length < MAX_TAG_TABLE_VARNAME && "Tag table varname exceeds maximum length");
   fprintf(fd,"\n");
 
-  if(!tag_filter->m_on_column)
+  if(!tag_filter->m_tag_filter.m_on_column)
   {
     fprintf(fd,
             "const Bitmap* filter = %s->get_bitmap(%s->m_start);\n", 
             bittable_name, 
             source);
-    switch(tag_filter->m_op_type) 
+    switch(tag_filter->m_tag_filter.m_op_type) 
     {
-      case FccFilterOpType::E_HAS:
+      case fcc_filter_op_type_t::E_HAS:
         {
           fprintf(fd,
                   "%s->p_enabled->set_and(filter);\n",
                   source);
           break;
         }
-      case FccFilterOpType::E_HAS_NOT:
+      case fcc_filter_op_type_t::E_HAS_NOT:
         {
           fprintf(fd,"{\n");
           fprintf(fd, 
@@ -519,15 +522,15 @@ consume(FILE*fd,
       str_builder_init(&str_builder);
       str_builder_append(&str_builder,"Cannot apply filter tag \"%s\" on column\
                          on a non-reference column type", 
-                         tag_filter->m_tag);
+                         tag_filter->m_tag_filter.m_tag);
       fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
                                                           str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
 
-    switch(tag_filter->m_op_type) 
+    switch(tag_filter->m_tag_filter.m_op_type) 
     {
-      case FccFilterOpType::E_HAS:
+      case fcc_filter_op_type_t::E_HAS:
         {
           fprintf(fd,
                   "filter_bittable_exists(%s,%s,0);\n",
@@ -535,7 +538,7 @@ consume(FILE*fd,
                   source);
           break;
         }
-      case FccFilterOpType::E_HAS_NOT:
+      case fcc_filter_op_type_t::E_HAS_NOT:
         {
           fprintf(fd,
                   "filter_bittable_not_exists(%s,%s,0);\n",
@@ -549,33 +552,35 @@ consume(FILE*fd,
   fprintf(fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           source); 
+  fcc_subplan_t* subplan = tag_filter->p_subplan;
   consume(fd,
-          tag_filter->p_parent,
+          &subplan->m_nodes[tag_filter->m_parent],
           source,
           tag_filter);
   fprintf(fd,"}\n");
 }
 
 void
-consume(FILE*fd, 
-        const ComponentFilter* component_filter,
+consume_component_filter(FILE*fd, 
+        const fcc_operator_t* component_filter,
         const char* source,
         const fcc_operator_t* caller)
 {
   fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
                                                      "Component filter not yet implemented");
   // if ...
+  fcc_subplan_t* subplan = component_filter->p_subplan;
   consume(fd,
-          component_filter->p_parent,
+          &subplan->m_nodes[component_filter->m_parent],
           "cluster",
           component_filter);
 }
 
 void
-consume(FILE*fd, 
-        const PredicateFilter* predicate_filter,
-        const char* source,
-        const fcc_operator_t* caller)
+consume_predicate_filter(FILE*fd, 
+                         const fcc_operator_t* predicate_filter,
+                         const char* source,
+                         const fcc_operator_t* caller)
 {
   // if ...
   fprintf(fd,"\n");
@@ -625,13 +630,13 @@ consume(FILE*fd,
     param_index++;
   }
 
-  if(fcc_decl_is_function(predicate_filter->m_func_decl) && 
-     fcc_decl_is_member(predicate_filter->m_func_decl))
+  if(fcc_decl_is_function(predicate_filter->m_predicate_filter.m_func_decl) && 
+     fcc_decl_is_member(predicate_filter->m_predicate_filter.m_func_decl))
   {
     uint32_t code_length = 4096;
     char* code = new char[code_length];
     uint32_t length = 0;
-    while((length = fcc_decl_code(predicate_filter->m_func_decl, code, code_length)) >= code_length)
+    while((length = fcc_decl_code(predicate_filter->m_predicate_filter.m_func_decl, code, code_length)) >= code_length)
     {
       delete [] code;
       code_length *= 2;
@@ -643,7 +648,7 @@ consume(FILE*fd,
   }
 
   char func_name[2048];
-  uint32_t length = fcc_decl_function_name(predicate_filter->m_func_decl, func_name, 2048);
+  uint32_t length = fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl, func_name, 2048);
   FURIOUS_CHECK_STR_LENGTH(length, 2048);
 
 
@@ -682,21 +687,24 @@ consume(FILE*fd,
   fprintf(fd,
           "if(%s->p_enabled->num_set() != 0)\n{\n",
           source); 
+  fcc_subplan_t* subplan = predicate_filter->p_subplan;
   consume(fd,
-          predicate_filter->p_parent,
+          &subplan->m_nodes[predicate_filter->m_parent],
           source,
           predicate_filter);
   fprintf(fd, "}\n");
 }
 
 void
-consume(FILE*fd, 
-        const Gather* gather,
+consume_gather(FILE*fd, 
+        const fcc_operator_t* gather,
         const char* source,
         const fcc_operator_t* caller)
 {
   char groups_varname[MAX_REF_TABLE_VARNAME];
-  const uint32_t length = generate_ref_groups_name(gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+  fcc_subplan_t* subplan = gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
+  const uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
                                                    groups_varname,
                                                    MAX_REF_TABLE_VARNAME,
                                                    gather);
@@ -704,7 +712,7 @@ consume(FILE*fd,
   FURIOUS_PERMA_ASSERT(length < MAX_REF_TABLE_VARNAME && "Ref table varname exceeded maximum length");
 
 
-  if(caller == gather->p_ref_table.get()) 
+  if(caller->m_id == gather->m_gather.m_ref_table) 
   {
     // perform the group by of the references
     fprintf(fd,
@@ -718,7 +726,8 @@ consume(FILE*fd,
     fprintf(fd,"gather(&%s,%s",
             groups_varname,
             source);
-    DynArray<fcc_column_t>& child_columns = gather->p_child.get()->m_columns;
+    fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
+    DynArray<fcc_column_t>& child_columns = child->m_columns;
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
       fcc_column_t* column = &child_columns[i];
@@ -744,20 +753,22 @@ consume(FILE*fd,
 }
 
 void
-consume(FILE*fd, 
-        const CascadingGather* casc_gather,
-        const char* source,
-        const fcc_operator_t* caller)
+consume_cascading_gather(FILE*fd, 
+                         const fcc_operator_t* casc_gather,
+                         const char* source,
+                         const fcc_operator_t* caller)
 {
 
   char groups_varname[MAX_REF_TABLE_VARNAME];
-  const uint32_t length = generate_ref_groups_name(casc_gather->p_ref_table.get()->m_columns[0].m_ref_name, 
+  fcc_subplan_t* subplan = casc_gather->p_subplan;
+  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_cascading_gather.m_ref_table];
+  const uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
                                                    groups_varname,
                                                    MAX_REF_TABLE_VARNAME,
                                                    casc_gather);
 
   FURIOUS_PERMA_ASSERT(length < MAX_REF_TABLE_VARNAME && "Ref table varname exceeded maximum length");
-  if(caller == casc_gather->p_ref_table.get()) 
+  if(caller->m_id == casc_gather->m_cascading_gather.m_ref_table) 
   {
     // perform the group by of the references
     fprintf(fd,

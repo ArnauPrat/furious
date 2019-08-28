@@ -134,7 +134,7 @@ fcc_type_name(fcc_type_t type,
               char* buffer,
               uint32_t buffer_length)
 {
-  QualType aux = *(QualType*)type.p_handler;
+  QualType aux = *(QualType*)type;
   return get_type_name(aux, buffer, buffer_length);
 }
 
@@ -143,7 +143,7 @@ fcc_type_qualified_name(fcc_type_t type,
                         char* buffer,
                         uint32_t buffer_length) 
 {
-  QualType aux = *(QualType*)type.p_handler;
+  QualType aux = *(QualType*)type;
   return get_qualified_type_name(aux, 
                           buffer,
                           buffer_length);
@@ -152,19 +152,19 @@ fcc_type_qualified_name(fcc_type_t type,
 fcc_access_mode_t
 fcc_type_access_mode(fcc_type_t type)
 {
-  QualType aux = *(QualType*)type.p_handler;
+  QualType aux = *(QualType*)type;
   return get_access_mode(aux);
 }
 
 bool
 fcc_type_decl(fcc_type_t type, fcc_decl_t* decl)
 {
-  decl->p_handler = nullptr;
-  QualType qtype = *(QualType*)type.p_handler;
+  *decl = nullptr;
+  QualType qtype = *(QualType*)type;
   Decl* clang_decl = get_type_decl(qtype);
   if(clang_decl)
   {
-    decl->p_handler = clang_decl;
+    *decl = clang_decl;
     return true;
   }
   return false;
@@ -173,27 +173,27 @@ fcc_type_decl(fcc_type_t type, fcc_decl_t* decl)
 bool
 fcc_decl_is_valid(fcc_decl_t decl)
 {
-  return decl.p_handler != nullptr;
+  return decl != nullptr;
 }
 
 bool
 fcc_decl_is_variable_or_struct(fcc_decl_t decl)
 {
-    return isa<TagDecl>((Decl*)decl.p_handler);
+    return isa<TagDecl>((Decl*)decl);
 }
 
 bool
 fcc_decl_is_function(fcc_decl_t decl)
 {
-  bool res = (isa<FunctionDecl>((Decl*)decl.p_handler) /*&& 
-          !cast<FunctionDecl>((Decl*)decl.p_handler)->isCXXClassMember()*/);
+  bool res = (isa<FunctionDecl>((Decl*)decl) /*&& 
+          !cast<FunctionDecl>((Decl*)decl)->isCXXClassMember()*/);
   return res;
 }
 
 bool
 fcc_decl_is_member(fcc_decl_t decl)
 {
-  Decl* clang_decl = (Decl*)decl.p_handler;
+  Decl* clang_decl = (Decl*)decl;
   if(isa<TagDecl>(clang_decl))
   {
     if(cast<TagDecl>(clang_decl)->isCXXClassMember())
@@ -221,7 +221,7 @@ fcc_decl_code(fcc_decl_t decl,
   {
     if(fcc_decl_is_function(decl))
     {
-      FunctionDecl* func_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+      FunctionDecl* func_decl = cast<FunctionDecl>((Decl*)decl);
       if(fcc_decl_is_member(decl))
       {
         str_builder_t str_builder;
@@ -262,7 +262,7 @@ fcc_decl_code(fcc_decl_t decl,
     }
     else
     {
-      Decl* clang_decl = (Decl*)decl.p_handler;
+      Decl* clang_decl = (Decl*)decl;
       const SourceManager& sm = clang_decl->getASTContext().getSourceManager();
 
       std::string code = get_code(sm,
@@ -290,7 +290,7 @@ fcc_decl_function_name(fcc_decl_t decl,
     }
     else
     {
-      FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+      FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
       std::string name = clang_decl->getName();
       strncpy(buffer, name.c_str(), buffer_length);
       return name.length();
@@ -303,7 +303,7 @@ fcc_decl_function_name(fcc_decl_t decl,
 bool
 fcc_decl_code_available(fcc_decl_t decl)
 {
-  Decl* clang_decl = (Decl*)decl.p_handler;
+  Decl* clang_decl = (Decl*)decl;
   if(clang_decl->getSourceRange().isValid())
   {
     return true;
@@ -316,7 +316,7 @@ DynArray<Dependency>
 fcc_type_dependencies(fcc_type_t type)
 {
   fcc_decl_t decl;
-  decl.p_handler = nullptr;
+  decl = nullptr;
   if(fcc_type_decl(type, &decl))
   {
     return fcc_decl_dependencies(decl);
@@ -328,7 +328,7 @@ fcc_type_dependencies(fcc_type_t type)
 DynArray<Dependency> 
 fcc_decl_dependencies(fcc_decl_t decl)
 {
-  Decl* clang_decl = (Decl*)decl.p_handler;
+  Decl* clang_decl = (Decl*)decl;
   return get_dependencies(clang_decl);
 }
 
@@ -337,7 +337,7 @@ fcc_decl_function_num_params(fcc_decl_t decl)
 {
   if(fcc_decl_is_function(decl))
   {
-    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
     return clang_decl->getNumParams();
   }
   return 0;
@@ -350,14 +350,14 @@ fcc_decl_function_param_type(fcc_decl_t decl,
 {
   if(fcc_decl_is_function(decl))
   {
-    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
     if(i >= clang_decl->getNumParams())
     {
       return false;
     }
     ParmVarDecl* param_decl  = clang_decl->parameters()[i];
     QualType* qtype = push_type(param_decl->getType());
-    type->p_handler = qtype;
+    *type = qtype;
     return true;
   }
   return false;
@@ -371,7 +371,7 @@ fcc_decl_function_param_name(fcc_decl_t decl,
 {
   if(fcc_decl_is_function(decl))
   {
-    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl.p_handler);
+    FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
     if(i >= clang_decl->getNumParams())
     {
       return 0;
@@ -386,7 +386,7 @@ fcc_decl_function_param_name(fcc_decl_t decl,
 bool
 fcc_decl_is_same(fcc_decl_t decl_1, fcc_decl_t decl_2)
 {
-  return decl_1.p_handler == decl_2.p_handler;
+  return decl_1 == decl_2;
 }
 
 uint32_t
@@ -394,7 +394,7 @@ fcc_expr_code(fcc_expr_t expr,
               char* buffer,
               uint32_t buffer_length)
 {
-  clang_expr_handler_t* handler = (clang_expr_handler_t*)expr.p_handler;
+  clang_expr_handler_t* handler = (clang_expr_handler_t*)expr;
   const Expr* clang_expr = handler->p_expr;
   ASTContext* ast_context = handler->p_context;
 
@@ -443,7 +443,7 @@ fcc_expr_code_location(fcc_expr_t expr,
                        uint32_t* line,
                        uint32_t* column)
 {
-  clang_expr_handler_t* handler = (clang_expr_handler_t*)expr.p_handler;
+  clang_expr_handler_t* handler = (clang_expr_handler_t*)expr;
   Expr* clang_expr = (Expr*)handler->p_expr;
   Decl* decl = get_type_decl(clang_expr->getType());
   const SourceManager& sm = decl->getASTContext().getSourceManager();

@@ -12,20 +12,9 @@ namespace furious
 struct fcc_context_t;
 extern fcc_context_t* p_fcc_context;
 
-struct fcc_type_t
-{
-  void* p_handler;
-};
-
-struct fcc_expr_t
-{
-  void* p_handler;
-};
-
-struct fcc_decl_t
-{
-  void* p_handler;
-};
+typedef void* fcc_type_t;
+typedef void* fcc_expr_t;
+typedef void* fcc_decl_t;
 
 enum class fcc_operation_type_t 
 {

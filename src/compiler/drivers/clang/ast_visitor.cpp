@@ -16,7 +16,7 @@ fcc_stmt_t*
 FuriousExprVisitor::parse_expression(Expr* expr)
 {
   p_fcc_stmt = fcc_stmt_create();
-  p_fcc_stmt->m_expr.p_handler = expr;
+  p_fcc_stmt->m_expr = expr;
   p_fcc_context->p_stmts.append(p_fcc_stmt); 
   this->TraverseStmt(expr);
   return p_fcc_stmt;
@@ -196,7 +196,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
               // OK
               const UsingDirectiveDecl* using_decl = cast<UsingDirectiveDecl>(decl);
               fcc_decl_t fcc_decl;
-              fcc_decl.p_handler = (void*)using_decl;
+              fcc_decl = (void*)using_decl;
               p_fcc_context->m_using_decls.append(fcc_decl);
             }
             else 

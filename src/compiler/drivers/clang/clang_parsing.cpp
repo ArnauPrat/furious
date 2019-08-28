@@ -233,7 +233,7 @@ process_foreach(ASTContext* ast_context,
 
   fcc_system_t* system = new fcc_system_t();
   system->m_id = system_id;
-  system->m_system_type.p_handler = push_type(tmplt_types[0]);
+  system->m_system_type = push_type(tmplt_types[0]);
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
   {
     QualType type = tmplt_types[i]->getPointeeType();
@@ -241,8 +241,7 @@ process_foreach(ASTContext* ast_context,
     bool global = is_global(ast_context,
                             type);
     QualType* ret_type = push_type(type);
-    fcc_type_t fcc_type;
-    fcc_type.p_handler = ret_type;
+    fcc_type_t fcc_type = ret_type;
     system->m_component_types.append({fcc_type, read_only, global});
   }
 
@@ -252,7 +251,7 @@ process_foreach(ASTContext* ast_context,
   {
     const Expr* arg_expr = call->getArg(i);
     fcc_expr_t expr;
-    expr.p_handler = (void*)push_expr(ast_context, arg_expr);
+    expr = (void*)push_expr(ast_context, arg_expr);
     system->m_ctor_params.append(expr);
   }
   stmt->p_system = system;
@@ -344,8 +343,7 @@ process_filter(ASTContext* ast_context,
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
-    fcc_decl_t fcc_decl;
-    fcc_decl.p_handler = (void*)func_decl;
+    fcc_decl_t fcc_decl = (void*)func_decl;
     entity_match->m_filter_func.append(fcc_decl);
   } 
 
@@ -357,8 +355,7 @@ process_filter(ASTContext* ast_context,
     {
       func_decl = cast<FunctionDecl>(decl);
       //printf("found function decl: %ld\n", (long)func_decl);
-      fcc_decl_t fcc_decl;
-      fcc_decl.p_handler = (void*)func_decl;
+      fcc_decl_t fcc_decl = (void*)func_decl;
       entity_match->m_filter_func.append(fcc_decl);
     } 
     else if(isa<VarDecl>(decl))
@@ -471,8 +468,7 @@ process_has_component(ASTContext* ast_context,
   for (uint32_t i = 0; i < arg_list->size(); ++i) 
   {
     const TemplateArgument& arg = arg_list->get(i); 
-    fcc_type_t type;
-    type.p_handler = push_type(arg.getAsType());
+    fcc_type_t type = push_type(arg.getAsType());
     entity_match->m_has_components.append(type);
   }
   return true;
@@ -496,8 +492,7 @@ process_has_not_component(ASTContext* ast_context,
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
-    fcc_type_t type;
-    type.p_handler = push_type(arg.getAsType());
+    fcc_type_t type =  push_type(arg.getAsType());
     entity_match->m_has_not_components.append(type);
   }
   return true;

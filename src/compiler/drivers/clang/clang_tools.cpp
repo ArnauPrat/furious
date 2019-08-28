@@ -39,7 +39,7 @@ public:
         const char* filename = str_ref.c_str();
         const char* extension = strrchr(filename, '.');
         Dependency dependency;
-        dependency.m_decl.p_handler = nullptr;
+        dependency.m_decl = nullptr;
         if( (extension != nullptr &&
             strcmp(extension, ".cpp") != 0 && 
             strcmp(extension, ".c") != 0 &&
@@ -51,7 +51,7 @@ public:
         } 
         else 
         {
-          dependency.m_decl.p_handler = decl;
+          dependency.m_decl = decl;
         }
         m_dependencies.append(dependency);
       }

@@ -210,7 +210,7 @@ ReflData
 get_reflection_data(fcc_decl_t decl)
 {
   RecordDeclVisitor record_decl_visitor;
-  record_decl_visitor.TraverseCXXRecordDecl(cast<CXXRecordDecl>((Decl*)decl.p_handler));
+  record_decl_visitor.TraverseCXXRecordDecl(cast<CXXRecordDecl>((Decl*)decl));
   return *record_decl_visitor.p_refl_data.get();
 }
 

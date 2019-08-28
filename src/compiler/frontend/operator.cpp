@@ -1,7 +1,8 @@
 
 #include "operator.h"
-#include "string.h"
 #include "../driver.h"
+
+#include <string.h>
 
 namespace furious 
 {
@@ -18,8 +19,8 @@ create_operator(fcc_subplan_t* subplan,
   op->m_id = id;
   op->m_type = operator_type;
   op->m_parent = _FURIOUS_COMPILER_INVALID_ID;
-  strncpy(op->m_name, name, MAX_OPERATOR_NAME);
-  FURIOUS_CHECK_STR_LENGTH(strlen(name), MAX_OPERATOR_NAME);
+  strncpy(op->m_name, name, _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
+  FURIOUS_CHECK_STR_LENGTH(strlen(name), _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
   return id;
 }
 
@@ -558,8 +559,8 @@ release_subplan(fcc_subplan_t* subplan)
 //m_type(type),
 //p_parent(nullptr)
 //{
-//  strncpy(m_name, name, MAX_OPERATOR_NAME);
-//  FURIOUS_CHECK_STR_LENGTH(strlen(name), MAX_OPERATOR_NAME);
+//  strncpy(m_name, name, _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
+//  FURIOUS_CHECK_STR_LENGTH(strlen(name), _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
 //  static uint32_t id = 0;
 //  m_id = id;
 //  ++id;

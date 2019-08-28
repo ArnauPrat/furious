@@ -1,13 +1,12 @@
 
 
 #include "../../common/str_builder.h"
-#include "consumer.h"
-#include "producer.h"
-#include "fcc_context.h"
-#include "drivers/clang/clang_tools.h"
+#include "../frontend/operator.h"
 #include "backend/codegen.h"
 #include "codegen_tools.h"
-#include "../frontend/operator.h"
+#include "consumer.h"
+#include "fcc_context.h"
+#include "producer.h"
 
 namespace furious 
 {

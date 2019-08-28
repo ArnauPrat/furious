@@ -10,7 +10,6 @@
 namespace furious 
 {
 
-struct fcc_system_t;
 struct fcc_subplan_t;
 
 ////////////////////////////////////////////////
@@ -27,11 +26,11 @@ struct fcc_exec_plan_t
 {
   // Graph members
   DynArray<fcc_exec_plan_node_t>   m_nodes;
-  DynArray<uint32_t>            m_roots;
+  DynArray<uint32_t>               m_roots;
 
   // Node attributes
-  DynArray<const fcc_stmt_t*> p_stmts;
-  DynArray<fcc_subplan_t*>     m_subplans;
+  DynArray<const fcc_stmt_t*>     p_stmts;
+  DynArray<fcc_subplan_t*>        m_subplans;
 };
 
 /**

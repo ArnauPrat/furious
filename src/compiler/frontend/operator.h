@@ -9,7 +9,7 @@ namespace furious
 {
 
 #define _FURIOUS_COMPILER_INVALID_ID 0xffffffff
-#define MAX_OPERATOR_NAME 256
+#define _FURIOUS_COMPILER_MAX_OPERATOR_NAME 256
 
 struct fcc_subplan_t;
 
@@ -122,7 +122,7 @@ struct fcc_operator_t
   fcc_subplan_t*            p_subplan;
   uint32_t                  m_parent;
   uint32_t                  m_id;
-  char                      m_name[MAX_OPERATOR_NAME];
+  char                      m_name[_FURIOUS_COMPILER_MAX_OPERATOR_NAME];
   DynArray<fcc_column_t>    m_columns;
   union 
   {

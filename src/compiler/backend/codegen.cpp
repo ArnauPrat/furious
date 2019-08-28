@@ -16,6 +16,47 @@
 namespace furious 
 {
 
+void
+fcc_generate_task_graph(FILE* fd, 
+                        const char* task_graph_name,
+                        const char* task_prefix,
+                        const fcc_exec_plan_t* exec_plan)
+{
+  uint32_t num_tasks = exec_plan->m_nodes.size();
+  for(uint32_t i = 0; i < num_tasks; ++i)
+  {
+    fprintf(fd, 
+            "task_graph_insert_task(%s,%d,%s_%d);\n", 
+            task_graph_name,
+            i,
+            task_prefix,
+            i);
+  }
+
+  for(uint32_t i = 0; i < num_tasks; ++i)
+  {
+    uint32_t num_children = exec_plan->m_nodes[i].m_parents.size();
+    for(uint32_t j = 0; j < num_children; ++j)
+    {
+      fprintf(fd, 
+              "task_graph_set_parent(%s,%d,%d);\n", 
+              task_graph_name,
+              i,
+              exec_plan->m_nodes[i].m_parents[j]);
+    }
+  }
+
+  uint32_t num_roots = exec_plan->m_roots.size();
+  for(uint32_t i = 0; i < num_roots; ++i)
+  {
+      fprintf(fd, 
+              "task_graph_set_root(%s,%d,%d);\n", 
+              task_graph_name,
+              i,
+              exec_plan->m_roots[i]);
+  }
+}
+
 int32_t 
 fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                   const fcc_exec_plan_t* post_exec_plan,
@@ -167,6 +208,9 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd, "%s* %s;\n", system_name, wrapper_name);
   }
 
+  fprintf(fd, "task_graph_t* task_graph = nullptr;\n");
+  fprintf(fd, "task_graph_t* post_task_graph = nullptr;\n");
+
   // DEFINING TASKS CODE BASED ON EXECUTION PLAN ROOTS
   num_nodes = exec_plan->m_subplans.size();
   for(uint32_t i = 0; i < num_nodes; ++i)
@@ -188,6 +232,31 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
     fprintf(fd, "Context context(delta,database,user_data);\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
+    produce(fd,root);
+    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
+    fprintf(fd,"}\n");
+    fcc_subplan_printer_release(&printer);
+  }
+
+  // DEFINING TASKS CODE BASED ON POST FRAME EXECUTION PLAN ROOTS
+  num_nodes = post_exec_plan->m_subplans.size();
+  for(uint32_t i = 0; i < num_nodes; ++i)
+  {
+    fcc_subplan_printer_t printer;
+    fcc_subplan_printer_init(&printer, true);
+    fcc_subplan_printer_print(&printer, 
+                              post_exec_plan->m_subplans[i]);
+    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
+    fprintf(fd,"void __pf_task_%d(float delta,\n\
+    Database* database,\n\
+            void* user_data,\n\
+            uint32_t chunk_size,\n\
+            uint32_t offset,\n\
+            uint32_t stride)\n", i);
+    fprintf(fd,"{\n");
+
+    fprintf(fd, "Context context(delta,database,user_data);\n");
+    const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root);
     //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
@@ -317,6 +386,20 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   }
   fcc_vars_extr_release(&vars_extr);
 
+  fprintf(fd, 
+          "task_graph = task_graph_create(%d, %d);\n", 
+          exec_plan->m_nodes.size(),
+          exec_plan->m_roots.size());
+
+  fcc_generate_task_graph(fd, "task_graph", "__task", exec_plan);
+
+  fprintf(fd, 
+          "post_task_graph = task_graph_create(%d, %d);\n", 
+          post_exec_plan->m_nodes.size(),
+          post_exec_plan->m_roots.size());
+
+  fcc_generate_task_graph(fd, "post_task_graph", "__pf_task", post_exec_plan);
+
 
   fprintf(fd,"}\n");
 
@@ -326,40 +409,18 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
     fprintf(fd, "database->lock();\n");
-    DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
+    /*DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
     const uint32_t num_in_sequence = seq.size();
     for (uint32_t j = 0; j < num_in_sequence; ++j) 
     {
       fprintf(fd, "__task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
     }
+    */
+    fprintf(fd, "task_graph_run(task_graph, delta, database, user_data);\n");
     fprintf(fd, "database->release();\n");
     fprintf(fd, "}\n");
   }
 
-  // DEFINING TASKS CODE BASED ON POST FRAME EXECUTION PLAN ROOTS
-  num_nodes = post_exec_plan->m_subplans.size();
-  for(uint32_t i = 0; i < num_nodes; ++i)
-  {
-    fcc_subplan_printer_t printer;
-    fcc_subplan_printer_init(&printer, true);
-    fcc_subplan_printer_print(&printer, 
-                              post_exec_plan->m_subplans[i]);
-    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
-    fprintf(fd,"void __pf_task_%d(float delta,\n\
-    Database* database,\n\
-            void* user_data,\n\
-            uint32_t chunk_size,\n\
-            uint32_t offset,\n\
-            uint32_t stride)\n", i);
-    fprintf(fd,"{\n");
-
-    fprintf(fd, "Context context(delta,database,user_data);\n");
-    const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
-    produce(fd,root);
-    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
-    fprintf(fd,"}\n");
-    fcc_subplan_printer_release(&printer);
-  }
 
   /// GENERATING __furious_post_frame CODE
   {
@@ -368,12 +429,15 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
     fprintf(fd, "database->lock();\n");
 
-    DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
+    /*DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
     const uint32_t num_in_sequence = seq.size();
     for (uint32_t j = 0; j < num_in_sequence; ++j) 
     {
       fprintf(fd, "__pf_task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
     }
+    */
+
+    fprintf(fd, "task_graph_run(post_task_graph, delta, database, user_data);\n");
 
     fprintf(fd, "database->release();\n");
     fprintf(fd, "}\n");
@@ -403,7 +467,29 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
     fprintf(fd, "delete %s;\n", wrapper_name);
   }
+
+  fprintf(fd, 
+          "task_graph_destroy(task_graph);\n");
+
+  fprintf(fd, 
+          "task_graph_destroy(post_task_graph);\n");
+
   fprintf(fd, "}\n");
+
+  fprintf(fd,
+          "task_graph_t* __furious_task_graph()\n{\n");
+  fprintf(fd, 
+          "return task_graph;\n");
+  fprintf(fd, 
+          "}\n");
+
+  fprintf(fd,
+          "task_graph_t* __furious_post_task_graph()\n{\n");
+  fprintf(fd, 
+          "return post_task_graph;\n");
+  fprintf(fd, 
+          "}\n");
+
   fprintf(fd, "}\n");
   fclose(fd);
   delete [] code_buffer;

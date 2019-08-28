@@ -1,11 +1,12 @@
 
 
+
 #include "../../common/str_builder.h"
-#include "../drivers/clang/clang_tools.h"
+#include "../frontend/operator.h"
+#include "../driver.h"
 #include "codegen.h"
 #include "codegen_tools.h"
 #include "consumer.h"
-#include "../frontend/operator.h"
 #include "producer.h"
 
 #include <stdlib.h>
@@ -127,8 +128,8 @@ produce_scan(FILE* fd,
   {
     char ctype[MAX_TYPE_NAME];
     uint32_t length = fcc_type_name(column->m_component_type,
-                                          ctype,
-                                          MAX_TYPE_NAME);
+                                    ctype,
+                                    MAX_TYPE_NAME);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
@@ -137,8 +138,6 @@ produce_scan(FILE* fd,
                                                      q_ctype,
                                                      MAX_QUALIFIED_TYPE_NAME);
     FURIOUS_CHECK_STR_LENGTH(length, MAX_QUALIFIED_TYPE_NAME);
-
-    std::string base_name = ctype;
 
     length = generate_table_name(ctype,
                         tablename,
@@ -163,8 +162,7 @@ produce_scan(FILE* fd,
   }
   else
   {
-    std::string base_name = column[0].m_ref_name;
-    uint32_t length = generate_ref_table_name(base_name.c_str(),
+    uint32_t length = generate_ref_table_name(column[0].m_ref_name,
                                               tablename,
                                               MAX_TABLE_VARNAME);
 
@@ -178,7 +176,7 @@ produce_scan(FILE* fd,
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
     id++;
-    length = generate_block_name(base_name.c_str(),
+    length = generate_block_name(column[0].m_ref_name,
                                  blockname, 
                                  MAX_BLOCK_VARNAME, 
                                  scan); 
@@ -276,11 +274,10 @@ produce_cross_join(FILE* fd,
   fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_right.p_buffer);
   produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right]);
 
-  std::string iter_varname_left = "left_iter_hashtable_"+std::to_string(cross_join->m_id);
-  fprintf(fd, "auto %s = %s.iterator();\n", 
-          iter_varname_left.c_str(), 
+  fprintf(fd, "auto left_iter_hashtable_%d = %s.iterator();\n", 
+          cross_join->m_id, 
           str_builder_left.p_buffer);
-  fprintf(fd, "while(%s.has_next())\n{\n", iter_varname_left.c_str());
+  fprintf(fd, "while(left_iter_hashtable_%d.has_next())\n{\n", cross_join->m_id);
 
   char cluster[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(cross_join, 
@@ -293,23 +290,22 @@ produce_cross_join(FILE* fd,
   str_builder_init(&str_builder_cluster_left);
   str_builder_append(&str_builder_cluster_left,"left_%s", cluster);
   fprintf(fd,
-          "BlockCluster* %s = %s.next().p_value;\n", 
+          "BlockCluster* %s = left_iter_hashtable_%d.next().p_value;\n", 
           str_builder_cluster_left.p_buffer,
-          iter_varname_left.c_str());
+          cross_join->m_id);
 
-  std::string iter_varname_right = "right_iter_hashtable_"+std::to_string(cross_join->m_id);
-  fprintf(fd, "auto %s = %s.iterator();\n", 
-          iter_varname_right.c_str(), 
+  fprintf(fd, "auto right_iter_hashtable_%d = %s.iterator();\n", 
+          cross_join->m_id, 
           str_builder_right.p_buffer);
-  fprintf(fd, "while(%s.has_next())\n{\n", iter_varname_right.c_str());
+  fprintf(fd, "while(right_iter_hashtable_%d.has_next())\n{\n", cross_join->m_id);
 
   str_builder_t str_builder_cluster_right;
   str_builder_init(&str_builder_cluster_right);
   str_builder_append(&str_builder_cluster_right,"right_%s", cluster);
   fprintf(fd,
-          "BlockCluster* %s = %s.next().p_value;\n", 
+          "BlockCluster* %s = right_iter_hashtable_%d.next().p_value;\n", 
           str_builder_cluster_right.p_buffer,
-          iter_varname_right.c_str());
+          cross_join->m_id);
 
 
   char joined_cluster[MAX_CLUSTER_VARNAME];

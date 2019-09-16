@@ -120,8 +120,12 @@ void BlockCluster::append(const BlockCluster* other)
     if(p_enabled == nullptr)
     {
       p_enabled = new Bitmap(other->p_enabled->max_bits());
+      p_enabled->set_bitmap(other->p_enabled);
     }
-    p_enabled->set_and(other->p_enabled);
+    else
+    {
+      p_enabled->set_and(other->p_enabled);
+    }
   }
 
   if(p_global == nullptr)

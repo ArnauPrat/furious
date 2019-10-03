@@ -663,7 +663,7 @@ generate_table_name(const char* type_name,
                     const fcc_operator_t* op)
 {
   char tmp[MAX_TYPE_NAME];
-  strncpy(tmp, type_name, MAX_TYPE_NAME);
+  strncpy(tmp, type_name, MAX_TYPE_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(type_name), MAX_TYPE_NAME);
   sanitize_name(tmp);
 
@@ -776,7 +776,7 @@ generate_block_name(const char* type_name,
                     const fcc_operator_t* op)
 {
   char tmp[MAX_TYPE_NAME];
-  strncpy(tmp, type_name, MAX_TYPE_NAME);
+  strncpy(tmp, type_name, MAX_TYPE_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(type_name), MAX_TYPE_NAME);
   sanitize_name(tmp);
 
@@ -816,7 +816,7 @@ generate_ref_groups_name(const char* ref_name,
                          const fcc_operator_t* op)
 {
   char tmp[MAX_REF_NAME];
-  strncpy(tmp, ref_name, MAX_REF_NAME);
+  strncpy(tmp, ref_name, MAX_REF_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(ref_name), MAX_REF_NAME);
   sanitize_name(tmp);
   str_builder_t str_builder;
@@ -852,7 +852,7 @@ generate_system_wrapper_name(const char* system_name,
                              const fcc_operator_t* op)
 {
   char base_name[MAX_TYPE_NAME];
-  strncpy(base_name, system_name, MAX_TYPE_NAME);
+  strncpy(base_name, system_name, MAX_TYPE_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(system_name), MAX_TYPE_NAME);
 
   tolower(base_name);

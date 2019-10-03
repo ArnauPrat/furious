@@ -109,9 +109,33 @@ void
 produce_foreach(FILE* fd,
                 const fcc_operator_t* foreach)
 {
+
+  bool all_globals = true;
+  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
+  {
+    if(foreach->m_columns[i].m_type != fcc_column_type_t::E_GLOBAL)
+    {
+      all_globals = false;
+      break;
+    }
+  }
+
+  if(all_globals)
+  {
+    fprintf(fd, 
+            "if(context.m_thread_id == 0)\n{\n");
+  }
+
   fcc_subplan_t* subplan = foreach->p_subplan;
+
   produce(fd,
           &subplan->m_nodes[foreach->m_foreach.m_child]);
+
+  if(all_globals)
+  {
+    fprintf(fd, 
+            "}\n");
+  }
 }
 
 void 
@@ -159,6 +183,11 @@ produce_scan(FILE* fd,
                                  scan); 
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
+
+    fprintf(fd,
+            "auto %s = %s.iterator(chunk_size, offset, stride);\n",
+            itername,
+            tablename);
   }
   else
   {
@@ -182,24 +211,27 @@ produce_scan(FILE* fd,
                                  scan); 
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
+
+
+    fprintf(fd,
+            "auto %s = %s.iterator(1, 0, 1);\n",
+            itername,
+            tablename);
   }
 
   fprintf(fd,
-          "auto %s = %s.iterator(chunk_size, offset, stride);\n\
-           while(%s.has_next())\n\
-           {\n\
-           BlockCluster %s(%s.next().get_raw());\n",
-           itername,
-           tablename,
-           itername,
-           blockname,
-           itername);
+          "while(%s.has_next())\n\
+          {\n\
+          BlockCluster %s(%s.next().get_raw());\n",
+          itername,
+          blockname,
+          itername);
 
   str_builder_t str_builder;
   str_builder_init(&str_builder);
   str_builder_append(&str_builder, 
-                        "(&%s)", 
-                        blockname);
+                     "(&%s)", 
+                     blockname);
 
   fcc_subplan_t* subplan = scan->p_subplan;
   consume(fd,
@@ -250,7 +282,7 @@ produce_leftfilter_join(FILE* fd,
 
 void
 produce_cross_join(FILE* fd,
-        const fcc_operator_t* cross_join)
+                   const fcc_operator_t* cross_join)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -310,8 +342,8 @@ produce_cross_join(FILE* fd,
 
   char joined_cluster[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(cross_join,
-                        joined_cluster,
-                        MAX_CLUSTER_VARNAME);
+                                 joined_cluster,
+                                 MAX_CLUSTER_VARNAME);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
@@ -347,7 +379,7 @@ produce_cross_join(FILE* fd,
 
 void
 produce_fetch(FILE* fd,
-        const fcc_operator_t* fetch)
+              const fcc_operator_t* fetch)
 {
 
   fprintf(fd, 
@@ -413,7 +445,7 @@ produce_fetch(FILE* fd,
 
 void 
 produce_tag_filter(FILE* fd,
-        const fcc_operator_t* tag_filter)
+                   const fcc_operator_t* tag_filter)
 {
   fcc_subplan_t* subplan = tag_filter->p_subplan;
   produce(fd, &subplan->m_nodes[tag_filter->m_tag_filter.m_child]);
@@ -421,7 +453,7 @@ produce_tag_filter(FILE* fd,
 
 void
 produce_component_filter(FILE* fd,
-        const fcc_operator_t* component_filter)
+                         const fcc_operator_t* component_filter)
 {
   fcc_subplan_t* subplan = component_filter->p_subplan;
   produce(fd, &subplan->m_nodes[component_filter->m_component_filter.m_child]);
@@ -429,7 +461,7 @@ produce_component_filter(FILE* fd,
 
 void
 produce_predicate_filter(FILE* fd,
-        const fcc_operator_t* predicate_filter)
+                         const fcc_operator_t* predicate_filter)
 {
   fcc_subplan_t* subplan = predicate_filter->p_subplan;
   produce(fd, &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child]);
@@ -437,7 +469,7 @@ produce_predicate_filter(FILE* fd,
 
 void
 produce_gather(FILE* fd,
-        const fcc_operator_t* gather)
+               const fcc_operator_t* gather)
 {
   char refname[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = gather->p_subplan;
@@ -449,6 +481,10 @@ produce_gather(FILE* fd,
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
   produce(fd, ref_table);
+
+  // This is a temporal buffer needed for generating temporal table names from
+  // threading parameters to make them unique
+  fprintf(fd,"char tmp_buffer_%d[256];\n", gather->m_id);
 
   // Generating temporal tables
   fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
@@ -462,11 +498,11 @@ produce_gather(FILE* fd,
       str_builder_t str_builder;
       str_builder_init(&str_builder);
       str_builder_append(&str_builder, 
-                            "<Gather> operator target component cannot be a\
-                            reference column type: \"%s\"", 
-                            column->m_ref_name);
+                         "<Gather> operator target component cannot be a\
+                         reference column type: \"%s\"", 
+                         column->m_ref_name);
       fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                              str_builder.p_buffer);
+                                           str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
 
@@ -482,12 +518,12 @@ produce_gather(FILE* fd,
       str_builder_t str_builder;
       str_builder_init(&str_builder);
       str_builder_append(&str_builder, 
-                            "<Gather> operator target component must have \
-                            access mode READ: \"%s\"",
-                            ctype);
+                         "<Gather> operator target component must have \
+                         access mode READ: \"%s\"",
+                         ctype);
 
       fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                              str_builder.p_buffer);
+                                           str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
     char temptablename[MAX_TABLE_VARNAME];
@@ -498,11 +534,15 @@ produce_gather(FILE* fd,
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
+    fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+            gather->m_id, 
+            temptablename);
+
+    fprintf(fd,"TableView<%s> %s = database->create_temp_table<%s>(tmp_buffer_%d);\n", 
             ctype,
             temptablename,
             ctype,
-            temptablename);
+            gather->m_id);
 
     fprintf(fd,"%s.clear();\n", 
             temptablename);
@@ -560,8 +600,8 @@ produce_gather(FILE* fd,
 
   char itername[MAX_ITER_VARNAME];
   length = generate_table_iter_name(tablename,
-                           itername,
-                           MAX_ITER_VARNAME);
+                                    itername,
+                                    MAX_ITER_VARNAME);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
@@ -569,8 +609,8 @@ produce_gather(FILE* fd,
 
   char clustername[MAX_CLUSTER_VARNAME];
   length = generate_cluster_name(gather,
-                        clustername,
-                        MAX_CLUSTER_VARNAME);
+                                 clustername,
+                                 MAX_CLUSTER_VARNAME);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
@@ -589,9 +629,9 @@ produce_gather(FILE* fd,
 
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype, 
-                             tablename,
-                             MAX_TABLE_VARNAME,
-                             gather);
+                                      tablename,
+                                      MAX_TABLE_VARNAME,
+                                      gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
@@ -625,14 +665,16 @@ produce_cascading_gather(FILE* fd,
                          const fcc_operator_t* casc_gather)
 {
   // GENERATING REFERENCE GROUPS
+  fprintf(fd, "FURIOUS_PERMA_ASSERT(stride == 1 || (stride > 1 && sync_counter != nullptr));\n");
+
 
   char groups[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = casc_gather->p_subplan;
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
   uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                           groups, 
-                           MAX_REF_TABLE_VARNAME,
-                           casc_gather);
+                                             groups, 
+                                             MAX_REF_TABLE_VARNAME,
+                                             casc_gather);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
 
@@ -651,6 +693,10 @@ produce_cascading_gather(FILE* fd,
   fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
   produce(fd, child);
 
+  // This is a temporal buffer needed for generating temporal table names from
+  // threading parameters to make them unique
+  fprintf(fd,"char tmp_buffer_%d[256];\n", casc_gather->m_id);
+
   // CREATE TEMPORAL TABLES
   DynArray<fcc_column_t>& child_columns = child->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
@@ -662,11 +708,11 @@ produce_cascading_gather(FILE* fd,
       str_builder_t str_builder;
       str_builder_init(&str_builder);
       str_builder_append(&str_builder, 
-                            "<Gather> operator target component cannot\
-                            be a reference column type: \"%s\"", 
-                            column->m_ref_name);
+                         "<Gather> operator target component cannot\
+                         be a reference column type: \"%s\"", 
+                         column->m_ref_name);
       fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                              str_builder.p_buffer);
+                                           str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
 
@@ -682,26 +728,30 @@ produce_cascading_gather(FILE* fd,
       str_builder_t str_builder;
       str_builder_init(&str_builder);
       str_builder_append(&str_builder, 
-                            "<Gather> operator target component \
-                            must have access mode READ: \"%s\"",
-                            ctype);
+                         "<Gather> operator target component \
+                         must have access mode READ: \"%s\"",
+                         ctype);
       fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                              str_builder.p_buffer);
+                                           str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype, 
-                             tablename,
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
+                                      tablename,
+                                      MAX_TABLE_VARNAME,
+                                      casc_gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    fprintf(fd,"TableView<%s> %s = database->create_temp_table_no_lock<%s>(\"%s\");\n", 
+    fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+            casc_gather->m_id,
+            tablename);
+
+    fprintf(fd,"TableView<%s> %s = database->create_temp_table<%s>(tmp_buffer_%d);\n", 
             ctype,
             tablename,
             ctype,
-            tablename);
+            casc_gather->m_id);
   }
 
   // DECLARE BITTABLES FOR CASCADING
@@ -739,9 +789,9 @@ produce_cascading_gather(FILE* fd,
 
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype, 
-                             tablename, 
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
+                                      tablename, 
+                                      MAX_TABLE_VARNAME,
+                                      casc_gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
@@ -780,8 +830,8 @@ produce_cascading_gather(FILE* fd,
 
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype, tablename, 
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
+                                      MAX_TABLE_VARNAME,
+                                      casc_gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
@@ -805,16 +855,16 @@ produce_cascading_gather(FILE* fd,
 
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype, 
-                             tablename, 
-                             MAX_TABLE_VARNAME, 
-                             casc_gather);
+                                      tablename, 
+                                      MAX_TABLE_VARNAME, 
+                                      casc_gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     char itername[MAX_ITER_VARNAME];
     length = generate_table_iter_name(tablename, 
-                             itername, 
-                             MAX_ITER_VARNAME);
+                                      itername, 
+                                      MAX_ITER_VARNAME);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
@@ -826,23 +876,23 @@ produce_cascading_gather(FILE* fd,
   fcc_column_t* column = &child_columns[0];
   char ctype[MAX_TYPE_NAME];
   length = fcc_type_name(column->m_component_type,
-                ctype,
-                MAX_TYPE_NAME); 
+                         ctype,
+                         MAX_TYPE_NAME); 
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
   char tablename[MAX_TABLE_VARNAME];
   length = generate_temp_table_name(ctype,
-                           tablename,
-                           MAX_TABLE_VARNAME,
-                           casc_gather);
+                                    tablename,
+                                    MAX_TABLE_VARNAME,
+                                    casc_gather);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
   char itername[MAX_ITER_VARNAME];
   length = generate_table_iter_name(tablename,
-                           itername,
-                           MAX_ITER_VARNAME);
+                                    itername,
+                                    MAX_ITER_VARNAME);
 
   FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
@@ -869,16 +919,16 @@ produce_cascading_gather(FILE* fd,
 
     char tablename[MAX_TABLE_VARNAME];
     length = generate_temp_table_name(ctype,
-                             tablename,
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
+                                      tablename,
+                                      MAX_TABLE_VARNAME,
+                                      casc_gather);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     char itername[MAX_ITER_VARNAME];
     length = generate_table_iter_name(tablename,
-                             itername,
-                             MAX_ITER_VARNAME);
+                                      itername,
+                                      MAX_ITER_VARNAME);
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 

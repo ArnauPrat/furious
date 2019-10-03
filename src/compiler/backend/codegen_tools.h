@@ -79,7 +79,7 @@ generate_table_name(const char* type_name,
 uint32_t
 generate_temp_table_name(const char* type_name,
                          char* buffer,
-                         uint32_t buffer_length, 
+                         uint32_t buffer_length,
                          const fcc_operator_t* op = nullptr);
 
 uint32_t

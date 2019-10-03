@@ -80,4 +80,22 @@ furious::match<FieldMesh>().foreach<DrawFieldMesh>();
 furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
 furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>().set_priority(2);
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+struct TestSystemCascading
+{
+  void run(furious::Context* context, 
+           uint32_t id, 
+           TestComponent1* comp_1,
+           const TestComponent1* parent_comp_1,
+           const TestComponent2* parent_comp_2)
+  {
+  }
+};
+
+furious::match<TestComponent1>().expand<TestComponent1, TestComponent2>("parent").foreach<TestSystemCascading>();
+
 END_FURIOUS_SCRIPT

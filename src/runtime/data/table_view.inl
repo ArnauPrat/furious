@@ -109,10 +109,10 @@ TableView<TComponent>::get_component(entity_id_t id) const
 
 template<typename TComponent>
 template<typename...Args>
-void 
+TComponent* 
 TableView<TComponent>::insert_component(entity_id_t id, Args&&...args)
 {
-  new (p_table->alloc_component(id)) TComponent{std::forward<Args>(args)...};
+ return new (p_table->alloc_component(id)) TComponent{std::forward<Args>(args)...};
 }
 
 template<typename TComponent>

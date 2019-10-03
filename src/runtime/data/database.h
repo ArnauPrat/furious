@@ -14,6 +14,18 @@
 #include <assert.h>
 #include <mutex>
 
+template<typename T>
+void destructor(void *ptr) 
+{
+  static_cast<T*>(ptr)->~T();
+}
+
+template<typename T, void (*Func)(T*)>
+void destructor_manual(void *ptr) 
+{
+  Func((T*)ptr);
+}
+
 
 namespace furious 
 {
@@ -62,6 +74,13 @@ struct Database
   /**
    * Adds a table to the database
    */
+  template <typename T, void (*fp)(T*)>
+  TableView<T>
+  create_table();
+
+  /**
+   * Adds a table to the database
+   */
   template <typename T>
   TableView<T>
   create_table();
@@ -89,6 +108,18 @@ struct Database
    * @return A TableView of the table
    */
   template <typename T>
+  TableView<T> 
+  find_or_create_table();
+
+  /**
+   * @brief Finds the table for the specified component or adds it to the
+   * database if it does not exist
+   *
+   * @tparam T The component type
+   *
+   * @return A TableView of the table
+   */
+  template <typename T, void (*fp)(T*)>
   TableView<T> 
   find_or_create_table();
 

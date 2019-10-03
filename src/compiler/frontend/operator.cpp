@@ -19,7 +19,7 @@ create_operator(fcc_subplan_t* subplan,
   op->m_id = id;
   op->m_type = operator_type;
   op->m_parent = _FURIOUS_COMPILER_INVALID_ID;
-  strncpy(op->m_name, name, _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
+  strncpy(op->m_name, name, _FURIOUS_COMPILER_MAX_OPERATOR_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(name), _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
   return id;
 }
@@ -56,7 +56,7 @@ create_scan(fcc_subplan_t* subplan,
   fcc_operator_t* op = &subplan->m_nodes[id];
   fcc_column_t column;
   column.m_type = fcc_column_type_t::E_REFERENCE;
-  strncpy(column.m_ref_name,ref_name, MAX_REF_NAME);
+  strncpy(column.m_ref_name,ref_name, MAX_REF_NAME-1);
   FURIOUS_CHECK_STR_LENGTH(strlen(ref_name), MAX_REF_NAME);
   column.m_access_mode = fcc_access_mode_t::E_READ;
   op->m_columns.append(column);
@@ -168,7 +168,7 @@ create_tag_filter(fcc_subplan_t* subplan,
                                 fcc_operator_type_t::E_TAG_FILTER, 
                                 "TagFilter");
   fcc_operator_t* op = &subplan->m_nodes[id];
-  strncpy(op->m_tag_filter.m_tag, tag, MAX_TAG_NAME);
+  strncpy(op->m_tag_filter.m_tag, tag, MAX_TAG_NAME - 1);
   FURIOUS_CHECK_STR_LENGTH(strlen(tag), MAX_TAG_NAME);
   subplan->m_nodes[child].m_parent = id;
   op->m_tag_filter.m_child = child;
@@ -379,6 +379,7 @@ init_subplan(const fcc_stmt_t* match,
              fcc_subplan_t* subplan)
 {
   uint32_t root = _FURIOUS_COMPILER_INVALID_ID;
+  subplan->m_requires_sync = false;
 
   int32_t size = match->p_entity_matches.size();
   for(int32_t i = size - 1; i >= 0; --i)
@@ -415,9 +416,6 @@ init_subplan(const fcc_stmt_t* match,
                                entity_match->m_component_types[j].m_type, 
                                access_mode);
 
-          local_root = create_cross_join(subplan,
-                                         local_root, 
-                                         right);
         }
         else
         {
@@ -425,6 +423,17 @@ init_subplan(const fcc_stmt_t* match,
                               entity_match->m_component_types[j].m_type, 
                               access_mode);
 
+        }
+
+        if (subplan->m_nodes[local_root].m_type == fcc_operator_type_t::E_FETCH || 
+            subplan->m_nodes[right].m_type == fcc_operator_type_t::E_FETCH)
+        {
+          local_root = create_cross_join(subplan,
+                                         local_root, 
+                                         right);
+        }
+        else
+        {
           local_root = create_join(subplan,
                                    local_root, 
                                    right);
@@ -484,6 +493,7 @@ init_subplan(const fcc_stmt_t* match,
           local_root = create_cascading_gather(subplan,
                                                local_root,
                                                ref_scan);
+          subplan->m_requires_sync = true;
         }
         else
         {

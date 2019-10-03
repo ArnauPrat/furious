@@ -21,7 +21,7 @@ struct Component
 TEST(DatabaseTest, CreateAndRemoveTable) {
   auto database = new Database();
   database->clear();
-  auto table = FURIOUS_CREATE_TABLE(database, Component);
+  FURIOUS_CREATE_TABLE(database, Component);
   FURIOUS_REMOVE_TABLE(database, Component);
   delete database;
 }
@@ -31,7 +31,7 @@ TEST(DatabaseTest, FindTable) {
   auto database = new Database();
   database->clear();
   FURIOUS_CREATE_TABLE(database, Component);
-  auto table = FURIOUS_FIND_TABLE(database, Component);
+  FURIOUS_FIND_TABLE(database, Component);
   FURIOUS_REMOVE_TABLE(database, Component);
   delete database;
 }

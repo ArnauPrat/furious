@@ -10,8 +10,9 @@ struct UpdatePosition
 
   void run(furious::Context* context,
            uint32_t id,
-           Position* position,
-           const GlobalComponent* global)
+           const GlobalComponent* global,
+           Position* position
+           )
   {
     position->m_x = (position->m_x + global->m_x);
     position->m_y = (position->m_y + global->m_y);
@@ -20,7 +21,7 @@ struct UpdatePosition
 
 };
 
-furious::match<Position,furious::Global<GlobalComponent>>().foreach<UpdatePosition>();
+furious::match<furious::Global<GlobalComponent>, Position>().foreach<UpdatePosition>();
 
 
 END_FURIOUS_SCRIPT

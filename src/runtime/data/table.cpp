@@ -156,6 +156,16 @@ Table::Iterator::Iterator(const BTree<TBlock>* blocks,
 {
 }
 
+static bool
+is_selected(uint32_t chunk_id, 
+            uint32_t chunk_size,
+            uint32_t offset,
+            uint32_t stride)
+{
+  // we add stride to -offset to avoid computing modulo over negative numbers
+  return ((((chunk_id / chunk_size) + (stride - offset))) % stride) == 0;
+}
+
 bool 
 Table::Iterator::has_next() const 
 { 
@@ -164,7 +174,7 @@ Table::Iterator::has_next() const
   {
     m_next = m_it.next().p_value;
     uint32_t chunk_id = m_next->m_start / (TABLE_BLOCK_SIZE);
-    bool is_next = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
+    bool is_next = is_selected(chunk_id, m_chunk_size, m_offset, m_stride);
     if(is_next)
     {
       return true;
@@ -193,7 +203,9 @@ Table::Iterator::next()
       if(next != nullptr)
       {
         uint32_t chunk_id = next->m_start / (TABLE_BLOCK_SIZE);
-        found = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
+        //found = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
+        found = is_selected(chunk_id, m_chunk_size, m_offset, m_stride);
+        //found = (((chunk_id / m_chunk_size) + (m_chunk_size - m_offset)) % m_stride) == 0;
       }
     } while (next != nullptr && !found);
   }

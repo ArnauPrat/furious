@@ -5,12 +5,26 @@
 namespace furious 
 {
 
-template<typename T>
-  void destructor(void *ptr) 
+
+
+template <typename T, void (*fp)(T*)>
+TableView<T> 
+Database::create_table() 
+{
+  lock();
+  uint32_t hash_value = get_table_id<T>();
+  assert(m_tables.get(hash_value) == nullptr);
+  if(m_tables.get(hash_value) != nullptr)
   {
-    static_cast<T*>(ptr)->~T();
+    release();
+    return TableView<T>(nullptr);
   }
 
+  Table* table = new Table(T::_component_name(), hash_value, sizeof(T), destructor_manual<T,fp>);
+  m_tables.insert_copy(hash_value,&table);
+  release();
+  return TableView<T>(table); 
+}
 
 template <typename T>
 TableView<T> 
@@ -24,7 +38,8 @@ Database::create_table()
     release();
     return TableView<T>(nullptr);
   }
-  Table* table =  new Table(T::_component_name(), hash_value, sizeof(T), destructor<T>);
+
+  Table* table = new Table(T::_component_name(), hash_value, sizeof(T), destructor<T>);
   m_tables.insert_copy(hash_value,&table);
   release();
   return TableView<T>(table); 
@@ -79,6 +94,24 @@ Database::find_or_create_table()
     return TableView<T>(*table);
   }
   Table* table_ptr =  new Table(T::_component_name(), hash_value, sizeof(T), destructor<T>);
+  m_tables.insert_copy(hash_value,&table_ptr);
+  release();
+  return TableView<T>(table_ptr); 
+}
+
+template <typename T, void (*fp)(T*)>
+TableView<T> 
+Database::find_or_create_table()
+{
+  lock();
+  uint32_t hash_value = get_table_id<T>(); 
+  Table** table = m_tables.get(hash_value);
+  if(table != nullptr) 
+  {
+    release();
+    return TableView<T>(*table);
+  }
+  Table* table_ptr =  new Table(T::_component_name(), hash_value, sizeof(T), destructor_manual<T,fp>);
   m_tables.insert_copy(hash_value,&table_ptr);
   release();
   return TableView<T>(table_ptr); 

@@ -6,10 +6,11 @@
 namespace furious  {
 
 template<typename TComponent, typename...Args>
-  void Entity::add_component(Args&&...args) 
+  TComponent* 
+  Entity::add_component(Args&&...args) 
   {
     TableView<TComponent> table = p_database->find_or_create_table<TComponent>();
-    table.insert_component(m_id, std::forward<Args>(args)...);
+    return table.insert_component(m_id, std::forward<Args>(args)...);
   }
 
 template<typename TComponent>

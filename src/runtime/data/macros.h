@@ -6,6 +6,9 @@
 #define FURIOUS_CREATE_TABLE(database, Component) \
    (database)->create_table<Component>()
 
+#define FURIOUS_CREATE_TABLE_DESTRUCTOR(database, Component, Destructor) \
+   (database)->create_table<Component, Destructor>()
+
 #define FURIOUS_REMOVE_TABLE(database, Component)\
   (database)->remove_table<Component>()
 
@@ -14,6 +17,9 @@
 
 #define FURIOUS_FIND_OR_CREATE_TABLE(database, Component)\
   (database)->find_or_create_table<Component>()
+
+#define FURIOUS_FIND_OR_CREATE_TABLE_DESTRUCTOR(database, Component, Destructor)\
+  (database)->find_or_create_table<Component, Destructor>()
 
 #define FURIOUS_EXISTS_TABLE(database, Component)\
   (database)->exists_table<Component>()

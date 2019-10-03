@@ -38,4 +38,26 @@ struct FieldMesh
   float m_z;
 };
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+struct TestComponent1
+{
+  FURIOUS_COMPONENT(TestComponent1);
+
+  float m_a;
+  float m_b;
+  float m_c;
+};
+
+struct TestComponent2
+{
+  FURIOUS_COMPONENT(TestComponent2);
+
+  float m_a;
+  float m_b;
+  float m_c;
+};
+
 #endif /* ifndef _BASIC_TEST_HEADER_H_ */

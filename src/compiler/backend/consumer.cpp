@@ -144,6 +144,7 @@ consume_foreach(FILE*fd,
     }
   }
 
+
   int param_index = 0;
   for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
   {
@@ -284,6 +285,7 @@ consume_foreach(FILE*fd,
             "}\n");
   }
   str_builder_release(&str_builder);
+
 }
 
 void 

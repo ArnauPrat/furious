@@ -26,11 +26,13 @@ fcc_generate_task_graph(FILE* fd,
   for(uint32_t i = 0; i < num_tasks; ++i)
   {
     fprintf(fd, 
-            "task_graph_insert_task(%s,%d,%s_%d);\n", 
+            "task_graph_insert_task(%s,%d,%s_%d, (bool)%d);\n", 
             task_graph_name,
             i,
             task_prefix,
-            i);
+            i,
+            exec_plan->m_subplans[i]->m_requires_sync
+            );
   }
 
   for(uint32_t i = 0; i < num_tasks; ++i)
@@ -225,15 +227,15 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
-            uint32_t stride)\n", 
+            uint32_t stride,\n\
+            sync_counter_t* sync_counter)\n", 
             i);
 
     fprintf(fd,"{\n");
 
-    fprintf(fd, "Context context(delta,database,user_data);\n");
+    fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root);
-    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
@@ -252,13 +254,13 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
-            uint32_t stride)\n", i);
+            uint32_t stride,\n\
+            sync_counter_t* sync_counter)\n", i);
     fprintf(fd,"{\n");
 
-    fprintf(fd, "Context context(delta,database,user_data);\n");
+    fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root);
-    //fprintf(fd,"database->remove_temp_tables_no_lock();\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
@@ -408,7 +410,6 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"\n\n\n");
     fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
-    fprintf(fd, "database->lock();\n");
     /*DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
     const uint32_t num_in_sequence = seq.size();
     for (uint32_t j = 0; j < num_in_sequence; ++j) 
@@ -417,7 +418,6 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     }
     */
     fprintf(fd, "task_graph_run(task_graph, delta, database, user_data);\n");
-    fprintf(fd, "database->release();\n");
     fprintf(fd, "}\n");
   }
 
@@ -427,7 +427,6 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"\n\n\n");
     fprintf(fd,"void __furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
 
-    fprintf(fd, "database->lock();\n");
 
     /*DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
     const uint32_t num_in_sequence = seq.size();
@@ -439,7 +438,6 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
     fprintf(fd, "task_graph_run(post_task_graph, delta, database, user_data);\n");
 
-    fprintf(fd, "database->release();\n");
     fprintf(fd, "}\n");
   }
 

@@ -30,9 +30,11 @@ task_graph_destroy(task_graph_t* task_graph)
 void
 task_graph_insert_task(task_graph_t* task_graph,
             uint32_t task_id,
-            task_func_t func)
+            task_func_t func,
+            bool requires_sync)
 {
   task_graph->m_tasks[task_id].p_func = func;
+  task_graph->m_tasks[task_id].m_requires_sync = requires_sync;
 }
 
 void
@@ -98,7 +100,7 @@ task_graph_run(task_graph_t* task_graph,
           {
             const uint32_t next_node_id = current_frontier[ii];
             const task_t* next_node = &task_graph->m_tasks[next_node_id]; 
-            next_node->p_func(delta, database, user_data, 1, 0, 1);
+            next_node->p_func(delta, database, user_data, 1, 0, 1, nullptr);
             const DynArray<uint32_t>& children = next_node->m_children;
             const uint32_t num_children = children.size();
             for(uint32_t j = 0; j < num_children; ++j)

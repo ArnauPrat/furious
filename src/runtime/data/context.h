@@ -22,7 +22,10 @@ class Context
 public:
   Context(float dt, 
           Database* database,
-          void* user_data);
+          void* user_data,
+          uint32_t chunk_size,
+          uint32_t thread_id,
+          uint32_t num_threads);
   ~Context() = default;
 
   //template<typename TComponent>
@@ -33,6 +36,9 @@ public:
 
   const float m_dt;                 
   void*       p_user_data;
+  uint32_t    m_chunk_size;
+  uint32_t    m_thread_id;
+  uint32_t    m_num_threads;
 
 private:
   Database*     p_database;

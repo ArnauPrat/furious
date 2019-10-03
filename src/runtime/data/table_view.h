@@ -85,8 +85,9 @@ struct TableView
    * @param ...args
    */
   template<typename...Args>
-  void  
-  insert_component(entity_id_t id, Args&&...args);
+  TComponent* 
+  insert_component(entity_id_t id, 
+                   Args&&...args);
 
   /**
    * @brief Drops the component with the given id

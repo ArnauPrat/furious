@@ -210,6 +210,7 @@ struct fcc_subplan_t
 {
   uint32_t                  m_root;
   DynArray<fcc_operator_t>  m_nodes;
+  bool                      m_requires_sync;
 };
 
 

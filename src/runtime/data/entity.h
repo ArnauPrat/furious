@@ -29,7 +29,7 @@ public:
 public:
 
   template<typename TComponent, typename...Args>
-  void 
+  TComponent* 
   add_component(Args&&...args);
 
   template<typename TComponent>

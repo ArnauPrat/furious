@@ -92,6 +92,40 @@ TEST(TableTest,TableWorks)
   database->remove_table<Component>();
   delete database;
 }
+
+
+TEST(IteratorTest,TableWorks) 
+{
+
+  Database* database = new Database();
+  FURIOUS_CREATE_TABLE(database, Component);
+  TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
+   int32_t num_components = TABLE_BLOCK_SIZE*2048;
+
+  for(int32_t i = 0; i < num_components; ++i) 
+  {
+    table.insert_component(i,i,static_cast<float>(i));
+  }
+
+  TableView<Component>::BlockIterator it = table.iterator(1, 0, 2);
+  while(it.has_next())
+  {
+    TableView<Component>::Block block = it.next();
+    uint32_t block_start = block.get_start() / TABLE_BLOCK_SIZE;
+    ASSERT_TRUE(block_start % 2 == 0);
+  }
+
+  TableView<Component>::BlockIterator it2 = table.iterator(1, 1, 2);
+  while(it2.has_next())
+  {
+    TableView<Component>::Block block = it2.next();
+    uint32_t block_start = block.get_start() / TABLE_BLOCK_SIZE;
+    ASSERT_TRUE(block_start % 2 == 1);
+  }
+
+  delete database;
+}
+
 }
 
 int main(int argc, char *argv[])

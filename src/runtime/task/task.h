@@ -11,15 +11,15 @@ namespace furious
 {
 
 class Database;
-class sync_counter_t;
+class barrier_t;
 
 using task_func_t = void (*) (float, // delta 
                               Database*, // database
                               void*, // userdata
                               uint32_t, // chunksize 
                               uint32_t,  // offset
-                              uint32_t,
-                              sync_counter_t* sync_counter); // stride
+                              uint32_t, // stride
+                              barrier_t* barrier); 
 
 struct task_t 
 {
@@ -67,35 +67,18 @@ task_graph_run(task_graph_t* task_graph,
                Database* database,
                void* user_data);
 
-class sync_counter_t
+class barrier_t
 {
 public:
 
   /**
-   * \brief Sets the counter to the given value
-   *
-   * \param val
-   */
-  virtual void
-  set(uint32_t val) = 0;
-
-  /**
-   * \brief Decrements the value of the counter
-   */
-  virtual void
-  decrement() = 0;
-
-  /**
    * \brief blocks the current thread/task until the counter is zero
    */
   virtual void
-  join_while_zero() = 0;
+  wait(int32_t num_processes) = 0;
 
-  /**
-   * \brief blocks the current thread/task until the counter is zero
-   */
   virtual void
-  join_while_non_zero() = 0;
+  reset() = 0;
 
 };
   

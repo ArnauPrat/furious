@@ -14,7 +14,8 @@ struct fcc_operator_t;
  */
 void
 produce(FILE* fd,
-        const fcc_operator_t* fcc_operator);
+        const fcc_operator_t* fcc_operator,
+        bool parallel_stream);
   
 } /* produce_visitor */ 
 

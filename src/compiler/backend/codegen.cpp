@@ -228,14 +228,14 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
             uint32_t stride,\n\
-            sync_counter_t* sync_counter)\n", 
+            barrier_t* barrier)\n", 
             i);
 
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
-    produce(fd,root);
+    produce(fd,root, true);
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
@@ -255,12 +255,12 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
             uint32_t stride,\n\
-            sync_counter_t* sync_counter)\n", i);
+            barrier_t* barrier)\n", i);
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
-    produce(fd,root);
+    produce(fd,root, true);
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }

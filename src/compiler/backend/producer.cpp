@@ -16,90 +16,103 @@ namespace furious
 
 void
 produce(FILE* fd, 
-        const fcc_operator_t* fcc_operator);
+        const fcc_operator_t* fcc_operator,
+        bool parallel_stream);
 
 static void
 produce_scan(FILE* fd,
-        const fcc_operator_t* scan);
+        const fcc_operator_t* scan,
+        bool parallel_stream);
 
 static void
 produce_foreach(FILE* fd,
-                const fcc_operator_t* foreach);
+                const fcc_operator_t* foreach,
+                bool parallel_stream);
 
 static void
 produce_join(FILE* fd,
-             const fcc_operator_t* join);
+             const fcc_operator_t* join,
+             bool parallel_stream);
 
 static void
 produce_cross_join(FILE* fd,
-        const fcc_operator_t* cross_join);
+        const fcc_operator_t* cross_join,
+        bool parallel_stream);
 
 static void
 produce_leftfilter_join(FILE* fd,
-                        const fcc_operator_t* left_filter_join);
+                        const fcc_operator_t* left_filter_join,
+                        bool parallel_stream);
 
 static void
 produce_gather(FILE* fd,
-               const fcc_operator_t* gather);
+               const fcc_operator_t* gather,
+               bool parallel_stream);
 
 static void
 produce_cascading_gather(FILE* fd,
-                         const fcc_operator_t* casc_gather);
+                         const fcc_operator_t* casc_gather,
+                         bool parallel_stream);
 
 static void
 produce_fetch(FILE* fd,
-              const fcc_operator_t* fetch);
+              const fcc_operator_t* fetch,
+              bool parallel_stream);
 
 static void
 produce_tag_filter(FILE* fd,
-        const fcc_operator_t* tag_filter);
+        const fcc_operator_t* tag_filter,
+        bool parallel_stream);
 
 static void
 produce_predicate_filter(FILE* fd,
-        const fcc_operator_t* predicate_filter);
+        const fcc_operator_t* predicate_filter,
+        bool parallel_stream);
 
 static void
 produce_component_filter(FILE* fd,
-        const fcc_operator_t* component_filter);
+        const fcc_operator_t* component_filter,
+        bool parallel_stream);
 
 void 
 produce(FILE* fd,
-        const fcc_operator_t* fcc_operator)
+        const fcc_operator_t* fcc_operator,
+        bool parallel_stream)
 {
   switch(fcc_operator->m_type)
   {
     case fcc_operator_type_t::E_SCAN:
-      produce_scan(fd, fcc_operator);
+      produce_scan(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_FOREACH:
-      produce_foreach(fd, fcc_operator);
+      produce_foreach(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_JOIN:
-      produce_join(fd, fcc_operator);
+      produce_join(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_LEFT_FILTER_JOIN:
-      produce_leftfilter_join(fd, fcc_operator);
+      produce_leftfilter_join(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_CROSS_JOIN:
-      produce_cross_join(fd, fcc_operator);
+      produce_cross_join(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_FETCH:
-      produce_fetch(fd, fcc_operator);
+      produce_fetch(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_GATHER:
-      produce_gather(fd, fcc_operator);
+      produce_gather(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_CASCADING_GATHER:
-      produce_cascading_gather(fd, fcc_operator);
+      produce_cascading_gather(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_TAG_FILTER:
-      produce_tag_filter(fd, fcc_operator);
+      produce_tag_filter(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_PREDICATE_FILTER:
-      produce_predicate_filter(fd, fcc_operator);
+      produce_predicate_filter(fd, fcc_operator, parallel_stream);
       break;
     case fcc_operator_type_t::E_COMPONENT_FILTER:
-      produce_component_filter(fd, fcc_operator);
+      produce_component_filter(fd, fcc_operator, parallel_stream);
       break;
   };
 }
@@ -107,7 +120,8 @@ produce(FILE* fd,
 
 void 
 produce_foreach(FILE* fd,
-                const fcc_operator_t* foreach)
+                const fcc_operator_t* foreach,
+                bool parallel_stream)
 {
 
   bool all_globals = true;
@@ -129,7 +143,8 @@ produce_foreach(FILE* fd,
   fcc_subplan_t* subplan = foreach->p_subplan;
 
   produce(fd,
-          &subplan->m_nodes[foreach->m_foreach.m_child]);
+          &subplan->m_nodes[foreach->m_foreach.m_child],
+          true);
 
   if(all_globals)
   {
@@ -140,7 +155,8 @@ produce_foreach(FILE* fd,
 
 void 
 produce_scan(FILE* fd,
-        const fcc_operator_t* scan)
+        const fcc_operator_t* scan,
+        bool parallel_stream)
 {
   static uint32_t id = 0;
   char tablename[MAX_TABLE_VARNAME];
@@ -184,10 +200,6 @@ produce_scan(FILE* fd,
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
 
-    fprintf(fd,
-            "auto %s = %s.iterator(chunk_size, offset, stride);\n",
-            itername,
-            tablename);
   }
   else
   {
@@ -213,6 +225,17 @@ produce_scan(FILE* fd,
     FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
 
 
+  }
+
+  if(parallel_stream)
+  {
+    fprintf(fd,
+            "auto %s = %s.iterator(chunk_size, offset, stride);\n",
+            itername,
+            tablename);
+  }
+  else
+  {
     fprintf(fd,
             "auto %s = %s.iterator(1, 0, 1);\n",
             itername,
@@ -247,7 +270,8 @@ produce_scan(FILE* fd,
 
 void
 produce_join(FILE* fd,
-             const fcc_operator_t* join)
+             const fcc_operator_t* join, 
+             bool parallel_stream)
 {
   char hashtable[MAX_HASHTABLE_VARNAME];
   const uint32_t length = generate_hashtable_name(join,
@@ -258,13 +282,14 @@ produce_join(FILE* fd,
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_subplan_t* subplan = join->p_subplan;
-  produce(fd,&subplan->m_nodes[join->m_join.m_left]);
-  produce(fd,&subplan->m_nodes[join->m_join.m_right]);
+  produce(fd,&subplan->m_nodes[join->m_join.m_left], parallel_stream);
+  produce(fd,&subplan->m_nodes[join->m_join.m_right], parallel_stream);
 }
 
 void
 produce_leftfilter_join(FILE* fd,
-                        const fcc_operator_t* left_filter_join)
+                        const fcc_operator_t* left_filter_join,
+                        bool parallel_stream)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -276,13 +301,14 @@ produce_leftfilter_join(FILE* fd,
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_subplan_t* subplan = left_filter_join->p_subplan;
-  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_left]);
-  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right]);
+  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_left], parallel_stream);
+  produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right], parallel_stream);
 }
 
 void
 produce_cross_join(FILE* fd,
-                   const fcc_operator_t* cross_join)
+                   const fcc_operator_t* cross_join,
+                   bool parallel_stream)
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -298,13 +324,13 @@ produce_cross_join(FILE* fd,
   fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_left.p_buffer);
 
   fcc_subplan_t* subplan = cross_join->p_subplan;
-  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_left]);
+  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_left], parallel_stream);
 
   str_builder_t str_builder_right;
   str_builder_init(&str_builder_right);
   str_builder_append(&str_builder_right, "right_%s", hashtable);
   fprintf(fd,"BTree<BlockCluster> %s;\n", str_builder_right.p_buffer);
-  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right]);
+  produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right], parallel_stream);
 
   fprintf(fd, "auto left_iter_hashtable_%d = %s.iterator();\n", 
           cross_join->m_id, 
@@ -379,7 +405,8 @@ produce_cross_join(FILE* fd,
 
 void
 produce_fetch(FILE* fd,
-              const fcc_operator_t* fetch)
+              const fcc_operator_t* fetch, 
+              bool parallel_stream)
 {
 
   fprintf(fd, 
@@ -445,31 +472,37 @@ produce_fetch(FILE* fd,
 
 void 
 produce_tag_filter(FILE* fd,
-                   const fcc_operator_t* tag_filter)
+                   const fcc_operator_t* tag_filter,
+                   bool parallel_stream)
 {
   fcc_subplan_t* subplan = tag_filter->p_subplan;
-  produce(fd, &subplan->m_nodes[tag_filter->m_tag_filter.m_child]);
+  produce(fd, &subplan->m_nodes[tag_filter->m_tag_filter.m_child], parallel_stream);
 }
 
 void
 produce_component_filter(FILE* fd,
-                         const fcc_operator_t* component_filter)
+                         const fcc_operator_t* component_filter, 
+                         bool parallel_stream)
 {
   fcc_subplan_t* subplan = component_filter->p_subplan;
-  produce(fd, &subplan->m_nodes[component_filter->m_component_filter.m_child]);
+  produce(fd, &subplan->m_nodes[component_filter->m_component_filter.m_child], 
+          parallel_stream);
 }
 
 void
 produce_predicate_filter(FILE* fd,
-                         const fcc_operator_t* predicate_filter)
+                         const fcc_operator_t* predicate_filter, 
+                         bool parallel_stream)
 {
   fcc_subplan_t* subplan = predicate_filter->p_subplan;
-  produce(fd, &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child]);
+  produce(fd, &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child], 
+          parallel_stream);
 }
 
 void
 produce_gather(FILE* fd,
-               const fcc_operator_t* gather)
+               const fcc_operator_t* gather,
+               bool parallel_stream)
 {
   char refname[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = gather->p_subplan;
@@ -480,7 +513,7 @@ produce_gather(FILE* fd,
                            gather);
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
-  produce(fd, ref_table);
+  produce(fd, ref_table, parallel_stream);
 
   // This is a temporal buffer needed for generating temporal table names from
   // threading parameters to make them unique
@@ -548,7 +581,7 @@ produce_gather(FILE* fd,
             temptablename);
   }
 
-  produce(fd, child);
+  produce(fd, child, parallel_stream);
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
@@ -576,9 +609,18 @@ produce_gather(FILE* fd,
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
 
-    fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
-            itername, 
-            tablename);
+    if(parallel_stream)
+    {
+      fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
+              itername, 
+              tablename);
+    }
+    else
+    {
+      fprintf(fd, "auto %s = %s.iterator(1, 0, 1);\n", 
+              itername, 
+              tablename);
+    }
   }
 
   fcc_column_t* column = &child_columns[0];
@@ -662,10 +704,11 @@ produce_gather(FILE* fd,
 
 void
 produce_cascading_gather(FILE* fd,
-                         const fcc_operator_t* casc_gather)
+                         const fcc_operator_t* casc_gather, 
+                         bool parallel_stream)
 {
   // GENERATING REFERENCE GROUPS
-  fprintf(fd, "FURIOUS_PERMA_ASSERT(stride == 1 || (stride > 1 && sync_counter != nullptr));\n");
+  fprintf(fd, "FURIOUS_PERMA_ASSERT(stride == 1 || (stride > 1 && barrier != nullptr));\n");
 
 
   char groups[MAX_REF_TABLE_VARNAME];
@@ -679,7 +722,7 @@ produce_cascading_gather(FILE* fd,
   FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
-  produce(fd, ref_table);
+  produce(fd, ref_table, false);
 
   // GENERATING HASHTABLE WITH CHILD BLOCKS 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -691,7 +734,7 @@ produce_cascading_gather(FILE* fd,
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
-  produce(fd, child);
+  produce(fd, child, false);
 
   // This is a temporal buffer needed for generating temporal table names from
   // threading parameters to make them unique
@@ -773,8 +816,12 @@ produce_cascading_gather(FILE* fd,
           casc_gather->m_id);
 
   fprintf(fd,
+          "int32_t last_barrier = 0;");
+
+  fprintf(fd,
           "while(current_frontier_%u->size() > 0)\n{\n", 
           casc_gather->m_id);
+
 
   // CLEARING TEMPORAL TABLES
   for(uint32_t i = 0; i < child_columns.size(); ++i)
@@ -839,6 +886,17 @@ produce_cascading_gather(FILE* fd,
             tablename);
   }
   fprintf(fd,");\n");
+
+
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
+
   fprintf(fd,"}\n");
 
 
@@ -868,9 +926,18 @@ produce_cascading_gather(FILE* fd,
 
     FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
-    fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
-            itername, 
-            tablename);
+    if(parallel_stream)
+    {
+      fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
+              itername, 
+              tablename);
+    }
+    else
+    {
+      fprintf(fd, "auto %s = %s.iterator(1, 0, 1);\n", 
+              itername, 
+              tablename);
+    }
   }
 
   fcc_column_t* column = &child_columns[0];

@@ -1,7 +1,7 @@
 
 include_directories(./)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBCLANG_CXXFLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBCLANG_CXXFLAGS} -Wno-stringop-truncation")
 
 set(DRIVER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/drivers/clang/clang.cpp
@@ -35,7 +35,6 @@ set(COMPILER_SRC
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/exec_plan.h
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.h
-  ${CMAKE_SOURCE_DIR}/src/compiler/frontend/operator.inl
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.cpp
   ${CMAKE_SOURCE_DIR}/src/compiler/frontend/transforms.h
   )

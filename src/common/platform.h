@@ -10,8 +10,9 @@
 #define FURIOUS_ASSERT(_cond) assert(_cond);
 #define FURIOUS_PERMA_ASSERT(_cond) if(!(_cond)) abort();
 
-#define FURIOUS_CHECK_STR_LENGTH(length, capacity) \
-        FURIOUS_PERMA_ASSERT(length < capacity && "String exceeds maximum capacity");
+#define FURIOUS_COPY_AND_CHECK_STR(dest, origin, capacity) \
+        strncpy(dest, origin, capacity);\
+        FURIOUS_PERMA_ASSERT( strlen(origin) < capacity && "String exceeds maximum capacity");
     
 
 namespace furious 

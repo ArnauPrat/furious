@@ -24,6 +24,7 @@ fcc_entity_match_create()
 {
   fcc_entity_match_t* e_match = new fcc_entity_match_t(); 
   e_match->m_from_expand = false;
+  e_match->m_ref_name[0] = '\0';
   return e_match;
 }
 
@@ -170,7 +171,7 @@ fcc_context_create()
 }
 
 void 
-fcc_context_release()
+fcc_context_destroy()
 {
   const uint32_t num_matches = p_fcc_context->p_stmts.size();
   for(uint32_t i = 0; i < num_matches; ++i)
@@ -179,17 +180,6 @@ fcc_context_release()
   }
   delete p_fcc_context;
 }
-
-//fcc_stmt_t*
-//fcc_context_create_match(ASTContext* ast_context,
-//                         Expr* expr)
-//{
-//  fcc_stmt_t* match = fcc_match_create();
-//  match->p_ast_context = ast_context;
-//  match->p_expr = expr;
-//  p_fcc_context->p_stmts.append(match); 
-//  return match;
-//}
 
 void 
 fcc_context_set_parsing_error_callback(FCC_PARSING_ERROR_CALLBACK callback)
@@ -355,7 +345,7 @@ fcc_run(int argc,
   destroy_execplan(exec_plan);
   destroy_execplan(post_exec_plan);
   fcc_driver_release();
-  fcc_context_release();
+  fcc_context_destroy();
   return result;
 }
 
@@ -367,12 +357,11 @@ report_parsing_error_helper(fcc_expr_t expr,
 {
   uint32_t line, column;
   char filename[2048];
-  uint32_t length = fcc_expr_code_location(expr, 
-                                           filename, 
-                                           2048, 
-                                           &line, 
-                                           &column);
-  FURIOUS_CHECK_STR_LENGTH(length, 2048);
+  fcc_expr_code_location(expr, 
+                         filename, 
+                         2048, 
+                         &line, 
+                         &column);
   fcc_context_report_parsing_error(error_type,
                                    filename,
                                    line,
@@ -448,11 +437,10 @@ fcc_validate(const fcc_stmt_t* match)
        !match_type->m_is_read_only)
     {
       char ctype[MAX_TYPE_NAME];
-      uint32_t length = fcc_type_name(match_type->m_type,
-                                      ctype,
-                                      MAX_TYPE_NAME);
+      fcc_type_name(match_type->m_type,
+                    ctype,
+                    MAX_TYPE_NAME);
 
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -469,11 +457,9 @@ fcc_validate(const fcc_stmt_t* match)
        match_type->m_is_global)
     {
       char ctype[MAX_TYPE_NAME];
-      const uint32_t length = fcc_type_name(match_type->m_type,
-                                            ctype,
-                                            MAX_TYPE_NAME);
-
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+      fcc_type_name(match_type->m_type,
+                    ctype,
+                    MAX_TYPE_NAME);
 
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -496,11 +482,10 @@ fcc_validate(const fcc_stmt_t* match)
       if(!match_type->m_is_read_only && match_type->m_is_global)
       {
         char ctype[MAX_TYPE_NAME];
-        const uint32_t length = fcc_type_name(match_type->m_type,
-                                              ctype,
-                                              MAX_TYPE_NAME);
+        fcc_type_name(match_type->m_type,
+                      ctype,
+                      MAX_TYPE_NAME);
 
-        FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
         str_builder_t str_builder;
         str_builder_init(&str_builder);

@@ -42,8 +42,7 @@ generate_reflection_code(FILE* fd,
                          uint32_t buffer_length)
 {
   char tmp[MAX_TYPE_NAME];
-  strncpy(tmp, refl_data->m_type_name, MAX_TYPE_NAME);
-  FURIOUS_CHECK_STR_LENGTH(strlen(refl_data->m_type_name), MAX_TYPE_NAME);
+  FURIOUS_COPY_AND_CHECK_STR(tmp, refl_data->m_type_name, MAX_TYPE_NAME);
   sanitize_name(tmp);
 
   str_builder_t str_builder;
@@ -51,8 +50,7 @@ generate_reflection_code(FILE* fd,
   str_builder_append(&str_builder, "ref_data_");
   str_builder_append(&str_builder, tmp);
   const uint32_t ret_length = str_builder.m_pos;
-  strncpy(buffer, str_builder.p_buffer, buffer_length);
-  FURIOUS_CHECK_STR_LENGTH(str_builder.m_pos, buffer_length);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
   str_builder_release(&str_builder);
 
   fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", buffer);
@@ -104,13 +102,12 @@ generate_reflection_code(FILE* fd,
     if(field->m_type == ReflType::E_STRUCT || field->m_type == ReflType::E_UNION)
     {
       char field_name[MAX_FIELD_NAME];
-      const uint32_t length  = generate_reflection_code(fd, 
-                                                        field->p_strct_type.get(), 
-                                                        root, 
-                                                        str_builder.p_buffer,
-                                                        field_name,
-                                                        MAX_FIELD_NAME);
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_FIELD_NAME);
+      generate_reflection_code(fd, 
+                               field->p_strct_type.get(), 
+                               root, 
+                               str_builder.p_buffer,
+                               field_name,
+                               MAX_FIELD_NAME);
       fprintf(fd, "field.p_strct_type = %s;\n", field_name);
     }
     fprintf(fd, "%s.get()->m_fields.append(field);\n", buffer);
@@ -126,13 +123,12 @@ generate_reflection_code(FILE* fd, fcc_decl_t decl)
   fprintf(fd,"{\n");
   ReflData refl_data = get_reflection_data(decl);
   char var_name[MAX_FIELD_NAME];
-  const uint32_t length = generate_reflection_code(fd, 
-                                                  &refl_data, 
-                                                  refl_data.m_type_name, 
-                                                  "", 
-                                                  var_name, 
-                                                  MAX_FIELD_NAME);
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_FIELD_NAME);
+  generate_reflection_code(fd, 
+                           &refl_data, 
+                           refl_data.m_type_name, 
+                           "", 
+                           var_name, 
+                           MAX_FIELD_NAME);
   fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data.m_type_name, var_name);
   fprintf(fd,"}\n");
 }

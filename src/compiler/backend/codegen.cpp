@@ -26,12 +26,14 @@ fcc_generate_task_graph(FILE* fd,
   for(uint32_t i = 0; i < num_tasks; ++i)
   {
     fprintf(fd, 
-            "task_graph_insert_task(%s,%d,%s_%d, (bool)%d);\n", 
+            "task_graph_insert_task(%s,%d,%s_%d, (bool)%d, %s_%d_info);\n", 
             task_graph_name,
             i,
             task_prefix,
             i,
-            exec_plan->m_subplans[i]->m_requires_sync
+            exec_plan->m_subplans[i]->m_requires_sync,
+            task_prefix,
+            i
             );
   }
 
@@ -152,11 +154,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for (uint32_t i = 0; i < num_components; ++i) 
   {
     char tmp[MAX_TABLE_VARNAME];
-    const uint32_t length = generate_table_name(vars_extr.m_components[i], 
-                                                tmp,
-                                                MAX_TABLE_VARNAME);
+    generate_table_name(vars_extr.m_components[i], 
+                        tmp,
+                        MAX_TABLE_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     fprintf(fd, "TableView<%s> %s;\n", vars_extr.m_components[i], tmp);
   }
@@ -165,11 +166,9 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for (uint32_t i = 0; i < num_references; ++i) 
   {
     char tmp[MAX_REF_TABLE_VARNAME];
-    const uint32_t length = generate_ref_table_name(vars_extr.m_references[i], 
-                                                    tmp, 
-                                                    MAX_REF_TABLE_VARNAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
+    generate_ref_table_name(vars_extr.m_references[i], 
+                            tmp, 
+                            MAX_REF_TABLE_VARNAME);
 
     fprintf(fd, "TableView<entity_id_t> %s;\n", tmp);
   }
@@ -179,11 +178,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for (uint32_t i = 0; i < num_tags; ++i) 
   {
     char tmp[MAX_TAG_TABLE_VARNAME];
-    const uint32_t length = generate_bittable_name(vars_extr.m_tags[i],
-                                                   tmp,
-                                                   MAX_TAG_TABLE_VARNAME);
+    generate_bittable_name(vars_extr.m_tags[i],
+                           tmp,
+                           MAX_TAG_TABLE_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TAG_TABLE_VARNAME);
 
     fprintf(fd, "BitTable* %s;\n", tmp);
   }
@@ -194,17 +192,15 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   {
     const fcc_stmt_t* match = stmts[i];
     char system_name[MAX_TYPE_NAME];
-    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
+    fcc_type_name(match->p_system->m_system_type, 
                   system_name, 
                   MAX_TYPE_NAME);
-    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
 
     char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
-    const uint32_t wrapper_length = generate_system_wrapper_name(system_name, 
-                                                                 match->p_system->m_id,
-                                                                 wrapper_name, 
-                                                                 MAX_SYSTEM_WRAPPER_VARNAME);
-    FURIOUS_CHECK_STR_LENGTH(wrapper_length, MAX_SYSTEM_WRAPPER_VARNAME);
+    generate_system_wrapper_name(system_name, 
+                                 match->p_system->m_id,
+                                 wrapper_name, 
+                                 MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     fprintf(fd, "%s* %s;\n", system_name, wrapper_name);
@@ -218,10 +214,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
     fcc_subplan_printer_t printer;
-    fcc_subplan_printer_init(&printer, true);
+    fcc_subplan_printer_init(&printer, true, false);
     fcc_subplan_printer_print(&printer, 
                               exec_plan->m_subplans[i]);
-    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
+    fprintf(fd,"const char* __task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
     fprintf(fd,"void __task_%d(float delta,\n\
     Database* database,\n\
             void* user_data,\n\
@@ -245,10 +241,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for(uint32_t i = 0; i < num_nodes; ++i)
   {
     fcc_subplan_printer_t printer;
-    fcc_subplan_printer_init(&printer, true);
+    fcc_subplan_printer_init(&printer, true, false);
     fcc_subplan_printer_print(&printer, 
                               post_exec_plan->m_subplans[i]);
-    fprintf(fd,"%s", printer.m_str_builder.p_buffer);
+    fprintf(fd,"const char* __pf_task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
     fprintf(fd,"void __pf_task_%d(float delta,\n\
     Database* database,\n\
             void* user_data,\n\
@@ -276,11 +272,9 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     for (uint32_t i = 0; i < num_components; ++i) 
     {
       char tmp[MAX_TABLE_VARNAME];
-      const uint32_t length = generate_table_name(vars_extr.m_components[i],
-                                                  tmp,
-                                                  MAX_TABLE_VARNAME);
-
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+      generate_table_name(vars_extr.m_components[i],
+                          tmp,
+                          MAX_TABLE_VARNAME);
 
       fprintf(fd,
               "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
@@ -295,11 +289,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     {
 
       char tmp[MAX_REF_TABLE_VARNAME];
-      const uint32_t length = generate_ref_table_name(vars_extr.m_references[i], 
-                                                      tmp, 
-                                                      MAX_REF_TABLE_VARNAME);
+      generate_ref_table_name(vars_extr.m_references[i], 
+                              tmp, 
+                              MAX_REF_TABLE_VARNAME);
 
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
 
       fprintf(fd,
               "%s  = database->get_references(\"%s\");\n",
@@ -314,11 +307,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     for (uint32_t i = 0; i < num_tags; ++i) 
     {
       char tmp[MAX_TAG_TABLE_VARNAME];
-      const uint32_t length = generate_bittable_name(vars_extr.m_tags[i], 
-                                                     tmp, 
-                                                     MAX_TAG_TABLE_VARNAME);
+      generate_bittable_name(vars_extr.m_tags[i], 
+                             tmp, 
+                             MAX_TAG_TABLE_VARNAME);
 
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TAG_TABLE_VARNAME);
 
       fprintf(fd,
               "%s = database->get_tagged_entities(\"%s\");\n",
@@ -332,11 +324,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   {
     const fcc_stmt_t* match = stmts[i];
     char system_name[MAX_TYPE_NAME];
-    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
-                                                 system_name, 
-                                                 MAX_TYPE_NAME);
+    fcc_type_name(match->p_system->m_system_type, 
+                  system_name, 
+                  MAX_TYPE_NAME);
 
-    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
 
     char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
     generate_system_wrapper_name(system_name, 
@@ -449,18 +440,16 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   {
     const fcc_stmt_t* match = stmts[i];
     char system_name[MAX_TYPE_NAME];
-    const uint32_t system_length = fcc_type_name(match->p_system->m_system_type, 
-                                                 system_name, 
-                                                 MAX_TYPE_NAME);
-    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
+    fcc_type_name(match->p_system->m_system_type, 
+                  system_name, 
+                  MAX_TYPE_NAME);
 
     char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
-    const uint32_t wrapper_length = generate_system_wrapper_name(system_name, 
-                                                                 match->p_system->m_id,
-                                                                 wrapper_name, 
-                                                                 MAX_SYSTEM_WRAPPER_VARNAME);
+    generate_system_wrapper_name(system_name, 
+                                 match->p_system->m_id,
+                                 wrapper_name, 
+                                 MAX_SYSTEM_WRAPPER_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(wrapper_length, MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     fprintf(fd, "delete %s;\n", wrapper_name);

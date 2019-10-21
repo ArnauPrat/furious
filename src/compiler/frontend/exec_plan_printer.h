@@ -14,10 +14,13 @@ struct fcc_subplan_printer_t
   int32_t               m_indents;
   str_builder_t         m_str_builder;
   DynArray<char>        m_offsets;
+  bool                  m_c_src_string;
 };
 
 void
-fcc_subplan_printer_init(fcc_subplan_printer_t* printer, bool add_comments = false);
+fcc_subplan_printer_init(fcc_subplan_printer_t* printer, 
+                         bool c_src_string = false, 
+                         bool add_comments = false);
 
 void
 fcc_subplan_printer_release(fcc_subplan_printer_t* printer);

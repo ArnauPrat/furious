@@ -202,19 +202,16 @@ consume_foreach(FILE*fd,
     const fcc_system_t* info = foreach->m_foreach.p_system;
 
     char system_name[MAX_TYPE_NAME];
-    const uint32_t system_length = fcc_type_name(info->m_system_type, 
-                                                 system_name, 
-                                                 MAX_TYPE_NAME);
+    fcc_type_name(info->m_system_type, 
+                  system_name, 
+                  MAX_TYPE_NAME);
 
-    FURIOUS_CHECK_STR_LENGTH(system_length, MAX_TYPE_NAME);
 
     char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
-    const uint32_t wrapper_length = generate_system_wrapper_name(system_name, 
-                                          info->m_id,
-                                          wrapper_name, 
-                                          MAX_SYSTEM_WRAPPER_VARNAME);
-
-    FURIOUS_CHECK_STR_LENGTH(wrapper_length, MAX_SYSTEM_WRAPPER_VARNAME);
+    generate_system_wrapper_name(system_name, 
+                                 info->m_id,
+                                 wrapper_name, 
+                                 MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     if(all_globals)
@@ -603,10 +600,9 @@ consume_predicate_filter(FILE*fd,
     }
 
     char tmp[MAX_QUALIFIED_TYPE_NAME];
-    const uint32_t length = fcc_type_qualified_name(column->m_component_type,
-                                                    tmp,
-                                                    MAX_QUALIFIED_TYPE_NAME);
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_QUALIFIED_TYPE_NAME);
+    fcc_type_qualified_name(column->m_component_type,
+                            tmp,
+                            MAX_QUALIFIED_TYPE_NAME);
 
     if(column->m_type == fcc_column_type_t::E_COMPONENT)
     {
@@ -649,8 +645,9 @@ consume_predicate_filter(FILE*fd,
   }
 
   char func_name[2048];
-  uint32_t length = fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl, func_name, 2048);
-  FURIOUS_CHECK_STR_LENGTH(length, 2048);
+  fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl, 
+                         func_name, 
+                         2048);
 
 
   fprintf(fd,
@@ -733,18 +730,15 @@ consume_gather(FILE*fd,
     {
       fcc_column_t* column = &child_columns[i];
       char tmp[MAX_TYPE_NAME];
-      uint32_t length = fcc_type_name(column->m_component_type,
-                                                 tmp,
-                                                 MAX_TYPE_NAME); 
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+      fcc_type_name(column->m_component_type,
+                    tmp,
+                    MAX_TYPE_NAME); 
 
       char tablename[MAX_TABLE_VARNAME];
-      length = generate_temp_table_name(tmp,
-                                        tablename,
-                                        MAX_TABLE_VARNAME,
-                                        gather);
-
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+      generate_temp_table_name(tmp,
+                               tablename,
+                               MAX_TABLE_VARNAME,
+                               gather);
 
       fprintf(fd,",&%s",
               tablename);

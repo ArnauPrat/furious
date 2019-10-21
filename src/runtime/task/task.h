@@ -23,6 +23,8 @@ using task_func_t = void (*) (float, // delta
 
 struct task_t 
 {
+  uint32_t           m_id;
+  const char*        p_info;
   task_func_t        p_func;
   bool               m_requires_sync;
   DynArray<uint32_t> m_parents;
@@ -49,12 +51,13 @@ void
 task_graph_insert_task(task_graph_t* task_graph,
                        uint32_t task_id,
                        task_func_t func,
-                       bool requires_sync);
+                       bool requires_sync,
+                       const char* info);
 
 void
 task_graph_set_parent(task_graph_t* task_graph,
-                uint32_t task_id,
-                uint32_t parent_id);
+                      uint32_t task_id,
+                      uint32_t parent_id);
 
 void
 task_graph_set_root(task_graph_t* task_graph,

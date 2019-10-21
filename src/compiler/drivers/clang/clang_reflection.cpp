@@ -31,18 +31,15 @@ public:
     if(isa<ClassTemplateSpecializationDecl>(decl))
     {
       const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(decl);
-      uint32_t length = get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal(),
-                                      p_refl_data.get()->m_type_name,
-                                      MAX_TYPE_NAME);
+      get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal(),
+                    p_refl_data.get()->m_type_name,
+                    MAX_TYPE_NAME);
 
-      FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
     }
     else
     {
       std::string str = decl->getName();
-      FURIOUS_CHECK_STR_LENGTH(str.size(), MAX_TYPE_NAME);
-      strcpy(p_refl_data.get()->m_type_name, str.c_str());
-
+      FURIOUS_COPY_AND_CHECK_STR(p_refl_data.get()->m_type_name, str.c_str(), MAX_TYPE_NAME);
     }
     p_refl_data.get()->m_is_union = decl->getTypeForDecl()->isUnionType();
 
@@ -59,8 +56,7 @@ public:
       {
         FieldDecl* field  = cast<FieldDecl>(*child_decl);
         std::string str = field->getName();
-        FURIOUS_CHECK_STR_LENGTH(str.size(), MAX_FIELD_NAME);
-        strcpy(refl_field.m_name, str.c_str());
+        FURIOUS_COPY_AND_CHECK_STR(refl_field.m_name, str.c_str(), MAX_FIELD_NAME);
 
         refl_field.m_type = ReflType::E_UNKNOWN;
         refl_field.m_anonymous = field->isAnonymousStructOrUnion();
@@ -173,8 +169,7 @@ public:
       if(type->isRecordType())
       {
         char tmp[MAX_TYPE_NAME];
-        uint32_t length = get_tagged_type_name(qtype, tmp, MAX_TYPE_NAME);  
-        FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+        get_tagged_type_name(qtype, tmp, MAX_TYPE_NAME);  
         if(strncmp(tmp, "std::string", MAX_TYPE_NAME) == 0)
         {
           refl_field.m_type = ReflType::E_STD_STRING;

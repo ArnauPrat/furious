@@ -167,63 +167,52 @@ produce_scan(FILE* fd,
   if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
+    fcc_type_name(column->m_component_type,
                                     ctype,
                                     MAX_TYPE_NAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
     char q_ctype[MAX_QUALIFIED_TYPE_NAME];
-    length = fcc_type_qualified_name(column->m_component_type,
+    fcc_type_qualified_name(column->m_component_type,
                                                      q_ctype,
                                                      MAX_QUALIFIED_TYPE_NAME);
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_QUALIFIED_TYPE_NAME);
 
-    length = generate_table_name(ctype,
+    generate_table_name(ctype,
                         tablename,
                         MAX_TABLE_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    length = generate_table_iter_name(tablename, 
+    generate_table_iter_name(tablename, 
                                       itername,
                                       MAX_ITER_VARNAME,
                                       scan);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
     id++;
-    length = generate_block_name(ctype,
+    generate_block_name(ctype,
                                  blockname,
                                  MAX_BLOCK_VARNAME,
                                  scan); 
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
 
   }
   else
   {
-    uint32_t length = generate_ref_table_name(column[0].m_ref_name,
-                                              tablename,
-                                              MAX_TABLE_VARNAME);
+    generate_ref_table_name(column[0].m_ref_name,
+                            tablename,
+                            MAX_TABLE_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
-    length = generate_table_iter_name(tablename, 
-                                      itername, 
-                                      MAX_ITER_VARNAME, 
-                                      scan);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
+    generate_table_iter_name(tablename, 
+                             itername, 
+                             MAX_ITER_VARNAME, 
+                             scan);
 
     id++;
-    length = generate_block_name(column[0].m_ref_name,
-                                 blockname, 
-                                 MAX_BLOCK_VARNAME, 
-                                 scan); 
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_BLOCK_VARNAME);
-
+    generate_block_name(column[0].m_ref_name,
+                        blockname, 
+                        MAX_BLOCK_VARNAME, 
+                        scan); 
 
   }
 
@@ -274,11 +263,10 @@ produce_join(FILE* fd,
              bool parallel_stream)
 {
   char hashtable[MAX_HASHTABLE_VARNAME];
-  const uint32_t length = generate_hashtable_name(join,
-                                                  hashtable,
-                                                  MAX_HASHTABLE_VARNAME);
+  generate_hashtable_name(join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_subplan_t* subplan = join->p_subplan;
@@ -293,11 +281,9 @@ produce_leftfilter_join(FILE* fd,
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
-  const uint32_t length = generate_hashtable_name(left_filter_join,
-                                                  hashtable,
-                                                  MAX_HASHTABLE_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
+  generate_hashtable_name(left_filter_join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_subplan_t* subplan = left_filter_join->p_subplan;
@@ -312,11 +298,10 @@ produce_cross_join(FILE* fd,
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
-  uint32_t length = generate_hashtable_name(cross_join,
-                                            hashtable,
-                                            MAX_HASHTABLE_VARNAME);
+  generate_hashtable_name(cross_join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
 
   str_builder_t str_builder_left;
   str_builder_init(&str_builder_left);
@@ -338,11 +323,9 @@ produce_cross_join(FILE* fd,
   fprintf(fd, "while(left_iter_hashtable_%d.has_next())\n{\n", cross_join->m_id);
 
   char cluster[MAX_CLUSTER_VARNAME];
-  length = generate_cluster_name(cross_join, 
-                                 cluster, 
-                                 MAX_CLUSTER_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
+  generate_cluster_name(cross_join, 
+                        cluster, 
+                        MAX_CLUSTER_VARNAME);
 
   str_builder_t str_builder_cluster_left;
   str_builder_init(&str_builder_cluster_left);
@@ -367,11 +350,10 @@ produce_cross_join(FILE* fd,
 
 
   char joined_cluster[MAX_CLUSTER_VARNAME];
-  length = generate_cluster_name(cross_join,
-                                 joined_cluster,
-                                 MAX_CLUSTER_VARNAME);
+  generate_cluster_name(cross_join,
+                        joined_cluster,
+                        MAX_CLUSTER_VARNAME);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
   fprintf(fd,
           "BlockCluster %s(*%s);\n", 
@@ -413,23 +395,20 @@ produce_fetch(FILE* fd,
           "{\n"); 
 
   char globaltype[MAX_TYPE_NAME];
-  const uint32_t type_length = fcc_type_name(fetch->m_columns[0].m_component_type, 
-                                             globaltype, 
-                                             MAX_TYPE_NAME);
-  FURIOUS_CHECK_STR_LENGTH(type_length, MAX_TYPE_NAME);
+  fcc_type_name(fetch->m_columns[0].m_component_type, 
+                globaltype, 
+                MAX_TYPE_NAME);
 
   char globalname[MAX_TYPE_NAME];
-  const uint32_t global_length = generate_global_name(globaltype,
-                                                      globalname,
-                                                      MAX_TYPE_NAME,
-                                                      fetch);
-  FURIOUS_CHECK_STR_LENGTH(global_length, MAX_TYPE_NAME);
+  generate_global_name(globaltype,
+                       globalname,
+                       MAX_TYPE_NAME,
+                       fetch);
 
   char clustername[MAX_CLUSTER_VARNAME];
-  const uint32_t cluster_length = generate_cluster_name(fetch,
-                                                        clustername,
-                                                        MAX_CLUSTER_VARNAME);
-  FURIOUS_CHECK_STR_LENGTH(cluster_length, MAX_CLUSTER_VARNAME);
+  generate_cluster_name(fetch,
+                        clustername,
+                        MAX_CLUSTER_VARNAME);
 
   fprintf(fd, 
           "%s* %s = database->find_global_no_lock<%s>();\n", 
@@ -540,11 +519,9 @@ produce_gather(FILE* fd,
     }
 
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME);
 
     if(child_columns[i].m_access_mode != fcc_access_mode_t::E_READ)
     {
@@ -560,12 +537,10 @@ produce_gather(FILE* fd,
       str_builder_release(&str_builder);
     }
     char temptablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      temptablename, 
-                                      MAX_TABLE_VARNAME, 
-                                      gather);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+    generate_temp_table_name(ctype, 
+                             temptablename, 
+                             MAX_TABLE_VARNAME, 
+                             gather);
 
     fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
             gather->m_id, 
@@ -587,27 +562,21 @@ produce_gather(FILE* fd,
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      tablename, 
-                                      MAX_TABLE_VARNAME, 
-                                      gather);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+    generate_temp_table_name(ctype, 
+                             tablename, 
+                             MAX_TABLE_VARNAME, 
+                             gather);
 
     char itername[MAX_ITER_VARNAME];
-    length = generate_table_iter_name(tablename, 
-                                      itername,
-                                      MAX_ITER_VARNAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
-
+    generate_table_iter_name(tablename, 
+                             itername,
+                             MAX_ITER_VARNAME);
 
     if(parallel_stream)
     {
@@ -626,35 +595,28 @@ produce_gather(FILE* fd,
   fcc_column_t* column = &child_columns[0];
 
   char ctype[MAX_TYPE_NAME];
-  uint32_t length = fcc_type_name(column->m_component_type,
-                                  ctype,
-                                  MAX_TYPE_NAME); 
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+  fcc_type_name(column->m_component_type,
+                ctype,
+                MAX_TYPE_NAME); 
 
   char tablename[MAX_TABLE_VARNAME];
-  length = generate_temp_table_name(ctype, 
-                                    tablename,
-                                    MAX_TABLE_VARNAME,
-                                    gather);
+  generate_temp_table_name(ctype, 
+                           tablename,
+                           MAX_TABLE_VARNAME,
+                           gather);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
   char itername[MAX_ITER_VARNAME];
-  length = generate_table_iter_name(tablename,
-                                    itername,
-                                    MAX_ITER_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
+  generate_table_iter_name(tablename,
+                           itername,
+                           MAX_ITER_VARNAME);
 
   fprintf(fd, "while(%s.has_next())\n{\n", itername);
 
   char clustername[MAX_CLUSTER_VARNAME];
-  length = generate_cluster_name(gather,
-                                 clustername,
-                                 MAX_CLUSTER_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
+  generate_cluster_name(gather,
+                        clustername,
+                        MAX_CLUSTER_VARNAME);
 
   fprintf(fd, "BlockCluster %s;\n", clustername);
 
@@ -663,26 +625,20 @@ produce_gather(FILE* fd,
     fcc_column_t* column = &child_columns[i];
 
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME); 
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      tablename,
-                                      MAX_TABLE_VARNAME,
-                                      gather);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+    generate_temp_table_name(ctype, 
+                             tablename,
+                             MAX_TABLE_VARNAME,
+                             gather);
 
     char itername[MAX_ITER_VARNAME];
-    length = generate_table_iter_name(tablename,
-                                      itername,
-                                      MAX_ITER_VARNAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
+    generate_table_iter_name(tablename,
+                             itername,
+                             MAX_ITER_VARNAME);
 
     fprintf(fd, "%s.append(%s.next().get_raw());\n", 
             clustername, 
@@ -714,23 +670,19 @@ produce_cascading_gather(FILE* fd,
   char groups[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = casc_gather->p_subplan;
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
-  uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                                             groups, 
-                                             MAX_REF_TABLE_VARNAME,
-                                             casc_gather);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_TABLE_VARNAME);
+  generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
+                           groups, 
+                           MAX_REF_TABLE_VARNAME,
+                           casc_gather);
 
   fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
   produce(fd, ref_table, false);
 
   // GENERATING HASHTABLE WITH CHILD BLOCKS 
   char hashtable[MAX_HASHTABLE_VARNAME];
-  length = generate_hashtable_name(casc_gather,
-                                   hashtable,
-                                   MAX_HASHTABLE_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_HASHTABLE_VARNAME);
+  generate_hashtable_name(casc_gather,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
   fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
@@ -760,11 +712,9 @@ produce_cascading_gather(FILE* fd,
     }
 
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME);
 
     if(child_columns[i].m_access_mode != fcc_access_mode_t::E_READ)
     {
@@ -779,13 +729,10 @@ produce_cascading_gather(FILE* fd,
       str_builder_release(&str_builder);
     }
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      tablename,
-                                      MAX_TABLE_VARNAME,
-                                      casc_gather);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
-
+    generate_temp_table_name(ctype, 
+                             tablename,
+                             MAX_TABLE_VARNAME,
+                             casc_gather);
     fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
             casc_gather->m_id,
             tablename);
@@ -828,19 +775,16 @@ produce_cascading_gather(FILE* fd,
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME); 
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      tablename, 
-                                      MAX_TABLE_VARNAME,
-                                      casc_gather);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
+    generate_temp_table_name(ctype, 
+                             tablename, 
+                             MAX_TABLE_VARNAME,
+                             casc_gather);
 
     fprintf(fd,"%s.clear();\n", 
             tablename);
@@ -869,18 +813,15 @@ produce_cascading_gather(FILE* fd,
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME); 
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, tablename, 
-                                      MAX_TABLE_VARNAME,
-                                      casc_gather);
+    generate_temp_table_name(ctype, tablename, 
+                             MAX_TABLE_VARNAME,
+                             casc_gather);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     fprintf(fd,",&%s",
             tablename);
@@ -888,14 +829,6 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,");\n");
 
 
-  fprintf(fd,
-          "if(stride > 1)\n{\n");
-  fprintf(fd,
-          "last_barrier += stride;\n");
-  fprintf(fd,
-          "barrier->wait(last_barrier);\n");
-  fprintf(fd,
-          "}\n");
 
   fprintf(fd,"}\n");
 
@@ -905,26 +838,23 @@ produce_cascading_gather(FILE* fd,
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME); 
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype, 
-                                      tablename, 
-                                      MAX_TABLE_VARNAME, 
-                                      casc_gather);
+    generate_temp_table_name(ctype, 
+                             tablename, 
+                             MAX_TABLE_VARNAME, 
+                             casc_gather);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     char itername[MAX_ITER_VARNAME];
-    length = generate_table_iter_name(tablename, 
-                                      itername, 
-                                      MAX_ITER_VARNAME);
+    generate_table_iter_name(tablename, 
+                             itername, 
+                             MAX_ITER_VARNAME);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
     if(parallel_stream)
     {
@@ -942,35 +872,30 @@ produce_cascading_gather(FILE* fd,
 
   fcc_column_t* column = &child_columns[0];
   char ctype[MAX_TYPE_NAME];
-  length = fcc_type_name(column->m_component_type,
-                         ctype,
-                         MAX_TYPE_NAME); 
+  fcc_type_name(column->m_component_type,
+                ctype,
+                MAX_TYPE_NAME); 
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
   char tablename[MAX_TABLE_VARNAME];
-  length = generate_temp_table_name(ctype,
-                                    tablename,
-                                    MAX_TABLE_VARNAME,
-                                    casc_gather);
+  generate_temp_table_name(ctype,
+                           tablename,
+                           MAX_TABLE_VARNAME,
+                           casc_gather);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
   char itername[MAX_ITER_VARNAME];
-  length = generate_table_iter_name(tablename,
-                                    itername,
-                                    MAX_ITER_VARNAME);
+  generate_table_iter_name(tablename,
+                           itername,
+                           MAX_ITER_VARNAME);
 
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
 
   fprintf(fd, "while(%s.has_next())\n{\n", itername);
 
   char clustername[MAX_CLUSTER_VARNAME];
-  length = generate_cluster_name(casc_gather,
+  generate_cluster_name(casc_gather,
                                  clustername,
                                  MAX_CLUSTER_VARNAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_CLUSTER_VARNAME);
 
   fprintf(fd, "BlockCluster %s;\n", clustername);
 
@@ -978,26 +903,22 @@ produce_cascading_gather(FILE* fd,
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
-    uint32_t length = fcc_type_name(column->m_component_type,
-                                    ctype,
-                                    MAX_TYPE_NAME); 
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
 
     char tablename[MAX_TABLE_VARNAME];
-    length = generate_temp_table_name(ctype,
-                                      tablename,
-                                      MAX_TABLE_VARNAME,
-                                      casc_gather);
+    generate_temp_table_name(ctype,
+                             tablename,
+                             MAX_TABLE_VARNAME,
+                             casc_gather);
 
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TABLE_VARNAME);
 
     char itername[MAX_ITER_VARNAME];
-    length = generate_table_iter_name(tablename,
-                                      itername,
-                                      MAX_ITER_VARNAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_ITER_VARNAME);
+    generate_table_iter_name(tablename,
+                             itername,
+                             MAX_ITER_VARNAME);
 
     fprintf(fd, "%s.append(%s.next().get_raw());\n", 
             clustername, 
@@ -1014,6 +935,15 @@ produce_cascading_gather(FILE* fd,
   str_builder_release(&str_builder_cluster);
 
   fprintf(fd,"}\n");
+
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
 
   //SWAP FRONTIERS
   fprintf(fd,

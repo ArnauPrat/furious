@@ -29,10 +29,13 @@ task_graph_destroy(task_graph_t* task_graph)
 
 void
 task_graph_insert_task(task_graph_t* task_graph,
-            uint32_t task_id,
-            task_func_t func,
-            bool requires_sync)
+                       uint32_t task_id,
+                       task_func_t func,
+                       bool requires_sync,
+                       const char* info)
 {
+  task_graph->m_tasks[task_id].m_id = task_id;
+  task_graph->m_tasks[task_id].p_info = info;
   task_graph->m_tasks[task_id].p_func = func;
   task_graph->m_tasks[task_id].m_requires_sync = requires_sync;
 }

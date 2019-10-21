@@ -43,7 +43,7 @@ struct fcc_system_t
   fcc_type_t                      m_system_type;                // The type of the system
   DynArray<fcc_expr_t>            m_ctor_params;                // The expressions of the system's constructor parameters 
   DynArray<fcc_component_match_t> m_component_types;            // The types of the components of the system
-  int32_t                         m_id                    = -1; // The id of the system  
+  int32_t                         m_id;                         // The id of the system  
 };
 
 
@@ -227,7 +227,7 @@ fcc_context_create();
  * \param context The context to release 
  */
 void 
-fcc_context_release();
+fcc_context_destroy();
 
 
 /**

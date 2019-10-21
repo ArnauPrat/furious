@@ -230,14 +230,12 @@ fcc_decl_code(fcc_decl_t decl,
         str_builder_append(&str_builder, "auto predicate = [] (");
         auto array = func_decl->parameters();
         char tmp[MAX_TYPE_NAME];
-        uint32_t length = get_type_name(array[0]->getType(), tmp, MAX_TYPE_NAME);
-        FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+        get_type_name(array[0]->getType(), tmp, MAX_TYPE_NAME);
         str_builder_append(&str_builder, "%s%s", tmp, array[0]->getNameAsString().c_str());
 
         for(size_t i = 1; i < array.size(); ++i)
         {
-          const uint32_t length = get_type_name(array[i]->getType(), tmp, MAX_TYPE_NAME);
-          FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+          get_type_name(array[i]->getType(), tmp, MAX_TYPE_NAME);
           str_builder_append(&str_builder, ",%s%s", tmp, array[i]->getNameAsString().c_str());
         }
         std::string function_body = get_code(func_decl->getASTContext().getSourceManager(),
@@ -292,7 +290,7 @@ fcc_decl_function_name(fcc_decl_t decl,
     {
       FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
       std::string name = clang_decl->getName();
-      strncpy(buffer, name.c_str(), buffer_length);
+      FURIOUS_COPY_AND_CHECK_STR(buffer, name.c_str(), buffer_length);
       return name.length();
     }
   }
@@ -432,7 +430,7 @@ get_filename(const SourceManager& sm,
              uint32_t buffer_length)
 {
   std::string filename = sm.getFilename(location);
-  strncpy(buffer, filename.c_str(), buffer_length);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, filename.c_str(), buffer_length);
   return filename.length();
 }
 

@@ -46,8 +46,7 @@ public:
             strcmp(extension, ".inl") != 0))
         {
           FURIOUS_ASSERT(strcmp(filename, "") != 0);
-          strncpy(dependency.m_include_file, filename, MAX_INCLUDE_PATH_LENGTH);
-          FURIOUS_CHECK_STR_LENGTH(str_ref.size(), MAX_INCLUDE_PATH_LENGTH);
+          FURIOUS_COPY_AND_CHECK_STR(dependency.m_include_file, filename, MAX_INCLUDE_PATH_LENGTH);
         } 
         else 
         {
@@ -101,7 +100,7 @@ get_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
   std::string str = QualType::getAsString(aux.split(), policy);
-  strncpy(buffer, str.c_str(), buffer_length-1);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -115,7 +114,7 @@ get_tagged_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = false;
   std::string str = QualType::getAsString(aux.split(), policy);
-  strncpy(buffer, str.c_str(), buffer_length-1);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -127,7 +126,7 @@ get_qualified_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
   std::string str = QualType::getAsString(type.split(), policy);
-  strncpy(buffer, str.c_str(), buffer_length-1);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -193,7 +192,7 @@ get_string_literal(const Expr* expr,
 {
   LiteralVisitor visitor;
   visitor.TraverseStmt(const_cast<Expr*>(expr));
-  strncpy(buffer, visitor.str.c_str(), buffer_length);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, visitor.str.c_str(), buffer_length);
   return visitor.str.size();
 }
 

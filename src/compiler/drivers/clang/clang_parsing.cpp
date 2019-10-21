@@ -19,11 +19,11 @@ report_parsing_error(const SourceManager& sm,
 {
 
   char filename[2048];
-  uint32_t length = get_filename(sm,
-                                 location,
-                                 filename,
-                                 2048);
-  FURIOUS_CHECK_STR_LENGTH(length, 2048);
+  get_filename(sm,
+               location,
+               filename,
+               2048);
+
   uint32_t line = get_line_number(sm, location);
   uint32_t column = get_column_number(sm, location);
 
@@ -189,10 +189,9 @@ process_expand(ASTContext* ast_context,
   fcc_entity_match_t* entity_match = e_matches[e_matches.size()-1];
 
   const Expr* param_expr = call->getArg(0);
-  const uint32_t length = get_string_literal(param_expr,
-                                             entity_match->m_ref_name,
-                                             MAX_REF_NAME);
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_REF_NAME);
+  get_string_literal(param_expr,
+                     entity_match->m_ref_name,
+                     MAX_REF_NAME);
 
   entity_match->m_from_expand = true;
 
@@ -394,8 +393,7 @@ process_has_tag(ASTContext* ast_context,
     if(literal != nullptr)
     {
       char* buffer = new char[MAX_TAG_NAME];
-      strncpy(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
-      FURIOUS_CHECK_STR_LENGTH(strlen(literal->getString().data()), MAX_TAG_NAME);
+      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
       entity_match->m_has_tags.append(buffer);
     } 
     else
@@ -432,8 +430,7 @@ process_has_not_tag(ASTContext* ast_context,
     if(literal != nullptr)
     {
       char* buffer = new char[MAX_TAG_NAME];
-      strncpy(buffer, literal->getString().data(), MAX_TAG_NAME);
-      FURIOUS_CHECK_STR_LENGTH(strlen(literal->getString().data()), MAX_TAG_NAME);
+      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
       entity_match->m_has_not_tags.append(buffer);
     } 
     else

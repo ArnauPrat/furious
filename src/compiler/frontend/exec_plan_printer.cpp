@@ -84,9 +84,18 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
                        "%c", 
                        printer->m_offsets[i]);
   }
+  if(printer->m_c_src_string)
+  {
+  str_builder_append(&printer->m_str_builder, 
+                     "- %s\\n\\\n", 
+                     str);
+  }
+  else
+  {
   str_builder_append(&printer->m_str_builder, 
                      "- %s\n", 
                      str);
+  }
 }
 
 static std::string
@@ -94,10 +103,9 @@ to_string(const fcc_system_t* info)
 {
   constexpr uint32_t buffer_length = 2048;
   char buffer[buffer_length];
-  const uint32_t length = fcc_type_name(info->m_system_type, 
-                                        buffer,
-                                        buffer_length);
-  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  fcc_type_name(info->m_system_type, 
+                buffer,
+                buffer_length);
 
   str_builder_t str_builder;
   str_builder_init(&str_builder);
@@ -108,10 +116,9 @@ to_string(const fcc_system_t* info)
   const DynArray<fcc_expr_t>& ctor_params = info->m_ctor_params;
   if(ctor_params.size() > 0)
   {
-    const uint32_t length = fcc_expr_code(info->m_ctor_params[0],
-                                          buffer,
-                                          buffer_length);
-    FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+    fcc_expr_code(info->m_ctor_params[0],
+                  buffer,
+                  buffer_length);
 
     str_builder_append(&str_builder, 
                          "%s", 
@@ -120,10 +127,9 @@ to_string(const fcc_system_t* info)
     for (int32_t i = 1; i < (int32_t)ctor_params.size(); ++i) 
     {
 
-      const uint32_t length = fcc_expr_code(info->m_ctor_params[i],
-                                            buffer,
-                                            buffer_length);
-      FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+      fcc_expr_code(info->m_ctor_params[i],
+                    buffer,
+                    buffer_length);
 
       str_builder_append(&str_builder,
                          ", %s", 
@@ -142,7 +148,7 @@ fcc_subplan_printer_print_foreach(fcc_subplan_printer_t* printer,
                                   const fcc_operator_t* foreach) 
 {
   const fcc_system_t* info = foreach->m_foreach.p_system;
-  snprintf(buffer, buffer_length, "foreach (%u) - \"%s\"",
+  snprintf(buffer, buffer_length, "foreach (%u) - %s",
            foreach->m_id, 
            to_string(info).c_str());
 
@@ -164,15 +170,13 @@ fcc_subplan_printer_print_scan(fcc_subplan_printer_t* printer,
   if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
     char ctype[MAX_TYPE_NAME];
-    const uint32_t length = fcc_type_name(column->m_component_type,
-                                          ctype,
-                                          MAX_TYPE_NAME);
-
-    FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME);
 
     snprintf(buffer, 
              buffer_length,
-             "scan (%u) - \"%s\"",
+             "scan (%u) - %s",
              scan->m_id, 
              ctype);
 
@@ -181,7 +185,7 @@ fcc_subplan_printer_print_scan(fcc_subplan_printer_t* printer,
   {
     snprintf(buffer,
              buffer_length,
-             "scan (%u) - #REFERENCE \"%s\"",
+             "scan (%u) - #REFERENCE %s",
              scan->m_id, 
              column->m_ref_name);
   }
@@ -269,11 +273,9 @@ fcc_subplan_printer_print_fetch(fcc_subplan_printer_t* printer,
 {
 
   char ctype[MAX_TYPE_NAME];
-  const uint32_t length = fcc_type_name(fetch->m_columns[0].m_component_type,
-                                        ctype,
-                                        MAX_TYPE_NAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+  fcc_type_name(fetch->m_columns[0].m_component_type,
+                ctype,
+                MAX_TYPE_NAME);
 
   snprintf(buffer, 
            buffer_length, 
@@ -314,7 +316,7 @@ fcc_subplan_printer_print_tag_filter(fcc_subplan_printer_t* printer,
 
   snprintf(buffer,
            buffer_length,
-           "tag_filter (%u) - %s - \"%s\" - %s", 
+           "tag_filter (%u) - %s - %s - %s", 
            tag_filter->m_id, 
            type, 
            tag_filter->m_tag_filter.m_tag,
@@ -350,16 +352,14 @@ fcc_subplan_printer_print_component_filter(fcc_subplan_printer_t* printer,
   }
 
   char ctype[MAX_TYPE_NAME];
-  const uint32_t length = fcc_type_name(component_filter->m_component_filter.m_filter_type,
-                                        ctype,
-                                        MAX_TYPE_NAME);
-
-  FURIOUS_CHECK_STR_LENGTH(length, MAX_TYPE_NAME);
+  fcc_type_name(component_filter->m_component_filter.m_filter_type,
+                ctype,
+                MAX_TYPE_NAME);
 
 
   snprintf(buffer,
            buffer_length,
-           "component_filter (%u) - %s - \"%s\"", 
+           "component_filter (%u) - %s - %s", 
            component_filter->m_id, 
            type, 
            ctype);
@@ -381,10 +381,9 @@ to_string(fcc_decl_t decl)
 {
   constexpr uint32_t buffer_length = 2048;
   char buffer[buffer_length];
-  const uint32_t length = fcc_decl_function_name(decl, 
-                                                 buffer,
-                                                 buffer_length);
-  FURIOUS_CHECK_STR_LENGTH(length, buffer_length);
+  fcc_decl_function_name(decl, 
+                         buffer,
+                         buffer_length);
   return buffer;
 }
 
@@ -394,10 +393,9 @@ fcc_subplan_printer_print_predicate_filter(fcc_subplan_printer_t* printer,
 {
   uint32_t function_name_length = 2048;
   char function_name[function_name_length];
-  uint32_t length = fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl,
-                                           function_name,
-                                           function_name_length);
-  FURIOUS_CHECK_STR_LENGTH(length, function_name_length);
+  fcc_decl_function_name(predicate_filter->m_predicate_filter.m_func_decl,
+                         function_name,
+                         function_name_length);
   snprintf(buffer, buffer_length, "predicate_filter (%u) - %s", 
            predicate_filter->m_id, 
            function_name);
@@ -518,6 +516,7 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
 
 void
 fcc_subplan_printer_init(fcc_subplan_printer_t* printer, 
+                         bool c_src_string, 
                          bool add_comments)
 {
   printer->m_indents = 0;
@@ -526,6 +525,7 @@ fcc_subplan_printer_init(fcc_subplan_printer_t* printer,
     printer->m_offsets.append('/');
     printer->m_offsets.append('/');
   }
+  printer->m_c_src_string = c_src_string;
   str_builder_init(&printer->m_str_builder);
 }
 

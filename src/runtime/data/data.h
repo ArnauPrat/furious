@@ -8,3 +8,4 @@
 #include "entity.h"
 #include "context.h"
 #include "data_utils.h"
+#include "ht_registry.h"

@@ -54,7 +54,7 @@ struct fcc_system_t
  */
 struct fcc_entity_match_t 
 {
-  DynArray<fcc_component_match_t>     m_component_types;                  // The types this match is matching against
+  DynArray<fcc_component_match_t>     m_component_types;              // The types this match is matching against
   DynArray<fcc_type_t>                m_has_components;               // The types of the "has" components
   DynArray<fcc_type_t>                m_has_not_components;           // The types of the "has_not" components
   DynArray<char*>                     m_has_tags;                     // The "with" tags  

@@ -4,6 +4,24 @@
 
 #include "components.h"
 
+struct SimpleComponent1
+{
+  FURIOUS_COMPONENT(SimpleComponent1);
+
+  float m_x;
+  float m_y;
+  float m_z;
+};
+
+struct SimpleComponent2
+{
+  FURIOUS_COMPONENT(SimpleComponent2);
+
+  float m_x;
+  float m_y;
+  float m_z;
+};
+
 struct Position
 {
   FURIOUS_COMPONENT(Position);

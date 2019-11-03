@@ -135,6 +135,9 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   /// DECLARE VARIABLES (e.g. TABLEVIEWS, BITTABLES, etc.)
   fprintf(fd, "\n\n\n");
   fprintf(fd,"// Variable declarations \n");
+
+  fprintf(fd,"ht_registry_t ht_registry;\n\n");
+
   fcc_vars_extr_t vars_extr;
   fcc_vars_extr_init(&vars_extr);
   num_nodes = exec_plan->m_subplans.size();
@@ -265,6 +268,9 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   fprintf(fd, "\n\n\n");
   fprintf(fd, "// Variable initializations \n");
   fprintf(fd, "void __furious_init(Database* database)\n{\n");
+
+  // INITIALIZING HT REGISTRY
+  fprintf(fd, "ht_registry_init(&ht_registry\n);");
 
   // INITIALIZING TABLEVIEWS 
   {
@@ -460,6 +466,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
   fprintf(fd, 
           "task_graph_destroy(post_task_graph);\n");
+
+  // RELEASING HT REGISTRY
+  fprintf(fd, 
+          "ht_registry_release(&ht_registry);\n\n");
 
   fprintf(fd, "}\n");
 

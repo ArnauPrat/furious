@@ -92,5 +92,43 @@ BitTable::clear()
   m_size = 0;
 }
 
+void
+bittable_union(BitTable* first, const BitTable* second)
+{
+  BTree<Bitmap>::Iterator it = second->m_bitmaps.iterator();
+  while(it.has_next())
+  {
+    BTree<Bitmap>::Entry entry = it.next();
+    uint32_t start = entry.m_key * TABLE_BLOCK_SIZE;
+    for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
+    {
+      uint32_t next_id = start+i;
+      if(entry.p_value->is_set(i))
+      {
+        first->add(next_id);
+      }
+    }
+  }
+}
+
+void
+bittable_difference(BitTable* first, const BitTable* second)
+{
+  BTree<Bitmap>::Iterator it = second->m_bitmaps.iterator();
+  while(it.has_next())
+  {
+    BTree<Bitmap>::Entry entry = it.next();
+    uint32_t start = entry.m_key * TABLE_BLOCK_SIZE;
+    for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
+    {
+      uint32_t next_id = start+i;
+      if(entry.p_value->is_set(i))
+      {
+        first->remove(next_id);
+      }
+    }
+  }
+}
+
 } /* furious
 */ 

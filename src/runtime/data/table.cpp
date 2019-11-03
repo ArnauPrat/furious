@@ -426,7 +426,6 @@ Table::get_block(entity_id_t block_id)
   lock();
   assert(block_id != FURIOUS_INVALID_ID);
   TBlock* block = m_blocks.get(block_id);
-  assert(block != nullptr);
   release();
   return block;
 }
@@ -441,6 +440,16 @@ void
 Table::release() const
 {
   m_mutex.unlock();
+}
+
+uint32_t
+block_get_offset(uint32_t block_start, 
+                 uint32_t chunk_size,
+                 uint32_t stride)
+{
+  uint32_t block_id = block_start / TABLE_BLOCK_SIZE;
+  uint32_t chunk_id = block_id / chunk_size;
+  return chunk_id % stride;
 }
   
 } /* furious */ 

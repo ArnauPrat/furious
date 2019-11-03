@@ -30,8 +30,9 @@ enum class fcc_operator_type_t
 
 enum class fcc_column_type_t 
 {
-  E_REFERENCE,
+  E_ID,
   E_COMPONENT,
+  E_REFERENCE,
   E_GLOBAL,
 };
 
@@ -208,6 +209,7 @@ create_cascading_gather(fcc_subplan_t* subplan,
 
 struct fcc_subplan_t 
 {
+  uint32_t                  m_id;
   uint32_t                  m_root;
   DynArray<fcc_operator_t>  m_nodes;
   bool                      m_requires_sync;

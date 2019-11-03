@@ -70,6 +70,7 @@ task_graph_run(task_graph_t* task_graph,
                Database* database,
                void* user_data);
 
+
 class barrier_t
 {
 public:

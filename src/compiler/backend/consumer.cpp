@@ -149,7 +149,7 @@ consume_foreach(FILE*fd,
   for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
   {
     const fcc_column_t* column = &foreach->m_columns[i];
-    if(column->m_type == fcc_column_type_t::E_REFERENCE)
+    if(column->m_type == fcc_column_type_t::E_ID)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -162,16 +162,24 @@ consume_foreach(FILE*fd,
       str_builder_release(&str_builder);
     }
     char tmp[MAX_TYPE_NAME+32];
-    uint32_t length = fcc_type_qualified_name(column->m_component_type,
-                                                      tmp,
-                                                      MAX_TYPE_NAME+32);
-
-    FURIOUS_PERMA_ASSERT( length < (MAX_TYPE_NAME +32) && "Qualified type name exceeds maximum length");
+    fcc_type_qualified_name(column->m_component_type,
+                            tmp,
+                            MAX_TYPE_NAME+32);
 
     if(column->m_type == fcc_column_type_t::E_COMPONENT)
     {
       fprintf(fd,
               "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
+              tmp, 
+              param_index, 
+              tmp, 
+              source, 
+              param_index);
+    }
+    else if(column->m_type == fcc_column_type_t::E_REFERENCE)
+    {
+      fprintf(fd,
+              "%s** data_%d = (%s**)(%s->get_tblock(%d)->p_data);\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -232,6 +240,10 @@ consume_foreach(FILE*fd,
       if(column->m_type == fcc_column_type_t::E_COMPONENT)
       {
         str_builder_append(&str_builder,",\n&data_%d[i]",j);
+      }
+      else if (column->m_type == fcc_column_type_t::E_REFERENCE)
+      {
+        str_builder_append(&str_builder,",\ndata_%d[i]",j);
       }
       else if (column->m_type == fcc_column_type_t::E_GLOBAL)
       {
@@ -301,11 +313,9 @@ consume_join(FILE*fd,
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
-  const uint32_t length = generate_hashtable_name(join,
-                                                  hashtable,
-                                                  MAX_HASHTABLE_VARNAME);
-
-  FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
+  generate_hashtable_name(join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == join->m_join.m_left) 
   {
@@ -325,10 +335,10 @@ consume_join(FILE*fd,
       fprintf(fd,
               "if(build != nullptr)\n{\n");
       char clustername[MAX_CLUSTER_VARNAME];
-      const uint32_t length = generate_cluster_name(join,
-                                                    clustername,
-                                                    MAX_CLUSTER_VARNAME);
-      FURIOUS_PERMA_ASSERT(length < MAX_CLUSTER_VARNAME && "Cluster varname exceeds maximum length");
+      generate_cluster_name(join,
+                            clustername,
+                            MAX_CLUSTER_VARNAME);
+
       fprintf(fd,
               "BlockCluster %s(*build);\n", 
               clustername);
@@ -362,11 +372,9 @@ consume_leftfilter_join(FILE*fd,
         const fcc_operator_t* caller)
 {
   char hashtable[MAX_HASHTABLE_VARNAME];
-  const uint32_t length = generate_hashtable_name(left_filter_join,
-                                          hashtable,
-                                          MAX_HASHTABLE_VARNAME);
-
-  FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
+  generate_hashtable_name(left_filter_join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == left_filter_join->m_leftfilter_join.m_left) 
   {
@@ -385,10 +393,9 @@ consume_leftfilter_join(FILE*fd,
     fprintf(fd,
             "if(build != nullptr)\n{\n");
     char clustername[MAX_CLUSTER_VARNAME];
-    const uint32_t length = generate_cluster_name(left_filter_join,
-                                                  clustername,
-                                                  MAX_CLUSTER_VARNAME);
-    FURIOUS_PERMA_ASSERT(length < MAX_CLUSTER_VARNAME && "Cluster varname exceeds maximum length");
+    generate_cluster_name(left_filter_join,
+                          clustername,
+                          MAX_CLUSTER_VARNAME);
 
     fprintf(fd,
             "BlockCluster %s(*build);\n", 
@@ -424,11 +431,9 @@ consume_cross_join(FILE*fd,
 {
 
   char hashtable[MAX_HASHTABLE_VARNAME];
-  const uint32_t length = generate_hashtable_name(join,
-                                                  hashtable,
-                                                  MAX_HASHTABLE_VARNAME);
-
-  FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable varname exceeds maximum length");
+  generate_hashtable_name(join,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == join->m_cross_join.m_left) 
   {
@@ -474,10 +479,9 @@ consume_tag_filter(FILE*fd,
 {
 
   char bittable_name[MAX_TAG_TABLE_VARNAME];
-  const uint32_t length =  generate_bittable_name(tag_filter->m_tag_filter.m_tag,
-                                                  bittable_name,
-                                                  MAX_TAG_TABLE_VARNAME);
-  FURIOUS_PERMA_ASSERT( length < MAX_TAG_TABLE_VARNAME && "Tag table varname exceeds maximum length");
+  generate_bittable_name(tag_filter->m_tag_filter.m_tag,
+                         bittable_name,
+                         MAX_TAG_TABLE_VARNAME);
   fprintf(fd,"\n");
 
   if(!tag_filter->m_tag_filter.m_on_column)
@@ -514,7 +518,7 @@ consume_tag_filter(FILE*fd,
   }
   else
   {
-    if(tag_filter->m_columns[0].m_type != fcc_column_type_t::E_REFERENCE)
+    if(tag_filter->m_columns[0].m_type != fcc_column_type_t::E_ID)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -586,7 +590,7 @@ consume_predicate_filter(FILE*fd,
   for(uint32_t i = 0; i < predicate_filter->m_columns.size(); ++i)  
   {
     const fcc_column_t* column = &predicate_filter->m_columns[i];
-    if(column->m_type == fcc_column_type_t::E_REFERENCE)
+    if(column->m_type == fcc_column_type_t::E_ID)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -649,7 +653,6 @@ consume_predicate_filter(FILE*fd,
                          func_name, 
                          2048);
 
-
   fprintf(fd,
           "for(uint32_t i = 0; i < TABLE_BLOCK_SIZE && (%s->p_enabled->num_set() != 0); ++i) \n{\n",
           source);
@@ -699,51 +702,48 @@ consume_gather(FILE*fd,
         const char* source,
         const fcc_operator_t* caller)
 {
-  char groups_varname[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = gather->p_subplan;
-  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
-  const uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                                                   groups_varname,
-                                                   MAX_REF_TABLE_VARNAME,
-                                                   gather);
-
-  FURIOUS_PERMA_ASSERT(length < MAX_REF_TABLE_VARNAME && "Ref table varname exceeded maximum length");
-
 
   if(caller->m_id == gather->m_gather.m_ref_table) 
   {
-    // perform the group by of the references
+    // FILLING UP TEMPORAL TABLES
     fprintf(fd,
-            "group_references(&%s, %s->get_tblock(0));\n", 
-            groups_varname,
+            "gather(%s,&hash_tables, chunk_size, stride",
             source);
-  }
-  else
-  {
-    // perform the gather using the grouped references
-    fprintf(fd,"gather(&%s,%s",
-            groups_varname,
-            source);
+
     fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
     DynArray<fcc_column_t>& child_columns = child->m_columns;
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
       fcc_column_t* column = &child_columns[i];
-      char tmp[MAX_TYPE_NAME];
+      char ctype[MAX_TYPE_NAME];
       fcc_type_name(column->m_component_type,
-                    tmp,
+                    ctype,
                     MAX_TYPE_NAME); 
 
       char tablename[MAX_TABLE_VARNAME];
-      generate_temp_table_name(tmp,
-                               tablename,
+      generate_temp_table_name(ctype, tablename, 
                                MAX_TABLE_VARNAME,
                                gather);
+
 
       fprintf(fd,",&%s",
               tablename);
     }
     fprintf(fd,");\n");
+  }
+  else
+  {
+    char hashtable[MAX_HASHTABLE_VARNAME];
+    generate_hashtable_name(gather,
+                            hashtable,
+                            MAX_HASHTABLE_VARNAME);
+
+    fprintf(fd, 
+            "%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable, 
+            source, 
+            source); 
   }
 }
 
@@ -754,36 +754,66 @@ consume_cascading_gather(FILE*fd,
                          const fcc_operator_t* caller)
 {
 
-  char groups_varname[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = casc_gather->p_subplan;
-  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_cascading_gather.m_ref_table];
-  const uint32_t length = generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                                                   groups_varname,
-                                                   MAX_REF_TABLE_VARNAME,
-                                                   casc_gather);
-
-  FURIOUS_PERMA_ASSERT(length < MAX_REF_TABLE_VARNAME && "Ref table varname exceeded maximum length");
   if(caller->m_id == casc_gather->m_cascading_gather.m_ref_table) 
   {
-    // perform the group by of the references
     fprintf(fd,
-            "group_references(&%s, %s->get_tblock(0));\n", 
-            groups_varname,
+            "find_roots_and_blacklist(%s, &current_frontier_%u, &partial_blacklist_%u);\n", 
+            source,
+            casc_gather->m_id,
+            casc_gather->m_id);
+
+    // FILLING UP TEMPORAL TABLES
+    fprintf(fd,
+            "gather(%s,&hash_tables, chunk_size, stride",
             source);
+
+    fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
+    DynArray<fcc_column_t>& child_columns = child->m_columns;
+    for(uint32_t i = 0; i < child_columns.size(); ++i)
+    {
+      fcc_column_t* column = &child_columns[i];
+      char ctype[MAX_TYPE_NAME];
+      fcc_type_name(column->m_component_type,
+                    ctype,
+                    MAX_TYPE_NAME); 
+
+      char tablename[MAX_TABLE_VARNAME];
+      generate_temp_table_name(ctype, tablename, 
+                               MAX_TABLE_VARNAME,
+                               casc_gather);
+
+
+      fprintf(fd,",&%s",
+              tablename);
+    }
+    fprintf(fd,");\n");
+
+    char hashtable[MAX_HASHTABLE_VARNAME];
+    generate_hashtable_name(casc_gather,
+                            hashtable,
+                            MAX_HASHTABLE_VARNAME);
+
+    fprintf(fd, 
+            "ref_%s.insert_copy(%s->m_start, %s);\n", 
+            hashtable, 
+            source, 
+            source); 
   }
   else
   {
     char hashtable[MAX_HASHTABLE_VARNAME];
-    const uint32_t length = generate_hashtable_name(casc_gather,
-                                                    hashtable,
-                                                    MAX_HASHTABLE_VARNAME);
-    FURIOUS_PERMA_ASSERT(length < MAX_HASHTABLE_VARNAME && "Hashtable name exceeds maximum length");
+    generate_hashtable_name(casc_gather,
+                            hashtable,
+                            MAX_HASHTABLE_VARNAME);
 
     fprintf(fd, 
             "%s.insert_copy(%s->m_start, %s);\n", 
             hashtable, 
             source, 
             source); 
+
+
   }
 }
 

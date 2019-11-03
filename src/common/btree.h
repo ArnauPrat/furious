@@ -123,7 +123,6 @@ struct BTree
 private:
    BTRoot*    p_root;
    size_t     m_size;
-   std::mutex m_mutex;
 };
 
 } /* furious */ 

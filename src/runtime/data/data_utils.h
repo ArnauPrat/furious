@@ -5,6 +5,7 @@
 
 #include "../../common/btree.h"
 #include "../../common/dyn_array.h"
+#include "../../common/btree.h"
 
 #include "table_view.h"
 
@@ -16,10 +17,8 @@ struct BlockCluster;
 struct BitTable;
 
 /**
- * \brief Copies the raw data of the given component to the table at the given
- * id. This is a raw copy, so it is not performed using any copy constructor nor
- * operator=. This is meant to be performed on temporal tables, where the
- * destructor of the components is not called when the table is destroyed.
+ * \brief Copies the ptr to the given component to the table at the given
+ * id.
  *
  * @tparam TComponent
  * \param table_view The view of the temporal table
@@ -27,71 +26,90 @@ struct BitTable;
  * \param component The component to be copied
  */
 void
-copy_component_raw(const BlockCluster* cluster,
+copy_component_ptr(uint32_t chunk_size, 
+                   uint32_t stride,
                    entity_id_t source,
                    entity_id_t target,
+                   const DynArray<BTree<BlockCluster>*>* hash_tables, 
                    Table** tables,
                    uint32_t num_tables);
 
 
 /**
- * \brief Performs a grouping operation over the elements in the given block.
- * That is, for each value in the block, it groups the entities that have that
- * value and put them in the provided btree.
+ * \brief Computes the blacklist of entities those entities that cannot be
+ * computed (that are not roots of the induced tree) 
+ * given a block cluster with a single column of references
  *
- * \param btree The btree to perform the groups 
- * \param block The block to process
+ * \param blacklist The block_cluster to find the roots for
+ * \param blacklist The bittable to plalce the roots to
  */
 void
-group_references(BTree<DynArray<entity_id_t>>* groups, 
-                 TBlock* block);
+find_roots_and_blacklist(const BlockCluster* block_cluster, 
+                        BitTable* roots,
+                        BitTable* blacklist);
 
 /**
- * \brief Finds the roots of a groups (those entities that form the roots of the
- * tree induced by the references)
+ * \brief Filters the contents of a frontier by the partial black lists in the
+ * array
  *
- * \param groups The groups to get the roots from
- * \param roots The bittable to plalce the roots to
+ * \param partial_lists The array of partial blacklists
+ * \param current_frontier The current frontier
  */
 void
-find_roots(const BTree<DynArray<entity_id_t>>* groups, 
-           BitTable* roots);
+filter_blacklists(const DynArray<BitTable*>* partial_lists,
+                  BitTable* current_frontier);
 
 /**
- * \brief Given a set of reference groups and a components block, performs the
- * gather operation of this block into the given table view
+ * \brief Performs the union of a set of frontiers into a destinaion one
  *
- * \tparam TComponent The componnet type to gather
- * \param groups The reference groups 
- * \param block The block to perform the gather from
- * \param table_view The table_view to store the gathered components
+ * \param partial_lists The array of next frontiers 
+ * \param current_frontier The destination frontier
  */
-template <typename...TComponents>
 void
-gather(const BTree<DynArray<entity_id_t>>* groups, 
-       const BlockCluster* cluster,
-       TableView<TComponents>*...table_view);
+frontiers_union(const DynArray<BitTable*>* next_frontiers,
+                BitTable* current_frontier);
+
 
 /**
  * \brief Given a set of reference groups and a components block, performs the
- * gather operation of this block into the given table view
+ * gather operation of this block into the given table view. This operation
+ * assumes that the given cluster contains a single column of references
  *
  * \tparam TComponent The componnet type to gather
- * \param groups The reference groups 
- * \param block The block to perform the gather from
- * \param current_frontier The bittable with the current_frontier to filter the gather. 
- * \param next_frontier The bittable with the next_frontier to filter the gather. 
- * \param table_view The table_view to store the gathered components
+ * \param cluster The cluster with the references  
+ * \param hash_tables An array with the different hash_tables
+ * \param chunk_size The chunk_size (used to compute which hash_table to
+ * reference)
+ * \param stride The stride (used to compute which hash_table to reference)
+ * \param table_view The temporal tables to store the references to the components
  */
 template <typename...TComponents>
 void
-gather(const BTree<DynArray<entity_id_t>>* groups, 
-       const BlockCluster* cluster,
-       BitTable* current_frontier,
-       BitTable* next_frontier,
+gather(const BlockCluster* cluster,
+       const DynArray<BTree<BlockCluster>*>* hash_tables,
+       uint32_t chunk_size, 
+       uint32_t stride,
        TableView<TComponents>*...table_view);
 
-  
+/**
+ * \brief Builds a block cluster by fetching the blocks with the given start id 
+ * from the given tables
+ *
+ * @tparam typename...TComponents The components of the tables
+ * \param ref_cluster The cluster of references 
+ * \param current_frontier The current frontier
+ * \param next_frontier The next frontier
+ * \param cluster The cluster to append to blocks to
+ * \param ...table_views The tables to fetch the blocks from
+ */
+template <typename...TComponents>
+void
+build_block_cluster_from_refs(const BlockCluster* ref_cluster,  
+                              const BitTable* current_frontier,
+                              BitTable* next_frontier,
+                              BlockCluster* cluster, 
+                              TableView<TComponents>*...table_views);
+
 /**
  * \brief This operation assumes that the "column" column in the block cluster
  * is of type #REFERENCE. This functions filters those rows in the blockcluster

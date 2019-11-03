@@ -4,6 +4,30 @@
 
 BEGIN_FURIOUS_SCRIPT
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+
+struct SimpleSystem 
+{
+  void run(furious::Context* context,
+           uint32_t id,
+           SimpleComponent1* simple_component1,
+           const SimpleComponent2* simple_component2)
+  {
+    simple_component1->m_x = simple_component2->m_x;
+    simple_component1->m_y = simple_component2->m_y;
+    simple_component1->m_z = simple_component2->m_z;
+  }
+};
+
+furious::match<SimpleComponent1>().expand<SimpleComponent2>("parent").foreach<SimpleSystem>();
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
 struct UpdatePosition
 {
   UpdatePosition(float speed) : m_speed{speed} {}
@@ -67,6 +91,7 @@ struct IncrementFieldMesh
            uint32_t id,
            FieldMesh* field)
   {
+
     // DRAW FIELD MESH
     field->m_x += 1.0;
     field->m_y += 1.0;

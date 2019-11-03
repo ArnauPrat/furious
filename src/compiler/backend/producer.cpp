@@ -483,29 +483,54 @@ produce_gather(FILE* fd,
                const fcc_operator_t* gather,
                bool parallel_stream)
 {
-  char refname[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = gather->p_subplan;
-  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
-  generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                           refname,
-                           MAX_REF_TABLE_VARNAME,
-                           gather);
 
-  fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n",  refname);
-  produce(fd, ref_table, parallel_stream);
+  fprintf(fd,
+          "int32_t last_barrier = 0;");
 
   // This is a temporal buffer needed for generating temporal table names from
   // threading parameters to make them unique
-  fprintf(fd,"char tmp_buffer_%d[256];\n", gather->m_id);
+  fprintf(fd,
+          "char tmp_buffer_%d_%d[256];\n", 
+          gather->p_subplan->m_id,
+          gather->m_id);
 
-  // Generating temporal tables
+
+  // FILLING UP HASHTABLE WITH CHILD BLOCKS 
+  char hashtable[MAX_HASHTABLE_VARNAME];
+  generate_hashtable_name(gather,
+                          hashtable,
+                          MAX_HASHTABLE_VARNAME);
+
+  // DECLARE HASH TABLE
+  fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
+
+  // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+          gather->p_subplan->m_id,
+          gather->m_id,
+          hashtable,
+          gather->p_subplan->m_id,
+          gather->m_id);
+  fprintf(fd,
+          "void** ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          gather->p_subplan->m_id, 
+          gather->m_id);
+
+  fprintf(fd,
+          "*ptr = &%s;\n",
+          hashtable);
+
   fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
+  produce(fd, child, parallel_stream);
+
+  // CREATING TEMPORAL TABLES 
   DynArray<fcc_column_t>& child_columns = child->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
 
-    if(child_columns[i].m_type == fcc_column_type_t::E_REFERENCE)
+    if(child_columns[i].m_type == fcc_column_type_t::E_ID)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -542,22 +567,61 @@ produce_gather(FILE* fd,
                              MAX_TABLE_VARNAME, 
                              gather);
 
-    fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+    fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+            gather->p_subplan->m_id,
             gather->m_id, 
-            temptablename);
+            temptablename,
+            gather->p_subplan->m_id,
+            gather->m_id);
 
-    fprintf(fd,"TableView<%s> %s = database->create_temp_table<%s>(tmp_buffer_%d);\n", 
+    fprintf(fd,"TableView<%s*> %s = database->create_temp_table<%s*>(tmp_buffer_%d_%d);\n", 
             ctype,
             temptablename,
             ctype,
+            gather->p_subplan->m_id,
             gather->m_id);
 
     fprintf(fd,"%s.clear();\n", 
             temptablename);
   }
 
-  produce(fd, child, parallel_stream);
+  // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
 
+  fprintf(fd, 
+          "DynArray<BTree<BlockCluster>*> hash_tables;\n");
+  fprintf(fd, 
+          "for(uint32_t i = 0; i < stride; ++i)\n");
+  fprintf(fd, 
+          "{\n");
+  // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, i, stride);\n", 
+          gather->p_subplan->m_id,
+          gather->m_id,
+          hashtable,
+          gather->p_subplan->m_id,
+          gather->m_id);
+  fprintf(fd,
+          "BTree<BlockCluster>* ht = (BTree<BlockCluster>*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          gather->p_subplan->m_id, 
+          gather->m_id);
+  fprintf(fd, 
+          "hash_tables.append(ht);\n");
+  fprintf(fd, 
+          "}\n");
+
+  // PRODUCE REFERENCE TABLE
+  fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
+  produce(fd, ref_table, parallel_stream);
+
+  // DEFININT ITERATORS TO TEMPORAL TABLES
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
@@ -611,6 +675,7 @@ produce_gather(FILE* fd,
                            itername,
                            MAX_ITER_VARNAME);
 
+  // ITERATE OVER TEMPORAL TABLES AND PRODUCE CLUSTERS FOR CALLER OPERATORS
   fprintf(fd, "while(%s.has_next())\n{\n", itername);
 
   char clustername[MAX_CLUSTER_VARNAME];
@@ -663,20 +728,18 @@ produce_cascading_gather(FILE* fd,
                          const fcc_operator_t* casc_gather, 
                          bool parallel_stream)
 {
-  // GENERATING REFERENCE GROUPS
   fprintf(fd, "FURIOUS_PERMA_ASSERT(stride == 1 || (stride > 1 && barrier != nullptr));\n");
+  fprintf(fd,
+          "int32_t last_barrier = 0;");
 
-
-  char groups[MAX_REF_TABLE_VARNAME];
   fcc_subplan_t* subplan = casc_gather->p_subplan;
-  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
-  generate_ref_groups_name(ref_table->m_columns[0].m_ref_name, 
-                           groups, 
-                           MAX_REF_TABLE_VARNAME,
-                           casc_gather);
 
-  fprintf(fd,"BTree<DynArray<entity_id_t> > %s;\n", groups);
-  produce(fd, ref_table, false);
+  // This is a temporal buffer needed for generating temporal table names from
+  // threading parameters to make them unique
+  fprintf(fd,
+          "char tmp_buffer_%d_%d[256];\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
 
   // GENERATING HASHTABLE WITH CHILD BLOCKS 
   char hashtable[MAX_HASHTABLE_VARNAME];
@@ -684,21 +747,57 @@ produce_cascading_gather(FILE* fd,
                           hashtable,
                           MAX_HASHTABLE_VARNAME);
 
+  // DECLARE HASH TABLE
   fprintf(fd,"BTree<BlockCluster> %s;\n", hashtable);
-  fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
-  produce(fd, child, false);
 
-  // This is a temporal buffer needed for generating temporal table names from
-  // threading parameters to make them unique
-  fprintf(fd,"char tmp_buffer_%d[256];\n", casc_gather->m_id);
+  // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          hashtable,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+  fprintf(fd,
+          "void** ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "*ptr = &%s;\n",
+          hashtable);
+
+
+  // PRODUCE CHILD BLOCKS
+  fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
+  produce(fd, child, true);
+
+
+  // DECLARE BITTABLES FOR CASCADING
+  fprintf(fd,
+          "BitTable current_frontier_%u;\n", 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "BitTable next_frontier_%u;\n", 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "BitTable partial_blacklist_%u;\n", 
+          casc_gather->m_id);
+
+  DynArray<fcc_column_t>& child_columns = child->m_columns;
+  char** temp_table_names = new char*[child_columns.size()];
+  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  {
+    temp_table_names[i] = new char[MAX_TABLE_VARNAME];
+  }
 
   // CREATE TEMPORAL TABLES
-  DynArray<fcc_column_t>& child_columns = child->m_columns;
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
 
-    if(child_columns[i].m_type == fcc_column_type_t::E_REFERENCE)
+    if(child_columns[i].m_type == fcc_column_type_t::E_ID)
     {
       str_builder_t str_builder;
       str_builder_init(&str_builder);
@@ -728,147 +827,185 @@ produce_cascading_gather(FILE* fd,
                                            str_builder.p_buffer);
       str_builder_release(&str_builder);
     }
-    char tablename[MAX_TABLE_VARNAME];
+
     generate_temp_table_name(ctype, 
-                             tablename,
+                             temp_table_names[i],
                              MAX_TABLE_VARNAME,
                              casc_gather);
-    fprintf(fd,"snprintf(tmp_buffer_%d, 256-1, \"%s_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
-            casc_gather->m_id,
-            tablename);
 
-    fprintf(fd,"TableView<%s> %s = database->create_temp_table<%s>(tmp_buffer_%d);\n", 
-            ctype,
-            tablename,
-            ctype,
-            casc_gather->m_id);
   }
 
-  // DECLARE BITTABLES FOR CASCADING
-  fprintf(fd,"BitTable bittable1_%u;\n", casc_gather->m_id);
-  fprintf(fd,"BitTable bittable2_%u;\n", casc_gather->m_id);
-  fprintf(fd,
-          "BitTable* current_frontier_%u = &bittable1_%u;\n", 
-          casc_gather->m_id,
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "BitTable* next_frontier_%u = &bittable2_%u;\n", 
-          casc_gather->m_id,
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "find_roots(&%s, current_frontier_%u);\n", 
-          groups,
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "int32_t last_barrier = 0;");
-
-  fprintf(fd,
-          "while(current_frontier_%u->size() > 0)\n{\n", 
-          casc_gather->m_id);
-
-
-  // CLEARING TEMPORAL TABLES
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[MAX_TYPE_NAME];
     fcc_type_name(column->m_component_type,
                   ctype,
-                  MAX_TYPE_NAME); 
+                  MAX_TYPE_NAME);
 
+    fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+            casc_gather->p_subplan->m_id,
+            casc_gather->m_id,
+            temp_table_names[i],
+            casc_gather->p_subplan->m_id,
+            casc_gather->m_id);
 
-    char tablename[MAX_TABLE_VARNAME];
-    generate_temp_table_name(ctype, 
-                             tablename, 
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
+    fprintf(fd,"TableView<%s*> %s = database->create_temp_table<%s*>(tmp_buffer_%d_%d);\n", 
+            ctype,
+            temp_table_names[i],
+            ctype,
+            casc_gather->p_subplan->m_id,
+            casc_gather->m_id);
 
     fprintf(fd,"%s.clear();\n", 
-            tablename);
+            temp_table_names[i]);
   }
 
-  // FILLING UP TEMPORAL TABLES
-
-  str_builder_t str_builder_iter;
-  str_builder_init(&str_builder_iter);
-  str_builder_append(&str_builder_iter, "iter_hashtable_%d",casc_gather->m_id);
-  fprintf(fd, "auto %s = %s.iterator();\n", 
-          str_builder_iter.p_buffer, 
-          hashtable);
-
-  fprintf(fd, "while(%s.has_next())\n{\n", str_builder_iter.p_buffer);
+  // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
   fprintf(fd,
-          "gather(&%s,%s.next().p_value,current_frontier_%u, next_frontier_%u",
-          groups,
-          str_builder_iter.p_buffer,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
+
+  fprintf(fd, 
+          "DynArray<BTree<BlockCluster>*> hash_tables;\n");
+  fprintf(fd, 
+          "for(uint32_t i = 0; i < stride; ++i)\n");
+  fprintf(fd, 
+          "{\n");
+  // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, i, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          hashtable,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+  fprintf(fd,
+          "BTree<BlockCluster>* ht = (BTree<BlockCluster>*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+  fprintf(fd, 
+          "hash_tables.append(ht);\n");
+  fprintf(fd, 
+          "}\n");
+
+  // DECLARE HASH TABLE
+  fprintf(fd,"BTree<BlockCluster> ref_%s;\n", hashtable);
+
+  // PRODUCING REFERENCE TABLE
+  fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
+  produce(fd, ref_table, parallel_stream);
+
+  // REGISTERING PARTIAL BLACKLIST AND NEXT FRONTIERS
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"blacklist_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+  fprintf(fd,
+          "ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "*ptr = &partial_blacklist_%u;\n",
+          casc_gather->m_id);
+
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"next_frontier_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+  fprintf(fd,
+          "ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "*ptr = &next_frontier_%u;\n",
+          casc_gather->m_id);
+
+  // SYNCHRONIZING THREADS TO MAKE SURE PARTIAL BLACKLISTS ARE AVAILABLE
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
+
+  // BROADCASTING NEXT FRONTIERS TO CURRENT FRONTIER
+  
+  fprintf(fd, 
+          "DynArray<BitTable*> blacklists_%u;\n",
+          casc_gather->m_id);
+
+  fprintf(fd, 
+          "DynArray<BitTable*> next_frontiers_%u;\n",
+          casc_gather->m_id);
+  fprintf(fd,
+          "for(uint32_t i = 0; i < stride; ++i)\n{\n");
+
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"blacklist_%d_%d_%%d_%%d_%%d\", chunk_size, i, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+
+  
+  fprintf(fd,
+          "BitTable* other_blacklist = (BitTable*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "blacklists_%u.append(other_blacklist);\n", 
+          casc_gather->m_id);
+
+  fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"next_frontier_%d_%d_%%d_%%d_%%d\", chunk_size, i, stride);\n", 
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id,
+          casc_gather->p_subplan->m_id,
+          casc_gather->m_id);
+
+  
+  fprintf(fd,
+          "BitTable* other_frontier = (BitTable*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          casc_gather->p_subplan->m_id, 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "next_frontiers_%u.append(other_frontier);\n", 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "}\n");
+
+  fprintf(fd,
+          "filter_blacklists(&blacklists_%u, &current_frontier_%u);\n", 
           casc_gather->m_id,
           casc_gather->m_id);
-  str_builder_release(&str_builder_iter);
 
-
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
-  {
-    fcc_column_t* column = &child_columns[i];
-    char ctype[MAX_TYPE_NAME];
-    fcc_type_name(column->m_component_type,
-                  ctype,
-                  MAX_TYPE_NAME); 
-
-    char tablename[MAX_TABLE_VARNAME];
-    generate_temp_table_name(ctype, tablename, 
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
-
-
-    fprintf(fd,",&%s",
-            tablename);
-  }
-  fprintf(fd,");\n");
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
 
 
 
-  fprintf(fd,"}\n");
+  fprintf(fd,
+          "while(current_frontier_%u.size() > 0)\n{\n", 
+          casc_gather->m_id);
 
-
-  // ITERATE OVER TEMPORAL TABLES
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
-  {
-    fcc_column_t* column = &child_columns[i];
-    char ctype[MAX_TYPE_NAME];
-    fcc_type_name(column->m_component_type,
-                  ctype,
-                  MAX_TYPE_NAME); 
-
-
-    char tablename[MAX_TABLE_VARNAME];
-    generate_temp_table_name(ctype, 
-                             tablename, 
-                             MAX_TABLE_VARNAME, 
-                             casc_gather);
-
-
-    char itername[MAX_ITER_VARNAME];
-    generate_table_iter_name(tablename, 
-                             itername, 
-                             MAX_ITER_VARNAME);
-
-
-    if(parallel_stream)
-    {
-      fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
-              itername, 
-              tablename);
-    }
-    else
-    {
-      fprintf(fd, "auto %s = %s.iterator(1, 0, 1);\n", 
-              itername, 
-              tablename);
-    }
-  }
 
   fcc_column_t* column = &child_columns[0];
   char ctype[MAX_TYPE_NAME];
@@ -889,41 +1026,36 @@ produce_cascading_gather(FILE* fd,
                            itername,
                            MAX_ITER_VARNAME);
 
+  fprintf(fd, "auto iter_ref_hashtable_%d = ref_%s.iterator();\n", 
+          casc_gather->m_id, 
+          hashtable);
 
-  fprintf(fd, "while(%s.has_next())\n{\n", itername);
+  fprintf(fd, "while(iter_ref_hashtable_%d.has_next())\n{\n", casc_gather->m_id);
 
   char clustername[MAX_CLUSTER_VARNAME];
   generate_cluster_name(casc_gather,
-                                 clustername,
-                                 MAX_CLUSTER_VARNAME);
+                        clustername,
+                        MAX_CLUSTER_VARNAME);
 
   fprintf(fd, "BlockCluster %s;\n", clustername);
+  fprintf(fd, 
+          "build_block_cluster_from_refs(iter_ref_hashtable_%d.next().p_value,"
+          "&current_frontier_%u,"
+          "&next_frontier_%u,"
+          "&%s",
+          casc_gather->m_id, 
+          casc_gather->m_id,
+          casc_gather->m_id,
+          clustername);
 
   for(uint32_t i = 0; i < child_columns.size(); ++i)
   {
-    fcc_column_t* column = &child_columns[i];
-    char ctype[MAX_TYPE_NAME];
-    fcc_type_name(column->m_component_type,
-                  ctype,
-                  MAX_TYPE_NAME); 
-
-
-    char tablename[MAX_TABLE_VARNAME];
-    generate_temp_table_name(ctype,
-                             tablename,
-                             MAX_TABLE_VARNAME,
-                             casc_gather);
-
-
-    char itername[MAX_ITER_VARNAME];
-    generate_table_iter_name(tablename,
-                             itername,
-                             MAX_ITER_VARNAME);
-
-    fprintf(fd, "%s.append(%s.next().get_raw());\n", 
-            clustername, 
-            itername);
+    fprintf(fd, 
+            ",&%s", 
+            temp_table_names[i]);
   }
+  fprintf(fd, 
+         ");\n");
 
   str_builder_t str_builder_cluster;
   str_builder_init(&str_builder_cluster);
@@ -945,28 +1077,71 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "}\n");
 
-  //SWAP FRONTIERS
   fprintf(fd,
-          "BitTable* temp_frontier_%u = current_frontier_%u;\n", 
+          "current_frontier_%u.clear();\n",
+          casc_gather->m_id);
+  fprintf(fd,
+          "frontiers_union(&next_frontiers_%u, &current_frontier_%u);\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
   fprintf(fd,
-          "current_frontier_%u = next_frontier_%u;\n", 
-          casc_gather->m_id,
-          casc_gather->m_id);
-
+          "if(stride > 1)\n{\n");
   fprintf(fd,
-          "next_frontier_%u = temp_frontier_%u;\n", 
-          casc_gather->m_id,
-          casc_gather->m_id);
-
+          "last_barrier += stride;\n");
   fprintf(fd,
-          "next_frontier_%u->clear();\n", 
-          casc_gather->m_id);
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
+
+  ////SWAP BLACKLISTS 
+  //fprintf(fd,
+  //        "BitTable* temp_blacklist_%u = current_blacklist_%u;\n", 
+  //        casc_gather->m_id,
+  //        casc_gather->m_id);
+
+  //fprintf(fd,
+  //        "current_blacklist_%u = next_blacklist_%u;\n", 
+  //        casc_gather->m_id,
+  //        casc_gather->m_id);
+
+  //fprintf(fd,
+  //        "next_blacklist_%u = temp_blacklist_%u;\n", 
+  //        casc_gather->m_id,
+  //        casc_gather->m_id);
+
+  //fprintf(fd,
+  //        "next_blacklist_%u->clear();\n", 
+  //        casc_gather->m_id);
 
   fprintf(fd,
           "}\n\n");
+
+  // CLEARING TEMPORAL TABLES
+  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  {
+    fcc_column_t* column = &child_columns[i];
+    char ctype[MAX_TYPE_NAME];
+    fcc_type_name(column->m_component_type,
+                  ctype,
+                  MAX_TYPE_NAME); 
+
+
+    char tablename[MAX_TABLE_VARNAME];
+    generate_temp_table_name(ctype, 
+                             tablename, 
+                             MAX_TABLE_VARNAME,
+                             casc_gather);
+
+    fprintf(fd,"%s.clear();\n", 
+            tablename);
+  }
+
+  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  {
+    delete [] temp_table_names[i];
+  }
+  delete [] temp_table_names;
 
 }
 

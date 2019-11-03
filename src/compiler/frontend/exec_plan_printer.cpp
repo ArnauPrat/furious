@@ -419,7 +419,7 @@ fcc_subplan_printer_print_gather(fcc_subplan_printer_t* printer,
   fcc_subplan_t* subplan = gather->p_subplan;
   fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
   fcc_column_t* ref_column = &ref_table->m_columns[0];
-  if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
+  if(ref_column->m_type != fcc_column_type_t::E_ID)
   {
     //TODO: handle error
   }
@@ -449,7 +449,7 @@ fcc_subplan_printer_print_cascading_gather(fcc_subplan_printer_t* printer,
   fcc_subplan_t* subplan = casc_gather->p_subplan;
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_cascading_gather.m_ref_table];
   fcc_column_t* ref_column = &ref_table->m_columns[0];
-  if(ref_column->m_type != fcc_column_type_t::E_REFERENCE)
+  if(ref_column->m_type != fcc_column_type_t::E_ID)
   {
     //TODO: handle error
   }

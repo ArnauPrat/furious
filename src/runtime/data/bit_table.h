@@ -14,6 +14,8 @@ namespace furious
 
 struct BitTable 
 {
+  friend void bittable_union(BitTable* first, const BitTable* second);
+  friend void bittable_difference(BitTable* first, const BitTable* second);
 
   BitTable ();
   ~BitTable ();
@@ -72,6 +74,12 @@ private:
   mutable BTree<Bitmap> m_bitmaps;
   uint32_t              m_size;
 };
+
+void
+bittable_union(BitTable* first, const BitTable* second);
+
+void
+bittable_difference(BitTable* first, const BitTable* second);
   
 } /* furious
  */ 

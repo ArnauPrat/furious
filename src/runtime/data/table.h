@@ -277,6 +277,21 @@ private:
   mutable std::mutex    m_mutex;
 };
 
+/**
+ * \brief Given a block start, a chunk size and a stride, returns the offset
+ * (thread id) responsible of the block start.
+ *
+ * \param block_start The block start
+ * \param chunk_size The chunk size
+ * \param stride The stride (num threads)
+ *
+ * \return Returns the offset (thread id)
+ */
+uint32_t
+block_get_offset(uint32_t block_start, 
+                 uint32_t chunk_size,
+                 uint32_t stride);
+
 } // namespace furious
 
 #endif

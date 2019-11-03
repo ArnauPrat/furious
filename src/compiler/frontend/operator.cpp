@@ -54,7 +54,7 @@ create_scan(fcc_subplan_t* subplan,
 
   fcc_operator_t* op = &subplan->m_nodes[id];
   fcc_column_t column;
-  column.m_type = fcc_column_type_t::E_REFERENCE;
+  column.m_type = fcc_column_type_t::E_ID;
   FURIOUS_COPY_AND_CHECK_STR(column.m_ref_name, ref_name, MAX_REF_NAME);
   column.m_access_mode = fcc_access_mode_t::E_READ;
   op->m_columns.append(column);
@@ -228,6 +228,10 @@ create_gather(fcc_subplan_t* subplan,
   op->m_gather.m_child = child;
   op->m_gather.m_ref_table = ref_table;
   op->m_columns.append(subplan->m_nodes[child].m_columns);
+  for(uint32_t i = 0; i < op->m_columns.size();++i)
+  {
+    op->m_columns[i].m_type = fcc_column_type_t::E_REFERENCE;
+  }
   return id;
 }
 
@@ -245,7 +249,10 @@ create_cascading_gather(fcc_subplan_t* subplan,
   op->m_cascading_gather.m_child = child;
   op->m_cascading_gather.m_ref_table = ref_table;
   op->m_columns.append(subplan->m_nodes[child].m_columns);
-
+  for(uint32_t i = 0; i < op->m_columns.size();++i)
+  {
+    op->m_columns[i].m_type = fcc_column_type_t::E_REFERENCE;
+  }
   return id;
 }
 
@@ -496,6 +503,7 @@ subplan_init(const fcc_stmt_t* match,
           local_root = create_gather(subplan,
                                      local_root,
                                      ref_scan);
+          subplan->m_requires_sync = true;
         }
       }
       else

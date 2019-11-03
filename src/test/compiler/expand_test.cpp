@@ -8,36 +8,81 @@
 #include <iostream>
 
 
+TEST(ExpandTest, ExpandTestSimple)
+{
+
+  furious::Database* database = new furious::Database();
+  database->start_webserver("localhost", 
+                            "8080");
+  furious::__furious_init(database);
+
+  furious::Entity entities[8];
+  for(uint32_t i = 0; i < 8; ++i)
+  {
+    entities[i] = furious::create_entity(database);
+    FURIOUS_ADD_COMPONENT(entities[i],SimpleComponent1, 0.0f, 0.0f, 0.0f);
+    FURIOUS_ADD_COMPONENT(entities[i],SimpleComponent2, (float)i, (float)i, (float)i);
+  }
+
+  entities[0].add_reference("parent",entities[1]);
+  entities[2].add_reference("parent",entities[3]);
+  entities[4].add_reference("parent",entities[5]);
+  entities[6].add_reference("parent",entities[7]);
+
+  furious::__furious_frame(0.1,database, nullptr);
+
+  for(uint32_t i = 0; i < 8; i+=2)
+  {
+    if(i % 2 == 0)
+    {
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_x,(float)(i+1));
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_y,(float)(i+1));
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_z,(float)(i+1));
+    }
+    else
+    {
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_x,0.0f);
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_y,0.0f);
+      ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], SimpleComponent1)->m_z,0.0f);
+    }
+  }
+
+  furious::__furious_release();
+
+  delete database;
+}
+
 TEST(ExpandTest, ExpandTest ) 
 {
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
 
+  furious::__furious_init(database);
+
   furious::Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
   {
     entities[i] = furious::create_entity(database);
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
-    FURIOUS_ADD_COMPONENT(entities[i],Velocity, 1.0f, 1.0f, 1.0f);
     FURIOUS_ADD_COMPONENT(entities[i],FieldMesh, 0.0f, 0.0f, 0.0f);
+    FURIOUS_ADD_COMPONENT(entities[i],Velocity, 1.0f, 1.0f, 1.0f);
     FURIOUS_ADD_COMPONENT(entities[i],Intensity, 5.0f);
   }
 
   entities[2].add_reference("parent",entities[0]);
   entities[3].add_reference("parent",entities[0]);
+  entities[4].add_reference("parent",entities[1]);
+  entities[5].add_reference("parent",entities[1]);
   entities[6].add_reference("parent",entities[3]);
   entities[7].add_reference("parent",entities[3]);
 
-  entities[4].add_reference("parent",entities[1]);
-  entities[5].add_reference("parent",entities[1]);
   
   entities[2].add_tag("test");
   entities[3].add_tag("test");
   entities[4].add_tag("test");
   entities[5].add_tag("test");
 
-  furious::__furious_init(database);
   furious::__furious_frame(0.1,database, nullptr);
 
   uint32_t first_level_entities[2] = {0,1};
@@ -90,9 +135,11 @@ TEST(ExpandTest, ExpandTestLarge )
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
+  furious::__furious_init(database);
 
-  furious::Entity entities[10000];
-  for(uint32_t i = 0; i < 10000; ++i)
+  constexpr uint32_t num_entities = 66;
+  furious::Entity entities[num_entities];
+  for(uint32_t i = 0; i < num_entities; ++i)
   {
     entities[i] = furious::create_entity(database);
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
@@ -101,12 +148,11 @@ TEST(ExpandTest, ExpandTestLarge )
     FURIOUS_ADD_COMPONENT(entities[i],Intensity, 5.0f);
   }
 
-  for(uint32_t i = 0; i < 5000; ++i)
+  for(uint32_t i = 0; i < num_entities/2; ++i)
   {
-    entities[i].add_reference("parent",entities[i+5000]);
+    entities[i].add_reference("parent",entities[i+num_entities/2]);
   }
 
-  furious::__furious_init(database);
   furious::__furious_frame(0.1,database, nullptr);
 
   furious::__furious_release();

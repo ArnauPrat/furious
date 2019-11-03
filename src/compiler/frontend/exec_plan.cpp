@@ -92,6 +92,7 @@ insert(fcc_exec_plan_t* exec_plan,
 
   subplan_init(added_node_match, 
                exec_plan->m_subplans[added_node_id]);
+  exec_plan->m_subplans[added_node_id]->m_id = added_node_id;
 
   for(uint32_t i = 0; 
       i < num_nodes - 1; 

@@ -45,6 +45,8 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/macros.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/table.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/table.h

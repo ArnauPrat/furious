@@ -513,12 +513,9 @@ produce_gather(FILE* fd,
           gather->p_subplan->m_id,
           gather->m_id);
   fprintf(fd,
-          "void** ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
           gather->p_subplan->m_id, 
-          gather->m_id);
-
-  fprintf(fd,
-          "*ptr = &%s;\n",
+          gather->m_id,
           hashtable);
 
   fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
@@ -758,12 +755,9 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "void** ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
           casc_gather->p_subplan->m_id, 
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "*ptr = &%s;\n",
+          casc_gather->m_id,
           hashtable);
 
 
@@ -907,13 +901,11 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &partial_blacklist_%u);\n",
           casc_gather->p_subplan->m_id, 
+          casc_gather->m_id,
           casc_gather->m_id);
 
-  fprintf(fd,
-          "*ptr = &partial_blacklist_%u;\n",
-          casc_gather->m_id);
 
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"next_frontier_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
           casc_gather->p_subplan->m_id,
@@ -921,12 +913,9 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "ptr = ht_registry_insert(&ht_registry, tmp_buffer_%d_%d);\n",
+          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &next_frontier_%u);\n",
           casc_gather->p_subplan->m_id, 
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "*ptr = &next_frontier_%u;\n",
+          casc_gather->m_id,
           casc_gather->m_id);
 
   // SYNCHRONIZING THREADS TO MAKE SURE PARTIAL BLACKLISTS ARE AVAILABLE

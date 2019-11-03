@@ -19,16 +19,17 @@ ht_registry_release(ht_registry_t* registry)
   btree_destroy_root(registry->p_root);
 }
 
-void**
+void
 ht_registry_insert(ht_registry_t* registry, 
-                   const char* key)
+                   const char* key,
+                   void* value)
 {
   registry->m_mutex.lock();
   uint32_t hash_key = hash(key);
   void** ptr =  btree_insert_root(registry->p_root, 
                                       hash_key).p_place;
+  *ptr = value;
   registry->m_mutex.unlock();
-  return ptr;
 }
 
 void*

@@ -21,9 +21,10 @@ ht_registry_init(ht_registry_t* registry);
 void
 ht_registry_release(ht_registry_t* registry);
 
-void**
+void
 ht_registry_insert(ht_registry_t* registry, 
-                   const char* key);
+                   const char* key, 
+                   void* value);
 
 void*
 ht_registry_get(ht_registry_t* registry,

@@ -137,7 +137,7 @@ TEST(ExpandTest, ExpandTestLarge )
                             "8080");
   furious::__furious_init(database);
 
-  constexpr uint32_t num_entities = 66;
+  constexpr uint32_t num_entities = 30000;
   furious::Entity entities[num_entities];
   for(uint32_t i = 0; i < num_entities; ++i)
   {

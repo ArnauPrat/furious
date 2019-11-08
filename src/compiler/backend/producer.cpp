@@ -718,6 +718,16 @@ produce_gather(FILE* fd,
 
   fprintf(fd,"}\n\n");
 
+  // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
+  fprintf(fd,
+          "if(stride > 1)\n{\n");
+  fprintf(fd,
+          "last_barrier += stride;\n");
+  fprintf(fd,
+          "barrier->wait(last_barrier);\n");
+  fprintf(fd,
+          "}\n");
+
 }
 
 void

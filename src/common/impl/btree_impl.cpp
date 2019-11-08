@@ -59,7 +59,7 @@ BTIterator::next()
   return BTEntry{id, value};
 }
 
-int32_t btree_num_allocations = 0;
+//int32_t btree_num_allocations = 0;
 
 BTNode* 
 btree_create_internal() 
@@ -69,7 +69,7 @@ btree_create_internal()
   memset(&node->m_internal.m_children[0],0,sizeof(BTNode*)*BTREE_INTERNAL_MAX_ARITY);
   memset(&node->m_internal.m_keys[0],0,sizeof(uint32_t)*(BTREE_INTERNAL_MAX_ARITY-1));
   node->m_internal.m_nchildren = 0;
-  btree_num_allocations++;
+  //btree_num_allocations++;
   return node;
 }
 
@@ -82,7 +82,7 @@ btree_create_leaf()
   memset(&node->m_leaf.m_keys[0],0,sizeof(uint32_t)*BTREE_LEAF_MAX_ARITY);
   node->m_leaf.m_next = 0;
   node->m_leaf.m_nleafs = 0;
-  btree_num_allocations++;
+  //btree_num_allocations++;
   return node;
 }
 
@@ -129,7 +129,7 @@ btree_destroy_node(BTNode* node)
       }
     }
   }
-  btree_num_allocations--;
+  //btree_num_allocations--;
   delete node;
 }
 

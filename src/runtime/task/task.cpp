@@ -24,6 +24,7 @@ task_graph_destroy(task_graph_t* task_graph)
 {
   delete [] task_graph->m_tasks;
   delete [] task_graph->m_roots;
+  delete task_graph;
 }
 
 

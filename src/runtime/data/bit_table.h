@@ -47,14 +47,14 @@ struct BitTable
   remove(entity_id_t id);
 
   /**
-   * @brief Gets the bitmap of the bit table for a specific bitmapid.
+   * @brief Gets the bitmap of the bit table for a specific entity id.
    *
-   * @param bitset_id The bitmap id to retrieve. 
+   * @param id The id of the entity to get the bitmap of 
    *
    * @return Returns a pointer to the bitmap
    */
   const Bitmap* 
-  get_bitmap(uint32_t bitset_id) const;
+  get_bitmap(entity_id_t id) const;
 
   /**
    * \brief Gets the size of the bittable (number of bits set to 1)
@@ -71,6 +71,37 @@ struct BitTable
   clear();
 
 private:
+
+  enum class logic_operation_t
+  {
+    E_AND,
+    E_OR,
+    E_DIFF
+  };
+
+  /**
+   * \brief Adds a bitmap  into the bittable
+   *
+   * \param id The identifier of the bitmap
+   * \param bitmap The bitmap to add
+   * \param operation The operation to perform
+   */
+  void
+  apply_bitset(uint32_t id, 
+               const Bitmap* bitmap,
+               logic_operation_t operation);
+
+  /**
+   * \brief Gets the underlying bitmap identified by the given id
+   *
+   * \param bitset_id The bitset_id to get
+   *
+   * \return 
+   */
+  Bitmap*
+  get_bitset(uint32_t bitset_id) const;
+
+
   mutable BTree<Bitmap> m_bitmaps;
   uint32_t              m_size;
 };

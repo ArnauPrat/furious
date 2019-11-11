@@ -88,6 +88,14 @@ struct Bitmap
   set_or(const Bitmap* bitmap);
 
   /**
+   * \brief Diffs this bitmap with the given bitmap
+   *
+   * \param bitmap The bitmap to compute the diff with
+   */
+  void
+  set_diff(const Bitmap* bitmap);
+
+  /**
    * \brief Negates the contents of this bitmap
    */
   void

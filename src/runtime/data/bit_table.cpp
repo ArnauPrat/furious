@@ -50,7 +50,7 @@ void
 BitTable::remove(entity_id_t id)
 {
   uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = m_bitmaps.get(bitset_id);
+  Bitmap* bitmap = get_bitset(bitset_id);
   if(bitmap == nullptr) 
   {
     return;
@@ -64,10 +64,10 @@ BitTable::remove(entity_id_t id)
 }
 
 const Bitmap* 
-BitTable::get_bitmap(uint32_t id) const
+BitTable::get_bitmap(entity_id_t id) const
 {
   uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = m_bitmaps.get(bitset_id);
+  Bitmap* bitmap = get_bitset(bitset_id);
   if(bitmap == nullptr) 
   {
     bitmap = m_bitmaps.insert_new(bitset_id, TABLE_BLOCK_SIZE);
@@ -93,21 +93,62 @@ BitTable::clear()
 }
 
 void
+BitTable::apply_bitset(uint32_t id,
+                     const Bitmap* bitmap,
+                     logic_operation_t operation)
+{
+  Bitmap* bm = get_bitset(id);
+  switch(operation)
+  {
+    case logic_operation_t::E_AND:
+      if(bm != nullptr)
+      {
+        m_size -= bm->num_set();
+        bm->set_and(bitmap);
+        m_size += bm->num_set();
+      }
+      break;
+    case logic_operation_t::E_OR:
+      if(bm != nullptr)
+      {
+        m_size -= bm->num_set();
+        bm->set_or(bitmap);
+        m_size += bm->num_set();
+      }
+      else
+      {
+        Bitmap* nbitmap = m_bitmaps.insert_new(id,TABLE_BLOCK_SIZE);
+        nbitmap->set_or(bitmap);
+        m_size += nbitmap->num_set();
+      }
+      break;
+    case logic_operation_t::E_DIFF:
+      if(bm != nullptr)
+      {
+        m_size -= bm->num_set();
+        bm->set_diff(bitmap);
+        m_size += bm->num_set();
+      }
+      break;
+  };
+}
+
+Bitmap*
+BitTable::get_bitset(uint32_t bitset_id) const
+{
+  return m_bitmaps.get(bitset_id);
+}
+
+void
 bittable_union(BitTable* first, const BitTable* second)
 {
   BTree<Bitmap>::Iterator it = second->m_bitmaps.iterator();
   while(it.has_next())
   {
     BTree<Bitmap>::Entry entry = it.next();
-    uint32_t start = entry.m_key * TABLE_BLOCK_SIZE;
-    for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
-    {
-      uint32_t next_id = start+i;
-      if(entry.p_value->is_set(i))
-      {
-        first->add(next_id);
-      }
-    }
+    first->apply_bitset(entry.m_key, 
+                        entry.p_value, 
+                        BitTable::logic_operation_t::E_OR);
   }
 }
 
@@ -118,15 +159,9 @@ bittable_difference(BitTable* first, const BitTable* second)
   while(it.has_next())
   {
     BTree<Bitmap>::Entry entry = it.next();
-    uint32_t start = entry.m_key * TABLE_BLOCK_SIZE;
-    for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)
-    {
-      uint32_t next_id = start+i;
-      if(entry.p_value->is_set(i))
-      {
-        first->remove(next_id);
-      }
-    }
+    first->apply_bitset(entry.m_key, 
+                        entry.p_value, 
+                        BitTable::logic_operation_t::E_DIFF);
   }
 }
 

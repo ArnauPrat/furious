@@ -167,6 +167,27 @@ Bitmap::set_or(const Bitmap* bitmap)
 }
 
 void
+Bitmap::set_diff(const Bitmap* bitmap)
+{
+  assert(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
+  uint32_t num_chunks = (m_max_bits + 7) / 8;
+  for(uint32_t i = 0; i < num_chunks; ++i)
+  {
+    p_data[i] = p_data[i] & (p_data[i] ^ bitmap->p_data[i]);
+  }
+
+  // This needs to be improved with a lookup table
+  m_num_set = 0;
+  for(uint32_t i = 0; i < m_max_bits; ++i)
+  {
+    if(is_set(i))
+    {
+      m_num_set++;
+    }
+  }
+}
+
+void
 Bitmap::set_negate()
 {
   uint32_t num_chunks = (m_max_bits + 7) / 8;

@@ -1,16 +1,35 @@
 
 
+#include "platform.h"
 #include "bitmap.h"
 #include <string.h>
-#include <assert.h>
 
 namespace furious
 {
 
+uint8_t count_bits_lookup[16] = {
+  0, // 0:0000 
+  1, // 1:0001 
+  1, // 2:0010 
+  2, // 3:0011
+  1, // 4:0100
+  2, // 5:0101
+  2, // 6:0110
+  3, // 7:0111
+  1, // 8:1000
+  2, // 9:1001
+  2, // 10:1010
+  3, // 11:1011
+  3, // 12:1100
+  3, // 13:1101
+  3, // 14:1110
+  4, // 15:1111
+};
+
 static bool 
 set_bit_true(uint8_t* data, uint32_t bit)
 {
-  assert(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
+  FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
   uint8_t val = *data;
   uint8_t mask =  1 << bit;
   val = val | mask;
@@ -22,7 +41,7 @@ set_bit_true(uint8_t* data, uint32_t bit)
 static bool 
 set_bit_false(uint8_t* data, uint32_t bit)
 {
-  assert(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
+  FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
   uint8_t val = *data;
   uint8_t mask =  1 << bit;
   mask = ~mask;
@@ -35,13 +54,14 @@ set_bit_false(uint8_t* data, uint32_t bit)
 static bool
 read_bit(uint8_t* data, uint32_t bit)
 {
-  assert(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
+  FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
   uint32_t mask = 1 << bit;
-  return ((*data & mask) != 0);
+  return (*data & mask);
 }
 
 Bitmap::Bitmap(uint32_t size) :
 m_max_bits(size),
+m_num_chunks((m_max_bits + 7) / 8),
 m_num_set(0)
 {
   uint32_t buffer_size = (m_max_bits + 7) / 8;
@@ -58,7 +78,7 @@ Bitmap::~Bitmap()
 void
 Bitmap::set(uint32_t element)
 {
-  assert(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   bool res = set_bit_true(&p_data[chunk], offset);
@@ -68,7 +88,7 @@ Bitmap::set(uint32_t element)
 void
 Bitmap::unset(uint32_t element)
 {
-  assert(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   bool res = set_bit_false(&p_data[chunk], offset);
@@ -78,7 +98,7 @@ Bitmap::unset(uint32_t element)
 void
 Bitmap::set_bit(uint32_t element, bool value)
 {
-  assert(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   if(value)
@@ -96,7 +116,7 @@ Bitmap::set_bit(uint32_t element, bool value)
 bool
 Bitmap::is_set(uint32_t element) const
 {
-  assert(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   return read_bit(&p_data[chunk], offset);
@@ -117,103 +137,75 @@ Bitmap::max_bits() const
 void
 Bitmap::set_bitmap(const Bitmap* bitmap)
 {
-  assert(this->m_max_bits == bitmap->m_max_bits && "Cannot set from a bitmap of a different size");
+  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot set from a bitmap of a different size");
   m_max_bits = bitmap->m_max_bits;
   m_num_set = bitmap->m_num_set;
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  memcpy(p_data, bitmap->p_data, sizeof(uint8_t)*num_chunks);
+  memcpy(p_data, bitmap->p_data, sizeof(uint8_t)*m_num_chunks);
 }
 
 void
 Bitmap::set_and(const Bitmap* bitmap)
 {
-  assert(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  for(uint32_t i = 0; i < num_chunks; ++i)
+  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
+  for(uint32_t i = 0; i < m_num_chunks; ++i)
   {
     p_data[i] = p_data[i] & bitmap->p_data[i];
   }
 
-  // This needs to be improved with a lookup table
-  m_num_set = 0;
-  for(uint32_t i = 0; i < m_max_bits; ++i)
-  {
-    if(is_set(i))
-    {
-      m_num_set++;
-    }
-  }
+  refresh_num_set();
 }
 
 void
 Bitmap::set_or(const Bitmap* bitmap)
 {
-  assert(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  for(uint32_t i = 0; i < num_chunks; ++i)
+  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
+  for(uint32_t i = 0; i < m_num_chunks; ++i)
   {
     p_data[i] = p_data[i] | bitmap->p_data[i];
   }
 
   // This needs to be improved with a lookup table
-  m_num_set = 0;
-  for(uint32_t i = 0; i < m_max_bits; ++i)
-  {
-    if(is_set(i))
-    {
-      m_num_set++;
-    }
-  }
+  refresh_num_set();
 }
 
 void
 Bitmap::set_diff(const Bitmap* bitmap)
 {
-  assert(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  for(uint32_t i = 0; i < num_chunks; ++i)
+  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
+  for(uint32_t i = 0; i < m_num_chunks; ++i)
   {
     p_data[i] = p_data[i] & (p_data[i] ^ bitmap->p_data[i]);
   }
-
-  // This needs to be improved with a lookup table
-  m_num_set = 0;
-  for(uint32_t i = 0; i < m_max_bits; ++i)
-  {
-    if(is_set(i))
-    {
-      m_num_set++;
-    }
-  }
+  refresh_num_set();
 }
 
 void
 Bitmap::set_negate()
 {
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  for(uint32_t i = 0; i < num_chunks; ++i)
+  for(uint32_t i = 0; i < m_num_chunks; ++i)
   {
     p_data[i] = ~p_data[i];
   }
-
-  // This needs to be improved with a lookup table
-  m_num_set = 0;
-  for(uint32_t i = 0; i < m_max_bits; ++i)
-  {
-    if(is_set(i))
-    {
-      m_num_set++;
-    }
-  }
+  refresh_num_set();
 }
 
 void
 Bitmap::all_zeros()
 {
-  uint32_t num_chunks = (m_max_bits + 7) / 8;
-  memset(p_data,0,num_chunks*sizeof(uint8_t));
+  memset(p_data,0,m_num_chunks*sizeof(uint8_t));
 }
 
+void
+Bitmap::refresh_num_set()
+{
+  m_num_set = 0;
+  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  {
+    uint8_t left = p_data[i] >> 4;
+    uint8_t right = p_data[i] & 0x0f;
+    m_num_set+=count_bits_lookup[left] + count_bits_lookup[right];
+  }
+}
 
 } /* furious
 */ 

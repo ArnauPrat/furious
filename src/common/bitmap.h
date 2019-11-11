@@ -108,7 +108,14 @@ struct Bitmap
   all_zeros();
 
 private:
+  /**
+   * \brief Refreshes the number of bits set
+   */
+  void
+  refresh_num_set();
+
   uint32_t m_max_bits;
+  uint32_t m_num_chunks;
   uint32_t m_num_set;
   uint8_t* p_data;
 };

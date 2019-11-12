@@ -205,19 +205,6 @@ Bitmap::refresh_num_set()
     uint8_t right = p_data[i] & 0x0f;
     m_num_set+=count_bits_lookup[left] + count_bits_lookup[right];
   }
-  if(m_max_bits % 8 != 0)
-  {
-    uint8_t left = p_data[m_num_chunks-1] >> 4;
-    uint8_t right = p_data[m_num_chunks-1] & 0x0f;
-    m_num_set-=count_bits_lookup[left] + count_bits_lookup[right];
-    for(uint32_t i = (m_num_chunks-1)*8; i < m_max_bits; ++i)
-    {
-      if(is_set(i))
-      {
-        m_num_set+=1;
-      }
-    }
-  }
 }
 
 } /* furious

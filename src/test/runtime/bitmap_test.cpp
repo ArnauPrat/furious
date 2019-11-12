@@ -8,7 +8,7 @@ namespace furious {
 
 TEST(BitmapTest, BitmapTest ) 
 {
-  uint32_t BITMAP_SIZE = 300;
+  uint32_t BITMAP_SIZE = 304;
   Bitmap bitmap(BITMAP_SIZE);
   ASSERT_EQ(bitmap.num_set(), 0);
 

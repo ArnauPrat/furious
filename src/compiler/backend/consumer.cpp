@@ -166,8 +166,9 @@ consume_foreach(FILE*fd,
                             tmp,
                             MAX_TYPE_NAME+32);
 
-    if(column->m_type == fcc_column_type_t::E_COMPONENT)
+    switch(column->m_type)
     {
+     case fcc_column_type_t::E_COMPONENT:
       fprintf(fd,
               "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
               tmp, 
@@ -175,9 +176,8 @@ consume_foreach(FILE*fd,
               tmp, 
               source, 
               param_index);
-    }
-    else if(column->m_type == fcc_column_type_t::E_REFERENCE)
-    {
+      break;
+    case fcc_column_type_t::E_REFERENCE:
       fprintf(fd,
               "%s** data_%d = (%s**)(%s->get_tblock(%d)->p_data);\n", 
               tmp, 
@@ -185,9 +185,8 @@ consume_foreach(FILE*fd,
               tmp, 
               source, 
               param_index);
-    }
-    else if (column->m_type == fcc_column_type_t::E_GLOBAL)
-    {
+      break;
+    case fcc_column_type_t::E_GLOBAL:
       fprintf(fd,
               "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
               tmp, 
@@ -195,8 +194,11 @@ consume_foreach(FILE*fd,
               tmp, 
               source, 
               param_index);
+      break;
+    default:
+      FURIOUS_ASSERT(false && "Should not reach this point");
+      break;
     }
-
     param_index++;
   }
   fprintf(fd, "\n");
@@ -237,17 +239,23 @@ consume_foreach(FILE*fd,
     for(size_t j = 0; j <  foreach->m_columns.size(); ++j) 
     {
       const fcc_column_t* column = &foreach->m_columns[j];
-      if(column->m_type == fcc_column_type_t::E_COMPONENT)
+      switch(column->m_type)
       {
-        str_builder_append(&str_builder,",\n&data_%d[i]",j);
-      }
-      else if (column->m_type == fcc_column_type_t::E_REFERENCE)
-      {
-        str_builder_append(&str_builder,",\ndata_%d[i]",j);
-      }
-      else if (column->m_type == fcc_column_type_t::E_GLOBAL)
-      {
-        str_builder_append(&str_builder,",\ndata_%d",j);
+        case fcc_column_type_t::E_COMPONENT:
+          // It is a component, thus we need to pass a pointer to data[i] 
+          str_builder_append(&str_builder,",\n&data_%d[i]",j);
+          break;
+        case fcc_column_type_t::E_REFERENCE:
+          // It is a reference, thus data[i] already contains a pointer
+          str_builder_append(&str_builder,",\ndata_%d[i]",j);
+          break;
+        case fcc_column_type_t::E_GLOBAL:
+          // It is a global, thus we need directly pass the data pointer
+          str_builder_append(&str_builder,",\ndata_%d",j);
+          break;
+        default:
+          FURIOUS_ASSERT(false && "Should not reach this point");
+          break;
       }
     }
     str_builder_append(&str_builder,");\n"); 
@@ -294,6 +302,15 @@ consume_foreach(FILE*fd,
             "}\n");
   }
   str_builder_release(&str_builder);
+
+  if(foreach->m_parent != _FURIOUS_COMPILER_INVALID_ID)
+  {
+    fcc_subplan_t* subplan = foreach->p_subplan;
+    consume(fd,
+            &subplan->m_nodes[foreach->m_parent],
+            source,
+            foreach);
+  }
 
 }
 

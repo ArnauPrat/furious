@@ -227,7 +227,10 @@ Database::find_global_no_lock()
 {
   uint32_t hash_value = get_table_id<T>();
   GlobalInfo* global = m_globals.get(hash_value);
-  assert(global != nullptr);
+  if(global == nullptr)
+  {
+    return nullptr;
+  }
   return (T*)global->p_global;
 }
 

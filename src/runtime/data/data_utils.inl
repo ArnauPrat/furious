@@ -16,7 +16,7 @@ gather(const BlockCluster* cluster,
        uint32_t stride,
        TableView<TComponents>*...table_view)
 {
-  FURIOUS_ASSERT(cluster->m_num_elements == 1 && "Cluster passed to gather must have a single column of references");
+  FURIOUS_ASSERT(cluster->m_num_columns == 1 && "Cluster passed to gather must have a single column of references");
 
   Table* tables[sizeof...(TComponents)] = {table_view->get_raw()...};
   
@@ -47,7 +47,7 @@ build_block_cluster_from_refs(const BlockCluster* ref_cluster,
                               BlockCluster* cluster, 
                               TableView<TComponents>*...table_views)
 {
-  FURIOUS_ASSERT(ref_cluster->m_num_elements == 1 && "The ref_cluster should contain a single column");
+  FURIOUS_ASSERT(ref_cluster->m_num_columns == 1 && "The ref_cluster should contain a single column");
   next_frontier->clear();
 
   uint32_t block_id = ref_cluster->m_start / TABLE_BLOCK_SIZE;
@@ -60,9 +60,9 @@ build_block_cluster_from_refs(const BlockCluster* ref_cluster,
       cluster->append(tblock);
     }
   }
-  FURIOUS_ASSERT((cluster->m_num_elements == 0 || cluster->m_num_elements == sizeof...(TComponents)) && "The block should eexist in all or in no tables");
+  FURIOUS_ASSERT((cluster->m_num_columns == 0 || cluster->m_num_columns == sizeof...(TComponents)) && "The block should eexist in all or in no tables");
 
-  if(cluster->m_num_elements > 0)
+  if(cluster->m_num_columns > 0)
   {
     cluster->p_enabled->all_zeros();
     for(uint32_t i = 0; i < TABLE_BLOCK_SIZE; ++i)

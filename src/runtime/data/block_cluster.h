@@ -47,7 +47,7 @@ struct BlockCluster
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
   
-  size_t                          m_num_elements;
+  size_t                          m_num_columns;
   Bitmap*                         p_enabled;
   Bitmap*                         p_global;
   uint32_t                        m_start;

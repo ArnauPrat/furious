@@ -1,8 +1,6 @@
 
-
 #include "block_cluster.h"
-
-#include <assert.h>
+#include "../../common/platform.h"
 
 namespace furious
 {
@@ -10,7 +8,7 @@ namespace furious
 #define _FURIOUS_INVALID_BLOCK_START 0xffffffff
 
 BlockCluster::BlockCluster() :
-m_num_elements(0),
+m_num_columns(0),
 p_enabled(nullptr),
 p_global(nullptr),
 m_start(_FURIOUS_INVALID_BLOCK_START) 
@@ -18,7 +16,7 @@ m_start(_FURIOUS_INVALID_BLOCK_START)
 }
 
 BlockCluster::BlockCluster(TBlock* block) :
-m_num_elements(1),
+m_num_columns(1),
 p_enabled(nullptr),
 p_global(nullptr),
 m_start(block->m_start) 
@@ -30,7 +28,7 @@ m_start(block->m_start)
 }
 
 BlockCluster::BlockCluster(const BlockCluster& block) : 
-m_num_elements(block.m_num_elements),
+m_num_columns(block.m_num_columns),
 p_enabled(nullptr),
 p_global(nullptr),
 m_start(block.m_start)
@@ -45,7 +43,7 @@ m_start(block.m_start)
     p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
     p_global->set_bitmap(block.p_global);
   }
-  for(uint32_t i = 0; i < block.m_num_elements; ++i)
+  for(uint32_t i = 0; i < block.m_num_columns; ++i)
   {
     m_blocks[i] = block.m_blocks[i];
   }
@@ -67,8 +65,8 @@ BlockCluster::~BlockCluster()
 
 void BlockCluster::append(TBlock* block)
 {
-  assert(m_num_elements < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
-  assert((m_start == _FURIOUS_INVALID_BLOCK_START || m_start == block->m_start ) && "Unaligned block cluster");
+  FURIOUS_ASSERT(m_num_columns < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
+  FURIOUS_ASSERT((m_start == _FURIOUS_INVALID_BLOCK_START || m_start == block->m_start ) && "Unaligned block cluster");
 
   if(m_start == _FURIOUS_INVALID_BLOCK_START)
   {
@@ -85,8 +83,8 @@ void BlockCluster::append(TBlock* block)
     p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
   }
 
-  m_blocks[m_num_elements] = block;
-  m_num_elements++;
+  m_blocks[m_num_columns] = block;
+  m_num_columns++;
   p_enabled->set_and(block->p_enabled);
 }
 
@@ -97,9 +95,9 @@ BlockCluster::append_global(void* global)
   {
     p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
   }
-  p_global->set(m_num_elements);
-  m_blocks[m_num_elements] = global;
-  m_num_elements++;
+  p_global->set(m_num_columns);
+  m_blocks[m_num_columns] = global;
+  m_num_columns++;
 }
 
 void BlockCluster::append(const BlockCluster* other)
@@ -111,8 +109,8 @@ void BlockCluster::append(const BlockCluster* other)
     m_start = other->m_start;
   }
 
-  assert((m_start == other->m_start || 
-          (other->m_start == _FURIOUS_INVALID_BLOCK_START && other->p_global->is_set(0) && other->m_num_elements == 1)) 
+  FURIOUS_ASSERT((m_start == other->m_start || 
+          (other->m_start == _FURIOUS_INVALID_BLOCK_START && other->p_global->is_set(0) && other->m_num_columns == 1)) 
          && "Trying to append unaligned blockclusters with different start values");
 
   if(other->p_enabled != nullptr)
@@ -132,15 +130,15 @@ void BlockCluster::append(const BlockCluster* other)
   {
     p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
   }
-  for(size_t i = 0; i < other->m_num_elements; ++i)
+  for(size_t i = 0; i < other->m_num_columns; ++i)
   {
-    assert(m_num_elements < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append cluster. Not enough room");
-    m_blocks[m_num_elements] = other->m_blocks[i];
+    FURIOUS_ASSERT(m_num_columns < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append cluster. Not enough room");
+    m_blocks[m_num_columns] = other->m_blocks[i];
     if(other->p_global->is_set(i))
     {
-      p_global->set(m_num_elements);
+      p_global->set(m_num_columns);
     }
-    m_num_elements++;
+    m_num_columns++;
   }
 }
 
@@ -156,14 +154,14 @@ void BlockCluster::filter(const BlockCluster* other)
 TBlock* 
 BlockCluster::get_tblock(uint32_t index) const
 {
-  assert(!p_global->is_set(index) && "Trying to get tblock which is a global from a BlockCluster");
+  FURIOUS_ASSERT(!p_global->is_set(index) && "Trying to get tblock which is a global from a BlockCluster");
   return (TBlock*)m_blocks[index];
 }
 
 void* 
 BlockCluster::get_global(uint32_t index) const
 {
-  assert(p_global->is_set(index) && "Trying to get global which is a tblock from a BlockCluster");
+  FURIOUS_ASSERT(p_global->is_set(index) && "Trying to get global which is a tblock from a BlockCluster");
   return m_blocks[index];
 }
 

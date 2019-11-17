@@ -7,6 +7,7 @@
 namespace furious
 {
 
+// Lookup table used to efficiently implement refresh_num_set operation
 uint8_t count_bits_lookup[16] = {
   0, // 0:0000 
   1, // 1:0001 

@@ -7,8 +7,6 @@
 namespace furious 
 {
 
-#define FURIOUS_BTREE_GROWTH_FACTOR 128
-
 BTIterator::BTIterator(BTRoot* root) : 
 m_root(root), 
 m_leaf(nullptr), 
@@ -133,14 +131,10 @@ btree_destroy_node(BTNode* node)
   delete node;
 }
 
-uint32_t 
-btree_next_internal(BTNode* node, uint32_t key) 
+inline uint32_t
+__btree_next_internal(BTNode* node,
+                      uint32_t key)
 {
-  if(node->m_internal.m_nchildren <= 1) 
-  {
-    return 0;
-  }
-
   uint32_t i = 0;
   for (; i < BTREE_INTERNAL_MAX_ARITY-1 && 
          node->m_internal.m_children[i+1] != nullptr && 
@@ -150,7 +144,14 @@ btree_next_internal(BTNode* node, uint32_t key)
 }
 
 uint32_t 
-btree_next_leaf(BTNode* node, 
+btree_next_internal(BTNode* node, 
+                    uint32_t key) 
+{
+  return __btree_next_internal(node, key);
+}
+
+inline uint32_t 
+__btree_next_leaf(BTNode* node, 
                 uint32_t key) 
 {
   uint32_t i = 0;
@@ -161,22 +162,31 @@ btree_next_leaf(BTNode* node,
   return i;
 }
 
+
+uint32_t 
+btree_next_leaf(BTNode* node, 
+                uint32_t key) 
+{
+  return __btree_next_leaf(node, key);
+}
+
 void*
 btree_get(BTNode* node, 
           uint32_t ekey) 
 {
   if(node->m_type == BTNodeType::E_INTERNAL) 
   {
-    uint32_t child_idx = btree_next_internal(node, ekey);
+    uint32_t child_idx = __btree_next_internal(node, ekey);
     BTNode* child = node->m_internal.m_children[child_idx];
     if( child != nullptr ) 
-    { // if we found such a children, then proceed. If nullptr, means the node is empty
+    { 
+      // if we found such a children, then proceed. If nullptr, means the node is empty
       return btree_get(child, ekey);
     }
   } 
   else 
   { // LEAF NODE
-    uint32_t i = btree_next_leaf(node, ekey);
+    uint32_t i = __btree_next_leaf(node, ekey);
     if(node->m_leaf.m_keys[i] == ekey && 
        node->m_leaf.m_leafs[i] != nullptr)
     {
@@ -200,7 +210,7 @@ btree_get_root(BTRoot* root,
 
 
 BTNode* 
-btree_split_internal(BTNode* node, 
+btree_split_internal(BTNode* node,
                      uint32_t* sibling_key) 
 {
   BTNode* sibling = btree_create_internal();
@@ -296,12 +306,25 @@ btree_split_child_full(BTNode* node, uint32_t child_idx, uint32_t key)
   else if( child->m_type == BTNodeType::E_LEAF && child->m_leaf.m_nleafs == BTREE_LEAF_MAX_ARITY )
   {
     uint32_t sibling_key;
-    BTNode* sibling = btree_split_leaf(child, &sibling_key);
-    btree_shift_insert_internal(node, child_idx+1, sibling, sibling_key );
-    sibling->m_leaf.m_next = child->m_leaf.m_next;
-    child->m_leaf.m_next = sibling;
-    if(key >= sibling_key) 
+    if(key <= child->m_leaf.m_keys[BTREE_LEAF_MAX_ARITY-1] )
     {
+      BTNode* sibling = btree_split_leaf(child, &sibling_key);
+      btree_shift_insert_internal(node, child_idx+1, sibling, sibling_key );
+      sibling->m_leaf.m_next = child->m_leaf.m_next;
+      child->m_leaf.m_next = sibling;
+      if(key >= sibling_key) 
+      {
+        child = sibling;
+      }
+    }
+    else
+    {
+      BTNode* sibling = btree_create_leaf();
+      node->m_internal.m_children[child_idx+1] = sibling;
+      node->m_internal.m_keys[child_idx] = key;
+      node->m_internal.m_nchildren++;
+      sibling->m_leaf.m_next = child->m_leaf.m_next;
+      child->m_leaf.m_next = sibling;
       child = sibling;
     }
   }

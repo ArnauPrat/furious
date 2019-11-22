@@ -42,7 +42,7 @@ find_roots_and_blacklist(const BlockCluster*  block_cluster,
                          BitTable* roots,
                          BitTable* blacklist)
 {
-  FURIOUS_ASSERT(block_cluster->m_num_elements == 1 && "Find roots only works with single column block clusters");
+  FURIOUS_ASSERT(block_cluster->m_num_columns == 1 && "Find roots only works with single column block clusters");
 
   TBlock* table_block = block_cluster->get_tblock(0);
   entity_id_t* data = (entity_id_t*)table_block->p_data;

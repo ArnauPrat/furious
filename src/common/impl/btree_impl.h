@@ -21,8 +21,8 @@ constexpr uint32_t BTREE_LEAF_MIN_ARITY=(BTREE_LEAF_MAX_ARITY+2-1)/2;
 
 enum class BTNodeType : uint8_t 
 {
-  E_INTERNAL,
-  E_LEAF,
+  E_INTERNAL = 0,
+  E_LEAF     = 1,
 };
 
 struct BTNode 
@@ -172,7 +172,7 @@ btree_next_leaf(BTNode* node,
                 uint32_t key);
 
 /**
- * \brief Gets the index to the data buffer where the element with the
+ * \brief Gets the data pointer where the element with the
  * the given key resides
  *
  * \param node The node to look for the key at

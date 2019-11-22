@@ -74,13 +74,18 @@ TEST(BTreeTest, btree_next_leaf)
     TestValue* value = new TestValue();
     value->m_val = i;
     node->m_leaf.m_leafs[i] = value;
-    node->m_leaf.m_keys[i] = i;
+    node->m_leaf.m_keys[i] = i*3;
     node->m_leaf.m_nleafs++;
   }
 
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
   {
-    ASSERT_EQ(btree_next_leaf(node,i), i);
+    ASSERT_EQ(btree_next_leaf(node,i*3), i);
+  }
+
+  for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
+  {
+    ASSERT_EQ(btree_next_leaf(node,i*3-(i != 0 ? 1 : 0)), i);
   }
 
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 

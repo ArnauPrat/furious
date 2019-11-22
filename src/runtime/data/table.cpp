@@ -1,7 +1,7 @@
 
 
 #include "table.h"
-#include "../memory/numa_alloc.h"
+#include "../memory/memory.h"
 
 #include <string.h>
 
@@ -52,7 +52,7 @@ has_component(const TBlock* block,
 }
 
 TBlock::TBlock(entity_id_t start, size_t esize) :
-    p_data(static_cast<char*>(numa_alloc(0, esize*TABLE_BLOCK_SIZE))),
+    p_data(static_cast<char*>(mem_alloc(ALIGNMENT, esize*TABLE_BLOCK_SIZE, start / TABLE_BLOCK_SIZE))),
     m_start(start),
     m_num_components(0),
     m_num_enabled_components(0),
@@ -64,7 +64,7 @@ TBlock::TBlock(entity_id_t start, size_t esize) :
 
 TBlock::~TBlock()
 {
-    numa_free(p_data);
+    mem_free(p_data);
     delete p_enabled;
     delete p_exists;
 }
@@ -169,18 +169,16 @@ is_selected(uint32_t chunk_id,
 bool 
 Table::Iterator::has_next() const 
 { 
-  bool next_candidate = m_it.has_next();
-  while(next_candidate && (m_next == nullptr))
+  while(m_it.has_next() && (m_next == nullptr))
   {
-    m_next = m_it.next().p_value;
-    uint32_t chunk_id = m_next->m_start / (TABLE_BLOCK_SIZE);
-    bool is_next = is_selected(chunk_id, m_chunk_size, m_offset, m_stride);
+    BTree<TBlock>::Entry entry = m_it.next();
+    bool is_next = is_selected(entry.m_key, m_chunk_size, m_offset, m_stride);
     if(is_next)
     {
-      return true;
+      m_next = entry.p_value;
+      break;
     }
     m_next = nullptr;
-    next_candidate = m_it.has_next();
   } 
   return m_next != nullptr;;
 }

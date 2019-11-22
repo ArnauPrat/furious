@@ -11,10 +11,12 @@ int32_t numa_nodes() {
   return 0;
 }
 
-void* numa_alloc( int32_t node, int32_t size ) {
-  int32_t residual = size % ALIGNMENT;
-  int32_t real_size = size + (ALIGNMENT-residual);
-  return aligned_alloc(ALIGNMENT, real_size);
+void* numa_alloc(int32_t alignment, 
+                 int32_t size,
+                 int32_t hint) {
+  int32_t residual = size % alignment;
+  int32_t real_size = size + (alignment-residual);
+  return aligned_alloc(alignment, real_size);
 }
 
 void numa_free( void* ptr ) {

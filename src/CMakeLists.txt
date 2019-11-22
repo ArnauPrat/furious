@@ -55,6 +55,7 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/memory/memory.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/memory.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.h
   ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h

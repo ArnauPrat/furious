@@ -1,7 +1,7 @@
 
 
 #include "table.h"
-#include "../memory/memory.h"
+#include "../../common/memory/memory.h"
 
 #include <string.h>
 
@@ -57,16 +57,23 @@ TBlock::TBlock(entity_id_t start, size_t esize) :
     m_num_components(0),
     m_num_enabled_components(0),
     m_esize(esize),
-    p_exists(new Bitmap(TABLE_BLOCK_SIZE)),
-    p_enabled(new Bitmap(TABLE_BLOCK_SIZE))
+    p_exists(nullptr),
+    p_enabled(nullptr)
 {
+  p_exists = (Bitmap*)mem_alloc(TABLE_BLOCK_SIZE/8, sizeof(Bitmap), start / TABLE_BLOCK_SIZE);
+  new (p_exists) Bitmap(TABLE_BLOCK_SIZE);
+
+  p_enabled = (Bitmap*)mem_alloc(TABLE_BLOCK_SIZE/8, sizeof(Bitmap), start / TABLE_BLOCK_SIZE);
+  new (p_enabled) Bitmap(TABLE_BLOCK_SIZE);
 }
 
 TBlock::~TBlock()
 {
     mem_free(p_data);
-    delete p_enabled;
-    delete p_exists;
+    p_enabled->~Bitmap();
+    mem_free(p_enabled);
+    p_exists->~Bitmap();
+    mem_free(p_exists);
 }
 
 /**
@@ -220,14 +227,14 @@ m_num_components(0),
 m_destructor(destructor) 
 {
   size_t name_length =strlen(name)+1;
-  p_name = new char[name_length];
+  p_name = (char*)mem_alloc(64, sizeof(char)*name_length, 0);
   strncpy(p_name, name, name_length);
 }
 
 
 Table::~Table() {
   clear();
-  delete [] p_name;
+  mem_free(p_name);
 }
 
 size_t

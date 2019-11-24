@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <utility>
+#include "memory/memory.h"
 
 namespace furious {
 
@@ -24,7 +25,7 @@ BTree<T>::~BTree()
     {
       T* value = it.next().p_value;
       value->~T();
-      free(value);
+      mem_free(value);
       m_size--;
     }
     btree_destroy_root(p_root);
@@ -41,7 +42,7 @@ BTree<T>::clear()
   {
     T* value = it.next().p_value;
     value->~T();
-    free(value);
+    mem_free(value);
   }
   btree_destroy_root(p_root);
   p_root = btree_create_root();
@@ -56,7 +57,7 @@ BTree<T>::insert_copy(uint32_t key, const T* element)
   BTInsert insert = btree_insert_root(p_root, key);
   if(insert.m_inserted)
   {
-    *insert.p_place = malloc(sizeof(T));
+    *insert.p_place = mem_alloc(1, sizeof(T), -1);
     new (*insert.p_place) T(*element);
     m_size++;
     return (T*)*insert.p_place;
@@ -72,7 +73,7 @@ BTree<T>::insert_new(uint32_t key, Args &&... args)
   BTInsert insert = btree_insert_root(p_root, key);
   if(insert.m_inserted)
   {
-    *insert.p_place = malloc(sizeof(T));
+    *insert.p_place = mem_alloc(1, sizeof(T), -1);
     new (*insert.p_place) T(std::forward<Args>(args)...);
     m_size++;
     return (T*)*insert.p_place;
@@ -88,7 +89,7 @@ BTree<T>::remove(uint32_t key)
   if (value != nullptr) 
   {
     value->~T();
-    free(value);
+    mem_free(value);
     m_size--;
   }
 }

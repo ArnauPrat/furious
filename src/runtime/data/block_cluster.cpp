@@ -21,8 +21,13 @@ p_enabled(nullptr),
 p_global(nullptr),
 m_start(block->m_start) 
 {
-  p_enabled = new Bitmap(block->p_enabled->max_bits());
-  p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+
+  p_enabled = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+  new (p_enabled) Bitmap(block->p_enabled->max_bits());
+
+  p_global = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+  new (p_global) Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+
   p_enabled->set_bitmap(block->p_enabled);
   m_blocks[0] = block;
 }
@@ -35,12 +40,14 @@ m_start(block.m_start)
 {
   if(block.p_enabled != nullptr)
   {
-    p_enabled = new Bitmap(block.p_enabled->max_bits());
+    p_enabled = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_enabled) Bitmap(block.p_enabled->max_bits());
     p_enabled->set_bitmap(block.p_enabled);
   }
   if(block.p_global != nullptr)
   {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+    p_global = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_global) Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
     p_global->set_bitmap(block.p_global);
   }
   for(uint32_t i = 0; i < block.m_num_columns; ++i)
@@ -54,12 +61,14 @@ BlockCluster::~BlockCluster()
 
   if(p_enabled != nullptr)
   {
-    delete p_enabled;
+    p_enabled->~Bitmap();
+    mem_free(p_enabled);
   }
 
   if(p_global != nullptr)
   {
-    delete p_global;
+    p_global->~Bitmap();
+    mem_free(p_global);
   }
 }
 
@@ -74,13 +83,15 @@ void BlockCluster::append(TBlock* block)
   }
   if(p_enabled == nullptr)
   {
-    p_enabled = new Bitmap(block->p_enabled->max_bits());
+    p_enabled = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_enabled) Bitmap(block->p_enabled->max_bits());
     p_enabled->set_bitmap(block->p_enabled);
   }
 
   if(p_global == nullptr)
   {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+    p_global = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_global) Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
   }
 
   m_blocks[m_num_columns] = block;
@@ -93,7 +104,8 @@ BlockCluster::append_global(void* global)
 {
   if(p_global == nullptr)
   {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+    p_global = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_global) Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
   }
   p_global->set(m_num_columns);
   m_blocks[m_num_columns] = global;
@@ -146,7 +158,8 @@ void BlockCluster::filter(const BlockCluster* other)
 {
   if(p_enabled == nullptr)
   {
-    p_enabled = new Bitmap(other->p_enabled->max_bits());
+    p_enabled = (Bitmap*)mem_alloc(1, sizeof(Bitmap), m_start / TABLE_BLOCK_SIZE);
+    new (p_enabled) Bitmap(other->p_enabled->max_bits());
   }
   p_enabled->set_and(other->p_enabled);
 }

@@ -2,6 +2,10 @@
 include_directories(./)
 
 set (COMMON_SRC
+  ${CMAKE_SOURCE_DIR}/src/common/memory/memory.h
+  ${CMAKE_SOURCE_DIR}/src/common/memory/memory.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.h
   ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
   ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
@@ -54,10 +58,6 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/memory.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/memory.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/numa_alloc.h
   ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h
   ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
   ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl

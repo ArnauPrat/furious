@@ -2,10 +2,12 @@
 
 
 #include "str_builder.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "stdarg.h"
-#include "string.h"
+#include "memory/memory.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 
 namespace furious
 {
@@ -14,7 +16,7 @@ void
 str_builder_init(str_builder_t* str_builder)
 {
   str_builder->m_capacity = 2048;
-  str_builder->p_buffer = new char[str_builder->m_capacity];
+  str_builder->p_buffer = (char*) mem_alloc(1, sizeof(char)*str_builder->m_capacity, -1);
   str_builder->p_buffer[0] = '\0';
   str_builder->m_pos = 0;
   str_builder->p_buffer[str_builder->m_pos] = 0;
@@ -24,7 +26,7 @@ void str_builder_release(str_builder_t* str_builder)
 {
   if(str_builder->p_buffer != nullptr)
   {
-    delete [] str_builder->p_buffer;
+    mem_free(str_builder->p_buffer);
     str_builder->m_capacity = 0;
   }
 }
@@ -44,9 +46,9 @@ str_builder_append(str_builder_t* str_builder,
                                myargs)) > (str_builder->m_capacity - str_builder->m_pos - 1))
          {
            uint32_t new_capacity = str_builder->m_capacity + 2048;
-           char* new_buffer = new char[new_capacity];
+           char* new_buffer = (char*) mem_alloc(1, sizeof(char)*new_capacity, -1);
            memcpy(new_buffer, str_builder->p_buffer, sizeof(char)*str_builder->m_capacity);
-           delete [] str_builder->p_buffer;
+           mem_free(str_builder->p_buffer);
            str_builder->p_buffer = new_buffer;
            str_builder->m_capacity = new_capacity;
          }

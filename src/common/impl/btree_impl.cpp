@@ -1,8 +1,8 @@
 
 #include "btree_impl.h"
+#include "../memory/memory.h"
+#include "../platform.h"
 #include <string.h>
-#include <cassert>
-#include <iostream>
 
 namespace furious 
 {
@@ -57,37 +57,28 @@ BTIterator::next()
   return BTEntry{id, value};
 }
 
-//int32_t btree_num_allocations = 0;
-
 BTNode* 
 btree_create_internal() 
 {
-  BTNode* node = new BTNode();
+  BTNode* node = (BTNode*)mem_alloc(64, sizeof(BTNode), -1); 
+  memset(node,0,sizeof(BTNode));
   node->m_type = BTNodeType::E_INTERNAL;
-  memset(&node->m_internal.m_children[0],0,sizeof(BTNode*)*BTREE_INTERNAL_MAX_ARITY);
-  memset(&node->m_internal.m_keys[0],0,sizeof(uint32_t)*(BTREE_INTERNAL_MAX_ARITY-1));
-  node->m_internal.m_nchildren = 0;
-  //btree_num_allocations++;
   return node;
 }
 
 BTNode* 
 btree_create_leaf() 
 {
-  BTNode* node = new BTNode();
+  BTNode* node = (BTNode*)mem_alloc(64, sizeof(BTNode), -1); 
+  memset(node,0,sizeof(BTNode));
   node->m_type = BTNodeType::E_LEAF;
-  memset(&node->m_leaf.m_leafs[0],0,sizeof(void*)*BTREE_LEAF_MAX_ARITY);
-  memset(&node->m_leaf.m_keys[0],0,sizeof(uint32_t)*BTREE_LEAF_MAX_ARITY);
-  node->m_leaf.m_next = 0;
-  node->m_leaf.m_nleafs = 0;
-  //btree_num_allocations++;
   return node;
 }
 
 BTRoot*
 btree_create_root()
 {
-  BTRoot* root = new BTRoot();
+  BTRoot* root = (BTRoot*) mem_alloc(64, sizeof(BTRoot), -1);
   root->p_root = btree_create_internal();
   return root;
 }
@@ -100,7 +91,7 @@ btree_destroy_root(BTRoot* root)
     btree_destroy_node(root->p_root);
     root->p_root = nullptr;
   }
-  delete root;
+  mem_free(root);
 }
 
 void 
@@ -128,7 +119,7 @@ btree_destroy_node(BTNode* node)
     }
   }
   //btree_num_allocations--;
-  delete node;
+  mem_free(node);
 }
 
 inline uint32_t
@@ -382,7 +373,7 @@ btree_insert_root(BTRoot* bt_root,
                   uint32_t key) 
 {
   BTNode* root = bt_root->p_root;
-  assert(root->m_type == BTNodeType::E_INTERNAL);
+  FURIOUS_ASSERT(root->m_type == BTNodeType::E_INTERNAL);
   if(root->m_internal.m_nchildren == BTREE_INTERNAL_MAX_ARITY) 
   {
       uint32_t sibling_key;

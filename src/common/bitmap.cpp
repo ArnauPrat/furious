@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "bitmap.h"
 #include <string.h>
+#include "memory/memory.h"
 
 namespace furious
 {
@@ -66,13 +67,13 @@ m_num_chunks((m_max_bits + 7) / 8),
 m_num_set(0)
 {
   uint32_t buffer_size = (m_max_bits + 7) / 8;
-  p_data = new uint8_t[buffer_size];
+  p_data = (uint8_t*)mem_alloc(64, sizeof(uint8_t)*buffer_size, 0);
   memset(p_data, 0, sizeof(uint8_t)*buffer_size);
 }
 
 Bitmap::~Bitmap()
 {
-  delete [] p_data;
+  mem_free(p_data);
 }
 
 

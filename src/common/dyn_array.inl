@@ -1,4 +1,5 @@
 
+#include "memory/memory.h"
 #include <utility>
 #include <new>
 #include <stdio.h>
@@ -15,7 +16,7 @@ p_data(nullptr),
 m_capacity(_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY),
 m_num_elements(0)
 {
-  p_data = (char*)malloc(sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY);
+  p_data = (char*)mem_alloc(64, sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY, -1);
 }
 
 template<typename T>
@@ -24,7 +25,7 @@ p_data(nullptr),
 m_capacity(0),
 m_num_elements(0)
 {
-  p_data = (char*)malloc(sizeof(T)*other.m_capacity);
+  p_data = (char*)mem_alloc(64, sizeof(T)*other.m_capacity, -1);
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
   for(uint32_t i = 0; i < other.m_num_elements; ++i)
@@ -50,7 +51,7 @@ p_data(nullptr),
 m_capacity(_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY),
 m_num_elements(0)
 {
-  p_data = (char*)malloc(sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY);
+  p_data = (char*)mem_alloc(64, sizeof(T)*_FURIOUS_DYN_ARRAY_INITIAL_CAPACITY, -1);
   for(auto it = init.begin();
       it != init.end();
       ++it)
@@ -63,7 +64,7 @@ template<typename T>
 DynArray<T>::~DynArray()
 {
   clear();
-  free(p_data);
+  mem_free(p_data);
 }
 
 template <typename T>
@@ -95,14 +96,14 @@ DynArray<T>::append(const T& item)
   if(m_num_elements == m_capacity)
   {
     uint32_t new_capacity = m_capacity * _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
-    char* temp = (char*)malloc(sizeof(T)*new_capacity);
+    char* temp = (char*)mem_alloc(64, sizeof(T)*new_capacity, -1);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
       void* ptr = temp + i*sizeof(T);
       new (ptr) T(((T*)p_data)[i]);
       (((T*)p_data)[i]).~T();
     }
-    free(p_data);
+    mem_free(p_data);
     p_data = temp;
     m_capacity = new_capacity;
   }
@@ -119,13 +120,13 @@ DynArray<T>::append(T&& item)
   if(m_num_elements == m_capacity)
   {
     uint32_t new_capacity = m_capacity * _FURIOUS_DYN_ARRAY_GROWTH_FACTOR;
-    char* temp = (char*)malloc(sizeof(T)*new_capacity);
+    char* temp = (char*)mem_alloc(64, sizeof(T)*new_capacity, -1);
     for(uint32_t i = 0; i < m_num_elements; ++i)
     {
       void* ptr = temp + i*sizeof(T); 
       new (ptr) T(std::move(((T*)p_data)[i]));
     }
-    free(p_data);
+    mem_free(p_data);
     p_data = temp;
     m_capacity = new_capacity;
   }
@@ -183,8 +184,8 @@ DynArray<T>&
 DynArray<T>::operator=(const DynArray& other)
 {
   clear();
-  free(p_data);
-  p_data = (char*)malloc(sizeof(T)*other.m_capacity);
+  mem_free(p_data);
+  p_data = (char*)mem_alloc(64, sizeof(T)*other.m_capacity, -1);
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;
   for(uint32_t i = 0; i < other.m_num_elements; ++i)
@@ -200,7 +201,7 @@ DynArray<T>&
 DynArray<T>::operator=(DynArray&& other)
 {
   clear();
-  free(p_data);
+  mem_free(p_data);
   p_data = other.p_data;
   m_capacity = other.m_capacity;
   m_num_elements = other.m_num_elements;

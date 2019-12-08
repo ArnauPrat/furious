@@ -6,10 +6,19 @@
 
 namespace furious {
 
-using EntityId = int32_t;
-using TableId  = int32_t;
+using entity_id_t = uint32_t;
+using table_id_t  = int32_t;
 
-constexpr TableId INVALID_ID = 0xffffffff;
+constexpr table_id_t INVALID_TABLE_ID = 0xffffffff;
+
+/**
+ * \brief The number of components per block. The current number, 16 is not
+ * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
+ * can be stored in a line.
+ */
+constexpr uint32_t TABLE_BLOCK_SIZE = 64;
+
+constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 
 } /* furious */ 
 

@@ -38,10 +38,10 @@ size_t TableView<TComponent>::Block::get_size() const
 }
 
 template<typename TComponent>
-const Bitmap*   
+const bitmap_t<TABLE_BLOCK_SIZE>*   
 TableView<TComponent>::Block::get_enabled() const 
 {
-  return p_tblock->p_enabled;
+  return &p_tblock->m_enabled;
 }
 
 template<typename TComponent>

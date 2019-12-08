@@ -9,9 +9,12 @@ namespace furious {
 
 
 template<typename T>
-BTree<T>::BTree() : p_root(btree_create_root()),
-                 m_size(0)
+BTree<T>::BTree() : 
+p_root(nullptr),
+m_size(0)
 {
+  p_root = (btree_t*) mem_alloc(1, sizeof(btree_t) , -1);
+  btree_init(p_root);
 
 }
 
@@ -28,7 +31,8 @@ BTree<T>::~BTree()
       mem_free(value);
       m_size--;
     }
-    btree_destroy_root(p_root);
+    btree_release(p_root);
+    mem_free(p_root);
     p_root = nullptr;
   }
 }
@@ -44,8 +48,10 @@ BTree<T>::clear()
     value->~T();
     mem_free(value);
   }
-  btree_destroy_root(p_root);
-  p_root = btree_create_root();
+  btree_release(p_root);
+  mem_free(p_root);
+  p_root = (btree_t*) mem_alloc(1, sizeof(btree_t), -1);
+  btree_init(p_root);
   m_size = 0;
   
 }
@@ -54,7 +60,7 @@ template<typename T>
 T* 
 BTree<T>::insert_copy(uint32_t key, const T* element) 
 {
-  BTInsert insert = btree_insert_root(p_root, key);
+  btree_insert_t insert = btree_insert(p_root, key);
   if(insert.m_inserted)
   {
     *insert.p_place = mem_alloc(1, sizeof(T), -1);
@@ -70,7 +76,7 @@ template <typename...Args>
 T* 
 BTree<T>::insert_new(uint32_t key, Args &&... args)
 {
-  BTInsert insert = btree_insert_root(p_root, key);
+  btree_insert_t insert = btree_insert(p_root, key);
   if(insert.m_inserted)
   {
     *insert.p_place = mem_alloc(1, sizeof(T), -1);
@@ -85,7 +91,7 @@ template<typename T>
 void
 BTree<T>::remove(uint32_t key) 
 {
-  T* value = static_cast<T*>(btree_remove_root(p_root, key));
+  T* value = static_cast<T*>(btree_remove(p_root, key));
   if (value != nullptr) 
   {
     value->~T();
@@ -98,7 +104,7 @@ template<typename T>
 T*
 BTree<T>::get(uint32_t key) const
 {
-  T* ret =  static_cast<T*>(btree_get_root(p_root, key));
+  T* ret =  static_cast<T*>(btree_get(p_root, key));
   return ret;
 }
 
@@ -125,7 +131,7 @@ BTree<T>::iterator() const
 }
 
 template<typename T>
-BTree<T>::Iterator::Iterator(BTRoot* root) : 
+BTree<T>::Iterator::Iterator(btree_t* root) : 
 m_iterator(root) 
 {
 }
@@ -141,7 +147,7 @@ template<typename T>
 typename BTree<T>::Entry
 BTree<T>::Iterator::next() 
 {
-  BTEntry entry = m_iterator.next();
+  btree_entry_t entry = m_iterator.next();
   return BTree<T>::Entry{entry.m_key, static_cast<T*>(entry.p_value)};
 }
 

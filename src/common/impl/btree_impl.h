@@ -19,41 +19,41 @@ constexpr uint32_t BTREE_INTERNAL_MIN_ARITY=(BTREE_INTERNAL_MAX_ARITY+2-1)/2;
 constexpr uint32_t BTREE_LEAF_MAX_ARITY=9;
 constexpr uint32_t BTREE_LEAF_MIN_ARITY=(BTREE_LEAF_MAX_ARITY+2-1)/2;
 
-enum class BTNodeType : uint8_t 
+enum class btree_node_type_t : uint8_t 
 {
   E_INTERNAL = 0,
   E_LEAF     = 1,
 };
 
-struct BTNode 
+struct btree_node_t 
 {
   union 
   {
     struct 
     {
-      BTNode*     m_children[BTREE_INTERNAL_MAX_ARITY]; // 10*8 = 80 bytes
-      uint32_t    m_keys[BTREE_INTERNAL_MAX_ARITY-1];   // 9*4 = 36 bytes
-      uint16_t    m_nchildren;                          // 2 byte
+      btree_node_t*     m_children[BTREE_INTERNAL_MAX_ARITY]; // 10*8 = 80 bytes
+      uint32_t          m_keys[BTREE_INTERNAL_MAX_ARITY-1];   // 9*4 = 36 bytes
+      uint16_t          m_nchildren;                          // 2 byte
     } m_internal;                                       // total = 120 bytes
 
     struct 
     {
-      void*     m_leafs[BTREE_LEAF_MAX_ARITY];  // 9*8 = 72 bytes
-      BTNode*   m_next;                         // 8 bytes
-      uint32_t  m_keys[BTREE_LEAF_MAX_ARITY];   // 9*4 = 36 bytes
-      uint16_t  m_nleafs;                       // 2 byte
+      void*           m_leafs[BTREE_LEAF_MAX_ARITY];  // 9*8 = 72 bytes
+      btree_node_t*   m_next;                         // 8 bytes
+      uint32_t        m_keys[BTREE_LEAF_MAX_ARITY];   // 9*4 = 36 bytes
+      uint16_t        m_nleafs;                       // 2 byte
     } m_leaf;                                   // total 118 bytes
   };
 
-  BTNodeType    m_type;                      // 1 byte
+  btree_node_type_t    m_type;                      // 1 byte
 };
 
-struct BTRoot
+struct btree_t 
 {
-  BTNode* p_root;                 // The root of the tree
+  btree_node_t* p_root;                 // The root of the tree
 };
 
-struct BTInsert
+struct btree_insert_t 
 {
   bool    m_inserted;
   void**  p_place;
@@ -62,22 +62,22 @@ struct BTInsert
 /**
  * \brief Allocates memory for one element
  *
- * \param root The BTRoot to allocate memory for
+ * \param root The btree_t to allocate memory for
  *
  * \return Returns the pointer to the newly allocated memory
  */
 void*
-alloc(BTRoot* root);
+alloc(btree_t* root);
 
-struct BTEntry
+struct btree_entry_t
 {
-  entity_id_t m_key;
+  uint32_t    m_key;
   void*       p_value;
 };
 
 struct BTIterator 
 {
-  BTIterator(BTRoot* root);
+  BTIterator(btree_t* root);
   ~BTIterator() = default;
 
 
@@ -94,56 +94,56 @@ struct BTIterator
    *
    * \return Returns the next elemnet in the btree
    */
-  BTEntry 
+  btree_entry_t 
   next();
 
 private:
-  BTRoot*   m_root;
-  BTNode*   m_leaf;
-  uint32_t  m_index;
+  btree_t*        m_root;
+  btree_node_t*   m_leaf;
+  uint32_t        m_index;
 };
 
 /**
- * \brief Creates a btree root
+ * \brief Initializes a btree 
  *
- * \param element_size The size of the elements to store
+ * \param root The root of the btree 
  *
  * \return Returns an instance of a btree root
  */
-BTRoot*
-btree_create_root();
+void
+btree_init(btree_t* root);
 
 /**
- * \brief Destroys an btree root instance
+ * \brief Releases a btree 
  *
  * \param root The root instance to destroy
  */
 void
-btree_destroy_root(BTRoot* root);
+btree_release(btree_t* root);
 
 /**
  * \brief Creates a new instance of an internal node 
  *
- * \return A pointer to the newly created BTNode
+ * \return A pointer to the newly created btree_node_t
  */
-BTNode* 
+btree_node_t* 
 btree_create_internal();
 
 /**
  * \brief Creates a new instance of a leaf  node 
  *
- * \return A pointer to the newly created BTNode
+ * \return A pointer to the newly created btree_node_t
  */
-BTNode*
+btree_node_t*
 btree_create_leaf();
 
 /**
- * \brief Removes a given BTNode 
+ * \brief Removes a given btree_node_t 
  *
  * \param node The pointer to the node to remove
  */
 void 
-btree_destroy_node(BTNode* node);
+btree_destroy_node(btree_node_t* node);
 
 /**
  * \brief Given an internal node and a key, finds the index for the child where
@@ -155,7 +155,7 @@ btree_destroy_node(BTNode* node);
  * \return Returns the index of the position where the key should lay. 
  */
 uint32_t 
-btree_next_internal(BTNode* node, 
+btree_next_internal(btree_node_t* node, 
                     uint32_t key);
 
 /**
@@ -168,7 +168,7 @@ btree_next_internal(BTNode* node,
  * \return Returns the index of the position where the key should lay. 
  */
 uint32_t 
-btree_next_leaf(BTNode* node, 
+btree_next_leaf(btree_node_t* node, 
                 uint32_t key);
 
 /**
@@ -182,7 +182,7 @@ btree_next_leaf(BTNode* node,
  * nullptr if the element does not exist
  */
 void* 
-btree_get(BTNode* node, 
+btree_get_node(btree_node_t* node, 
           uint32_t ekey);
 
 /**
@@ -195,8 +195,8 @@ btree_get(BTNode* node,
  * Returns nullptr if the element does not exist
  */
 void* 
-btree_get_root(BTRoot* root, 
-               uint32_t ekey);
+btree_get(btree_t* root, 
+          uint32_t ekey);
 
 /**
  * \brief Splits an internal node into two nodes.
@@ -207,8 +207,8 @@ btree_get_root(BTRoot* root,
  *
  * \return Returns a pointer to the sibling of the split node 
  */
-BTNode* 
-btree_split_internal(BTNode* node, 
+btree_node_t* 
+btree_split_internal(btree_node_t* node, 
                      uint32_t* sibling_key);
 
 /**
@@ -220,8 +220,8 @@ btree_split_internal(BTNode* node,
  *
  * \return Returns a pointer to the sibling of the split node 
  */
-BTNode* 
-btree_split_leaf(BTNode* node, 
+btree_node_t* 
+btree_split_leaf(btree_node_t* node, 
                  uint32_t* sibling_key);
 
 /**
@@ -234,9 +234,9 @@ btree_split_leaf(BTNode* node,
  * \param key The key of the child to add
  */
 void 
-btree_shift_insert_internal(BTNode* node, 
+btree_shift_insert_internal(btree_node_t* node, 
                             uint32_t idx, 
-                            BTNode* child, 
+                            btree_node_t* child, 
                             uint32_t key);
 
 /**
@@ -251,8 +251,8 @@ btree_shift_insert_internal(BTNode* node,
  * \return Returns a pointer to the reserved memory for the inserted element 
  */
 void 
-btree_shift_insert_leaf(BTRoot* root,
-                        BTNode* node, 
+btree_shift_insert_leaf(btree_t* root,
+                        btree_node_t* node, 
                         uint32_t idx, 
                         uint32_t key);
 
@@ -267,12 +267,12 @@ btree_shift_insert_leaf(BTRoot* root,
  * \param place A pointer to the location where the pointer to the element to
  * insert should be written 
  *
- * \return Returns a BTInsert structure.
+ * \return Returns a btree_insert_t structure.
  */
-BTInsert 
-btree_insert(BTRoot* root,
-             BTNode* node, 
-             uint32_t key);
+btree_insert_t 
+btree_insert_node(btree_t* root,
+                  btree_node_t* node, 
+                  uint32_t key);
 
 /**
  * \brief Inserts a given element to the given node. This method assumes that a
@@ -284,11 +284,11 @@ btree_insert(BTRoot* root,
  * \param node A pointer to a pointer to an internal node
  * \param key The key of the element to add
  *
- * \return Returns a BTInsert structure.
+ * \return Returns a btree_insert_t structure.
  */
-BTInsert 
-btree_insert_root(BTRoot* node, 
-                  uint32_t key);
+btree_insert_t 
+btree_insert(btree_t* node, 
+             uint32_t key);
 
 /**
  * \brief Removes the element at position idx and shifts the rest of elements to
@@ -299,7 +299,7 @@ btree_insert_root(BTRoot* node,
  *
  */
 void 
-btree_remove_shift_internal(BTNode* node, 
+btree_remove_shift_internal(btree_node_t* node, 
                             uint32_t idx);
 
 /**
@@ -312,7 +312,7 @@ btree_remove_shift_internal(BTNode* node,
  * \return Returns a pointer to the removed element. 
  */
 void* 
-btree_remove_shift_leaf(BTNode* node, 
+btree_remove_shift_leaf(btree_node_t* node, 
                         uint32_t idx);
 
 /**
@@ -323,7 +323,7 @@ btree_remove_shift_leaf(BTNode* node,
  * \param idx2 the index of the second node to merge
  */
 void 
-btree_merge_internal(BTNode* node, 
+btree_merge_internal(btree_node_t* node, 
                      uint32_t idx1, 
                      uint32_t idx2);
 
@@ -335,7 +335,7 @@ btree_merge_internal(BTNode* node,
  * \param idx2 The index of the second node to merge
  */
 void 
-btree_merge_internal(BTNode* node, 
+btree_merge_internal(btree_node_t* node, 
                      uint32_t idx1, 
                      uint32_t idx2);
 
@@ -352,10 +352,10 @@ btree_merge_internal(BTNode* node,
  * nullptr if this does not exist
  */
 void*
-btree_remove(BTNode* node, 
-             uint32_t key, 
-             bool* min_changed, 
-             uint32_t* new_min);
+btree_remove_node(btree_node_t* node, 
+                  uint32_t key, 
+                  bool* min_changed, 
+                  uint32_t* new_min);
 
 /**
  * \brief Removes the element with the given key
@@ -369,8 +369,8 @@ btree_remove(BTNode* node,
  * nullptr if this does not exist
  */
 void* 
-btree_remove_root(BTRoot* root,
-                  uint32_t key);
+btree_remove(btree_t* root,
+             uint32_t key);
   
 } /* btree_impl */ 
 

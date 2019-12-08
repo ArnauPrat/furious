@@ -8,98 +8,98 @@ namespace furious {
 
 TEST(BitmapTest, BitmapTest ) 
 {
-  uint32_t BITMAP_SIZE = 304;
-  Bitmap bitmap(BITMAP_SIZE);
-  ASSERT_EQ(bitmap.num_set(), 0);
+  constexpr uint32_t BITMAP_SIZE = 304;
+  bitmap_t<BITMAP_SIZE> bitmap = {0};
+  ASSERT_EQ(bitmap.m_num_set, 0);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-    ASSERT_EQ(bitmap.is_set(i), false);
-    bitmap.set(i);
+    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+    bitmap_set(&bitmap, i);
   }
 
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-    ASSERT_EQ(bitmap.is_set(i), true);
-    bitmap.unset(i);
-    ASSERT_EQ(bitmap.is_set(i), false);
+    ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+    bitmap_unset(&bitmap, i);
+    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
   }
 
-  ASSERT_EQ(bitmap.num_set(), 0);
+  ASSERT_EQ(bitmap.m_num_set, 0);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; i+=2)
   {
-    ASSERT_EQ(bitmap.is_set(i), false);
-    bitmap.set(i);
-    ASSERT_EQ(bitmap.is_set(i), true);
+    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+    bitmap_set(&bitmap, i);
+    ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
   }
 
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE/2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap.is_set(i), true);
-      bitmap.unset(i);
-      ASSERT_EQ(bitmap.is_set(i), false);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      bitmap_unset(&bitmap, i);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
     }
     else
     {
-      ASSERT_EQ(bitmap.is_set(i), false);
-      bitmap.set(i);
-      ASSERT_EQ(bitmap.is_set(i), true);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+      bitmap_set(&bitmap, i);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
     }
   }
 
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE/2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
-  bitmap.set_negate();
+  bitmap_negate(&bitmap);
 
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE/2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap.is_set(i), true);
-      bitmap.unset(i);
-      ASSERT_EQ(bitmap.is_set(i), false);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      bitmap_unset(&bitmap, i);
+      ASSERT_EQ(bitmap_is_set(&bitmap,i), false);
     }
     else
     {
-      ASSERT_EQ(bitmap.is_set(i), false);
-      bitmap.set(i);
-      ASSERT_EQ(bitmap.is_set(i), true);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+      bitmap_set(&bitmap, i);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
     }
   }
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE/2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
-  Bitmap bitmap2(BITMAP_SIZE);
-  bitmap2.set_bitmap(&bitmap);
+  bitmap_t<BITMAP_SIZE> bitmap2 = {0};
+  bitmap_set_bitmap(&bitmap2, &bitmap);
 
-  bitmap2.set_negate();
-  bitmap.set_or(&bitmap2);
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE);
+  bitmap_negate(&bitmap2);
+  bitmap_set_or(&bitmap, &bitmap2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE);
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-      ASSERT_EQ(bitmap.is_set(i), true);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
   }
 
-  bitmap.set_and(&bitmap2);
-  ASSERT_EQ(bitmap.num_set(), BITMAP_SIZE/2);
+  bitmap_set_and(&bitmap, &bitmap2);
+  ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap.is_set(i), true);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
     }
     else
     {
-      ASSERT_EQ(bitmap.is_set(i), false);
+      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
     }
   }
 

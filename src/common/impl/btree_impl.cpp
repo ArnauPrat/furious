@@ -7,14 +7,14 @@
 namespace furious 
 {
 
-BTIterator::BTIterator(BTRoot* root) : 
+BTIterator::BTIterator(btree_t* root) : 
 m_root(root), 
 m_leaf(nullptr), 
 m_index(0) 
 {
   m_leaf = root->p_root;
   while(m_leaf != nullptr && 
-        m_leaf->m_type == BTNodeType::E_INTERNAL) 
+        m_leaf->m_type == btree_node_type_t::E_INTERNAL) 
   {
     m_leaf = m_leaf->m_internal.m_children[0];
   }
@@ -31,7 +31,7 @@ BTIterator::has_next() const
   {
     return true;
   } 
-  BTNode* sibling = m_leaf->m_leaf.m_next;
+  btree_node_t* sibling = m_leaf->m_leaf.m_next;
   if(sibling == nullptr) 
   {
     return false;
@@ -39,12 +39,12 @@ BTIterator::has_next() const
   return sibling->m_leaf.m_nleafs > 0;
 }
 
-BTEntry
+btree_entry_t
 BTIterator::next() 
 {
   if(m_leaf == nullptr || m_leaf->m_leaf.m_nleafs == 0) 
   {
-    return BTEntry{0xffffffff,nullptr};
+    return btree_entry_t{0xffffffff,nullptr};
   }
   uint32_t id = m_leaf->m_leaf.m_keys[m_index];
   void* value = m_leaf->m_leaf.m_leafs[m_index];
@@ -54,50 +54,47 @@ BTIterator::next()
     m_index = 0;
     m_leaf = m_leaf->m_leaf.m_next;
   }
-  return BTEntry{id, value};
+  return btree_entry_t{id, value};
 }
 
-BTNode* 
+btree_node_t* 
 btree_create_internal() 
 {
-  BTNode* node = (BTNode*)mem_alloc(64, sizeof(BTNode), -1); 
-  memset(node,0,sizeof(BTNode));
-  node->m_type = BTNodeType::E_INTERNAL;
+  btree_node_t* node = (btree_node_t*)mem_alloc(64, sizeof(btree_node_t), -1); 
+  memset(node,0,sizeof(btree_node_t));
+  node->m_type = btree_node_type_t::E_INTERNAL;
   return node;
 }
 
-BTNode* 
+btree_node_t* 
 btree_create_leaf() 
 {
-  BTNode* node = (BTNode*)mem_alloc(64, sizeof(BTNode), -1); 
-  memset(node,0,sizeof(BTNode));
-  node->m_type = BTNodeType::E_LEAF;
+  btree_node_t* node = (btree_node_t*)mem_alloc(64, sizeof(btree_node_t), -1); 
+  memset(node,0,sizeof(btree_node_t));
+  node->m_type = btree_node_type_t::E_LEAF;
   return node;
-}
-
-BTRoot*
-btree_create_root()
-{
-  BTRoot* root = (BTRoot*) mem_alloc(64, sizeof(BTRoot), -1);
-  root->p_root = btree_create_internal();
-  return root;
 }
 
 void
-btree_destroy_root(BTRoot* root)
+btree_init(btree_t* root)
+{
+  root->p_root = btree_create_internal();
+}
+
+void
+btree_release(btree_t* root)
 {
   if(root->p_root != nullptr)
   {
     btree_destroy_node(root->p_root);
     root->p_root = nullptr;
   }
-  mem_free(root);
 }
 
 void 
-btree_destroy_node(BTNode* node) 
+btree_destroy_node(btree_node_t* node) 
 {
-  if (node->m_type == BTNodeType::E_INTERNAL) 
+  if (node->m_type == btree_node_type_t::E_INTERNAL) 
   {
     for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
     {
@@ -123,62 +120,70 @@ btree_destroy_node(BTNode* node)
 }
 
 inline uint32_t
-__btree_next_internal(BTNode* node,
+__btree_next_internal(btree_node_t* node,
                       uint32_t key)
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
   uint32_t i = 0;
   for (; i < BTREE_INTERNAL_MAX_ARITY-1 && 
-         node->m_internal.m_children[i+1] != nullptr && 
-         key >= node->m_internal.m_keys[i]; 
-      ++i);
+       node->m_internal.m_children[i+1] != nullptr && 
+       key >= node->m_internal.m_keys[i]; 
+       ++i);
   return i;
 }
 
 uint32_t 
-btree_next_internal(BTNode* node, 
+btree_next_internal(btree_node_t* node, 
                     uint32_t key) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
   return __btree_next_internal(node, key);
 }
 
 inline uint32_t 
-__btree_next_leaf(BTNode* node, 
-                uint32_t key) 
+__btree_next_leaf(btree_node_t* node, 
+                  uint32_t key) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
   uint32_t i = 0;
   for (; i < BTREE_LEAF_MAX_ARITY && 
-         node->m_leaf.m_leafs[i] != nullptr && 
-         key > node->m_leaf.m_keys[i]; 
-      ++i);
+       node->m_leaf.m_leafs[i] != nullptr && 
+       key > node->m_leaf.m_keys[i]; 
+       ++i);
   return i;
 }
 
 
 uint32_t 
-btree_next_leaf(BTNode* node, 
+btree_next_leaf(btree_node_t* node, 
                 uint32_t key) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
   return __btree_next_leaf(node, key);
 }
 
 void*
-btree_get(BTNode* node, 
-          uint32_t ekey) 
+btree_get_node(btree_node_t* node, 
+               uint32_t ekey) 
 {
-  if(node->m_type == BTNodeType::E_INTERNAL) 
+  if(node->m_type == btree_node_type_t::E_INTERNAL) 
   {
     uint32_t child_idx = __btree_next_internal(node, ekey);
-    BTNode* child = node->m_internal.m_children[child_idx];
-    if( child != nullptr ) 
-    { 
-      // if we found such a children, then proceed. If nullptr, means the node is empty
-      return btree_get(child, ekey);
+    if(child_idx < BTREE_INTERNAL_MAX_ARITY)
+    {
+      btree_node_t* child = node->m_internal.m_children[child_idx];
+      if(child != nullptr ) 
+      { 
+        // if we found such a children, then proceed. If nullptr, means the node is empty
+        return btree_get_node(child, ekey);
+      }
     }
   } 
   else 
   { // LEAF NODE
     uint32_t i = __btree_next_leaf(node, ekey);
-    if(node->m_leaf.m_keys[i] == ekey && 
+    if(i < BTREE_LEAF_MAX_ARITY &&
+       node->m_leaf.m_keys[i] == ekey && 
        node->m_leaf.m_leafs[i] != nullptr)
     {
       return node->m_leaf.m_leafs[i];
@@ -188,10 +193,10 @@ btree_get(BTNode* node,
 }
 
 void* 
-btree_get_root(BTRoot* root, 
-               uint32_t ekey)
+btree_get(btree_t* root, 
+          uint32_t ekey)
 {
-  void* value = btree_get(root->p_root, ekey);
+  void* value = btree_get_node(root->p_root, ekey);
   if(value != nullptr)
   {
     return value;
@@ -200,11 +205,12 @@ btree_get_root(BTRoot* root,
 }
 
 
-BTNode* 
-btree_split_internal(BTNode* node,
+btree_node_t* 
+btree_split_internal(btree_node_t* node,
                      uint32_t* sibling_key) 
 {
-  BTNode* sibling = btree_create_internal();
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
+  btree_node_t* sibling = btree_create_internal();
   uint32_t start = BTREE_INTERNAL_MIN_ARITY;
   *sibling_key = node->m_internal.m_keys[start-1];
   node->m_internal.m_keys[start-1] = 0;
@@ -223,11 +229,12 @@ btree_split_internal(BTNode* node,
   return sibling;
 }
 
-BTNode* 
-btree_split_leaf(BTNode* node, 
+btree_node_t* 
+btree_split_leaf(btree_node_t* node, 
                  uint32_t* sibling_key) 
 {
-  BTNode* sibling = btree_create_leaf();
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
+  btree_node_t* sibling = btree_create_leaf();
   uint32_t start = BTREE_LEAF_MIN_ARITY;
   *sibling_key = node->m_leaf.m_keys[start];
   for(uint32_t i = start; i < BTREE_LEAF_MAX_ARITY; ++i ) 
@@ -236,18 +243,20 @@ btree_split_leaf(BTNode* node,
     sibling->m_leaf.m_keys[i-start] = node->m_leaf.m_keys[i];
     sibling->m_leaf.m_nleafs++;
     node->m_leaf.m_leafs[i] = nullptr;
+    node->m_leaf.m_keys[i] = 0;
     node->m_leaf.m_nleafs--;
   }
   return sibling;
 }
 
 void 
-btree_shift_insert_internal(BTNode* node, 
+btree_shift_insert_internal(btree_node_t* node, 
                             uint32_t idx, 
-                            BTNode* child, 
+                            btree_node_t* child, 
                             uint32_t key ) 
 {
-  assert(idx > 0);
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
+  FURIOUS_ASSERT(idx > 0 && "Index must be greater than 0");
   for(uint32_t i = BTREE_INTERNAL_MAX_ARITY-1; i > idx; --i) 
   {
     node->m_internal.m_children[i] = node->m_internal.m_children[i-1];
@@ -263,11 +272,12 @@ btree_shift_insert_internal(BTNode* node,
 }
 
 void 
-btree_shift_insert_leaf(BTRoot* root,
-                        BTNode* node, 
+btree_shift_insert_leaf(btree_t* root,
+                        btree_node_t* node, 
                         uint32_t idx, 
                         uint32_t key ) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
   for(uint32_t i = BTREE_LEAF_MAX_ARITY-1; i > idx; --i) 
   {
     node->m_leaf.m_leafs[i] = node->m_leaf.m_leafs[i-1];
@@ -280,26 +290,26 @@ btree_shift_insert_leaf(BTRoot* root,
 }
 
 
-BTNode* 
-btree_split_child_full(BTNode* node, uint32_t child_idx, uint32_t key)
+btree_node_t* 
+btree_split_child_full(btree_node_t* node, uint32_t child_idx, uint32_t key)
 {
-  BTNode* child = node->m_internal.m_children[child_idx];
-  if(child->m_type == BTNodeType::E_INTERNAL && child->m_internal.m_nchildren == BTREE_INTERNAL_MAX_ARITY) 
+  btree_node_t* child = node->m_internal.m_children[child_idx];
+  if(child->m_type == btree_node_type_t::E_INTERNAL && child->m_internal.m_nchildren == BTREE_INTERNAL_MAX_ARITY) 
   {
     uint32_t sibling_key;
-    BTNode* sibling = btree_split_internal(child, &sibling_key);
+    btree_node_t* sibling = btree_split_internal(child, &sibling_key);
     btree_shift_insert_internal(node, child_idx+1, sibling, sibling_key );
     if(key >= sibling_key) 
     {
       child = sibling;
     }
   } 
-  else if( child->m_type == BTNodeType::E_LEAF && child->m_leaf.m_nleafs == BTREE_LEAF_MAX_ARITY )
+  else if( child->m_type == btree_node_type_t::E_LEAF && child->m_leaf.m_nleafs == BTREE_LEAF_MAX_ARITY )
   {
     uint32_t sibling_key;
-    if(key <= child->m_leaf.m_keys[BTREE_LEAF_MAX_ARITY-1] )
+    //if(key <= child->m_leaf.m_keys[BTREE_LEAF_MAX_ARITY-1] )
     {
-      BTNode* sibling = btree_split_leaf(child, &sibling_key);
+      btree_node_t* sibling = btree_split_leaf(child, &sibling_key);
       btree_shift_insert_internal(node, child_idx+1, sibling, sibling_key );
       sibling->m_leaf.m_next = child->m_leaf.m_next;
       child->m_leaf.m_next = sibling;
@@ -308,33 +318,33 @@ btree_split_child_full(BTNode* node, uint32_t child_idx, uint32_t key)
         child = sibling;
       }
     }
-    else
+    /*else
     {
-      BTNode* sibling = btree_create_leaf();
+      btree_node_t* sibling = btree_create_leaf();
       node->m_internal.m_children[child_idx+1] = sibling;
       node->m_internal.m_keys[child_idx] = key;
       node->m_internal.m_nchildren++;
       sibling->m_leaf.m_next = child->m_leaf.m_next;
       child->m_leaf.m_next = sibling;
       child = sibling;
-    }
+    }*/
   }
   return child;
 }
 
 
-BTInsert 
-btree_insert(BTRoot* root, 
-             BTNode* node, 
-             uint32_t key) 
+btree_insert_t 
+btree_insert_node(btree_t* root, 
+                  btree_node_t* node, 
+                  uint32_t key) 
 {
-  if(node->m_type == BTNodeType::E_INTERNAL) 
+  if(node->m_type == btree_node_type_t::E_INTERNAL) 
   {
     uint32_t child_idx = btree_next_internal(node, key);
-    BTNode* child = node->m_internal.m_children[child_idx];
+    btree_node_t* child = node->m_internal.m_children[child_idx];
     if(child == nullptr) 
     {
-      if( node->m_internal.m_nchildren == 0 || node->m_internal.m_children[0]->m_type == BTNodeType::E_LEAF)  
+      if( node->m_internal.m_nchildren == 0 || node->m_internal.m_children[0]->m_type == btree_node_type_t::E_LEAF)  
       {
         node->m_internal.m_children[child_idx] = btree_create_leaf();
         child = node->m_internal.m_children[child_idx];
@@ -352,7 +362,7 @@ btree_insert(BTRoot* root,
     }
 
     child = btree_split_child_full(node, child_idx, key);
-    return btree_insert(root, child, key);
+    return btree_insert_node(root, child, key);
   } 
   else 
   { 
@@ -361,37 +371,37 @@ btree_insert(BTRoot* root,
        node->m_leaf.m_leafs[pos] == nullptr)
     {
       btree_shift_insert_leaf(root, node, pos, key);
-      return BTInsert{true, &node->m_leaf.m_leafs[pos]};
+      return btree_insert_t{true, &node->m_leaf.m_leafs[pos]};
     }
-    return BTInsert{false, &node->m_leaf.m_leafs[pos]};
+    return btree_insert_t{false, &node->m_leaf.m_leafs[pos]};
   }
-  return BTInsert{false, nullptr};
+  return btree_insert_t{false, nullptr};
 }
 
-BTInsert 
-btree_insert_root(BTRoot* bt_root, 
-                  uint32_t key) 
+btree_insert_t 
+btree_insert(btree_t* bt_root, 
+             uint32_t key) 
 {
-  BTNode* root = bt_root->p_root;
-  FURIOUS_ASSERT(root->m_type == BTNodeType::E_INTERNAL);
+  btree_node_t* root = bt_root->p_root;
+  FURIOUS_ASSERT(root->m_type == btree_node_type_t::E_INTERNAL);
   if(root->m_internal.m_nchildren == BTREE_INTERNAL_MAX_ARITY) 
   {
-      uint32_t sibling_key;
-      BTNode* sibling = btree_split_internal(root, &sibling_key);
-      BTNode* new_root = btree_create_internal();
-      new_root->m_internal.m_children[0] = root;
-      new_root->m_internal.m_children[1] = sibling;
-      new_root->m_internal.m_keys[0] = sibling_key;
-      new_root->m_internal.m_nchildren = 2;
-      bt_root->p_root = new_root;
-      root = new_root;
+    uint32_t sibling_key;
+    btree_node_t* sibling = btree_split_internal(root, &sibling_key);
+    btree_node_t* new_root = btree_create_internal();
+    new_root->m_internal.m_children[0] = root;
+    new_root->m_internal.m_children[1] = sibling;
+    new_root->m_internal.m_keys[0] = sibling_key;
+    new_root->m_internal.m_nchildren = 2;
+    bt_root->p_root = new_root;
+    root = new_root;
   }
   uint32_t child_idx = btree_next_internal(root, key);
-  BTNode* child = root->m_internal.m_children[child_idx];
+  btree_node_t* child = root->m_internal.m_children[child_idx];
   if(child == nullptr) 
   {
     if( root->m_internal.m_nchildren == 0 || 
-        root->m_internal.m_children[0]->m_type == BTNodeType::E_LEAF)  
+        root->m_internal.m_children[0]->m_type == btree_node_type_t::E_LEAF)  
     {
       root->m_internal.m_children[child_idx] = btree_create_leaf();
       child = root->m_internal.m_children[child_idx];
@@ -408,12 +418,13 @@ btree_insert_root(BTRoot* bt_root,
     root->m_internal.m_nchildren++;
   }
   child = btree_split_child_full(root, child_idx, key);
-  return btree_insert(bt_root,child, key);
+  return btree_insert_node(bt_root,child, key);
 }
 
 void 
-btree_remove_shift_internal(BTNode* node, uint32_t idx) {
-  BTNode* old = node->m_internal.m_children[idx];
+btree_remove_shift_internal(btree_node_t* node, uint32_t idx) {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
+  btree_node_t* old = node->m_internal.m_children[idx];
   for (uint32_t i = idx; i < BTREE_INTERNAL_MAX_ARITY-1; ++i) 
   { 
     node->m_internal.m_children[i] = node->m_internal.m_children[i+1];
@@ -431,8 +442,9 @@ btree_remove_shift_internal(BTNode* node, uint32_t idx) {
 }
 
 void* 
-btree_remove_shift_leaf(BTNode* node, uint32_t idx) 
+btree_remove_shift_leaf(btree_node_t* node, uint32_t idx) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
   void* value = node->m_leaf.m_leafs[idx];
   node->m_leaf.m_leafs[idx] = nullptr;
   for (uint32_t i = idx; i < BTREE_LEAF_MAX_ARITY-1; ++i) 
@@ -446,13 +458,14 @@ btree_remove_shift_leaf(BTNode* node, uint32_t idx)
 }
 
 void 
-btree_merge_internal(BTNode* node, 
+btree_merge_internal(btree_node_t* node, 
                      uint32_t idx1, 
                      uint32_t idx2) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
   assert(idx2 == idx1+1);
-  BTNode* child1 = node->m_internal.m_children[idx1];
-  BTNode* child2 = node->m_internal.m_children[idx2];
+  btree_node_t* child1 = node->m_internal.m_children[idx1];
+  btree_node_t* child2 = node->m_internal.m_children[idx2];
   uint32_t num_elements1 = child1->m_internal.m_nchildren;
   uint32_t num_elements2 = child2->m_internal.m_nchildren;
   assert(num_elements1 + num_elements2 <= BTREE_INTERNAL_MAX_ARITY);
@@ -476,13 +489,16 @@ btree_merge_internal(BTNode* node,
 }
 
 void 
-btree_merge_leaf(BTNode* node, 
+btree_merge_leaf(btree_node_t* node, 
                  uint32_t idx1, 
                  uint32_t idx2) 
 {
+  FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_INTERNAL && "Node must be an internal node");
   assert(idx2 == idx1+1);
-  BTNode* child1 = node->m_internal.m_children[idx1];
-  BTNode* child2 = node->m_internal.m_children[idx2];
+  btree_node_t* child1 = node->m_internal.m_children[idx1];
+  btree_node_t* child2 = node->m_internal.m_children[idx2];
+  FURIOUS_ASSERT(child1->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
+  FURIOUS_ASSERT(child2->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
   for (uint32_t i = 0; i < child2->m_leaf.m_nleafs; ++i) {
     child1->m_leaf.m_leafs[child1->m_leaf.m_nleafs] = child2->m_leaf.m_leafs[i];
     child1->m_leaf.m_keys[child1->m_leaf.m_nleafs] = child2->m_leaf.m_keys[i];
@@ -494,24 +510,24 @@ btree_merge_leaf(BTNode* node,
 }
 
 void* 
-btree_remove(BTNode* node, 
-             uint32_t key, 
-             bool* min_changed, 
-             uint32_t* new_min) 
+btree_remove_node(btree_node_t* node, 
+                  uint32_t key, 
+                  bool* min_changed, 
+                  uint32_t* new_min) 
 {
   *min_changed = false;
-  if(node->m_type == BTNodeType::E_INTERNAL) 
+  if(node->m_type == btree_node_type_t::E_INTERNAL) 
   {
     uint32_t child_idx = btree_next_internal(node, key);
-    BTNode* child = node->m_internal.m_children[child_idx];
-    void* removed = btree_remove(child, key, min_changed, new_min);
+    btree_node_t* child = node->m_internal.m_children[child_idx];
+    void* removed = btree_remove_node(child, key, min_changed, new_min);
     if(child_idx > 0 && *min_changed) 
     {
       node->m_internal.m_keys[child_idx - 1] = *new_min;
       *min_changed = false;
     }
-    if((child->m_type == BTNodeType::E_INTERNAL && child->m_internal.m_nchildren == 0)
-       || (child->m_type == BTNodeType::E_LEAF && child->m_leaf.m_nleafs == 0) ) 
+    if((child->m_type == btree_node_type_t::E_INTERNAL && child->m_internal.m_nchildren == 0)
+       || (child->m_type == btree_node_type_t::E_LEAF && child->m_leaf.m_nleafs == 0) ) 
     {
       if(child_idx == 0) 
       {
@@ -523,9 +539,9 @@ btree_remove(BTNode* node,
     if(child_idx < BTREE_INTERNAL_MAX_ARITY - 1 && 
        node->m_internal.m_children[child_idx+1] != nullptr) 
     {
-      BTNode* child1 = node->m_internal.m_children[child_idx];
-      BTNode* child2 = node->m_internal.m_children[child_idx+1];
-      if(child1->m_type == BTNodeType::E_INTERNAL) 
+      btree_node_t* child1 = node->m_internal.m_children[child_idx];
+      btree_node_t* child2 = node->m_internal.m_children[child_idx+1];
+      if(child1->m_type == btree_node_type_t::E_INTERNAL) 
       {
         if(child1->m_internal.m_nchildren + child2->m_internal.m_nchildren <= BTREE_INTERNAL_MAX_ARITY) 
         {
@@ -562,15 +578,15 @@ btree_remove(BTNode* node,
 }
 
 void* 
-btree_remove_root(BTRoot* bt_root, 
-                   uint32_t key) 
+btree_remove(btree_t* bt_root, 
+             uint32_t key) 
 {
   bool min_changed;
   uint32_t new_min;
-  BTNode* root = bt_root->p_root;
-  void* value = btree_remove(root, key, &min_changed, &new_min);
+  btree_node_t* root = bt_root->p_root;
+  void* value = btree_remove_node(root, key, &min_changed, &new_min);
   if(root->m_internal.m_nchildren == 1 && 
-     root->m_internal.m_children[0]->m_type == BTNodeType::E_INTERNAL) 
+     root->m_internal.m_children[0]->m_type == btree_node_type_t::E_INTERNAL) 
   {
     bt_root->p_root = root->m_internal.m_children[0];
     root->m_internal.m_nchildren=0;

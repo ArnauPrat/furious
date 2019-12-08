@@ -18,14 +18,14 @@ struct BTree
 {
   struct Entry
   {
-    entity_id_t m_key;
+    uint32_t    m_key;
     T*          p_value;
   };
 
   struct Iterator 
   {
   public:
-    Iterator(BTRoot* root);
+    Iterator(btree_t* root);
     ~Iterator() = default;
 
     bool 
@@ -121,8 +121,8 @@ struct BTree
   void clear();
 
 private:
-   BTRoot*    p_root;
-   size_t     m_size;
+   btree_t*     p_root;
+   size_t       m_size;
 };
 
 } /* furious */ 

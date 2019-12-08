@@ -7,7 +7,7 @@
 namespace furious {
 
 TEST(MemoryTest, NUMA ) {
-  void* ptr = mem_alloc(ALIGNMENT, sizeof(int32_t)*1024, 0);
+  void* ptr = mem_alloc(64, sizeof(int32_t)*1024, 0);
   ASSERT_NE(ptr, nullptr);
   mem_free(ptr);
 }

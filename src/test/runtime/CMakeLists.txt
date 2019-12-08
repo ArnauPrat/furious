@@ -25,10 +25,13 @@ function(create_test NAME)
 endfunction(create_test)
 
 SET(TESTS 
+  blockcluster_test
+  hashtable_test
   bitmap_test
   btree_test
   memory_test
   table_test
+  bittable_test
   database_test
   tags_test
   refs_test

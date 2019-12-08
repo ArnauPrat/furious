@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include "../../common/btree.h"
 #include "../../common/types.h"
+#include "../../common/hashtable.h"
 #include <iostream>
 
 namespace furious 
@@ -16,7 +17,7 @@ struct TestValue
 
 TEST(BTreeTest, btree_create) 
 {
-  BTNode* internal = btree_create_internal();
+  btree_node_t* internal = btree_create_internal();
   for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
     ASSERT_EQ(internal->m_internal.m_children[i], nullptr);
@@ -30,7 +31,7 @@ TEST(BTreeTest, btree_create)
   ASSERT_EQ(internal->m_internal.m_nchildren, 0);
   btree_destroy_node(internal);
 
-  BTNode* leaf = btree_create_leaf();
+  btree_node_t* leaf = btree_create_leaf();
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
   {
     ASSERT_EQ(leaf->m_leaf.m_leafs[i], nullptr);
@@ -44,7 +45,7 @@ TEST(BTreeTest, btree_create)
 
 TEST(BTreeTest, btree_next_internal) 
 {
-  BTNode* node = btree_create_internal();
+  btree_node_t* node = btree_create_internal();
 
   for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
@@ -67,7 +68,7 @@ TEST(BTreeTest, btree_next_internal)
 
 TEST(BTreeTest, btree_next_leaf) 
 {
-  BTNode* node = btree_create_leaf();
+  btree_node_t* node = btree_create_leaf();
 
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
   {
@@ -100,7 +101,7 @@ TEST(BTreeTest, btree_next_leaf)
 TEST(BTreeTest, btree_split_internal) 
 {
 
-  BTNode* node = btree_create_internal();
+  btree_node_t* node = btree_create_internal();
 
   for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
@@ -114,7 +115,7 @@ TEST(BTreeTest, btree_split_internal)
   }
 
   uint32_t sibling_key;
-  BTNode* sibling = btree_split_internal(node, &sibling_key);
+  btree_node_t* sibling = btree_split_internal(node, &sibling_key);
 
   ASSERT_NE(node->m_internal.m_nchildren, 0);
   ASSERT_NE(sibling->m_internal.m_nchildren, 0);
@@ -157,7 +158,7 @@ TEST(BTreeTest, btree_split_internal)
 
 TEST(BTreeTest, btree_split_leaf) 
 {
-  BTNode* node = btree_create_leaf();
+  btree_node_t* node = btree_create_leaf();
 
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
   {
@@ -169,7 +170,7 @@ TEST(BTreeTest, btree_split_leaf)
   }
 
   uint32_t sibling_key;
-  BTNode* sibling = btree_split_leaf(node, &sibling_key);
+  btree_node_t* sibling = btree_split_leaf(node, &sibling_key);
 
   ASSERT_NE(node->m_leaf.m_nleafs, 0);
   ASSERT_NE(sibling->m_leaf.m_nleafs, 0);
@@ -217,11 +218,11 @@ TEST(BTreeTest, btree_split_leaf)
 TEST(BTreeTest, btree_get) 
 {
  
-  BTNode* node = btree_create_internal();
+  btree_node_t* node = btree_create_internal();
 
   for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
-    BTNode* leaf = btree_create_leaf();
+    btree_node_t* leaf = btree_create_leaf();
     node->m_internal.m_children[i] = leaf;
     for (uint32_t j = 0; j < BTREE_LEAF_MAX_ARITY; ++j) 
     {
@@ -244,7 +245,7 @@ TEST(BTreeTest, btree_get)
     for ( uint32_t j = 0; j < BTREE_LEAF_MAX_ARITY; ++j) 
     {
       uint32_t key = i*BTREE_LEAF_MAX_ARITY+j;
-      TestValue* value = (TestValue*)btree_get(node, (i*BTREE_LEAF_MAX_ARITY+j));
+      TestValue* value = (TestValue*)btree_get_node(node, (i*BTREE_LEAF_MAX_ARITY+j));
       ASSERT_NE(value, nullptr);
       ASSERT_EQ(value->m_val, key);
       delete value;
@@ -256,19 +257,19 @@ TEST(BTreeTest, btree_get)
 
 TEST(BTreeTest, btree_shift_insert_internal) 
 {
-  BTNode* node = btree_create_internal();
-  BTNode* child = btree_create_internal();
+  btree_node_t* node = btree_create_internal();
+  btree_node_t* child = btree_create_internal();
   node->m_internal.m_children[0] = child;
   node->m_internal.m_nchildren++;
 
-  BTNode* child2 = btree_create_internal();
+  btree_node_t* child2 = btree_create_internal();
   btree_shift_insert_internal(node, 1, child2, 10);
   ASSERT_EQ(node->m_internal.m_nchildren, 2);
   ASSERT_EQ(node->m_internal.m_children[0], child);
   ASSERT_EQ(node->m_internal.m_children[1], child2);
   ASSERT_EQ(node->m_internal.m_keys[0], 10);
 
-  BTNode* child3 = btree_create_internal();
+  btree_node_t* child3 = btree_create_internal();
   btree_shift_insert_internal(node, 1, child3, 5);
   ASSERT_EQ(node->m_internal.m_nchildren, 3);
   ASSERT_EQ(node->m_internal.m_children[0], child);
@@ -282,31 +283,32 @@ TEST(BTreeTest, btree_shift_insert_internal)
 
 TEST(BTreeTest, btree_insert_root) 
 {
-  BTRoot* root = btree_create_root();
+  btree_t root = {0};
+  btree_init(&root);
   TestValue val1;
   TestValue val2;
-  BTInsert insert =btree_insert_root(root, 0); 
+  btree_insert_t insert = btree_insert(&root, 0); 
   ASSERT_EQ(insert.m_inserted, true);
   *insert.p_place = &val1;
 
-  insert =btree_insert_root(root, 1); 
+  insert =btree_insert(&root, 1); 
   ASSERT_EQ(insert.m_inserted, true);
   *insert.p_place = &val2;
 
-  insert =btree_insert_root(root, 0); 
+  insert =btree_insert(&root, 0); 
   ASSERT_EQ(insert.m_inserted, false);
   ASSERT_EQ(*insert.p_place, &val1);
 
-  insert =btree_insert_root(root, 1); 
+  insert =btree_insert(&root, 1); 
   ASSERT_EQ(insert.m_inserted, false);
   ASSERT_EQ(*insert.p_place, &val2);
 
-  btree_destroy_root(root);
+  btree_release(&root);
 }
 
 TEST(BTreeTest, btree_remove_shift_internal) 
 {
-  BTNode* node = btree_create_internal();
+  btree_node_t* node = btree_create_internal();
   for (uint32_t i = 0; i < BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
     node->m_internal.m_children[i] = btree_create_internal();
@@ -337,7 +339,7 @@ TEST(BTreeTest, btree_remove_shift_internal)
 
 TEST(BTreeTest, btree_remove_shift_leaf) 
 {
-  BTNode* node = btree_create_leaf();
+  btree_node_t* node = btree_create_leaf();
   for (uint32_t i = 0; i < BTREE_LEAF_MAX_ARITY; ++i) 
   {
     TestValue* value = new TestValue();
@@ -364,6 +366,60 @@ TEST(BTreeTest, btree_remove_shift_leaf)
   ASSERT_EQ(node->m_leaf.m_leafs[BTREE_LEAF_MAX_ARITY-1], nullptr);
 
   btree_destroy_node(node);
+}
+
+TEST(BTreeTest, BTIteratorTest) 
+{
+  btree_t btree;
+  btree_init(&btree);
+
+  uint32_t BTREE_MAX_BLOCK=1024;
+  hashtable_t hashtable;
+  hashtable_init(&hashtable, 512);
+
+  for (uint32_t i = 0; i < BTREE_MAX_BLOCK; ++i) 
+  {
+    TestValue* test_value = new TestValue{static_cast<uint32_t>(i)};
+    hashtable_add(&hashtable, i, test_value);
+  }
+
+  hashtable_iter_t iter;
+  hashtable_iter_init(&iter, &hashtable);
+  while(hashtable_iter_has_next(&iter))
+  {
+    TestValue* next = (TestValue*)hashtable_iter_next(&iter).p_value;
+    btree_insert_t insert = btree_insert(&btree, next->m_val);
+    ASSERT_TRUE(insert.m_inserted);
+    *insert.p_place = next;
+  }
+  hashtable_iter_release(&iter);
+
+  for (uint32_t i = 0; i < BTREE_MAX_BLOCK; ++i) 
+  {
+    uint32_t val = i;
+    TestValue* value =(TestValue*)btree_get(&btree, val);
+    ASSERT_EQ(value->m_val, val);
+  }
+
+  BTIterator iterator(&btree);
+  uint32_t val = 0;
+  while (iterator.has_next()) 
+  {
+    TestValue* value = (TestValue*)iterator.next().p_value;
+    ASSERT_EQ(value->m_val, val);
+    val++;
+  }
+
+  hashtable_iter_init(&iter, &hashtable);
+  while(hashtable_iter_has_next(&iter))
+  {
+    TestValue* next = (TestValue*)hashtable_iter_next(&iter).p_value;
+    delete next;
+  }
+  hashtable_iter_release(&iter);
+
+  btree_release(&btree);
+  //ASSERT_EQ(btree_num_allocations, 0);
 }
 
 TEST(BTreeTest, BTree) 

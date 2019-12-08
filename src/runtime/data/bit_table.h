@@ -7,10 +7,13 @@
 #include "../../common/bitmap.h"
 #include "../../common/btree.h"
 
-//#include <bitset>
+#include "common.h"
+
 
 namespace furious
 {
+
+using bt_block_t = bitmap_t<TABLE_BLOCK_SIZE>;
 
 struct BitTable 
 {
@@ -53,7 +56,7 @@ struct BitTable
    *
    * @return Returns a pointer to the bitmap
    */
-  const Bitmap* 
+  const bt_block_t* 
   get_bitmap(entity_id_t id) const;
 
   /**
@@ -88,7 +91,7 @@ private:
    */
   void
   apply_bitset(uint32_t id, 
-               const Bitmap* bitmap,
+               const bt_block_t* bitmap,
                logic_operation_t operation);
 
   /**
@@ -98,12 +101,12 @@ private:
    *
    * \return 
    */
-  Bitmap*
+  bt_block_t*
   get_bitset(uint32_t bitset_id) const;
 
 
-  mutable BTree<Bitmap> m_bitmaps;
-  uint32_t              m_size;
+  btree_t*       m_bitmaps;
+  uint32_t      m_size;
 };
 
 void

@@ -270,7 +270,7 @@ consume_foreach(FILE*fd,
   else
   {
     fprintf(fd,
-            "if(%s->p_enabled->num_set() == TABLE_BLOCK_SIZE)\n{\n", 
+            "if(%s->m_enabled.m_num_set == TABLE_BLOCK_SIZE)\n{\n", 
             source);
 
     fprintf(fd,
@@ -287,7 +287,7 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
-            "if(%s->p_enabled->is_set(i))\n{\n", 
+            "if(bitmap_is_set(&%s->m_enabled, i))\n{\n", 
             source);
     fprintf(fd,
             "%s",
@@ -336,17 +336,25 @@ consume_join(FILE*fd,
 
   if(caller->m_id == join->m_join.m_left) 
   {
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
-            hashtable, 
-            source, 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
             source); 
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            hashtable, 
+            source); 
+
+
   }
   else 
   {
 
       fprintf(fd,
-              "BlockCluster* build = %s.get(%s->m_start);\n",
+              "BlockCluster* build = (BlockCluster*)hashtable_get(&%s, %s->m_start / TABLE_BLOCK_SIZE);\n",
               hashtable,
               source);
       fprintf(fd,
@@ -364,7 +372,7 @@ consume_join(FILE*fd,
               clustername, 
               source);
       fprintf(fd,
-              "if(%s.p_enabled->num_set() != 0)\n{\n", 
+              "if(%s.m_enabled.m_num_set != 0)\n{\n", 
               clustername);
 
       str_builder_t str_builder;
@@ -395,16 +403,25 @@ consume_leftfilter_join(FILE*fd,
 
   if(caller->m_id == left_filter_join->m_leftfilter_join.m_left) 
   {
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
-            source, 
             source); 
   }
   else 
   {
     fprintf(fd,
-            "BlockCluster* build = %s.get(%s->m_start);\n",
+            "BlockCluster* build = (BlockCluster*)hashtable_get(&%s, %s->m_start / TABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
     fprintf(fd,
@@ -422,7 +439,7 @@ consume_leftfilter_join(FILE*fd,
             clustername, 
             source);
     fprintf(fd,
-            "if(%s.p_enabled->num_set() != 0)\n{\n", 
+            "if(%s.m_enabled.m_num_set != 0)\n{\n", 
             clustername);
 
     str_builder_t str_builder;
@@ -457,10 +474,18 @@ consume_cross_join(FILE*fd,
     str_builder_t str_builder;
     str_builder_init(&str_builder);
     str_builder_append(&str_builder,"left_%s", hashtable);
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
-            source, 
             source); 
     str_builder_release(&str_builder);
   }
@@ -469,10 +494,18 @@ consume_cross_join(FILE*fd,
     str_builder_t str_builder;
     str_builder_init(&str_builder);
     str_builder_append(&str_builder,"right_%s", hashtable);
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
-            source, 
             source); 
     str_builder_release(&str_builder);
   }
@@ -504,7 +537,7 @@ consume_tag_filter(FILE*fd,
   if(!tag_filter->m_tag_filter.m_on_column)
   {
     fprintf(fd,
-            "const Bitmap* filter = %s->get_bitmap(%s->m_start);\n", 
+            "const bt_block_t* filter = %s->get_bitmap(%s->m_start);\n", 
             bittable_name, 
             source);
     switch(tag_filter->m_tag_filter.m_op_type) 
@@ -512,7 +545,7 @@ consume_tag_filter(FILE*fd,
       case fcc_filter_op_type_t::E_HAS:
         {
           fprintf(fd,
-                  "%s->p_enabled->set_and(filter);\n",
+                  "bitmap_set_and(&%s->m_enabled, filter);\n",
                   source);
           break;
         }
@@ -520,14 +553,18 @@ consume_tag_filter(FILE*fd,
         {
           fprintf(fd,"{\n");
           fprintf(fd, 
-                  "Bitmap negate(TABLE_BLOCK_SIZE);\n");
+                  "bitmap_t<TABLE_BLOCK_SIZE> negate;\n");
           fprintf(fd, 
-                  "negate.set_bitmap(filter);\n");
+                  "bitmap_init(&negate);\n");
           fprintf(fd, 
-                  "negate.set_negate();\n");
+                  "bitmap_set_bitmap(&negate, filter);\n");
+          fprintf(fd, 
+                  "bitmap_negate(&negate);\n");
           fprintf(fd,
-                  "%s->p_enabled->set_and(&negate);\n",
+                  "bitmap_set_and(&%s->m_enabled, &negate);\n",
                   source);
+          fprintf(fd, 
+                  "bitmap_release(&negate);\n");
           fprintf(fd,"}\n");
           break;
         }
@@ -569,7 +606,7 @@ consume_tag_filter(FILE*fd,
   }
 
   fprintf(fd,
-          "if(%s->p_enabled->num_set() != 0)\n{\n",
+          "if(%s->m_enabled.m_num_set != 0)\n{\n",
           source); 
   fcc_subplan_t* subplan = tag_filter->p_subplan;
   consume(fd,
@@ -625,25 +662,38 @@ consume_predicate_filter(FILE*fd,
                             tmp,
                             MAX_QUALIFIED_TYPE_NAME);
 
-    if(column->m_type == fcc_column_type_t::E_COMPONENT)
+    switch(column->m_type)
     {
+     case fcc_column_type_t::E_COMPONENT:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n",
-              tmp,
-              param_index,
-              tmp,
-              source,
+              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
+              tmp, 
+              param_index, 
+              tmp, 
+              source, 
               param_index);
-    }
-    else
-    {
+      break;
+    case fcc_column_type_t::E_REFERENCE:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_global(%d));\n",
-              tmp,
-              param_index,
-              tmp,
-              source,
+              "%s** data_%d = (%s**)(%s->get_tblock(%d)->p_data);\n", 
+              tmp, 
+              param_index, 
+              tmp, 
+              source, 
               param_index);
+      break;
+    case fcc_column_type_t::E_GLOBAL:
+      fprintf(fd,
+              "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
+              tmp, 
+              param_index, 
+              tmp, 
+              source, 
+              param_index);
+      break;
+    default:
+      FURIOUS_ASSERT(false && "Should not reach this point");
+      break;
     }
     param_index++;
   }
@@ -671,39 +721,61 @@ consume_predicate_filter(FILE*fd,
                          2048);
 
   fprintf(fd,
-          "for(uint32_t i = 0; i < TABLE_BLOCK_SIZE && (%s->p_enabled->num_set() != 0); ++i) \n{\n",
+          "for(uint32_t i = 0; i < TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
           source);
   fprintf(fd,
-          "%s->p_enabled->set_bit(i, %s->p_enabled->is_set(i) && %s(",
+          "bitmap_set_bit(&%s->m_enabled, i, bitmap_is_set(&%s->m_enabled, i) && %s(",
           source,
           source,
           func_name);
 
   const fcc_column_t* column = &predicate_filter->m_columns[0];
-  if(column->m_type == fcc_column_type_t::E_COMPONENT)
+
+  switch(column->m_type)
   {
-    fprintf(fd, "&data_0[i]");
+    case fcc_column_type_t::E_COMPONENT:
+      // It is a component, thus we need to pass a pointer to data[i] 
+      fprintf(fd,"&data_0[i]");
+      break;
+    case fcc_column_type_t::E_REFERENCE:
+      // It is a reference, thus data[i] already contains a pointer
+      fprintf(fd,"data_0[i]");
+      break;
+    case fcc_column_type_t::E_GLOBAL:
+      // It is a global, thus we need directly pass the data pointer
+      fprintf(fd,"data_0");
+      break;
+    default:
+      FURIOUS_ASSERT(false && "Should not reach this point");
+      break;
   }
-  else
-  {
-    fprintf(fd, "data_0");
-  }
-  for(size_t i = 1; i <predicate_filter->m_columns.size(); ++i)
+
+  for(size_t i = 1; i < predicate_filter->m_columns.size(); ++i)
   {
     const fcc_column_t* column = &predicate_filter->m_columns[i];
-    if(column->m_type == fcc_column_type_t::E_COMPONENT)
+    switch(column->m_type)
     {
-      fprintf(fd, ",&data_%zu[i]", i);
-    }
-    else
-    {
-      fprintf(fd, ",data_%zu", i);
+      case fcc_column_type_t::E_COMPONENT:
+        // It is a component, thus we need to pass a pointer to data[i] 
+        fprintf(fd,",&data_%zu[i]", i);
+        break;
+      case fcc_column_type_t::E_REFERENCE:
+        // It is a reference, thus data[i] already contains a pointer
+        fprintf(fd,",data_%zu[i]", i);
+        break;
+      case fcc_column_type_t::E_GLOBAL:
+        // It is a global, thus we need directly pass the data pointer
+        fprintf(fd,",data_%zu", i);
+        break;
+      default:
+        FURIOUS_ASSERT(false && "Should not reach this point");
+        break;
     }
   }
   fprintf(fd, "));\n");
   fprintf(fd, "}\n");
   fprintf(fd,
-          "if(%s->p_enabled->num_set() != 0)\n{\n",
+          "if(%s->m_enabled.m_num_set != 0)\n{\n",
           source); 
   fcc_subplan_t* subplan = predicate_filter->p_subplan;
   consume(fd,
@@ -756,10 +828,18 @@ consume_gather(FILE*fd,
                             hashtable,
                             MAX_HASHTABLE_VARNAME);
 
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
-            source, 
             source); 
   }
 }
@@ -775,7 +855,7 @@ consume_cascading_gather(FILE*fd,
   if(caller->m_id == casc_gather->m_cascading_gather.m_ref_table) 
   {
     fprintf(fd,
-            "find_roots_and_blacklist(%s, &current_frontier_%u, &partial_blacklist_%u);\n", 
+            "find_roots_and_blacklist(%s, &next_frontier_%u, &partial_blacklist_%u);\n", 
             source,
             casc_gather->m_id,
             casc_gather->m_id);
@@ -811,10 +891,18 @@ consume_cascading_gather(FILE*fd,
                             hashtable,
                             MAX_HASHTABLE_VARNAME);
 
+
     fprintf(fd, 
-            "ref_%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&ref_%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
-            source, 
             source); 
   }
   else
@@ -824,10 +912,18 @@ consume_cascading_gather(FILE*fd,
                             hashtable,
                             MAX_HASHTABLE_VARNAME);
 
+
     fprintf(fd, 
-            "%s.insert_copy(%s->m_start, %s);\n", 
+            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            source); 
+
+    fprintf(fd, 
+            "new (cluster) BlockCluster(*%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
-            source, 
             source); 
 
 

@@ -137,7 +137,7 @@ TEST(ExpandTest, ExpandTestLarge )
                             "8080");
   furious::__furious_init(database);
 
-  constexpr uint32_t num_entities = 30000;
+  constexpr uint32_t num_entities = 65536;
   furious::Entity entities[num_entities];
   for(uint32_t i = 0; i < num_entities; ++i)
   {
@@ -148,12 +148,19 @@ TEST(ExpandTest, ExpandTestLarge )
     FURIOUS_ADD_COMPONENT(entities[i],Intensity, 5.0f);
   }
 
-  for(uint32_t i = 0; i < num_entities/2; ++i)
+  for(uint32_t i = 1; i < num_entities; ++i)
   {
-    entities[i].add_reference("parent",entities[i+num_entities/2]);
+    entities[i].add_reference("parent",entities[0]);
   }
 
   furious::__furious_frame(0.1,database, nullptr);
+
+  for(uint32_t i = 1; i < num_entities; ++i)
+  {
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], Position)->m_x,0.2f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], Position)->m_y,0.2f);
+    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], Position)->m_z,0.2f);
+  }
 
   furious::__furious_release();
 

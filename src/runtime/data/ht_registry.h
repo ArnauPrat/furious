@@ -7,11 +7,11 @@
 namespace furious
 {
 
-struct BTRoot;
+struct btree_t;
 
 struct ht_registry_t
 {
-  BTRoot* p_root;
+  btree_t* p_root;
   std::mutex m_mutex;
 };
 

@@ -7,122 +7,21 @@
 namespace furious
 {
 
-struct Bitmap
+extern uint8_t count_bits_lookup[16];
+
+template <int MAX_BITS>
+struct bitmap_t 
 {
-  Bitmap(uint32_t num_elements);
-  ~Bitmap();
-
-  /**
-   * \brief Sets to one the ith element of the bitmap
-   *
-   * \param element The element to set
-   */
-  void
-  set(uint32_t element);
-
-  /**
-   * \brief Sets to 0 the ith element of the bitmap
-   *
-   * \param element The ith element to set
-   */
-  void
-  unset(uint32_t element);
-
-  /**
-   * \brief Sets the bit of the given element to the specified value
-   *
-   * \param element The element to set the bit for
-   * \param value The value to set the bit to
-   */
-  void
-  set_bit(uint32_t element, bool value);
-
-  /**
-   * \brief Checks if a given element is set to 1
-   *
-   * \param element The element to check
-   *
-   * \return True if the element is set to 1
-   */
-  bool
-  is_set(uint32_t element) const;
-
-  /**
-   * \brief The number of elements set to 1
-   *
-   * \return Returns the number of elements set to one
-   */
-  uint32_t
-  num_set() const;
-
-  /**
-   * \brief Gets the maximum number of bits that this bitmap can store
-   *
-   * \return Returns the maximum number of bits
-   */
-  uint32_t
-  max_bits() const;
-
-  /**
-   * \brief Sets the bits based on the given bitmap
-   *
-   * \param bitmap The bitmap to set the bits from
-   */
-  void
-  set_bitmap(const Bitmap* bitmap);
-
-  /**
-   * \brief Ands this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the and with
-   */
-  void
-  set_and(const Bitmap* bitmap);
-
-  /**
-   * \brief Ors this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the or with
-   */
-  void
-  set_or(const Bitmap* bitmap);
-
-  /**
-   * \brief Diffs this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the diff with
-   */
-  void
-  set_diff(const Bitmap* bitmap);
-
-  /**
-   * \brief Negates the contents of this bitmap
-   */
-  void
-  set_negate();
-
-  /**
-   * \brief Sets the bitmap to all zeros
-   */
-  void
-  all_zeros();
-
-private:
-  /**
-   * \brief Refreshes the number of bits set
-   */
-  void
-  refresh_num_set();
-
-  uint32_t m_max_bits;
-  uint32_t m_num_chunks;
-  uint32_t m_num_set;
-  uint8_t* p_data;
+  uint32_t m_num_set;           //< The number of bits set to one
+  uint8_t  m_data[MAX_BITS];    //< The buffer with the bitmap
 };
-  
+
 } /* furious
  */ 
 
+#include "bitmap.inl"
+
 #endif /* ifndef _FURIOUS_BITMAP_H_ */
+
 
 

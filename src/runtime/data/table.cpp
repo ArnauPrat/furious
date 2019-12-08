@@ -52,28 +52,21 @@ has_component(const TBlock* block,
 }
 
 TBlock::TBlock(entity_id_t start, size_t esize) :
-    p_data(static_cast<char*>(mem_alloc(ALIGNMENT, esize*TABLE_BLOCK_SIZE, start / TABLE_BLOCK_SIZE))),
+    p_data(static_cast<char*>(mem_alloc(64, esize*TABLE_BLOCK_SIZE, start / TABLE_BLOCK_SIZE))),
     m_start(start),
     m_num_components(0),
     m_num_enabled_components(0),
-    m_esize(esize),
-    p_exists(nullptr),
-    p_enabled(nullptr)
+    m_esize(esize)
 {
-  p_exists = (Bitmap*)mem_alloc(TABLE_BLOCK_SIZE/8, sizeof(Bitmap), start / TABLE_BLOCK_SIZE);
-  new (p_exists) Bitmap(TABLE_BLOCK_SIZE);
-
-  p_enabled = (Bitmap*)mem_alloc(TABLE_BLOCK_SIZE/8, sizeof(Bitmap), start / TABLE_BLOCK_SIZE);
-  new (p_enabled) Bitmap(TABLE_BLOCK_SIZE);
+  bitmap_init(&m_exists);
+  bitmap_init(&m_enabled);
 }
 
 TBlock::~TBlock()
 {
-    mem_free(p_data);
-    p_enabled->~Bitmap();
-    mem_free(p_enabled);
-    p_exists->~Bitmap();
-    mem_free(p_exists);
+  bitmap_release(&m_enabled);
+  bitmap_release(&m_exists);
+  mem_free(p_data);
 }
 
 /**
@@ -91,11 +84,11 @@ get_component(const TBlock* block,
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
   assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
-  if(block->p_enabled->is_set(decoded_id.m_block_offset)) 
+  if(bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset)) 
   {
     return TRow{block->m_start + decoded_id.m_block_offset, 
                &block->p_data[decoded_id.m_block_offset*block->m_esize], 
-               (block->p_enabled->is_set(decoded_id.m_block_offset))};
+               (bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset))};
   }
   return TRow{0,nullptr,false};
 }
@@ -282,7 +275,7 @@ Table::get_component(entity_id_t id) const
     return nullptr;
   }
   TBlock* block = (TBlock*)component;
-  if(block->p_exists->is_set(decoded_id.m_block_offset))
+  if(bitmap_is_set(&block->m_exists, decoded_id.m_block_offset))
   {
     release();
     return &block->p_data[decoded_id.m_block_offset*m_esize];
@@ -305,14 +298,14 @@ Table::alloc_component(entity_id_t id)
                                 m_esize);
   }
 
-  if(!block->p_exists->is_set(decoded_id.m_block_offset)) 
+  if(!bitmap_is_set(&block->m_exists, decoded_id.m_block_offset)) 
   {
     m_num_components++;
     block->m_num_components++;
     block->m_num_enabled_components++;
   }
-  block->p_exists->set(decoded_id.m_block_offset);
-  block->p_enabled->set(decoded_id.m_block_offset);
+  bitmap_set(&block->m_exists, decoded_id.m_block_offset);
+  bitmap_set(&block->m_enabled, decoded_id.m_block_offset);
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
 
@@ -328,14 +321,14 @@ Table::dealloc_component(entity_id_t id)
     return nullptr;
   }
 
-  if(block->p_exists->is_set(decoded_id.m_block_offset)) 
+  if(bitmap_is_set(&block->m_exists, decoded_id.m_block_offset)) 
   {
     m_num_components--;
     block->m_num_components--;
     block->m_num_enabled_components--;
   }
-  block->p_exists->unset(decoded_id.m_block_offset);
-  block->p_enabled->unset(decoded_id.m_block_offset);
+  bitmap_unset(&block->m_exists, decoded_id.m_block_offset);
+  bitmap_unset(&block->m_enabled, decoded_id.m_block_offset);
   release();
   return &block->p_data[decoded_id.m_block_offset*m_esize];
 }
@@ -364,7 +357,7 @@ Table::enable_component(entity_id_t id)
     release();
     return;
   }
-  block->p_enabled->set(decoded_id.m_block_offset);
+  bitmap_set(&block->m_enabled, decoded_id.m_block_offset);
   block->m_num_enabled_components++;
   release();
 }
@@ -382,7 +375,7 @@ Table::disable_component(entity_id_t id)
     release();
     return;
   }
-  block->p_enabled->unset(decoded_id.m_block_offset);
+  bitmap_unset(&block->m_enabled, decoded_id.m_block_offset);
   block->m_num_enabled_components--;
   release();
 }
@@ -400,7 +393,7 @@ Table::is_enabled(entity_id_t id)
     release();
     return false;
   }
-  bool res = block->p_enabled->is_set(decoded_id.m_block_offset);
+  bool res = bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset);
   release();
   return res;
 }
@@ -448,11 +441,10 @@ Table::release() const
 }
 
 uint32_t
-block_get_offset(uint32_t block_start, 
+block_get_offset(uint32_t block_id, 
                  uint32_t chunk_size,
                  uint32_t stride)
 {
-  uint32_t block_id = block_start / TABLE_BLOCK_SIZE;
   uint32_t chunk_id = block_id / chunk_size;
   return chunk_id % stride;
 }

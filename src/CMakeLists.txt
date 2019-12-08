@@ -11,17 +11,18 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/bitmap.inl
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.inl
   ${CMAKE_SOURCE_DIR}/src/common/common.h
-  ${CMAKE_SOURCE_DIR}/src/common/hash_map.h
-  ${CMAKE_SOURCE_DIR}/src/common/hash_map.inl
   ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.cpp
   ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.h
   ${CMAKE_SOURCE_DIR}/src/common/platform.cpp
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
   ${CMAKE_SOURCE_DIR}/src/common/reference.h
+  ${CMAKE_SOURCE_DIR}/src/common/hashtable.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/hashtable.h
   ${CMAKE_SOURCE_DIR}/src/common/str_builder.cpp
   ${CMAKE_SOURCE_DIR}/src/common/str_builder.h
   ${CMAKE_SOURCE_DIR}/src/common/types.h

@@ -9,7 +9,6 @@
 #include "macros.h"
 #include "table_view.h"
 #include "../../common/types.h"
-#include "../../common/hash_map.h"
 
 #include <assert.h>
 #include <mutex>

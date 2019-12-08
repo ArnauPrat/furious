@@ -39,10 +39,10 @@ TEST(TableTest,TableWorks)
   {
     TableView<Component>::Block block = iterator.next();
     Component* data = block.get_data();
-    const Bitmap* mask = block.get_enabled();
+    const bitmap_t<TABLE_BLOCK_SIZE>* mask = block.get_enabled();
     for (size_t i = 0; i < block.get_size(); ++i) 
     {
-      ASSERT_TRUE(mask->is_set(i));
+      ASSERT_TRUE(bitmap_is_set(mask, i));
       ASSERT_EQ(data[i].field1_, counter);
       ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
       counter++;
@@ -66,16 +66,16 @@ TEST(TableTest,TableWorks)
   counter = 0;
   while (iterator2.has_next()) {
     TableView<Component>::Block block = iterator2.next();
-    const Bitmap* mask = block.get_enabled();
+    const bitmap_t<TABLE_BLOCK_SIZE>* mask = block.get_enabled();
     Component* data = block.get_data();
     for (size_t i = 0; i < block.get_size(); ++i) {
       if(i % 2 == 0) 
       {
-        ASSERT_FALSE(mask->is_set(i));
+        ASSERT_FALSE(bitmap_is_set(mask, i));
       } 
       else 
       {
-        ASSERT_TRUE(mask->is_set(i));
+        ASSERT_TRUE(bitmap_is_set(mask, i));
         ASSERT_EQ(data[i].field1_, counter);
         ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
         num_real++;

@@ -4,20 +4,14 @@
 
 #include "../../common/btree.h"
 #include "../../common/bitmap.h"
+#include "common.h"
 
 #include <mutex>
 
 namespace furious
 {
 
-constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 
-/**
- * \brief The number of components per block. The current number, 16 is not
- * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
- * can be stored in a line.
- */
-constexpr uint32_t TABLE_BLOCK_SIZE = 64;
 
 /**
  * \brief Represents a block of data in a table. Each block contains
@@ -31,10 +25,10 @@ struct TBlock
   char *p_data;                         // The pointer to the block data
   entity_id_t m_start;                  // The id of the first component in the block
   size_t m_num_components;              // The number of components in the block
-  size_t m_num_enabled_components;      // The number of components in the block
+  size_t m_num_enabled_components;      // The number of enabled components in the block
   size_t m_esize;                       // The size of the components contained in the block
-  Bitmap* p_exists;                     // A bitmap used to test whether an component is in the block or not
-  Bitmap* p_enabled;                    // A bitmap used to mark components that are enabled/disabled
+  bitmap_t<TABLE_BLOCK_SIZE> m_exists;  // A bitmap used to test whether an component is in the block or not
+  bitmap_t<TABLE_BLOCK_SIZE> m_enabled; // A bitmap used to mark components that are enabled/disabled
 };
 
 /**
@@ -278,17 +272,17 @@ private:
 };
 
 /**
- * \brief Given a block start, a chunk size and a stride, returns the offset
+ * \brief Given a block id, a chunk size and a stride, returns the offset
  * (thread id) responsible of the block start.
  *
- * \param block_start The block start
+ * \param block_start The block id 
  * \param chunk_size The chunk size
  * \param stride The stride (num threads)
  *
  * \return Returns the offset (thread id)
  */
 uint32_t
-block_get_offset(uint32_t block_start, 
+block_get_offset(uint32_t block_id, 
                  uint32_t chunk_size,
                  uint32_t stride);
 

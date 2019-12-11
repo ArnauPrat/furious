@@ -186,11 +186,12 @@ fcc_context_set_compilation_error_callback(FCC_COMP_ERROR_CALLBACK e_callback);
  * \param error_type The type of error
  */
 void 
-fcc_context_report_parsing_error(fcc_parsing_error_type_t error_type,
+FCC_CONTEXT_REPORT_PARSING_ERROR(fcc_parsing_error_type_t error_type,
                                  const char* filename,
                                  int32_t line,
                                  int32_t column,
-                                 const char* message);
+                                 const char* message, 
+                                 ...);
 
 /**
  * \brief Reports a parsing error using the callback set in fcc_context
@@ -199,8 +200,9 @@ fcc_context_report_parsing_error(fcc_parsing_error_type_t error_type,
  * \param error_type The type of error
  */
 void 
-fcc_context_report_compilation_error(fcc_compilation_error_type_t error_type,
-                                     const char* err_msg);
+FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
+                                     const char* err_msg, 
+                                     ...);
 
 ///**
 // * \brief Creates an FccExecInfo in this context

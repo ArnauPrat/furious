@@ -83,13 +83,6 @@ BitTable::get_bitmap(entity_id_t id) const
 {
   uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
   bt_block_t* bitmap = get_bitset(bitset_id);
-  if(bitmap == nullptr) 
-  {
-    void** ptr = btree_insert(m_bitmaps, bitset_id).p_place;
-    *ptr = mem_alloc(1, sizeof(bt_block_t), -1);
-    bitmap = (bt_block_t*)*ptr;
-    bitmap_init(bitmap);
-  }
   return bitmap;
 }
 

@@ -422,6 +422,30 @@ TEST(BTreeTest, BTIteratorTest)
   //ASSERT_EQ(btree_num_allocations, 0);
 }
 
+TEST(BTreeTest, BTreeSteps) 
+{
+  btree_t btree;
+  btree_init(&btree);
+  constexpr uint32_t MAX_ELEMENTS = 1000;
+  uint32_t stride = 21;
+  uint32_t offset = 21604;
+  for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
+  {
+    btree_insert_t insert = btree_insert(&btree, i*stride + offset);
+    void* val = (void*)((uint64_t)i*stride + offset);
+    *insert.p_place = val;
+  }
+
+  for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
+  {
+    void* ptr = btree_get(&btree, i*stride+offset);
+    ASSERT_EQ(((uint64_t)ptr), i*stride+offset);
+  }
+
+  btree_release(&btree);
+  //ASSERT_EQ(btree_num_allocations, 0);
+}
+
 TEST(BTreeTest, BTree) 
 {
   BTree<TestValue*>* btree = new BTree<TestValue*>();

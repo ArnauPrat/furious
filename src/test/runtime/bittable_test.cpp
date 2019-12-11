@@ -9,7 +9,7 @@ TEST(BitTableTest, BitTableWorks)
 {
 
   BitTable bittable;
-  constexpr uint32_t num_elements = 1000000;
+  constexpr uint32_t num_elements = 32000;
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
@@ -21,6 +21,7 @@ TEST(BitTableTest, BitTableWorks)
       i < num_elements; 
       ++i)
   {
+    bittable.get_bitmap(i);
     ASSERT_TRUE(bittable.exists(i));
   }
 
@@ -150,6 +151,27 @@ TEST(BitTableTest, BitTableDifference)
   bittable2->clear();
   delete bittable1;
   delete bittable2;
+}
+
+TEST(BitTableTest, BitTableSteps) 
+{
+  BitTable* bittable = new BitTable();
+  constexpr uint32_t MAX_ELEMENTS = 1600;
+  uint32_t stride = 21;
+  uint32_t offset = 21604;
+  for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
+  {
+    bittable->add(i*stride + offset);
+  }
+
+  for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
+  {
+    const bt_block_t* bt_block = bittable->get_bitmap(i*stride+offset);
+    ASSERT_NE(bt_block, nullptr);
+  }
+
+  //ASSERT_EQ(btree_num_allocations, 0);
+  delete bittable;
 }
 }
 

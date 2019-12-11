@@ -659,15 +659,11 @@ produce_gather(FILE* fd,
 
     if(child_columns[i].m_type == fcc_column_type_t::E_ID)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
+
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
                          "<Gather> operator target component cannot be a\
                          reference column type: \"%s\"", 
                          column->m_ref_name);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
     }
 
     char ctype[MAX_TYPE_NAME];
@@ -677,16 +673,11 @@ produce_gather(FILE* fd,
 
     if(child_columns[i].m_access_mode != fcc_access_mode_t::E_READ)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                         "<Gather> operator target component must have \
-                         access mode READ: \"%s\"",
-                         ctype);
 
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "<Gather> operator target component must have \
+                                           access mode READ: \"%s\"",
+                                           ctype);
     }
     char temptablename[MAX_TABLE_VARNAME];
     generate_temp_table_name(ctype, 
@@ -959,15 +950,10 @@ produce_cascading_gather(FILE* fd,
 
     if(child_columns[i].m_type == fcc_column_type_t::E_ID)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                         "<Gather> operator target component cannot\
-                         be a reference column type: \"%s\"", 
-                         column->m_ref_name);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "<Gather> operator target component cannot\
+                                           be a reference column type: \"%s\"", 
+                                           column->m_ref_name);
     }
 
     char ctype[MAX_TYPE_NAME];
@@ -977,15 +963,10 @@ produce_cascading_gather(FILE* fd,
 
     if(child_columns[i].m_access_mode != fcc_access_mode_t::E_READ)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                         "<Gather> operator target component \
-                         must have access mode READ: \"%s\"",
-                         ctype);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "<Gather> operator target component \
+                                           must have access mode READ: \"%s\"",
+                                           ctype);
     }
 
     generate_temp_table_name(ctype, 

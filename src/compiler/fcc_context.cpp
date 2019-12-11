@@ -9,7 +9,8 @@
 #include "drivers/clang/clang_tools.h"
 #include "backend/codegen.h"
 
-#include "stdlib.h"
+#include <stdlib.h>
+#include <stdarg.h>
 
 #include <stdio.h>
 #include <vector>
@@ -194,12 +195,19 @@ fcc_context_set_compilation_error_callback(FCC_COMP_ERROR_CALLBACK callback)
 }
 
 void 
-fcc_context_report_parsing_error(fcc_parsing_error_type_t error_type,
+FCC_CONTEXT_REPORT_PARSING_ERROR(fcc_parsing_error_type_t error_type,
                                  const char* filename,
                                  int32_t line,
                                  int32_t column,
-                                 const char* message)
+                                 const char* message, 
+                                 ...)
 {
+
+  va_list myargs;
+  va_start(myargs, message);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, message, myargs);
   if(p_fcc_context->p_pecallback != nullptr) 
   {
     p_fcc_context->p_pecallback(error_type,
@@ -208,18 +216,29 @@ fcc_context_report_parsing_error(fcc_parsing_error_type_t error_type,
                                 column,
                                 message);
   }
+  va_end(myargs);
+  str_builder_release(&str_builder);
   abort();
 }
 
 void 
-fcc_context_report_compilation_error(fcc_compilation_error_type_t error_type,
-                                     const char* err_msg)
+FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
+                                     const char* err_msg, 
+                                     ...)
 {
+
+  va_list myargs;
+  va_start(myargs, err_msg);
+  str_builder_t str_builder;
+  str_builder_init(&str_builder);
+  str_builder_append(&str_builder, err_msg, myargs);
   if(p_fcc_context->p_cecallback != nullptr) 
   {
     p_fcc_context->p_cecallback(error_type,
-                                err_msg);
+                                str_builder.p_buffer);
   }
+  va_end(myargs);
+  str_builder_release(&str_builder);
   abort();
 }
 
@@ -362,7 +381,7 @@ report_parsing_error_helper(fcc_expr_t expr,
                          2048, 
                          &line, 
                          &column);
-  fcc_context_report_parsing_error(error_type,
+  FCC_CONTEXT_REPORT_PARSING_ERROR(error_type,
                                    filename,
                                    line,
                                    column,
@@ -421,12 +440,8 @@ fcc_validate(const fcc_stmt_t* match)
   const DynArray<fcc_component_match_t>& matches = match->p_system->m_component_types;
   if(allow_writes.size() != matches.size())
   {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder,"Match: %u, System: %u", allow_writes.size(), matches.size());
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_SYSTEM_INVALID_NUMBER_COMPONENTS,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_SYSTEM_INVALID_NUMBER_COMPONENTS,
+                                           "Match: %u, System: %u", allow_writes.size(), matches.size());
   }
 
   bool all_globals = true;
@@ -442,15 +457,9 @@ fcc_validate(const fcc_stmt_t* match)
                     MAX_TYPE_NAME);
 
 
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                            "\"%s\" access mode after expand\
-                            must be read-only", 
-                            ctype);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                           "\"%s\" access mode after expand\
+                                           must be read-only");
     }
 
     if(allow_globals[i] == false &&
@@ -461,15 +470,10 @@ fcc_validate(const fcc_stmt_t* match)
                     ctype,
                     MAX_TYPE_NAME);
 
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder,
-                            "\"%s\" scope modifier after\
-                            expand cannot be global", 
-                            ctype);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                           str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                           "\"%s\" scope modifier after\
+                                           expand cannot be global", 
+                                           ctype);
     }
     all_globals &= match_type->m_is_global;
   }
@@ -486,16 +490,9 @@ fcc_validate(const fcc_stmt_t* match)
                       ctype,
                       MAX_TYPE_NAME);
 
-
-        str_builder_t str_builder;
-        str_builder_init(&str_builder);
-        str_builder_append(&str_builder, 
-                              "\"%s\" read-write access mode on globals is \
-                              only allowed \"global-only\" systems", 
-                              ctype);
-        fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
-                                             str_builder.p_buffer);
-        str_builder_release(&str_builder);
+        FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
+                                             "\"%s\" read-write access mode on globals is \
+                                             only allowed \"global-only\" systems");
       }
     }
   }

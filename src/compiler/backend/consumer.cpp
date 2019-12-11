@@ -151,15 +151,10 @@ consume_foreach(FILE*fd,
     const fcc_column_t* column = &foreach->m_columns[i];
     if(column->m_type == fcc_column_type_t::E_ID)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                            "<ForEach> operator cannot\
-                            be applied to reference column type: \"%s\"", 
-                            column->m_ref_name);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                                         str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "<ForEach> operator cannot\
+                                           be applied to reference column type: \"%s\"", 
+                                           column->m_ref_name);
     }
     char tmp[MAX_TYPE_NAME+32];
     fcc_type_qualified_name(column->m_component_type,
@@ -540,24 +535,42 @@ consume_tag_filter(FILE*fd,
             "const bt_block_t* filter = %s->get_bitmap(%s->m_start);\n", 
             bittable_name, 
             source);
+
     switch(tag_filter->m_tag_filter.m_op_type) 
     {
       case fcc_filter_op_type_t::E_HAS:
         {
+
+          fprintf(fd,
+                  "if(filter != nullptr){\n");
           fprintf(fd,
                   "bitmap_set_and(&%s->m_enabled, filter);\n",
                   source);
+          fprintf(fd,
+                  "}\n");
+          fprintf(fd,
+                  "else {\n");
+          fprintf(fd,
+                  "bitmap_nullify(&%s->m_enabled);\n",
+                  source);
+          fprintf(fd,
+                  "}\n");
           break;
         }
       case fcc_filter_op_type_t::E_HAS_NOT:
         {
-          fprintf(fd,"{\n");
+
           fprintf(fd, 
                   "bitmap_t<TABLE_BLOCK_SIZE> negate;\n");
           fprintf(fd, 
                   "bitmap_init(&negate);\n");
+
+          fprintf(fd,
+                  "if(filter != nullptr){\n");
           fprintf(fd, 
                   "bitmap_set_bitmap(&negate, filter);\n");
+          fprintf(fd,
+                  "}\n");
           fprintf(fd, 
                   "bitmap_negate(&negate);\n");
           fprintf(fd,
@@ -565,7 +578,6 @@ consume_tag_filter(FILE*fd,
                   source);
           fprintf(fd, 
                   "bitmap_release(&negate);\n");
-          fprintf(fd,"}\n");
           break;
         }
     }
@@ -574,14 +586,10 @@ consume_tag_filter(FILE*fd,
   {
     if(tag_filter->m_columns[0].m_type != fcc_column_type_t::E_ID)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder,"Cannot apply filter tag \"%s\" on column\
-                         on a non-reference column type", 
-                         tag_filter->m_tag_filter.m_tag);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                                          str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "Cannot apply filter tag \"%s\" on column\
+                                           on a non-reference column type", 
+                                           tag_filter->m_tag_filter.m_tag);
     }
 
     switch(tag_filter->m_tag_filter.m_op_type) 
@@ -613,7 +621,8 @@ consume_tag_filter(FILE*fd,
           &subplan->m_nodes[tag_filter->m_parent],
           source,
           tag_filter);
-  fprintf(fd,"}\n");
+  fprintf(fd,
+          "}\n");
 }
 
 void
@@ -622,7 +631,7 @@ consume_component_filter(FILE*fd,
         const char* source,
         const fcc_operator_t* caller)
 {
-  fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+  FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
                                                      "Component filter not yet implemented");
   // if ...
   fcc_subplan_t* subplan = component_filter->p_subplan;
@@ -646,15 +655,10 @@ consume_predicate_filter(FILE*fd,
     const fcc_column_t* column = &predicate_filter->m_columns[i];
     if(column->m_type == fcc_column_type_t::E_ID)
     {
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
-      str_builder_append(&str_builder, 
-                            "<PredicateFilter> operator cannot be applied to \
-                            reference column type: \"%s\"", 
-                            column->m_ref_name);
-      fcc_context_report_compilation_error(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                                         str_builder.p_buffer);
-      str_builder_release(&str_builder);
+      FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
+                                           "<PredicateFilter> operator cannot be applied to \
+                                           reference column type: \"%s\"", 
+                                           column->m_ref_name);
     }
 
     char tmp[MAX_QUALIFIED_TYPE_NAME];

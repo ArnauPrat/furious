@@ -54,7 +54,8 @@ struct BitTable
    *
    * @param id The id of the entity to get the bitmap of 
    *
-   * @return Returns a pointer to the bitmap
+   * @return Returns a pointer to the bitmap. Returns nullptr if the bitmap does
+   * not exist.
    */
   const bt_block_t* 
   get_bitmap(entity_id_t id) const;

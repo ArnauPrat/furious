@@ -1,32 +1,52 @@
 
 #include "memory.h"
+#include "../platform.h"
 
 #include "numa_alloc.h"
 
 namespace furious
 {
 
-furious_alloc_t   mem_alloc = numa_alloc;
-furious_free_t    mem_free  = numa_free;
+mem_allocator_t  global_mem_allocator = {nullptr, numa_alloc, numa_free};
 
-furious_alloc_t   frame_mem_alloc = mem_alloc;
-furious_free_t    frame_mem_free = mem_free;
-
-void
-__furious_set_mem_alloc(furious_alloc_t alloc_func, 
-                        furious_free_t free_func)
+void*
+mem_alloc(mem_allocator_t* mem_allocator, 
+          uint32_t alignment, 
+          uint32_t size, 
+          uint32_t hint)
 {
-  mem_alloc = alloc_func;
-  mem_free = free_func;
+  return mem_allocator->p_mem_alloc(mem_allocator->p_mem_state, 
+                                    alignment,
+                                    size, 
+                                    hint);
+}
+
+void 
+mem_free(mem_allocator_t* mem_allocator, 
+         void* ptr)
+{
+  return mem_allocator->p_mem_free(mem_allocator->p_mem_state, 
+                                   ptr);
 }
 
 void
-__furious_set_frame_mem_alloc(furious_alloc_t alloc_func, 
-                        furious_free_t free_func)
+furious_set_mem_alloc(mem_allocator_t* allocator)
 {
-  frame_mem_alloc = alloc_func;
-  frame_mem_free = free_func;
+  FURIOUS_ASSERT((allocator->p_mem_alloc != nullptr) && (allocator->p_mem_free != nullptr) && "An allocator must provide both alloc and free functions");
+  global_mem_allocator = *allocator;
 }
-  
+
+uint32_t 
+alignment(uint32_t struct_size)
+{
+  struct_size--;
+  struct_size|=struct_size>>1;
+  struct_size|=struct_size>>2;
+  struct_size|=struct_size>>4;
+  struct_size|=struct_size>>8;
+  struct_size|=struct_size>>16;
+  struct_size++;
+  return struct_size;
+}
 
 } /* furious */ 

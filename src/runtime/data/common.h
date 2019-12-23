@@ -16,7 +16,7 @@ constexpr table_id_t INVALID_TABLE_ID = 0xffffffff;
  * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
  * can be stored in a line.
  */
-constexpr uint32_t TABLE_BLOCK_SIZE = 64;
+constexpr uint32_t FURIOUS_TABLE_BLOCK_SIZE = 64;
 
 constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 

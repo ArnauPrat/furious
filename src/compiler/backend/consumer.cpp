@@ -165,7 +165,7 @@ consume_foreach(FILE*fd,
     {
      case fcc_column_type_t::E_COMPONENT:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
+              "FURIOUS_ALIGNED(%s*,data_%d,64) = (%s*)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -174,7 +174,7 @@ consume_foreach(FILE*fd,
       break;
     case fcc_column_type_t::E_REFERENCE:
       fprintf(fd,
-              "%s** data_%d = (%s**)(%s->get_tblock(%d)->p_data);\n", 
+              "FURIOUS_ALIGNED(%s**,data_%d,64) = (%s**)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -183,7 +183,7 @@ consume_foreach(FILE*fd,
       break;
     case fcc_column_type_t::E_GLOBAL:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
+              "FURIOUS_ALIGNED(%s*,data_%d, 64) = (%s*)(block_cluster_get_global(%s, %d));\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -198,8 +198,7 @@ consume_foreach(FILE*fd,
   }
   fprintf(fd, "\n");
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   //uint32_t size = foreach->p_systems.size();
   //for(uint32_t i = 0; i < size; ++i)
   {
@@ -265,11 +264,11 @@ consume_foreach(FILE*fd,
   else
   {
     fprintf(fd,
-            "if(%s->m_enabled.m_num_set == TABLE_BLOCK_SIZE)\n{\n", 
+            "if(%s->m_enabled.m_num_set == FURIOUS_TABLE_BLOCK_SIZE)\n{\n", 
             source);
 
     fprintf(fd,
-            "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
             "%s",
             str_builder.p_buffer);
@@ -280,7 +279,7 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "else\n{\n");
     fprintf(fd,
-            "for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
             "if(bitmap_is_set(&%s->m_enabled, i))\n{\n", 
             source);
@@ -296,7 +295,7 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "}\n");
   }
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
 
   if(foreach->m_parent != _FURIOUS_COMPILER_INVALID_ID)
   {
@@ -333,13 +332,15 @@ consume_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+    fprintf(fd, 
+            "block_cluster_append(cluster,%s);\n", 
             source); 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
 
@@ -349,7 +350,7 @@ consume_join(FILE*fd,
   {
 
       fprintf(fd,
-              "BlockCluster* build = (BlockCluster*)hashtable_get(&%s, %s->m_start / TABLE_BLOCK_SIZE);\n",
+              "block_cluster_t* build = (block_cluster_t*)hashtable_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
               hashtable,
               source);
       fprintf(fd,
@@ -360,27 +361,34 @@ consume_join(FILE*fd,
                             MAX_CLUSTER_VARNAME);
 
       fprintf(fd,
-              "BlockCluster %s(*build);\n", 
+              "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
               clustername);
       fprintf(fd,
-              "%s.append(%s);\n", 
+              "block_cluster_append(&%s, build);\n", 
+              clustername);
+      fprintf(fd,
+              "block_cluster_append(&%s, %s);\n", 
               clustername, 
               source);
       fprintf(fd,
               "if(%s.m_enabled.m_num_set != 0)\n{\n", 
               clustername);
 
-      str_builder_t str_builder;
-      str_builder_init(&str_builder);
+      str_builder_t str_builder = str_builder_create();
       str_builder_append(&str_builder, "(&%s)", clustername);
       fcc_subplan_t* subplan = join->p_subplan;
       consume(fd,
               &subplan->m_nodes[join->m_parent],
               str_builder.p_buffer,
               join);
-      str_builder_release(&str_builder);
+      str_builder_destroy(&str_builder);
 
       fprintf(fd,"}\n");
+
+      fprintf(fd,
+              "block_cluster_destroy(&%s, &task_allocator);\n", 
+              clustername);
+
       fprintf(fd,"}\n");
   }
 }
@@ -400,23 +408,24 @@ consume_leftfilter_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
-            source); 
-
-
-    fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+    fprintf(fd, 
+            "block_cluster_append(cluster,%s);\n", 
+            source); 
+
+    fprintf(fd, 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
   else 
   {
     fprintf(fd,
-            "BlockCluster* build = (BlockCluster*)hashtable_get(&%s, %s->m_start / TABLE_BLOCK_SIZE);\n",
+            "block_cluster_t* build = (block_cluster_t*)hashtable_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
     fprintf(fd,
@@ -426,28 +435,34 @@ consume_leftfilter_join(FILE*fd,
                           clustername,
                           MAX_CLUSTER_VARNAME);
 
+      fprintf(fd,
+              "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
+              clustername);
+      fprintf(fd,
+              "block_cluster_append(&%s, build);\n", 
+              clustername);
     fprintf(fd,
-            "BlockCluster %s(*build);\n", 
-            clustername);
-    fprintf(fd,
-            "%s.filter(%s);\n", 
+            "block_cluster_filter(&%s, %s);\n", 
             clustername, 
             source);
     fprintf(fd,
             "if(%s.m_enabled.m_num_set != 0)\n{\n", 
             clustername);
 
-    str_builder_t str_builder;
-    str_builder_init(&str_builder);
+    str_builder_t str_builder = str_builder_create();
     str_builder_append(&str_builder, "(&%s)", clustername);
     fcc_subplan_t* subplan = left_filter_join->p_subplan;
     consume(fd,
             &subplan->m_nodes[left_filter_join->m_parent],
             str_builder.p_buffer,
             left_filter_join);
-    str_builder_release(&str_builder);
+    str_builder_destroy(&str_builder);
 
     fprintf(fd,"}\n");
+
+      fprintf(fd,
+              "block_cluster_destroy(&%s, &task_allocator);\n", 
+              clustername);
     fprintf(fd,"}\n");
   }
 }
@@ -466,43 +481,45 @@ consume_cross_join(FILE*fd,
 
   if(caller->m_id == join->m_cross_join.m_left) 
   {
-    str_builder_t str_builder;
-    str_builder_init(&str_builder);
+    str_builder_t str_builder = str_builder_create();
     str_builder_append(&str_builder,"left_%s", hashtable);
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
-            source); 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+    fprintf(fd, 
+            "block_cluster_append(cluster,%s);\n", 
+            source);
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
-    str_builder_release(&str_builder);
+    str_builder_destroy(&str_builder);
   }
   else 
   {
-    str_builder_t str_builder;
-    str_builder_init(&str_builder);
+    str_builder_t str_builder = str_builder_create();
     str_builder_append(&str_builder,"right_%s", hashtable);
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
-            source); 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+    fprintf(fd, 
+            "block_cluster_append(cluster,%s);\n", 
+            source);
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
-    str_builder_release(&str_builder);
+    str_builder_destroy(&str_builder);
   }
 }
 
@@ -532,7 +549,7 @@ consume_tag_filter(FILE*fd,
   if(!tag_filter->m_tag_filter.m_on_column)
   {
     fprintf(fd,
-            "const bt_block_t* filter = %s->get_bitmap(%s->m_start);\n", 
+            "const bitmap_t* filter = %s->get_bitmap(%s->m_start);\n", 
             bittable_name, 
             source);
 
@@ -561,10 +578,7 @@ consume_tag_filter(FILE*fd,
         {
 
           fprintf(fd, 
-                  "bitmap_t<TABLE_BLOCK_SIZE> negate;\n");
-          fprintf(fd, 
-                  "bitmap_init(&negate);\n");
-
+                  "bitmap_t negate = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &task_allocator);\n");
           fprintf(fd,
                   "if(filter != nullptr){\n");
           fprintf(fd, 
@@ -577,7 +591,7 @@ consume_tag_filter(FILE*fd,
                   "bitmap_set_and(&%s->m_enabled, &negate);\n",
                   source);
           fprintf(fd, 
-                  "bitmap_release(&negate);\n");
+                  "bitmap_destroy(&negate, &task_allocator);\n");
           break;
         }
     }
@@ -670,7 +684,7 @@ consume_predicate_filter(FILE*fd,
     {
      case fcc_column_type_t::E_COMPONENT:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_tblock(%d)->p_data);\n", 
+              "FURIOUS_ALIGNED(%s*,data_%d,64) = (%s*)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -679,7 +693,7 @@ consume_predicate_filter(FILE*fd,
       break;
     case fcc_column_type_t::E_REFERENCE:
       fprintf(fd,
-              "%s** data_%d = (%s**)(%s->get_tblock(%d)->p_data);\n", 
+              "FURIOUS_ALIGNED(%s**, data_%d, 64) = (%s**)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -688,7 +702,7 @@ consume_predicate_filter(FILE*fd,
       break;
     case fcc_column_type_t::E_GLOBAL:
       fprintf(fd,
-              "%s* data_%d = (%s*)(%s->get_global(%d));\n", 
+              "FURIOUS_ALIGNED(%s*, data_%d, 64) = (%s*)(block_cluster_get_global(%s, %d));\n", 
               tmp, 
               param_index, 
               tmp, 
@@ -725,7 +739,7 @@ consume_predicate_filter(FILE*fd,
                          2048);
 
   fprintf(fd,
-          "for(uint32_t i = 0; i < TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
+          "for(uint32_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
           source);
   fprintf(fd,
           "bitmap_set_bit(&%s->m_enabled, i, bitmap_is_set(&%s->m_enabled, i) && %s(",
@@ -834,15 +848,18 @@ consume_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+
+    fprintf(fd, 
+            "block_cluster_append(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -859,7 +876,7 @@ consume_cascading_gather(FILE*fd,
   if(caller->m_id == casc_gather->m_cascading_gather.m_ref_table) 
   {
     fprintf(fd,
-            "find_roots_and_blacklist(%s, &next_frontier_%u, &partial_blacklist_%u);\n", 
+            "find_roots_and_blacklist(%s, next_frontier_%u, partial_blacklist_%u);\n", 
             source,
             casc_gather->m_id,
             casc_gather->m_id);
@@ -897,15 +914,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+
+    fprintf(fd, 
+            "block_cluster_append(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&ref_%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&ref_%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -918,15 +938,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "BlockCluster* cluster = (BlockCluster*)frame_mem_alloc(64, sizeof(BlockCluster), %s->m_start / TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "new (cluster) BlockCluster(*%s);\n", 
+            "*cluster = block_cluster_create(&task_allocator);\n");
+
+    fprintf(fd, 
+            "block_cluster_append(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / TABLE_BLOCK_SIZE, cluster);\n", 
+            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
 

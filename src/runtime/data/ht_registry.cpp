@@ -11,15 +11,17 @@ namespace furious
 void
 ht_registry_init(ht_registry_t* registry)
 {
-  registry->p_root = (btree_t*) mem_alloc(1, sizeof(btree_t), -1);
-  btree_init(registry->p_root);
+  registry->p_root = (btree_t*) mem_alloc(&global_mem_allocator, 
+                                          1, sizeof(btree_t), -1);
+  *registry->p_root = btree_create();
 }
 
 void
 ht_registry_release(ht_registry_t* registry)
 {
-  btree_release(registry->p_root);
-  mem_free(registry->p_root);
+  btree_destroy(registry->p_root);
+  mem_free(&global_mem_allocator, 
+           registry->p_root);
 }
 
 void

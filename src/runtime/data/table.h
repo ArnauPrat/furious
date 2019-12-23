@@ -15,20 +15,20 @@ namespace furious
 
 /**
  * \brief Represents a block of data in a table. Each block contains
- * TABLE_BLOCK_SIZE elements
+ * FURIOUS_TABLE_BLOCK_SIZE elements
  */
 struct TBlock
 {
   TBlock(entity_id_t start, size_t esize);
   ~TBlock();
   
-  char *p_data;                         // The pointer to the block data
+  FURIOUS_ALIGNED(void*, p_data, 64);   // The pointer to the block data
   entity_id_t m_start;                  // The id of the first component in the block
   size_t m_num_components;              // The number of components in the block
   size_t m_num_enabled_components;      // The number of enabled components in the block
   size_t m_esize;                       // The size of the components contained in the block
-  bitmap_t<TABLE_BLOCK_SIZE> m_exists;  // A bitmap used to test whether an component is in the block or not
-  bitmap_t<TABLE_BLOCK_SIZE> m_enabled; // A bitmap used to mark components that are enabled/disabled
+  bitmap_t m_exists;                    // A bitmap used to test whether an component is in the block or not
+  bitmap_t m_enabled;                   // A bitmap used to mark components that are enabled/disabled
 };
 
 /**

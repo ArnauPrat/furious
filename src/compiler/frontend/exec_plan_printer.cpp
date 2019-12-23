@@ -107,8 +107,7 @@ to_string(const fcc_system_t* info)
                 buffer,
                 buffer_length);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, 
                      "%s (", 
                      buffer);
@@ -139,7 +138,7 @@ to_string(const fcc_system_t* info)
   }
   str_builder_append(&str_builder,")");
   std::string ret (str_builder.p_buffer);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return ret;
 }
 
@@ -526,13 +525,13 @@ fcc_subplan_printer_init(fcc_subplan_printer_t* printer,
     printer->m_offsets.append('/');
   }
   printer->m_c_src_string = c_src_string;
-  str_builder_init(&printer->m_str_builder);
+  printer->m_str_builder = str_builder_create();
 }
 
 void
 fcc_subplan_printer_release(fcc_subplan_printer_t* printer)
 {
-  str_builder_release(&printer->m_str_builder);
+  str_builder_destroy(&printer->m_str_builder);
 }
 
 void

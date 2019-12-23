@@ -46,7 +46,7 @@ struct TableInfo
 
 struct GlobalInfo
 {
-  void * p_global;
+  FURIOUS_ALIGNED(void*, p_global, 64);
   void (*m_destructor)(void *ptr);
 };
 

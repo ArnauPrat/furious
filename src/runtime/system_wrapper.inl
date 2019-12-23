@@ -20,19 +20,19 @@ template<typename T, typename...Components>
 inline 
 void SystemWrapper<T,Components...>::apply_block(Context* context, 
                                                  uint32_t block_start,
-                                                 const bitmap_t<TABLE_BLOCK_SIZE>* mask,
+                                                 const bitmap_t* mask,
                                                  Components* __restrict__ ...components) 
 {
-  if(mask->m_num_set == TABLE_BLOCK_SIZE) 
+  if(mask->m_num_set == FURIOUS_TABLE_BLOCK_SIZE) 
   {
-    for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) 
+    for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i) 
     {
       p_system_object->run(context, block_start+i, &components[i]...);
     }
   } 
   else 
   {
-    for (size_t i = 0; i < TABLE_BLOCK_SIZE; ++i) 
+    for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i) 
     {
       if(bitmap_is_set(mask,i)) 
       {

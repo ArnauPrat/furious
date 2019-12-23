@@ -11,7 +11,6 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/bitmap.inl
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.inl
@@ -64,6 +63,8 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/task/task.h
   ${CMAKE_SOURCE_DIR}/src/runtime/task/task.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/linear_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/linear_allocator.cpp
   )
 
 

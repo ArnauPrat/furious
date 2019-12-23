@@ -13,14 +13,12 @@
 namespace furious
 {
 
-using bt_block_t = bitmap_t<TABLE_BLOCK_SIZE>;
-
 struct BitTable 
 {
-  friend void bittable_union(BitTable* first, const BitTable* second);
-  friend void bittable_difference(BitTable* first, const BitTable* second);
+  friend void bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
+  friend void bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
 
-  BitTable ();
+  BitTable (mem_allocator_t* allocator = nullptr);
   ~BitTable ();
 
   /**
@@ -57,7 +55,7 @@ struct BitTable
    * @return Returns a pointer to the bitmap. Returns nullptr if the bitmap does
    * not exist.
    */
-  const bt_block_t* 
+  const bitmap_t* 
   get_bitmap(entity_id_t id) const;
 
   /**
@@ -92,7 +90,7 @@ private:
    */
   void
   apply_bitset(uint32_t id, 
-               const bt_block_t* bitmap,
+               const bitmap_t* bitmap,
                logic_operation_t operation);
 
   /**
@@ -102,19 +100,20 @@ private:
    *
    * \return 
    */
-  bt_block_t*
+  bitmap_t*
   get_bitset(uint32_t bitset_id) const;
 
 
-  btree_t*       m_bitmaps;
-  uint32_t      m_size;
+  btree_t*        m_bitmaps;
+  uint32_t        m_size;
+  mem_allocator_t m_allocator;
 };
 
 void
-bittable_union(BitTable* first, const BitTable* second);
+bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
 
 void
-bittable_difference(BitTable* first, const BitTable* second);
+bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
   
 } /* furious
  */ 

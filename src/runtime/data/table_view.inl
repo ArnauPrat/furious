@@ -34,11 +34,11 @@ entity_id_t TableView<TComponent>::Block::get_start() const
 template<typename TComponent>
 size_t TableView<TComponent>::Block::get_size() const 
 {
-  return TABLE_BLOCK_SIZE;
+  return FURIOUS_TABLE_BLOCK_SIZE;
 }
 
 template<typename TComponent>
-const bitmap_t<TABLE_BLOCK_SIZE>*   
+const bitmap_t*   
 TableView<TComponent>::Block::get_enabled() const 
 {
   return &p_tblock->m_enabled;

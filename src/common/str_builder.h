@@ -20,8 +20,8 @@ struct str_builder_t
  *
  * \param The str_builder
  */
-void
-str_builder_init(str_builder_t* str_builder);
+str_builder_t
+str_builder_create();
 
 /**
  * \brief Releases a string builder
@@ -29,7 +29,7 @@ str_builder_init(str_builder_t* str_builder);
  * \param The str_builder
  */
 void
-str_builder_release(str_builder_t* str_builder);
+str_builder_destroy(str_builder_t* str_builder);
 
 /**
  * \brief Appens the string to the string builder

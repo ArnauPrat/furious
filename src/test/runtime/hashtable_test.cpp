@@ -8,8 +8,7 @@ namespace furious {
 
 TEST(HashtableTest, HashtableTest ) 
 {
-  hashtable_t hashtable;
-  hashtable_init(&hashtable, 512);
+  hashtable_t hashtable = hashtable_create(512);
   constexpr uint32_t num_elements = 100000;
   for(uint32_t i = 0; 
       i < num_elements;
@@ -30,13 +29,12 @@ TEST(HashtableTest, HashtableTest )
   }
 
 
-  hashtable_release(&hashtable);
+  hashtable_destroy(&hashtable);
 }
 
 TEST(HashtableTest, HashtableIteratorTest ) 
 {
-  hashtable_t hashtable;
-  hashtable_init(&hashtable, 512);
+  hashtable_t hashtable = hashtable_create(512);
   constexpr uint32_t num_elements = 100000;
   for(uint32_t i = 0; 
       i < num_elements;
@@ -50,14 +48,13 @@ TEST(HashtableTest, HashtableIteratorTest )
   bool found[num_elements];
   memset(found, 0, sizeof(bool)*num_elements);
 
-  hashtable_iter_t iter;
-  hashtable_iter_init(&iter, &hashtable);
+  hashtable_iter_t iter = hashtable_iter_create(&hashtable);
   while(hashtable_iter_has_next(&iter))
   {
     hashtable_entry_t entry = hashtable_iter_next(&iter);
     found[entry.m_key] = true;
   }
-  hashtable_iter_release(&iter);
+  hashtable_iter_destroy(&iter);
 
   bool all_true = true;
   for(uint32_t i = 0;
@@ -69,7 +66,7 @@ TEST(HashtableTest, HashtableIteratorTest )
 
   ASSERT_TRUE(all_true);
 
-  hashtable_release(&hashtable);
+  hashtable_destroy(&hashtable);
 }
 
 }

@@ -25,6 +25,7 @@ function(create_test NAME)
 endfunction(create_test)
 
 SET(TESTS 
+  linear_alloc_test
   blockcluster_test
   hashtable_test
   bitmap_test

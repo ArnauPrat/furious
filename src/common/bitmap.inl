@@ -8,24 +8,14 @@
 namespace furious
 {
 
-bool 
-set_bit_true(uint8_t* data, uint32_t bit);
-
-bool 
-set_bit_false(uint8_t* data, uint32_t bit);
-
-bool
-read_bit(const uint8_t* data, uint32_t bit);
 
 /**
  * \brief Refreshes the number of bits set
  *
  * \param bitmap The bitmap to refresh
  */
-template <int MAX_BITS>
 void
 bitmap_refresh_num_set(bitmap_t<MAX_BITS>* bitmap);
-
 
 
 /**

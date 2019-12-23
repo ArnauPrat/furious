@@ -32,7 +32,7 @@ public:
 
   void apply_block(Context* __restrict__ context, 
                    uint32_t block_start, 
-                   const bitmap_t<TABLE_BLOCK_SIZE>* mask,
+                   const bitmap_t* mask,
                    Components* __restrict__ ...components);
 
   T* p_system_object;

@@ -14,7 +14,7 @@ function(create_test NAME)
                     COMMAND fcc -o
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp -i
                     "furious.h"
-                    ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src
+                    ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp -- -fstrict-aliasing -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src
                     DEPENDS fcc furious ${NAME}_script.cpp ${NAME}_header.h
     )
 

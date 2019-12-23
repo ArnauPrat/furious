@@ -6,68 +6,75 @@
 #include "../../common/types.h"
 #include "common.h"
 
-#define _FURIOUS_MAX_CLUSTER_SIZE 16
+#define FURIOUS_MAX_CLUSTER_SIZE 16
 
 namespace furious
 {
 
 struct TBlock;
 
-using bc_enabled_t = bitmap_t<TABLE_BLOCK_SIZE>;
-using bc_global_t = bitmap_t<_FURIOUS_MAX_CLUSTER_SIZE>;
-
-
 /**
  * \brief This is used to represent a joined block of data, mostly table blocks.
  * However, it can also contain pointers to global data.
  */
-struct BlockCluster 
+struct block_cluster_t 
 {
-  BlockCluster();
-  BlockCluster(TBlock* block);
-  BlockCluster(const BlockCluster& block);
-
-  ~BlockCluster();
-
-  void 
-  append(TBlock* block);
-
-  void 
-  append_global(void* global);
-
-  void 
-  append(const BlockCluster* other);
-
-  void 
-  filter(const BlockCluster* other);
-
-  TBlock* 
-  get_tblock(uint32_t index) const;
-
-  void* 
-  get_global(uint32_t index) const;
-
-  bool
-  has_elements() const;
-
-  ////////////////////////////////////////////////
-  ////////////////////////////////////////////////
-  ////////////////////////////////////////////////
-  
   uint32_t         m_num_columns;
-  bc_enabled_t     m_enabled;
-  bc_global_t      m_global;
+  bitmap_t         m_enabled;
+  bitmap_t         m_global;
   uint32_t         m_start;
-
-private:
-  void*            m_blocks[_FURIOUS_MAX_CLUSTER_SIZE]; 
+  void*            p_blocks[FURIOUS_MAX_CLUSTER_SIZE]; 
 };
 
+/**
+ * \brief Creates a block cluster
+ *
+ * \param allocator The allocator to use
+ *
+ * \return Returns a block cluster
+ */
+block_cluster_t
+block_cluster_create(mem_allocator_t* allocator);
+
+/**
+ * \brief Destroys a block cluster
+ *
+ * \param bc The block cluster to destroy
+ */
+void
+block_cluster_destroy(block_cluster_t* bc, 
+                      mem_allocator_t* allocator);
 
 
+void 
+block_cluster_append(block_cluster_t* bc, 
+                     TBlock* block);
 
-  
+void 
+block_cluster_append_global(block_cluster_t* bc, 
+                            void* global);
+
+void 
+block_cluster_append(FURIOUS_RESTRICT(block_cluster_t*) bc,
+                     FURIOUS_RESTRICT(const block_cluster_t*) other);
+
+void 
+block_cluster_filter(FURIOUS_RESTRICT(block_cluster_t*) bc,
+                     FURIOUS_RESTRICT(const block_cluster_t*) other);
+
+TBlock* 
+block_cluster_get_tblock(block_cluster_t* bc,
+                         uint32_t index);
+
+void* 
+block_cluster_get_global(block_cluster_t* bc,
+                         uint32_t index);
+
+bool
+block_cluster_has_elements(block_cluster_t* bc);
+
+
 } /* furious
- */ 
+*/ 
 
 #endif /* ifndef _FURIOUS_BLOCK_CLUSTER_H_H */

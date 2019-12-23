@@ -3,6 +3,7 @@
 #ifndef _FURIOUS_BTREE_IMPL_H_
 #define _FURIOUS_BTREE_IMPL_H_ 
 
+#include "../memory/memory.h"
 #include "../types.h"
 #include "stdlib.h"
 
@@ -13,11 +14,11 @@ namespace furious
  * \brief This is the arity of the BTree. The arity is choosen in order to make
  * the tree nodes to be close to multiples of cache lines (assuming lines of 64
  * bytes)*/
-constexpr uint32_t BTREE_INTERNAL_MAX_ARITY=10;
-constexpr uint32_t BTREE_INTERNAL_MIN_ARITY=(BTREE_INTERNAL_MAX_ARITY+2-1)/2;
+constexpr uint32_t FURIOUS_BTREE_INTERNAL_MAX_ARITY=10;
+constexpr uint32_t FURIOUS_BTREE_INTERNAL_MIN_ARITY=(FURIOUS_BTREE_INTERNAL_MAX_ARITY+2-1)/2;
 
-constexpr uint32_t BTREE_LEAF_MAX_ARITY=9;
-constexpr uint32_t BTREE_LEAF_MIN_ARITY=(BTREE_LEAF_MAX_ARITY+2-1)/2;
+constexpr uint32_t FURIOUS_BTREE_LEAF_MAX_ARITY=9;
+constexpr uint32_t FURIOUS_BTREE_LEAF_MIN_ARITY=(FURIOUS_BTREE_LEAF_MAX_ARITY+2-1)/2;
 
 enum class btree_node_type_t : uint8_t 
 {
@@ -31,18 +32,19 @@ struct btree_node_t
   {
     struct 
     {
-      btree_node_t*     m_children[BTREE_INTERNAL_MAX_ARITY]; // 10*8 = 80 bytes
-      uint32_t          m_keys[BTREE_INTERNAL_MAX_ARITY-1];   // 9*4 = 36 bytes
-      uint16_t          m_nchildren;                          // 2 byte
-    } m_internal;                                       // total = 120 bytes
+      btree_node_t*     m_children[FURIOUS_BTREE_INTERNAL_MAX_ARITY]; // 10*8 = 80 bytes
+      uint32_t          m_keys[FURIOUS_BTREE_INTERNAL_MAX_ARITY-1];   // 9*4 = 36 bytes
+      uint16_t          m_nchildren;                                  // 2 byte
+    } m_internal;                                                     // total = 120 bytes
 
     struct 
     {
-      void*           m_leafs[BTREE_LEAF_MAX_ARITY];  // 9*8 = 72 bytes
-      btree_node_t*   m_next;                         // 8 bytes
-      uint32_t        m_keys[BTREE_LEAF_MAX_ARITY];   // 9*4 = 36 bytes
-      uint16_t        m_nleafs;                       // 2 byte
-    } m_leaf;                                   // total 118 bytes
+      void*           m_leafs[FURIOUS_BTREE_LEAF_MAX_ARITY];  // 9*8 = 72 bytes
+      btree_node_t*   m_next;                                 // 8 bytes
+      uint32_t        m_keys[FURIOUS_BTREE_LEAF_MAX_ARITY];   // 9*4 = 36 bytes
+      uint16_t        m_nleafs;                               // 2 byte
+    } m_leaf;                                                 // total 118 bytes
+
   };
 
   btree_node_type_t    m_type;                      // 1 byte
@@ -50,7 +52,8 @@ struct btree_node_t
 
 struct btree_t 
 {
-  btree_node_t* p_root;                 // The root of the tree
+  btree_node_t*   p_root;                 // The root of the tree
+  mem_allocator_t m_allocator;
 };
 
 struct btree_insert_t 
@@ -59,59 +62,66 @@ struct btree_insert_t
   void**  p_place;
 };
 
-/**
- * \brief Allocates memory for one element
- *
- * \param root The btree_t to allocate memory for
- *
- * \return Returns the pointer to the newly allocated memory
- */
-void*
-alloc(btree_t* root);
-
 struct btree_entry_t
 {
   uint32_t    m_key;
   void*       p_value;
 };
 
-struct BTIterator 
+struct btree_iter_t 
 {
-  BTIterator(btree_t* root);
-  ~BTIterator() = default;
-
-
-  /**
-   * \brief Tests whether there are more elements or not in the btree
-   *
-   * \return Returns true if there are more elements in the iterator
-   */
-  bool 
-  has_next() const;
-
-  /**
-   * \brief Gets the next element in the btree
-   *
-   * \return Returns the next elemnet in the btree
-   */
-  btree_entry_t 
-  next();
-
-private:
-  btree_t*        m_root;
-  btree_node_t*   m_leaf;
+  btree_t*        p_root;
+  btree_node_t*   p_leaf;
   uint32_t        m_index;
 };
 
 /**
+ * \brief Creates a btree iterator
+ *
+ * \param btree The btree iterator to create
+ *
+ * \return Returns a newly created btree iterator
+ */
+btree_iter_t
+btree_iter_create(btree_t* btree);
+
+/**
+ * \brief Destroys a btree iterator
+ *
+ * \param iter The btree iterator to destroy
+ */
+void
+btree_iter_destroy(btree_iter_t* iter);
+
+/**
+ * \brief Checks if there are more items to iterate
+ *
+ * \param iter The iterator to check for
+ *
+ * \return True if there are more items to iterate. False otherwise
+ */
+bool
+btree_iter_has_next(btree_iter_t* iter);
+
+/**
+ * \brief Returns the next item to iterate
+ *
+ * \param iter The iterator to get the next item from
+ *
+ * \return Returns a pointer to the next item
+ */
+btree_entry_t
+btree_iter_next(btree_iter_t* iter);
+
+/**
  * \brief Initializes a btree 
  *
- * \param root The root of the btree 
+ * \param allocator The mem allocator to use
  *
  * \return Returns an instance of a btree root
  */
-void
-btree_init(btree_t* root);
+btree_t 
+btree_create(mem_allocator_t* allocator = nullptr);
 
 /**
  * \brief Releases a btree 
@@ -119,31 +129,38 @@ btree_init(btree_t* root);
  * \param root The root instance to destroy
  */
 void
-btree_release(btree_t* root);
+btree_destroy(btree_t* root);
 
 /**
  * \brief Creates a new instance of an internal node 
  *
+ * \param btree The btree the internal node is created for
+ *
  * \return A pointer to the newly created btree_node_t
  */
 btree_node_t* 
-btree_create_internal();
+btree_create_internal(btree_t* btree);
 
 /**
  * \brief Creates a new instance of a leaf  node 
  *
+ * \param btree The btree the leaf node is created for
+ *
  * \return A pointer to the newly created btree_node_t
  */
 btree_node_t*
-btree_create_leaf();
+btree_create_leaf(btree_t* btree);
 
 /**
  * \brief Removes a given btree_node_t 
  *
+ * \param btree The btree for which the node must be destroyed
+ *
  * \param node The pointer to the node to remove
  */
 void 
-btree_destroy_node(btree_node_t* node);
+btree_destroy_node(btree_t* btree, 
+                   btree_node_t* node);
 
 /**
  * \brief Given an internal node and a key, finds the index for the child where
@@ -201,6 +218,7 @@ btree_get(btree_t* root,
 /**
  * \brief Splits an internal node into two nodes.
  *
+ * \param btree The btree the node to split belongs to
  * \param node A pointer to the internal node to split
  * \param sibling_key A pointer to the variable to store the key of the sibling
  * to be created
@@ -208,12 +226,14 @@ btree_get(btree_t* root,
  * \return Returns a pointer to the sibling of the split node 
  */
 btree_node_t* 
-btree_split_internal(btree_node_t* node, 
+btree_split_internal(btree_t* btree, 
+                     btree_node_t* node, 
                      uint32_t* sibling_key);
 
 /**
  * \brief Splits a leaf node into two nodes.
  *
+ * \param btree The btree the node to split belongs to
  * \param node A pointer to the leaf node to split
  * \param sibling_key A pointer to the variable to store the key of the sibling
  * to be created
@@ -221,7 +241,8 @@ btree_split_internal(btree_node_t* node,
  * \return Returns a pointer to the sibling of the split node 
  */
 btree_node_t* 
-btree_split_leaf(btree_node_t* node, 
+btree_split_leaf(btree_t* btree, 
+                 btree_node_t* node, 
                  uint32_t* sibling_key);
 
 /**
@@ -294,12 +315,14 @@ btree_insert(btree_t* node,
  * \brief Removes the element at position idx and shifts the rest of elements to
  * left
  *
+ * \param btree The btree whose node must be rmoved and shifted
  * \param node The internal node to remove the element from
  * \param idx The position of the element to remove
  *
  */
 void 
-btree_remove_shift_internal(btree_node_t* node, 
+btree_remove_shift_internal(btree_t* btree, 
+                            btree_node_t* node, 
                             uint32_t idx);
 
 /**
@@ -323,7 +346,8 @@ btree_remove_shift_leaf(btree_node_t* node,
  * \param idx2 the index of the second node to merge
  */
 void 
-btree_merge_internal(btree_node_t* node, 
+btree_merge_internal(btree_t* btree, 
+                     btree_node_t* node, 
                      uint32_t idx1, 
                      uint32_t idx2);
 
@@ -335,13 +359,14 @@ btree_merge_internal(btree_node_t* node,
  * \param idx2 The index of the second node to merge
  */
 void 
-btree_merge_internal(btree_node_t* node, 
-                     uint32_t idx1, 
-                     uint32_t idx2);
+btree_merge_leaf(btree_node_t* node, 
+                 uint32_t idx1, 
+                 uint32_t idx2);
 
 /**
  * \brief Removes an element with the given key
  *
+ * \param btree The btree whose node must be removed
  * \param node A pointer to the node to remove the element from
  * \param key The key of the element to remove
  * \param changed_min Pointer to boolean storing whether the minimum key stored
@@ -352,7 +377,8 @@ btree_merge_internal(btree_node_t* node,
  * nullptr if this does not exist
  */
 void*
-btree_remove_node(btree_node_t* node, 
+btree_remove_node(btree_t* btree, 
+                  btree_node_t* node, 
                   uint32_t key, 
                   bool* min_changed, 
                   uint32_t* new_min);

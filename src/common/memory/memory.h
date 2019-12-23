@@ -7,19 +7,38 @@
 namespace furious
 {
 
+#define FURIOUS_NO_HINT 0xffffffff
 //constexpr int32_t ALIGNMENT = 64; 
   
-using furious_alloc_t = void* (*) (int32_t,   // alignment 
-                                   int32_t,   // size in bytes
-                                   int32_t);  // hint with the block id of this allocation. -1 indicates no hint
+using furious_alloc_t = void* (*) (void*,     // ptr to state
+                                   uint32_t,   // alignment 
+                                   uint32_t,   // size in bytes
+                                   uint32_t);  // hint with the block id of this allocation. -1 indicates no hint
 
-using furious_free_t = void (*) (void* ptr);
+using furious_free_t = void (*) (void*,       // ptr to state
+                                 void*);      // ptr to free
 
 
-extern furious_alloc_t  mem_alloc;
-extern furious_free_t   mem_free;
-extern furious_alloc_t  frame_mem_alloc; 
-extern furious_free_t   frame_mem_free; 
+
+struct mem_allocator_t
+{
+  void*           p_mem_state;
+  furious_alloc_t p_mem_alloc;
+  furious_free_t  p_mem_free;
+};
+
+extern mem_allocator_t  global_mem_allocator;
+extern mem_allocator_t  frame_mem_allocator; 
+
+void* 
+mem_alloc(mem_allocator_t* mem_allocator, 
+          uint32_t alignment, 
+          uint32_t size, 
+          uint32_t hint);
+
+void 
+mem_free(mem_allocator_t* mem_allocator, 
+         void* ptr);
 
 /**
  * \brief Sets the memory allocator for furious
@@ -28,18 +47,19 @@ extern furious_free_t   frame_mem_free;
  * \param free_func
  */
 void
-__furious_set_mem_alloc(furious_alloc_t alloc_func, 
-                        furious_free_t free_func);
+furious_set_mem_alloc(mem_allocator_t* allocator);
 
 /**
- * \brief Sets the memory allocator for furious
+ * \brief Gets the alignment for a structure of the given size 
  *
- * \param alloc_func
- * \param free_func
+ * \param struct_size The size in bytes of the structure to get the alignment
+ * for
+ *
+ * \return Returns the alignment
  */
-void
-__furious_set_frame_mem_alloc(furious_alloc_t alloc_func, 
-                              furious_free_t free_func);
+uint32_t 
+alignment(uint32_t struct_size);
+
 
 } /* furious */ 
 

@@ -8,61 +8,64 @@ namespace furious {
 TEST(BitTableTest, BitTableWorks) 
 {
 
-  BitTable bittable;
+  mem_allocator_t lallocator = linear_alloc_create();
+  BitTable* bittable = new BitTable(&lallocator);
   constexpr uint32_t num_elements = 32000;
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable.add(i);
+    bittable->add(i);
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable.get_bitmap(i);
-    ASSERT_TRUE(bittable.exists(i));
+    bittable->get_bitmap(i);
+    ASSERT_TRUE(bittable->exists(i));
   }
 
-  bittable.clear();
+  bittable->clear();
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_FALSE(bittable.exists(i));
-  }
-
-  for(uint32_t i = 0;
-      i < num_elements; 
-      ++i)
-  {
-    bittable.add(i);
+    ASSERT_FALSE(bittable->exists(i));
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_TRUE(bittable.exists(i));
+    bittable->add(i);
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable.remove(i);
+    ASSERT_TRUE(bittable->exists(i));
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_FALSE(bittable.exists(i));
+    bittable->remove(i);
   }
 
-  bittable.clear();
+  for(uint32_t i = 0;
+      i < num_elements; 
+      ++i)
+  {
+    ASSERT_FALSE(bittable->exists(i));
+  }
+
+  bittable->clear();
+  delete bittable;
+  linear_alloc_destroy(&lallocator);
 }
 
 TEST(BitTableTest, BitTableClear) 
@@ -166,7 +169,7 @@ TEST(BitTableTest, BitTableSteps)
 
   for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
   {
-    const bt_block_t* bt_block = bittable->get_bitmap(i*stride+offset);
+    const bitmap_t* bt_block = bittable->get_bitmap(i*stride+offset);
     ASSERT_NE(bt_block, nullptr);
   }
 

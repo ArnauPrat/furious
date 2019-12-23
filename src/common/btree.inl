@@ -4,17 +4,34 @@
 #include <assert.h>
 #include <utility>
 #include "memory/memory.h"
+#include "platform.h"
 
 namespace furious {
 
 
 template<typename T>
-BTree<T>::BTree() : 
+BTree<T>::BTree(mem_allocator_t* allocator) : 
 p_root(nullptr),
 m_size(0)
 {
-  p_root = (btree_t*) mem_alloc(1, sizeof(btree_t) , -1);
-  btree_init(p_root);
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
+
+  if(allocator != nullptr)
+  {
+    m_allocator = *allocator; 
+  }
+  else
+  {
+    m_allocator = global_mem_allocator;
+  }
+
+  p_root = (btree_t*) mem_alloc(&m_allocator, 
+                                1, 
+                                sizeof(btree_t), 
+                                -1);
+  *p_root = btree_create();
 
 }
 
@@ -28,11 +45,13 @@ BTree<T>::~BTree()
     {
       T* value = it.next().p_value;
       value->~T();
-      mem_free(value);
+      mem_free(&m_allocator, 
+               value);
       m_size--;
     }
-    btree_release(p_root);
-    mem_free(p_root);
+    btree_destroy(p_root);
+    mem_free(&m_allocator, 
+             p_root);
     p_root = nullptr;
   }
 }
@@ -46,12 +65,17 @@ BTree<T>::clear()
   {
     T* value = it.next().p_value;
     value->~T();
-    mem_free(value);
+    mem_free(&m_allocator, 
+             value);
   }
-  btree_release(p_root);
-  mem_free(p_root);
-  p_root = (btree_t*) mem_alloc(1, sizeof(btree_t), -1);
-  btree_init(p_root);
+  btree_destroy(p_root);
+  mem_free(&m_allocator, 
+           p_root);
+  p_root = (btree_t*)mem_alloc(&m_allocator, 
+                               1, 
+                               sizeof(btree_t), 
+                               -1);
+  *p_root = btree_create();
   m_size = 0;
   
 }
@@ -63,7 +87,10 @@ BTree<T>::insert_copy(uint32_t key, const T* element)
   btree_insert_t insert = btree_insert(p_root, key);
   if(insert.m_inserted)
   {
-    *insert.p_place = mem_alloc(1, sizeof(T), -1);
+    *insert.p_place = mem_alloc(&m_allocator, 
+                                1, 
+                                sizeof(T), 
+                                -1);
     new (*insert.p_place) T(*element);
     m_size++;
     return (T*)*insert.p_place;
@@ -79,7 +106,10 @@ BTree<T>::insert_new(uint32_t key, Args &&... args)
   btree_insert_t insert = btree_insert(p_root, key);
   if(insert.m_inserted)
   {
-    *insert.p_place = mem_alloc(1, sizeof(T), -1);
+    *insert.p_place = mem_alloc(&m_allocator, 
+                                1, 
+                                sizeof(T), 
+                                -1);
     new (*insert.p_place) T(std::forward<Args>(args)...);
     m_size++;
     return (T*)*insert.p_place;
@@ -95,7 +125,8 @@ BTree<T>::remove(uint32_t key)
   if (value != nullptr) 
   {
     value->~T();
-    mem_free(value);
+    mem_free(&m_allocator, 
+             value);
     m_size--;
   }
 }
@@ -131,23 +162,29 @@ BTree<T>::iterator() const
 }
 
 template<typename T>
-BTree<T>::Iterator::Iterator(btree_t* root) : 
-m_iterator(root) 
+BTree<T>::Iterator::Iterator(btree_t* root)
 {
+  m_iterator = btree_iter_create(root);
+}
+
+template<typename T>
+BTree<T>::Iterator::~Iterator()
+{
+  btree_iter_destroy(&m_iterator);
 }
 
 template<typename T>
 bool 
 BTree<T>::Iterator::has_next() const 
 {
-  return m_iterator.has_next();
+  return btree_iter_has_next(&m_iterator);
 }
 
 template<typename T>
 typename BTree<T>::Entry
 BTree<T>::Iterator::next() 
 {
-  btree_entry_t entry = m_iterator.next();
+  btree_entry_t entry = btree_iter_next(&m_iterator);
   return BTree<T>::Entry{entry.m_key, static_cast<T*>(entry.p_value)};
 }
 

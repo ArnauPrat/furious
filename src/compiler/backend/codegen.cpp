@@ -233,8 +233,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = linear_alloc_create();\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
+    fprintf(fd, "linear_alloc_destroy(&task_allocator);\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
@@ -258,8 +260,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = linear_alloc_create();\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
+    fprintf(fd, "linear_alloc_destroy(&task_allocator);\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }

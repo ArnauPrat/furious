@@ -26,7 +26,7 @@ struct BTree
   {
   public:
     Iterator(btree_t* root);
-    ~Iterator() = default;
+    ~Iterator();
 
     bool 
     has_next() const;
@@ -35,10 +35,10 @@ struct BTree
     next();
     
   private:
-    BTIterator m_iterator;
+    mutable btree_iter_t m_iterator;
   };
 
-  BTree();
+  BTree(mem_allocator_t* allocator = nullptr);
   BTree(const BTree&) = delete;
   BTree(BTree&&) = delete;
   ~BTree();
@@ -123,6 +123,7 @@ struct BTree
 private:
    btree_t*     p_root;
    size_t       m_size;
+  mem_allocator_t m_allocator;
 };
 
 } /* furious */ 

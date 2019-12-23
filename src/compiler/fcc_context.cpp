@@ -84,8 +84,7 @@ handle_parsing_error(fcc_parsing_error_type_t type,
                     )
 {
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   switch(type) 
   {
     case fcc_parsing_error_type_t::E_UNKNOWN_ERROR:
@@ -121,7 +120,7 @@ handle_parsing_error(fcc_parsing_error_type_t type,
                         column, 
                         message);
   llvm::errs() << str_builder.p_buffer;
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   abort();
 }
 
@@ -129,8 +128,7 @@ void
 handle_compilation_error(fcc_compilation_error_type_t type,
                          const char* err_msg)
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   switch(type) 
   {
     case fcc_compilation_error_type_t::E_UNKNOWN_ERROR:
@@ -153,7 +151,7 @@ handle_compilation_error(fcc_compilation_error_type_t type,
       break;
   }
   llvm::errs() << str_builder.p_buffer;
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   abort();
 }
 
@@ -205,8 +203,7 @@ FCC_CONTEXT_REPORT_PARSING_ERROR(fcc_parsing_error_type_t error_type,
 
   va_list myargs;
   va_start(myargs, message);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, message, myargs);
   if(p_fcc_context->p_pecallback != nullptr) 
   {
@@ -217,7 +214,7 @@ FCC_CONTEXT_REPORT_PARSING_ERROR(fcc_parsing_error_type_t error_type,
                                 message);
   }
   va_end(myargs);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   abort();
 }
 
@@ -229,8 +226,7 @@ FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
 
   va_list myargs;
   va_start(myargs, err_msg);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, err_msg, myargs);
   if(p_fcc_context->p_cecallback != nullptr) 
   {
@@ -238,7 +234,7 @@ FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
                                 str_builder.p_buffer);
   }
   va_end(myargs);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   abort();
 }
 

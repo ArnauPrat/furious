@@ -5,24 +5,26 @@
 
 namespace furious {
 
-TEST(BlockClusterTest, BlockClusterTest) 
+TEST(block_cluster_Test, block_cluster_Test) 
 {
-
   TBlock tblock(64, sizeof(long));
 
-  BlockCluster cluster(&tblock);
-  ASSERT_EQ(cluster.get_tblock(0), &tblock);
-  cluster.append_global((void*)(0xff));
-  ASSERT_EQ(cluster.get_global(1), (void*)0xff);
+  block_cluster_t cluster = block_cluster_create(nullptr);
+  block_cluster_append(&cluster, &tblock);
+  ASSERT_EQ(block_cluster_get_tblock(&cluster, 0), &tblock);
+  block_cluster_append_global(&cluster, (void*)(0xff));
+  ASSERT_EQ(block_cluster_get_global(&cluster, 1), (void*)0xff);
 
   TBlock tblock2(64, sizeof(int));
-  BlockCluster cluster2(&tblock2);
+  block_cluster_t cluster2 = block_cluster_create(nullptr);
+  block_cluster_append(&cluster2, &tblock2);
 
-  cluster2.append(&cluster);
-  ASSERT_EQ(cluster2.get_tblock(0), &tblock2);
-  ASSERT_EQ(cluster2.get_tblock(1), &tblock);
-  ASSERT_EQ(cluster2.get_global(2), (void*)0xff);
-
+  block_cluster_append(&cluster2, &cluster);
+  ASSERT_EQ(block_cluster_get_tblock(&cluster2, 0), &tblock2);
+  ASSERT_EQ(block_cluster_get_tblock(&cluster2,1), &tblock);
+  ASSERT_EQ(block_cluster_get_global(&cluster2,2), (void*)0xff);
+  block_cluster_destroy(&cluster, nullptr);
+  block_cluster_destroy(&cluster2, nullptr);
 }
 
 }

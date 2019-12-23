@@ -7,26 +7,36 @@ namespace furious
 {
 
 
-void
-hashtable_init(hashtable_t* table, 
-                uint32_t capacity, 
-                furious_alloc_t alloc_func, 
-                furious_free_t free_func)
+hashtable_t
+hashtable_create(uint32_t capacity,
+                 mem_allocator_t* allocator)
 {
-  FURIOUS_ASSERT( ((alloc_func == nullptr && free_func == nullptr) ||
-                  (alloc_func != nullptr && free_func != nullptr)) &&
-                  "Both allocator functions must be non-null or both null");
 
-  table->p_mem_alloc = alloc_func != nullptr ? alloc_func : mem_alloc;
-  table->p_mem_free = free_func != nullptr ? free_func : mem_free;
-  table->m_capacity = capacity;
-  table->m_num_elements = 0;
-  table->m_entries = (hashtable_node_t*)table->p_mem_alloc(1, sizeof(hashtable_node_t)*table->m_capacity, -1);
-  memset(table->m_entries, 0, sizeof(hashtable_node_t)*table->m_capacity);
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
+
+  hashtable_t table;
+  if(allocator != nullptr)
+  {
+    table.m_allocator = *allocator; 
+  }
+  else
+  {
+    table.m_allocator = global_mem_allocator;
+  }
+  table.m_capacity = capacity;
+  table.m_num_elements = 0;
+  table.m_entries = (hashtable_node_t*)mem_alloc(&table.m_allocator, 
+                                                 1, 
+                                                 sizeof(hashtable_node_t)*table.m_capacity, 
+                                                 -1);
+  memset(table.m_entries, 0, sizeof(hashtable_node_t)*table.m_capacity);
+  return table;
 }
 
 void
-hashtable_release(hashtable_t* table)
+hashtable_destroy(hashtable_t* table)
 {
   for (uint32_t i = 0; 
        i < table->m_capacity; 
@@ -36,11 +46,11 @@ hashtable_release(hashtable_t* table)
     while(next != nullptr)
     {
       hashtable_node_t* tmp = next->p_next;
-      table->p_mem_free(next);
+      mem_free(&table->m_allocator, next);
       next = tmp;
     }
   }
-  table->p_mem_free(table->m_entries);
+  mem_free(&table->m_allocator, table->m_entries);
 }
 
 
@@ -77,7 +87,7 @@ hashtable_add(hashtable_t* table,
     return nullptr;
   }
 
-  hashtable_node_t* next = (hashtable_node_t*)table->p_mem_alloc(1, sizeof(hashtable_node_t), -1);
+  hashtable_node_t* next = (hashtable_node_t*)mem_alloc(&table->m_allocator, 1, sizeof(hashtable_node_t), -1);
   *next = {{0}};
   next->m_keys[0] = key;
   next->m_elements[0] = value;
@@ -108,30 +118,31 @@ hashtable_get(hashtable_t* table,
   return nullptr;
 }
 
-void
-hashtable_iter_init(hashtable_iter_t* iter, 
-                    hashtable_t* hashtable)
+hashtable_iter_t
+hashtable_iter_create(hashtable_t* hashtable)
 {
-  iter->p_table = hashtable;
-  iter->p_next_node = nullptr;
-  iter->m_next_entry = 0;
-  iter->m_next_element = 0;
+  hashtable_iter_t iter;
+  iter.p_table = hashtable;
+  iter.p_next_node = nullptr;
+  iter.m_next_entry = 0;
+  iter.m_next_element = 0;
   for(uint32_t i = 0; 
-      i < iter->p_table->m_capacity;
+      i < iter.p_table->m_capacity;
       ++i)
   {
-    iter->m_next_entry = i+1;
-    hashtable_node_t* next_node = &iter->p_table->m_entries[i];
+    iter.m_next_entry = i+1;
+    hashtable_node_t* next_node = &iter.p_table->m_entries[i];
     if(next_node->m_num_elements > 0)
     {
-      iter->p_next_node = next_node;
-      return;
+      iter.p_next_node = next_node;
+      return iter;
     }
   }
+  return iter;
 }
 
 void
-hashtable_iter_release(hashtable_iter_t* iter)
+hashtable_iter_destroy(hashtable_iter_t* iter)
 {
 }
 

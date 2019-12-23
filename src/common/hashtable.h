@@ -22,11 +22,10 @@ struct hashtable_node_t
 
 struct hashtable_t
 {
-  uint32_t             m_capacity;
-  uint32_t             m_num_elements;
-  furious_alloc_t      p_mem_alloc;
-  furious_free_t       p_mem_free;
-  hashtable_node_t*    m_entries;
+  uint32_t            m_capacity;
+  uint32_t            m_num_elements;
+  hashtable_node_t*   m_entries;
+  mem_allocator_t     m_allocator;
 };
 
 struct hashtable_iter_t
@@ -48,11 +47,9 @@ struct hashtable_entry_t
  *
  * \param table The hash table to initialize
  */
-void
-hashtable_init(hashtable_t* table, 
-               uint32_t capacity, 
-               furious_alloc_t alloc_func = nullptr, 
-               furious_free_t free_func = nullptr);
+hashtable_t
+hashtable_create(uint32_t capacity, 
+                 mem_allocator_t* allocator = nullptr);
 
 /**
  * \brief Releases a hash table
@@ -60,7 +57,7 @@ hashtable_init(hashtable_t* table,
  * \param table The hash table to release
  */
 void
-hashtable_release(hashtable_t* table);
+hashtable_destroy(hashtable_t* table);
 
 
 /**
@@ -94,9 +91,8 @@ hashtable_get(hashtable_t* table,
  * \param iter The iterator to initialize
  * \param hashtable The hashtable this iterator iterates over
  */
-void
-hashtable_iter_init(hashtable_iter_t* iter, 
-                    hashtable_t* hashtable);
+hashtable_iter_t
+hashtable_iter_create(hashtable_t* hashtable);
 
 /**
  * \brief Releases the given iterator
@@ -104,7 +100,7 @@ hashtable_iter_init(hashtable_iter_t* iter,
  * \param iter The iterator to release
  */
 void
-hashtable_iter_release(hashtable_iter_t* iter);
+hashtable_iter_destroy(hashtable_iter_t* iter);
 
 /**
  * \brief Checks if the iterator has next elements

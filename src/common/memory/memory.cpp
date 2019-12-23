@@ -8,6 +8,7 @@ namespace furious
 {
 
 mem_allocator_t  global_mem_allocator = {nullptr, numa_alloc, numa_free};
+mem_allocator_t  frame_mem_allocator = global_mem_allocator;
 
 void*
 mem_alloc(mem_allocator_t* mem_allocator, 
@@ -32,8 +33,17 @@ mem_free(mem_allocator_t* mem_allocator,
 void
 furious_set_mem_alloc(mem_allocator_t* allocator)
 {
+  FURIOUS_ASSERT(allocator != nullptr "Allocator cannot be nullptr");
   FURIOUS_ASSERT((allocator->p_mem_alloc != nullptr) && (allocator->p_mem_free != nullptr) && "An allocator must provide both alloc and free functions");
   global_mem_allocator = *allocator;
+}
+
+void
+furious_set_frame_mem_alloc(mem_allocator_t* allocator)
+{
+  FURIOUS_ASSERT(allocator != nullptr "Allocator cannot be nullptr");
+  FURIOUS_ASSERT((allocator->p_mem_alloc != nullptr) && (allocator->p_mem_free != nullptr) && "An allocator must provide both alloc and free functions");
+  frame_mem_allocator = *allocator;
 }
 
 uint32_t 

@@ -43,11 +43,18 @@ mem_free(mem_allocator_t* mem_allocator,
 /**
  * \brief Sets the memory allocator for furious
  *
- * \param alloc_func
- * \param free_func
+ * \param allocator The memory allocator to set
  */
 void
 furious_set_mem_alloc(mem_allocator_t* allocator);
+
+/**
+ * \brief Sets the memory allocator used during frames 
+ *
+ * \param allocator The memory allocator to set
+ */
+void
+furious_set_frame_mem_alloc(mem_allocator_t* allocator);
 
 /**
  * \brief Gets the alignment for a structure of the given size 

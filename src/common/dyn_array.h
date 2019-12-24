@@ -5,6 +5,7 @@
 
 #include "types.h"
 #include "stdlib.h"
+#include "memory/memory.h"
 
 #include <initializer_list>
 
@@ -14,7 +15,7 @@ namespace furious
 template <typename T>
 struct DynArray
 {
-  DynArray();
+  DynArray(mem_allocator_t* allocator = nullptr);
   DynArray(const DynArray&);
   DynArray(DynArray&&);
   DynArray(std::initializer_list<T>);
@@ -67,10 +68,10 @@ struct DynArray
 private:
 
 
-  char*     p_data;
-  uint32_t  m_capacity;
-  uint32_t  m_num_elements;
-
+  char*           p_data;
+  uint32_t        m_capacity;
+  uint32_t        m_num_elements;
+  mem_allocator_t m_allocator;
 };
   
 } /* furious

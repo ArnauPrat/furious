@@ -224,8 +224,7 @@ fcc_decl_code(fcc_decl_t decl,
       FunctionDecl* func_decl = cast<FunctionDecl>((Decl*)decl);
       if(fcc_decl_is_member(decl))
       {
-        str_builder_t str_builder;
-        str_builder_init(&str_builder);
+        str_builder_t str_builder = str_builder_create();
 
         str_builder_append(&str_builder, "auto predicate = [] (");
         auto array = func_decl->parameters();
@@ -247,7 +246,7 @@ fcc_decl_code(fcc_decl_t decl,
         {
           strncpy(buffer, str_builder.p_buffer, buffer_length);
         }
-        str_builder_release(&str_builder);
+        str_builder_destroy(&str_builder);
         return total_length;
       } 
       else

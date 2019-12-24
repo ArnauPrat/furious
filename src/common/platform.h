@@ -14,9 +14,12 @@
         strncpy(dest, origin, capacity);\
         FURIOUS_PERMA_ASSERT( strlen(origin) < capacity && "String exceeds maximum capacity");
     
+#define FURIOUS_RESTRICT(type) type  __restrict__
+#define FURIOUS_ALIGNED(type, name, alignment) type __attribute__((aligned(alignment))) name
 
 namespace furious 
 {
+
 
 constexpr uint32_t MAX_TYPE_NAME = 256;
 constexpr uint32_t MAX_QUALIFIED_TYPE_NAME=MAX_TYPE_NAME+32;

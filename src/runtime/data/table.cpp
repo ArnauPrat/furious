@@ -1,7 +1,7 @@
 
 
 #include "table.h"
-#include "../memory/memory.h"
+#include "../../common/memory/memory.h"
 
 #include <string.h>
 
@@ -29,8 +29,8 @@ static DecodedId
 decode_id(entity_id_t id) 
 {
   assert(id != FURIOUS_INVALID_ID);
-  uint32_t block_id  = id / TABLE_BLOCK_SIZE;
-  uint32_t block_offset = id % TABLE_BLOCK_SIZE; 
+  uint32_t block_id  = id / FURIOUS_TABLE_BLOCK_SIZE;
+  uint32_t block_offset = id % FURIOUS_TABLE_BLOCK_SIZE; 
   return DecodedId{block_id, block_offset};
 }
 
@@ -52,21 +52,22 @@ has_component(const TBlock* block,
 }
 
 TBlock::TBlock(entity_id_t start, size_t esize) :
-    p_data(static_cast<char*>(mem_alloc(ALIGNMENT, esize*TABLE_BLOCK_SIZE, start / TABLE_BLOCK_SIZE))),
+    p_data(static_cast<char*>(mem_alloc(&global_mem_allocator, 64, esize*FURIOUS_TABLE_BLOCK_SIZE, start / FURIOUS_TABLE_BLOCK_SIZE))),
     m_start(start),
     m_num_components(0),
     m_num_enabled_components(0),
-    m_esize(esize),
-    p_exists(new Bitmap(TABLE_BLOCK_SIZE)),
-    p_enabled(new Bitmap(TABLE_BLOCK_SIZE))
+    m_esize(esize)
 {
+  m_exists = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &global_mem_allocator);
+  m_enabled = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &global_mem_allocator);
 }
 
 TBlock::~TBlock()
 {
-    mem_free(p_data);
-    delete p_enabled;
-    delete p_exists;
+  bitmap_destroy(&m_enabled, &global_mem_allocator);
+  bitmap_destroy(&m_exists, &global_mem_allocator);
+  mem_free(&global_mem_allocator, 
+           p_data);
 }
 
 /**
@@ -83,12 +84,12 @@ get_component(const TBlock* block,
 {
   assert(id != FURIOUS_INVALID_ID);
   DecodedId decoded_id = decode_id(id);
-  assert(block->m_start == (id / TABLE_BLOCK_SIZE) * TABLE_BLOCK_SIZE) ;
-  if(block->p_enabled->is_set(decoded_id.m_block_offset)) 
+  assert(block->m_start == (id / FURIOUS_TABLE_BLOCK_SIZE) * FURIOUS_TABLE_BLOCK_SIZE) ;
+  if(bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset)) 
   {
     return TRow{block->m_start + decoded_id.m_block_offset, 
-               &block->p_data[decoded_id.m_block_offset*block->m_esize], 
-               (block->p_enabled->is_set(decoded_id.m_block_offset))};
+               &(((char*)block->p_data)[decoded_id.m_block_offset*block->m_esize]), 
+               (bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset))};
   }
   return TRow{0,nullptr,false};
 }
@@ -98,7 +99,7 @@ p_block(block),
 m_next_position(0) 
 {
   if(p_block != nullptr) {
-    while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
+    while(m_next_position < FURIOUS_TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
       m_next_position++;
     }
   }
@@ -107,7 +108,7 @@ m_next_position(0)
 bool 
 TBlockIterator::has_next() const 
 {
-  return p_block != nullptr && m_next_position < TABLE_BLOCK_SIZE;
+  return p_block != nullptr && m_next_position < FURIOUS_TABLE_BLOCK_SIZE;
 }
 
 TRow 
@@ -115,7 +116,7 @@ TBlockIterator::next()
 {
   TRow row = get_component(p_block, p_block->m_start+m_next_position);
   m_next_position++; 
-  while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
+  while(m_next_position < FURIOUS_TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
     m_next_position++;
   }
   return row;
@@ -127,7 +128,7 @@ TBlockIterator::reset(TBlock* block)
   p_block = block;
   m_next_position = 0;
   if(p_block != nullptr) {
-    while(m_next_position < TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
+    while(m_next_position < FURIOUS_TABLE_BLOCK_SIZE && !has_component(p_block, p_block->m_start+m_next_position) ) {
       m_next_position++;
     }
   }
@@ -200,7 +201,7 @@ Table::Iterator::next()
       next = m_it.next().p_value;
       if(next != nullptr)
       {
-        uint32_t chunk_id = next->m_start / (TABLE_BLOCK_SIZE);
+        uint32_t chunk_id = next->m_start / (FURIOUS_TABLE_BLOCK_SIZE);
         //found = (((chunk_id / m_chunk_size) - m_offset) % m_stride) == 0;
         found = is_selected(chunk_id, m_chunk_size, m_offset, m_stride);
         //found = (((chunk_id / m_chunk_size) + (m_chunk_size - m_offset)) % m_stride) == 0;
@@ -220,14 +221,16 @@ m_num_components(0),
 m_destructor(destructor) 
 {
   size_t name_length =strlen(name)+1;
-  p_name = new char[name_length];
+  p_name = (char*)mem_alloc(&global_mem_allocator, 
+                            64, sizeof(char)*name_length, 0);
   strncpy(p_name, name, name_length);
 }
 
 
 Table::~Table() {
   clear();
-  delete [] p_name;
+  mem_free(&global_mem_allocator, 
+           p_name);
 }
 
 size_t
@@ -275,10 +278,10 @@ Table::get_component(entity_id_t id) const
     return nullptr;
   }
   TBlock* block = (TBlock*)component;
-  if(block->p_exists->is_set(decoded_id.m_block_offset))
+  if(bitmap_is_set(&block->m_exists, decoded_id.m_block_offset))
   {
     release();
-    return &block->p_data[decoded_id.m_block_offset*m_esize];
+    return &(((char*)block->p_data)[decoded_id.m_block_offset*m_esize]);
   }
   release();
   return nullptr;
@@ -294,19 +297,19 @@ Table::alloc_component(entity_id_t id)
   if (block == nullptr) 
   {
     block = m_blocks.insert_new(decoded_id.m_block_id,
-                                decoded_id.m_block_id*TABLE_BLOCK_SIZE,
+                                decoded_id.m_block_id*FURIOUS_TABLE_BLOCK_SIZE,
                                 m_esize);
   }
 
-  if(!block->p_exists->is_set(decoded_id.m_block_offset)) 
+  if(!bitmap_is_set(&block->m_exists, decoded_id.m_block_offset)) 
   {
     m_num_components++;
     block->m_num_components++;
     block->m_num_enabled_components++;
   }
-  block->p_exists->set(decoded_id.m_block_offset);
-  block->p_enabled->set(decoded_id.m_block_offset);
-  return &block->p_data[decoded_id.m_block_offset*m_esize];
+  bitmap_set(&block->m_exists, decoded_id.m_block_offset);
+  bitmap_set(&block->m_enabled, decoded_id.m_block_offset);
+  return &(((char*)block->p_data)[decoded_id.m_block_offset*m_esize]);
 }
 
 void* 
@@ -321,16 +324,16 @@ Table::dealloc_component(entity_id_t id)
     return nullptr;
   }
 
-  if(block->p_exists->is_set(decoded_id.m_block_offset)) 
+  if(bitmap_is_set(&block->m_exists, decoded_id.m_block_offset)) 
   {
     m_num_components--;
     block->m_num_components--;
     block->m_num_enabled_components--;
   }
-  block->p_exists->unset(decoded_id.m_block_offset);
-  block->p_enabled->unset(decoded_id.m_block_offset);
+  bitmap_unset(&block->m_exists, decoded_id.m_block_offset);
+  bitmap_unset(&block->m_enabled, decoded_id.m_block_offset);
   release();
-  return &block->p_data[decoded_id.m_block_offset*m_esize];
+  return &(((char*)block->p_data)[decoded_id.m_block_offset*m_esize]);
 }
 
 void  
@@ -357,7 +360,7 @@ Table::enable_component(entity_id_t id)
     release();
     return;
   }
-  block->p_enabled->set(decoded_id.m_block_offset);
+  bitmap_set(&block->m_enabled, decoded_id.m_block_offset);
   block->m_num_enabled_components++;
   release();
 }
@@ -375,7 +378,7 @@ Table::disable_component(entity_id_t id)
     release();
     return;
   }
-  block->p_enabled->unset(decoded_id.m_block_offset);
+  bitmap_unset(&block->m_enabled, decoded_id.m_block_offset);
   block->m_num_enabled_components--;
   release();
 }
@@ -393,7 +396,7 @@ Table::is_enabled(entity_id_t id)
     release();
     return false;
   }
-  bool res = block->p_enabled->is_set(decoded_id.m_block_offset);
+  bool res = bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset);
   release();
   return res;
 }
@@ -441,11 +444,10 @@ Table::release() const
 }
 
 uint32_t
-block_get_offset(uint32_t block_start, 
+block_get_offset(uint32_t block_id, 
                  uint32_t chunk_size,
                  uint32_t stride)
 {
-  uint32_t block_id = block_start / TABLE_BLOCK_SIZE;
   uint32_t chunk_id = block_id / chunk_size;
   return chunk_id % stride;
 }

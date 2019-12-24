@@ -666,8 +666,7 @@ generate_table_name(const char* type_name,
   FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
   sanitize_name(tmp);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "table_%s", tmp);
 
   if(op != nullptr)
@@ -677,7 +676,7 @@ generate_table_name(const char* type_name,
 
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -693,13 +692,12 @@ generate_temp_table_name(const char* type_name,
                       MAX_TABLE_VARNAME,
                       op);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "temp_%s", tmp);
 
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -715,12 +713,11 @@ generate_ref_table_name(const char* ref_name,
                       MAX_TABLE_VARNAME,
                       op);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "ref_%s", tmp);
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -731,8 +728,7 @@ generate_bittable_name(const char* tag_name,
                        const fcc_operator_t* op)
 {
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "tagged_%s", tag_name);
   if(op != nullptr)
   {
@@ -740,7 +736,7 @@ generate_bittable_name(const char* tag_name,
   }
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -750,8 +746,7 @@ generate_table_iter_name(const char* table_name,
                          uint32_t buffer_length,
                          const fcc_operator_t* op)
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "iter_%s", table_name);
   if(op != nullptr)
   {
@@ -759,7 +754,7 @@ generate_table_iter_name(const char* table_name,
   }
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -773,8 +768,7 @@ generate_block_name(const char* type_name,
   FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
   sanitize_name(tmp);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "block_%s", tmp);
   if(op != nullptr)
   {
@@ -782,7 +776,7 @@ generate_block_name(const char* type_name,
   }
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -791,12 +785,11 @@ generate_cluster_name(const fcc_operator_t* op,
                       char* buffer,
                       uint32_t buffer_length)
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "cluster_%u", op->m_id);
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -809,12 +802,11 @@ generate_ref_groups_name(const char* ref_name,
   char tmp[MAX_REF_NAME];
   FURIOUS_COPY_AND_CHECK_STR(tmp, ref_name, MAX_REF_NAME);
   sanitize_name(tmp);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "ref_%s_groups_%u", tmp, op->m_id);
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -823,12 +815,11 @@ generate_hashtable_name(const fcc_operator_t* op,
                         char* buffer,
                         uint32_t buffer_length)
 {
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "hashtable_%u",op->m_id);
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -842,8 +833,7 @@ generate_system_wrapper_name(const char* system_name,
   char base_name[MAX_TYPE_NAME];
   FURIOUS_COPY_AND_CHECK_STR(base_name, system_name, MAX_TYPE_NAME);
   tolower(base_name);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "%s_%d",base_name, system_id  );
   if(op != nullptr)
   {
@@ -851,7 +841,7 @@ generate_system_wrapper_name(const char* system_name,
   }
   const uint32_t length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 
@@ -865,8 +855,7 @@ generate_global_name(const char* type_name,
   strncpy(tmp, type_name, buffer_length);
   FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
   sanitize_name(tmp);
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "global_%s", tmp);
   if(op != nullptr)
   {
@@ -876,7 +865,7 @@ generate_global_name(const char* type_name,
   const uint32_t length = str_builder.m_pos;
   strncpy(buffer, str_builder.p_buffer, buffer_length);
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
   return length;
 }
 

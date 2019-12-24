@@ -7,17 +7,18 @@
 #include "../../common/bitmap.h"
 #include "../../common/btree.h"
 
-//#include <bitset>
+#include "common.h"
+
 
 namespace furious
 {
 
 struct BitTable 
 {
-  friend void bittable_union(BitTable* first, const BitTable* second);
-  friend void bittable_difference(BitTable* first, const BitTable* second);
+  friend void bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
+  friend void bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
 
-  BitTable ();
+  BitTable (mem_allocator_t* allocator = nullptr);
   ~BitTable ();
 
   /**
@@ -51,9 +52,10 @@ struct BitTable
    *
    * @param id The id of the entity to get the bitmap of 
    *
-   * @return Returns a pointer to the bitmap
+   * @return Returns a pointer to the bitmap. Returns nullptr if the bitmap does
+   * not exist.
    */
-  const Bitmap* 
+  const bitmap_t* 
   get_bitmap(entity_id_t id) const;
 
   /**
@@ -88,7 +90,7 @@ private:
    */
   void
   apply_bitset(uint32_t id, 
-               const Bitmap* bitmap,
+               const bitmap_t* bitmap,
                logic_operation_t operation);
 
   /**
@@ -98,19 +100,20 @@ private:
    *
    * \return 
    */
-  Bitmap*
+  bitmap_t*
   get_bitset(uint32_t bitset_id) const;
 
 
-  mutable BTree<Bitmap> m_bitmaps;
-  uint32_t              m_size;
+  btree_t*        m_bitmaps;
+  uint32_t        m_size;
+  mem_allocator_t m_allocator;
 };
 
 void
-bittable_union(BitTable* first, const BitTable* second);
+bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
 
 void
-bittable_difference(BitTable* first, const BitTable* second);
+bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second);
   
 } /* furious
  */ 

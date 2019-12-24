@@ -3,126 +3,145 @@
 #define _FURIOUS_BITMAP_H_ value
 
 #include "types.h"
+#include "platform.h"
+#include "memory/memory.h"
 
 namespace furious
 {
 
-struct Bitmap
+struct bitmap_t 
 {
-  Bitmap(uint32_t num_elements);
-  ~Bitmap();
-
-  /**
-   * \brief Sets to one the ith element of the bitmap
-   *
-   * \param element The element to set
-   */
-  void
-  set(uint32_t element);
-
-  /**
-   * \brief Sets to 0 the ith element of the bitmap
-   *
-   * \param element The ith element to set
-   */
-  void
-  unset(uint32_t element);
-
-  /**
-   * \brief Sets the bit of the given element to the specified value
-   *
-   * \param element The element to set the bit for
-   * \param value The value to set the bit to
-   */
-  void
-  set_bit(uint32_t element, bool value);
-
-  /**
-   * \brief Checks if a given element is set to 1
-   *
-   * \param element The element to check
-   *
-   * \return True if the element is set to 1
-   */
-  bool
-  is_set(uint32_t element) const;
-
-  /**
-   * \brief The number of elements set to 1
-   *
-   * \return Returns the number of elements set to one
-   */
-  uint32_t
-  num_set() const;
-
-  /**
-   * \brief Gets the maximum number of bits that this bitmap can store
-   *
-   * \return Returns the maximum number of bits
-   */
-  uint32_t
-  max_bits() const;
-
-  /**
-   * \brief Sets the bits based on the given bitmap
-   *
-   * \param bitmap The bitmap to set the bits from
-   */
-  void
-  set_bitmap(const Bitmap* bitmap);
-
-  /**
-   * \brief Ands this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the and with
-   */
-  void
-  set_and(const Bitmap* bitmap);
-
-  /**
-   * \brief Ors this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the or with
-   */
-  void
-  set_or(const Bitmap* bitmap);
-
-  /**
-   * \brief Diffs this bitmap with the given bitmap
-   *
-   * \param bitmap The bitmap to compute the diff with
-   */
-  void
-  set_diff(const Bitmap* bitmap);
-
-  /**
-   * \brief Negates the contents of this bitmap
-   */
-  void
-  set_negate();
-
-  /**
-   * \brief Sets the bitmap to all zeros
-   */
-  void
-  all_zeros();
-
-private:
-  /**
-   * \brief Refreshes the number of bits set
-   */
-  void
-  refresh_num_set();
-
-  uint32_t m_max_bits;
-  uint32_t m_num_chunks;
-  uint32_t m_num_set;
-  uint8_t* p_data;
+  uint32_t m_max_bits;          //< The maximum number of bits
+  uint32_t m_num_set;           //< The number of bits set to one
+  FURIOUS_ALIGNED(uint8_t*,p_data,64);  //< The buffer with the bitmap
 };
-  
+
+/**
+ * \brief Initializes a bitmap
+ *
+ * \return  The created bitmap
+ */
+bitmap_t
+bitmap_create(uint32_t max_bits, mem_allocator_t* allocator);
+
+/**
+ * \brief  Releases a bitmap
+ *
+ * \param bitmap
+ */
+
+void
+bitmap_destroy(bitmap_t* bitmap, mem_allocator_t* allocator);
+
+/**
+ * \brief Sets to one the ith element of the bitmap
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to set
+ */
+
+void
+bitmap_set(bitmap_t* bitmap, 
+           uint32_t element);
+
+/**
+ * \brief Sets to 0 the ith element of the bitmap
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The ith element to set
+ */
+
+void
+bitmap_unset(bitmap_t* bitmap, 
+             uint32_t element);
+
+/**
+ * \brief Sets the bit of the given element to the specified value
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to set the bit for
+ * \param value The value to set the bit to
+ */
+
+void
+bitmap_set_bit(bitmap_t* bitmap, 
+               uint32_t element, 
+               bool value);
+
+/**
+ * \brief Checks if a given element is set to 1
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to check
+ *
+ * \return True if the element is set to 1
+ */
+
+bool
+bitmap_is_set(const bitmap_t* bitmap, 
+              uint32_t element);
+
+/**
+ * \brief Sets the bits based on the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
+
+void
+bitmap_set_bitmap(bitmap_t* dst_bitmap, 
+                  const bitmap_t* src_bitmap);
+
+/**
+ * \brief Ands this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
+
+void
+bitmap_set_and(bitmap_t* dst_bitmap, 
+               const bitmap_t* src_bitmap);
+
+/**
+ * \brief Ors this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
+
+void
+bitmap_set_or(bitmap_t* dst_bitmap, 
+              const bitmap_t* src_bitmap);
+
+/**
+ * \brief Diffs this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
+
+void
+bitmap_set_diff(bitmap_t* dst_bitmap, 
+                const bitmap_t* src_bitmap);
+
+/**
+ * \brief Negates the contents of this bitmap
+ *
+ * \param bitmap The bitmap to set the bits to 
+ */
+
+void
+bitmap_negate(bitmap_t* bitmap);
+
+/**
+ * \brief Sets the bitmap to all zeros
+ *
+ * \param bitmap The bitmap to nullify
+ */
+void
+bitmap_nullify(bitmap_t* bitmap);
+
 } /* furious
  */ 
-
 #endif /* ifndef _FURIOUS_BITMAP_H_ */
-
-

@@ -133,7 +133,7 @@ p_thread(nullptr),
 m_table_infos_capacity(0),
 m_table_infos(nullptr)
 {
-  str_builder_init(&m_builder);
+  m_builder = str_builder_create();
 }
 
 WebServer::~WebServer()
@@ -142,7 +142,7 @@ WebServer::~WebServer()
   {
     stop(); 
   }
-  str_builder_release(&m_builder);
+  str_builder_destroy(&m_builder);
 }
 
 void

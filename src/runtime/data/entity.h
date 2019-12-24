@@ -3,6 +3,7 @@
 #define _FURIOUS_ENTITY_H_
 
 #include "../../common/types.h"
+#include "common.h"
 
 #include <string>
 

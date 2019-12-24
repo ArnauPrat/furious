@@ -45,13 +45,12 @@ generate_reflection_code(FILE* fd,
   FURIOUS_COPY_AND_CHECK_STR(tmp, refl_data->m_type_name, MAX_TYPE_NAME);
   sanitize_name(tmp);
 
-  str_builder_t str_builder;
-  str_builder_init(&str_builder);
+  str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "ref_data_");
   str_builder_append(&str_builder, tmp);
   const uint32_t ret_length = str_builder.m_pos;
   FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_release(&str_builder);
+  str_builder_destroy(&str_builder);
 
   fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", buffer);
   fprintf(fd, 
@@ -66,8 +65,7 @@ generate_reflection_code(FILE* fd,
     fprintf(fd, "strcpy(field.m_name,\"%s\");\n", field->m_name);
     fprintf(fd, "field.m_type = %s;\n", ReflType_str[(uint32_t)field->m_type]);
     fprintf(fd, "field.m_anonymous = %s;\n", field->m_anonymous ? "true" : "false");
-    str_builder_t str_builder;
-    str_builder_init(&str_builder);
+    str_builder_t str_builder = str_builder_create();
     if(field->m_anonymous)
     {
       fprintf(fd, "field.m_offset = 0;\n");
@@ -112,7 +110,7 @@ generate_reflection_code(FILE* fd,
     }
     fprintf(fd, "%s.get()->m_fields.append(field);\n", buffer);
     fprintf(fd,"}\n");
-    str_builder_release(&str_builder);
+    str_builder_destroy(&str_builder);
   }
   return ret_length;
 }

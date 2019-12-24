@@ -29,7 +29,7 @@ struct TableView
       entity_id_t     
       get_start() const;
 
-      const Bitmap* 
+      const bitmap_t* 
       get_enabled() const;
 
       TBlock*     get_raw() const;

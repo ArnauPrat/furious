@@ -186,7 +186,7 @@ Database::create_global(Args...args)
     return nullptr;
   }
   GlobalInfo g_info;
-  char* buffer = new char[sizeof(T)];
+  void* buffer = mem_alloc(&global_mem_allocator, 64, sizeof(T), -1);
   g_info.p_global = new (buffer) T{std::forward<Args>(args)...};
   g_info.m_destructor = destructor<T>;
   m_globals.insert_copy(hash_value,&g_info);
@@ -204,7 +204,7 @@ Database::remove_global()
   if(global != nullptr)
   {
     global->m_destructor(global->p_global);
-    delete [] ((char*)global->p_global); 
+    mem_free(&global_mem_allocator, global->p_global); 
     m_globals.remove(hash_value);
   }
   release();

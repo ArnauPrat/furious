@@ -9,7 +9,6 @@
 #include "macros.h"
 #include "table_view.h"
 #include "../../common/types.h"
-#include "../../common/hash_map.h"
 
 #include <assert.h>
 #include <mutex>
@@ -47,7 +46,7 @@ struct TableInfo
 
 struct GlobalInfo
 {
-  void * p_global;
+  FURIOUS_ALIGNED(void*, p_global, 64);
   void (*m_destructor)(void *ptr);
 };
 

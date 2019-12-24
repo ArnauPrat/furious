@@ -2,76 +2,108 @@
 #include "bit_table.h"
 #include "table.h"
 
-#include <assert.h>
-
 namespace furious
 {
 
-BitTable::BitTable() :
+BitTable::BitTable(mem_allocator_t* allocator) :
 m_size(0)
 {
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
+  if(allocator != nullptr)
+  {
+    m_allocator = *allocator; 
+  }
+  else
+  {
+    m_allocator = global_mem_allocator;
+  }
+
+  m_bitmaps = (btree_t*) mem_alloc(&m_allocator, 
+                                   1, 
+                                   sizeof(btree_t), 
+                                   FURIOUS_NO_HINT);
+  *m_bitmaps = btree_create(&m_allocator);
 }
 
 BitTable::~BitTable()
 {
+  btree_iter_t it = btree_iter_create(m_bitmaps);
+  while(btree_iter_has_next(&it))
+  {
+    btree_entry_t entry = btree_iter_next(&it);
+    bitmap_destroy((bitmap_t*)entry.p_value, &m_allocator);
+    mem_free(&m_allocator, 
+             entry.p_value);
+  }
+  btree_iter_destroy(&it);
+  m_size = 0;
+
+  btree_destroy(m_bitmaps);
+  mem_free(&m_allocator, 
+           m_bitmaps);
 }
 
 bool
 BitTable::exists(entity_id_t id) const
 {
-  uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = m_bitmaps.get(bitset_id);
+  uint32_t bitset_id = id / FURIOUS_TABLE_BLOCK_SIZE;
+  bitmap_t* bitmap = (bitmap_t*)btree_get(m_bitmaps, bitset_id);
   if(bitmap == nullptr) 
   {
     return false;
   }
-  return bitmap->is_set(id % TABLE_BLOCK_SIZE);
+  return bitmap_is_set(bitmap, id % FURIOUS_TABLE_BLOCK_SIZE);
 }
 
 void
 BitTable::add(entity_id_t id)
 {
-  uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = m_bitmaps.get(bitset_id);
+  uint32_t bitset_id = id / FURIOUS_TABLE_BLOCK_SIZE;
+  bitmap_t* bitmap = (bitmap_t*)btree_get(m_bitmaps, bitset_id);
   if(bitmap == nullptr) 
   {
-    bitmap = m_bitmaps.insert_new(bitset_id,TABLE_BLOCK_SIZE);
+    bitmap = (bitmap_t*)mem_alloc(&m_allocator, 
+                                 1, 
+                                 sizeof(bitmap_t), 
+                                 FURIOUS_NO_HINT);
+    *bitmap = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &m_allocator);
+    void** ptr = btree_insert(m_bitmaps, bitset_id).p_place;
+    *ptr = bitmap;
   }
-
-  uint32_t offset = id % TABLE_BLOCK_SIZE;
-  if(!bitmap->is_set(offset))
+  FURIOUS_ASSERT(bitmap->m_num_set <= FURIOUS_TABLE_BLOCK_SIZE && "Bitmap num set out of bounds");
+  
+  uint32_t offset = id % FURIOUS_TABLE_BLOCK_SIZE;
+  if(!bitmap_is_set(bitmap,offset))
   {
     ++m_size;
-    bitmap->set(offset);
+    bitmap_set(bitmap,offset);
   }
 }
 
 void
 BitTable::remove(entity_id_t id)
 {
-  uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = get_bitset(bitset_id);
+  uint32_t bitset_id = id / FURIOUS_TABLE_BLOCK_SIZE;
+  bitmap_t* bitmap = get_bitset(bitset_id);
   if(bitmap == nullptr) 
   {
     return;
   }
-  uint32_t offset = id % TABLE_BLOCK_SIZE;
-  if(bitmap->is_set(offset))
+  uint32_t offset = id % FURIOUS_TABLE_BLOCK_SIZE;
+  if(bitmap_is_set(bitmap,offset))
   {
     --m_size;
-    bitmap->unset(id % TABLE_BLOCK_SIZE);
+    bitmap_unset(bitmap,id % FURIOUS_TABLE_BLOCK_SIZE);
   }
 }
 
-const Bitmap* 
+const bitmap_t* 
 BitTable::get_bitmap(entity_id_t id) const
 {
-  uint32_t bitset_id = id / TABLE_BLOCK_SIZE;
-  Bitmap* bitmap = get_bitset(bitset_id);
-  if(bitmap == nullptr) 
-  {
-    bitmap = m_bitmaps.insert_new(bitset_id, TABLE_BLOCK_SIZE);
-  }
+  uint32_t bitset_id = id / FURIOUS_TABLE_BLOCK_SIZE;
+  bitmap_t* bitmap = get_bitset(bitset_id);
   return bitmap;
 }
 
@@ -84,85 +116,95 @@ BitTable::size()
 void
 BitTable::clear()
 {
-  BTree<Bitmap>::Iterator it = m_bitmaps.iterator();
-  while(it.has_next())
+  btree_iter_t it = btree_iter_create(m_bitmaps);
+  while(btree_iter_has_next(&it))
   {
-    it.next().p_value->all_zeros();
+    btree_entry_t entry = btree_iter_next(&it);
+    bitmap_nullify((bitmap_t*)entry.p_value);
   }
+  btree_iter_destroy(&it);
   m_size = 0;
 }
 
 void
 BitTable::apply_bitset(uint32_t id,
-                     const Bitmap* bitmap,
-                     logic_operation_t operation)
+                       const bitmap_t* bitmap,
+                       logic_operation_t operation)
 {
-  Bitmap* bm = get_bitset(id);
+  bitmap_t* bm = get_bitset(id);
   switch(operation)
   {
     case logic_operation_t::E_AND:
       if(bm != nullptr)
       {
-        m_size -= bm->num_set();
-        bm->set_and(bitmap);
-        m_size += bm->num_set();
+        m_size -= bm->m_num_set;
+        bitmap_set_and(bm, bitmap);
+        m_size += bm->m_num_set;
       }
       break;
     case logic_operation_t::E_OR:
       if(bm != nullptr)
       {
-        m_size -= bm->num_set();
-        bm->set_or(bitmap);
-        m_size += bm->num_set();
+        m_size -= bm->m_num_set;
+        bitmap_set_or(bm, bitmap);
+        m_size += bm->m_num_set;
       }
       else
       {
-        Bitmap* nbitmap = m_bitmaps.insert_new(id,TABLE_BLOCK_SIZE);
-        nbitmap->set_or(bitmap);
-        m_size += nbitmap->num_set();
+        void** ptr = btree_insert(m_bitmaps, id).p_place;
+        *ptr = mem_alloc(&m_allocator, 
+                         1, 
+                         sizeof(bitmap_t), 
+                         -1);
+        bitmap_t* nbitmap = (bitmap_t*)*ptr;
+        *nbitmap = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &m_allocator);
+        bitmap_set_or(nbitmap,bitmap);
+        m_size += nbitmap->m_num_set;
       }
       break;
     case logic_operation_t::E_DIFF:
       if(bm != nullptr)
       {
-        m_size -= bm->num_set();
-        bm->set_diff(bitmap);
-        m_size += bm->num_set();
+        m_size -= bm->m_num_set;
+        bitmap_set_diff(bm, bitmap);
+        m_size += bm->m_num_set;
       }
       break;
   };
 }
 
-Bitmap*
+bitmap_t*
 BitTable::get_bitset(uint32_t bitset_id) const
 {
-  return m_bitmaps.get(bitset_id);
+  return (bitmap_t*)btree_get(m_bitmaps,bitset_id);
 }
 
 void
-bittable_union(BitTable* first, const BitTable* second)
+bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second)
 {
-  BTree<Bitmap>::Iterator it = second->m_bitmaps.iterator();
-  while(it.has_next())
+  btree_iter_t it = btree_iter_create(second->m_bitmaps);
+  while(btree_iter_has_next(&it))
   {
-    BTree<Bitmap>::Entry entry = it.next();
+    btree_entry_t entry = btree_iter_next(&it);
     first->apply_bitset(entry.m_key, 
-                        entry.p_value, 
+                        (bitmap_t*)entry.p_value, 
                         BitTable::logic_operation_t::E_OR);
   }
+  btree_iter_destroy(&it);
 }
 
 void
-bittable_difference(BitTable* first, const BitTable* second)
+bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second)
 {
-  BTree<Bitmap>::Iterator it = second->m_bitmaps.iterator();
-  while(it.has_next())
+  btree_iter_t it = btree_iter_create(second->m_bitmaps);
+  while(btree_iter_has_next(&it))
   {
-    BTree<Bitmap>::Entry entry = it.next();
+    btree_entry_t entry = btree_iter_next(&it);
     first->apply_bitset(entry.m_key, 
-                        entry.p_value, 
+                        (bitmap_t*)entry.p_value, 
                         BitTable::logic_operation_t::E_DIFF);
   }
+  btree_iter_destroy(&it);
 }
 
 } /* furious

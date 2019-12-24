@@ -24,7 +24,7 @@ TEST(TableTest,TableWorks)
   FURIOUS_CREATE_TABLE(database, Component);
   //database.add_table<Component>();
   TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
-  int32_t num_components = TABLE_BLOCK_SIZE*2048;
+  int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_components; ++i) 
   {
@@ -39,10 +39,10 @@ TEST(TableTest,TableWorks)
   {
     TableView<Component>::Block block = iterator.next();
     Component* data = block.get_data();
-    const Bitmap* mask = block.get_enabled();
+    const bitmap_t* mask = block.get_enabled();
     for (size_t i = 0; i < block.get_size(); ++i) 
     {
-      ASSERT_TRUE(mask->is_set(i));
+      ASSERT_TRUE(bitmap_is_set(mask, i));
       ASSERT_EQ(data[i].field1_, counter);
       ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
       counter++;
@@ -66,16 +66,16 @@ TEST(TableTest,TableWorks)
   counter = 0;
   while (iterator2.has_next()) {
     TableView<Component>::Block block = iterator2.next();
-    const Bitmap* mask = block.get_enabled();
+    const bitmap_t* mask = block.get_enabled();
     Component* data = block.get_data();
     for (size_t i = 0; i < block.get_size(); ++i) {
       if(i % 2 == 0) 
       {
-        ASSERT_FALSE(mask->is_set(i));
+        ASSERT_FALSE(bitmap_is_set(mask, i));
       } 
       else 
       {
-        ASSERT_TRUE(mask->is_set(i));
+        ASSERT_TRUE(bitmap_is_set(mask, i));
         ASSERT_EQ(data[i].field1_, counter);
         ASSERT_EQ(data[i].field2_, static_cast<float>(counter));
         num_real++;
@@ -100,7 +100,7 @@ TEST(IteratorTest,TableWorks)
   Database* database = new Database();
   FURIOUS_CREATE_TABLE(database, Component);
   TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
-   int32_t num_components = TABLE_BLOCK_SIZE*2048;
+   int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_components; ++i) 
   {
@@ -111,7 +111,7 @@ TEST(IteratorTest,TableWorks)
   while(it.has_next())
   {
     TableView<Component>::Block block = it.next();
-    uint32_t block_start = block.get_start() / TABLE_BLOCK_SIZE;
+    uint32_t block_start = block.get_start() / FURIOUS_TABLE_BLOCK_SIZE;
     ASSERT_TRUE(block_start % 2 == 0);
   }
 
@@ -119,7 +119,7 @@ TEST(IteratorTest,TableWorks)
   while(it2.has_next())
   {
     TableView<Component>::Block block = it2.next();
-    uint32_t block_start = block.get_start() / TABLE_BLOCK_SIZE;
+    uint32_t block_start = block.get_start() / FURIOUS_TABLE_BLOCK_SIZE;
     ASSERT_TRUE(block_start % 2 == 1);
   }
 

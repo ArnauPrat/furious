@@ -27,7 +27,7 @@ report_parsing_error(const SourceManager& sm,
   uint32_t line = get_line_number(sm, location);
   uint32_t column = get_column_number(sm, location);
 
-  fcc_context_report_parsing_error(fcc_parsing_error_type_t::E_UNSUPPORTED_TYPE_MODIFIER,
+  FCC_CONTEXT_REPORT_PARSING_ERROR(fcc_parsing_error_type_t::E_UNSUPPORTED_TYPE_MODIFIER,
                                    filename,
                                    line,
                                    column,
@@ -95,8 +95,7 @@ print_debug_info(const ASTContext* ast_context,
 
 bool
 is_global(ASTContext* ast_context,
-          QualType qtype
-         )
+          QualType qtype)
 {
   
   if(isa<ClassTemplateSpecializationDecl>(qtype->getAsCXXRecordDecl()))

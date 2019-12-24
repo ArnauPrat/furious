@@ -1,175 +1,130 @@
 
 #include "block_cluster.h"
 #include "../../common/platform.h"
+#include "table.h"
+#include "../../common/bitmap.h"
 
 namespace furious
 {
 
-#define _FURIOUS_INVALID_BLOCK_START 0xffffffff
+#define FURIOUS_INVALID_BLOCK_START 0xffffffff
 
-BlockCluster::BlockCluster() :
-m_num_columns(0),
-p_enabled(nullptr),
-p_global(nullptr),
-m_start(_FURIOUS_INVALID_BLOCK_START) 
+block_cluster_t
+block_cluster_create(mem_allocator_t* allocator) 
 {
+
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
+  block_cluster_t bc;
+  bc.m_num_columns = 0;
+  bc.m_start = FURIOUS_INVALID_BLOCK_START;
+  bc.m_enabled = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, allocator != nullptr ? allocator : &global_mem_allocator);
+  bc.m_global = bitmap_create(FURIOUS_MAX_CLUSTER_SIZE, allocator != nullptr ? allocator : &global_mem_allocator);
+  memset(&bc.p_blocks,0, sizeof(void*)*FURIOUS_MAX_CLUSTER_SIZE);
+  return bc;
 }
 
-BlockCluster::BlockCluster(TBlock* block) :
-m_num_columns(1),
-p_enabled(nullptr),
-p_global(nullptr),
-m_start(block->m_start) 
+void
+block_cluster_destroy(block_cluster_t* bc, 
+                      mem_allocator_t* allocator)
 {
-  p_enabled = new Bitmap(block->p_enabled->max_bits());
-  p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
-  p_enabled->set_bitmap(block->p_enabled);
-  m_blocks[0] = block;
-}
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
 
-BlockCluster::BlockCluster(const BlockCluster& block) : 
-m_num_columns(block.m_num_columns),
-p_enabled(nullptr),
-p_global(nullptr),
-m_start(block.m_start)
-{
-  if(block.p_enabled != nullptr)
-  {
-    p_enabled = new Bitmap(block.p_enabled->max_bits());
-    p_enabled->set_bitmap(block.p_enabled);
-  }
-  if(block.p_global != nullptr)
-  {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
-    p_global->set_bitmap(block.p_global);
-  }
-  for(uint32_t i = 0; i < block.m_num_columns; ++i)
-  {
-    m_blocks[i] = block.m_blocks[i];
-  }
-}
-
-BlockCluster::~BlockCluster()
-{
-
-  if(p_enabled != nullptr)
-  {
-    delete p_enabled;
-  }
-
-  if(p_global != nullptr)
-  {
-    delete p_global;
-  }
-}
-
-void BlockCluster::append(TBlock* block)
-{
-  FURIOUS_ASSERT(m_num_columns < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
-  FURIOUS_ASSERT((m_start == _FURIOUS_INVALID_BLOCK_START || m_start == block->m_start ) && "Unaligned block cluster");
-
-  if(m_start == _FURIOUS_INVALID_BLOCK_START)
-  {
-    m_start = block->m_start;
-  }
-  if(p_enabled == nullptr)
-  {
-    p_enabled = new Bitmap(block->p_enabled->max_bits());
-    p_enabled->set_bitmap(block->p_enabled);
-  }
-
-  if(p_global == nullptr)
-  {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
-  }
-
-  m_blocks[m_num_columns] = block;
-  m_num_columns++;
-  p_enabled->set_and(block->p_enabled);
+  bitmap_destroy(&bc->m_enabled, allocator != nullptr ? allocator : &global_mem_allocator);
+  bitmap_destroy(&bc->m_global, allocator != nullptr ? allocator : &global_mem_allocator);
 }
 
 void 
-BlockCluster::append_global(void* global)
+block_cluster_append(block_cluster_t* bc,
+                     TBlock* block)
 {
-  if(p_global == nullptr)
+  FURIOUS_ASSERT(bc->m_num_columns < FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
+  FURIOUS_ASSERT((bc->m_start == FURIOUS_INVALID_BLOCK_START || bc->m_start == block->m_start ) && "Unaligned block cluster");
+
+  if(bc->m_start == FURIOUS_INVALID_BLOCK_START)
   {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
+    bc->m_start = block->m_start;
+    bitmap_set_bitmap(&bc->m_enabled, &block->m_enabled);
   }
-  p_global->set(m_num_columns);
-  m_blocks[m_num_columns] = global;
-  m_num_columns++;
+
+  bc->p_blocks[bc->m_num_columns] = block;
+  bc->m_num_columns++;
+  bitmap_set_and(&bc->m_enabled, &block->m_enabled);
 }
 
-void BlockCluster::append(const BlockCluster* other)
+void 
+block_cluster_append_global(block_cluster_t* bc, 
+                            void* global)
 {
-  if(m_start == _FURIOUS_INVALID_BLOCK_START)
-  {
-    // We need to check this because either the blockcluster is empty or it just
-    // has globals
-    m_start = other->m_start;
-  }
+  bitmap_set(&bc->m_global, bc->m_num_columns);
+  bc->p_blocks[bc->m_num_columns] = global;
+  bc->m_num_columns++;
+}
 
-  FURIOUS_ASSERT((m_start == other->m_start || 
-          (other->m_start == _FURIOUS_INVALID_BLOCK_START && other->p_global->is_set(0) && other->m_num_columns == 1)) 
-         && "Trying to append unaligned blockclusters with different start values");
+void 
+block_cluster_append(FURIOUS_RESTRICT(block_cluster_t*) bc, 
+                     FURIOUS_RESTRICT(const block_cluster_t*) other)
+{
+  FURIOUS_ASSERT(((bc->m_start == other->m_start) || 
+                  (bc->m_start == FURIOUS_INVALID_BLOCK_START || other->m_start == FURIOUS_INVALID_BLOCK_START) )&&
+                  "Trying to append unaligned blockclusters with different start values");
 
-  if(other->p_enabled != nullptr)
+  if(other->m_start != FURIOUS_INVALID_BLOCK_START)
   {
-    if(p_enabled == nullptr)
+    if(bc->m_start == FURIOUS_INVALID_BLOCK_START)
     {
-      p_enabled = new Bitmap(other->p_enabled->max_bits());
-      p_enabled->set_bitmap(other->p_enabled);
+      bitmap_set_bitmap(&bc->m_enabled, &other->m_enabled);
     }
     else
     {
-      p_enabled->set_and(other->p_enabled);
+      bitmap_set_and(&bc->m_enabled, &other->m_enabled);
     }
+    bc->m_start = other->m_start;
   }
 
-  if(p_global == nullptr)
-  {
-    p_global = new Bitmap(_FURIOUS_MAX_CLUSTER_SIZE);
-  }
   for(size_t i = 0; i < other->m_num_columns; ++i)
   {
-    FURIOUS_ASSERT(m_num_columns < _FURIOUS_MAX_CLUSTER_SIZE && "Cannot append cluster. Not enough room");
-    m_blocks[m_num_columns] = other->m_blocks[i];
-    if(other->p_global->is_set(i))
+    FURIOUS_ASSERT(bc->m_num_columns < FURIOUS_MAX_CLUSTER_SIZE && "Cannot append cluster. Not enough room");
+    bc->p_blocks[bc->m_num_columns] = other->p_blocks[i];
+    if(bitmap_is_set(&other->m_global, i))
     {
-      p_global->set(m_num_columns);
+      bitmap_set(&bc->m_global, bc->m_num_columns);
     }
-    m_num_columns++;
+    bc->m_num_columns++;
   }
 }
 
-void BlockCluster::filter(const BlockCluster* other)
+void 
+block_cluster_filter(FURIOUS_RESTRICT(block_cluster_t*) bc, 
+                     FURIOUS_RESTRICT(const block_cluster_t*) other)
 {
-  if(p_enabled == nullptr)
-  {
-    p_enabled = new Bitmap(other->p_enabled->max_bits());
-  }
-  p_enabled->set_and(other->p_enabled);
+  bitmap_set_and(&bc->m_enabled, &other->m_enabled);
 }
 
 TBlock* 
-BlockCluster::get_tblock(uint32_t index) const
+block_cluster_get_tblock(block_cluster_t* bc, 
+                         uint32_t index)
 {
-  FURIOUS_ASSERT(!p_global->is_set(index) && "Trying to get tblock which is a global from a BlockCluster");
-  return (TBlock*)m_blocks[index];
+  FURIOUS_ASSERT(!bitmap_is_set(&bc->m_global, index) && "Trying to get tblock which is a global from a BlockCluster");
+  return (TBlock*)bc->p_blocks[index];
 }
 
 void* 
-BlockCluster::get_global(uint32_t index) const
+block_cluster_get_global(block_cluster_t* bc, 
+                         uint32_t index)
 {
-  FURIOUS_ASSERT(p_global->is_set(index) && "Trying to get global which is a tblock from a BlockCluster");
-  return m_blocks[index];
+  FURIOUS_ASSERT(bitmap_is_set(&bc->m_global, index) && "Trying to get global which is a tblock from a BlockCluster");
+  return bc->p_blocks[index];
 }
 
 bool
-BlockCluster::has_elements() const
+block_cluster_has_elements(block_cluster_t* bc)
 {
-  return (p_enabled != nullptr && p_enabled->num_set() > 0) ||
-  (p_enabled == nullptr && p_global->is_set(0));
+  return (bc->m_enabled.m_num_set > 0) ||
+          bitmap_is_set(&bc->m_global, 0);
 }
   
 } /* furious */ 

@@ -1,11 +1,13 @@
-
-
+#include "types.h"
 #include "platform.h"
 #include "bitmap.h"
 #include <string.h>
 
 namespace furious
 {
+
+void
+bitmap_refresh_num_set(bitmap_t* bitmap);
 
 // Lookup table used to efficiently implement refresh_num_set operation
 uint8_t count_bits_lookup[16] = {
@@ -27,7 +29,7 @@ uint8_t count_bits_lookup[16] = {
   4, // 15:1111
 };
 
-static bool 
+bool 
 set_bit_true(uint8_t* data, uint32_t bit)
 {
   FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
@@ -39,7 +41,7 @@ set_bit_true(uint8_t* data, uint32_t bit)
   return changed;
 }
 
-static bool 
+bool 
 set_bit_false(uint8_t* data, uint32_t bit)
 {
   FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
@@ -52,161 +54,253 @@ set_bit_false(uint8_t* data, uint32_t bit)
   return changed;
 }
 
-static bool
-read_bit(uint8_t* data, uint32_t bit)
+bool
+read_bit(const uint8_t* data, uint32_t bit)
 {
   FURIOUS_ASSERT(bit >= 0 && bit <= 7 && "Cannot set bit. Bit is out of range");
   uint32_t mask = 1 << bit;
   return (*data & mask);
 }
 
-Bitmap::Bitmap(uint32_t size) :
-m_max_bits(size),
-m_num_chunks((m_max_bits + 7) / 8),
-m_num_set(0)
+uint32_t
+num_chunks(uint32_t max_bits)
 {
-  uint32_t buffer_size = (m_max_bits + 7) / 8;
-  p_data = new uint8_t[buffer_size];
-  memset(p_data, 0, sizeof(uint8_t)*buffer_size);
-}
-
-Bitmap::~Bitmap()
-{
-  delete [] p_data;
+  return (max_bits + 7) / 8;
 }
 
 
+/**
+ * \brief Initializes a bitmap
+ *
+ * \return  The created bitmap
+ */
+bitmap_t
+bitmap_create(uint32_t max_bits, mem_allocator_t* allocator)
+{
+  FURIOUS_ASSERT(allocator != nullptr && "Allocator cannot be null");
+  FURIOUS_ASSERT((allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr) &&
+                 "Provided allocator is ill-formed.")
+
+  bitmap_t bitmap;
+  bitmap.m_max_bits = max_bits;
+  bitmap.m_num_set = 0;
+  uint32_t nchunks = num_chunks(bitmap.m_max_bits);
+  bitmap.p_data = (uint8_t*)mem_alloc(allocator, 
+                                      64, 
+                                      sizeof(uint8_t)*nchunks, 
+                                      -1);
+  memset(bitmap.p_data, 0, sizeof(uint8_t)*nchunks);
+  return bitmap;
+}
+
+/**
+ * \brief  Releases a bitmap
+ *
+ * \param bitmap
+ */
 void
-Bitmap::set(uint32_t element)
+bitmap_destroy(bitmap_t* bitmap, mem_allocator_t* allocator)
 {
-  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(allocator != nullptr && "Allocator cannot be null");
+  FURIOUS_ASSERT((allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr) &&
+                 "Provided allocator is ill-formed.")
+  mem_free(allocator, bitmap->p_data);
+}
+
+/**
+ * \brief Sets to one the ith element of the bitmap
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to set
+ */
+void
+bitmap_set(bitmap_t* bitmap, 
+           uint32_t element)
+{
+  FURIOUS_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
-  bool res = set_bit_true(&p_data[chunk], offset);
-  m_num_set += res*1;
+  bool res = set_bit_true(&bitmap->p_data[chunk], offset);
+  bitmap->m_num_set += res*1;
 }
 
+/**
+ * \brief Sets to 0 the ith element of the bitmap
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The ith element to set
+ */
 void
-Bitmap::unset(uint32_t element)
+bitmap_unset(bitmap_t* bitmap, 
+             uint32_t element)
 {
-  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
-  bool res = set_bit_false(&p_data[chunk], offset);
-  m_num_set -= res*1;
+  bool res = set_bit_false(&bitmap->p_data[chunk], offset);
+  bitmap->m_num_set -= res*1;
 }
 
+/**
+ * \brief Sets the bit of the given element to the specified value
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to set the bit for
+ * \param value The value to set the bit to
+ */
 void
-Bitmap::set_bit(uint32_t element, bool value)
+bitmap_set_bit(bitmap_t* bitmap, 
+               uint32_t element, 
+               bool value)
 {
-  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   if(value)
   {
-    bool res = set_bit_true(&p_data[chunk], offset);
-    m_num_set += res*1;
+    bool res = set_bit_true(&bitmap->p_data[chunk], offset);
+    bitmap->m_num_set += res*1;
   } 
   else
   {
-    bool res = set_bit_false(&p_data[chunk], offset);
-    m_num_set -= res*1;
+    bool res = set_bit_false(&bitmap->p_data[chunk], offset);
+    bitmap->m_num_set -= res*1;
   }
 }
 
+/**
+ * \brief Checks if a given element is set to 1
+ *
+ * \param bitmap The bitmap to perform the operation
+ * \param element The element to check
+ *
+ * \return True if the element is set to 1
+ */
 bool
-Bitmap::is_set(uint32_t element) const
+bitmap_is_set(const bitmap_t* bitmap, 
+              uint32_t element)
 {
-  FURIOUS_ASSERT(element < m_max_bits && "Bit out of range");
+  FURIOUS_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
-  return read_bit(&p_data[chunk], offset);
+  return read_bit(&bitmap->p_data[chunk], offset);
 }
 
-uint32_t
-Bitmap::num_set() const
-{
-  return m_num_set;
-}
-
-uint32_t
-Bitmap::max_bits() const
-{
-  return m_max_bits;
-}
-
+/**
+ * \brief Sets the bits based on the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
 void
-Bitmap::set_bitmap(const Bitmap* bitmap)
+bitmap_set_bitmap(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
+                  FURIOUS_RESTRICT(const bitmap_t*) src_bitmap)
 {
-  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot set from a bitmap of a different size");
-  m_max_bits = bitmap->m_max_bits;
-  m_num_set = bitmap->m_num_set;
-  memcpy(p_data, bitmap->p_data, sizeof(uint8_t)*m_num_chunks);
+  FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
+  dst_bitmap->m_num_set = src_bitmap->m_num_set;
+  memcpy(dst_bitmap->p_data, src_bitmap->p_data, sizeof(uint8_t)*nchunks);
 }
 
+/**
+ * \brief Ands this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
 void
-Bitmap::set_and(const Bitmap* bitmap)
+bitmap_set_and(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
+               FURIOUS_RESTRICT(const bitmap_t*) src_bitmap)
 {
-  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
+  for(uint32_t i = 0; i < nchunks; ++i)
   {
-    p_data[i] = p_data[i] & bitmap->p_data[i];
+    dst_bitmap->p_data[i] = dst_bitmap->p_data[i] & src_bitmap->p_data[i];
   }
-
-  refresh_num_set();
+  bitmap_refresh_num_set(dst_bitmap);
 }
 
+/**
+ * \brief Ors this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
 void
-Bitmap::set_or(const Bitmap* bitmap)
+bitmap_set_or(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
+              FURIOUS_RESTRICT(const bitmap_t*) src_bitmap)
 {
-  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
+  for(uint32_t i = 0; i < nchunks; ++i)
   {
-    p_data[i] = p_data[i] | bitmap->p_data[i];
+    dst_bitmap->p_data[i] = dst_bitmap->p_data[i] | src_bitmap->p_data[i];
   }
 
   // This needs to be improved with a lookup table
-  refresh_num_set();
+  bitmap_refresh_num_set(dst_bitmap);
 }
 
+/**
+ * \brief Diffs this bitmap with the given bitmap
+ *
+ * \param dst_bitmap The bitmap to set the bits to 
+ * \param src_bitmap The bitmap to set the bits from
+ */
 void
-Bitmap::set_diff(const Bitmap* bitmap)
+bitmap_set_diff(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
+                FURIOUS_RESTRICT(const bitmap_t*) src_bitmap)
 {
-  FURIOUS_ASSERT(this->m_max_bits == bitmap->m_max_bits && "Cannot AND two bitmaps of a different sizes");
-  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
+  for(uint32_t i = 0; i < nchunks; ++i)
   {
-    p_data[i] = p_data[i] & (p_data[i] ^ bitmap->p_data[i]);
+    dst_bitmap->p_data[i] = dst_bitmap->p_data[i] & (dst_bitmap->p_data[i] ^ src_bitmap->p_data[i]);
   }
-  refresh_num_set();
+  bitmap_refresh_num_set(dst_bitmap);
 }
 
+/**
+ * \brief Negates the contents of this bitmap
+ *
+ * \param bitmap The bitmap to set the bits to 
+ */
 void
-Bitmap::set_negate()
+bitmap_negate(bitmap_t* bitmap)
 {
-  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  uint32_t nchunks = num_chunks(bitmap->m_max_bits);
+  for(uint32_t i = 0; i < nchunks; ++i)
   {
-    p_data[i] = ~p_data[i];
+    bitmap->p_data[i] = ~bitmap->p_data[i];
   }
-  refresh_num_set();
+  bitmap_refresh_num_set(bitmap);
+}
+
+/**
+ * \brief Sets the bitmap to all zeros
+ *
+ * \param bitmap The bitmap to nullify
+ */
+void
+bitmap_nullify(bitmap_t* bitmap)
+{
+  uint32_t nchunks = num_chunks(bitmap->m_max_bits);
+  bitmap->m_num_set = 0;
+  memset(bitmap->p_data, 0, sizeof(uint8_t)*nchunks);
 }
 
 void
-Bitmap::all_zeros()
+bitmap_refresh_num_set(bitmap_t* bitmap)
 {
-  memset(p_data,0,m_num_chunks*sizeof(uint8_t));
-}
-
-void
-Bitmap::refresh_num_set()
-{
-  m_num_set = 0;
-  for(uint32_t i = 0; i < m_num_chunks; ++i)
+  bitmap->m_num_set = 0;
+  uint32_t nchunks = num_chunks(bitmap->m_max_bits);
+  for(uint32_t i = 0; i < nchunks; ++i)
   {
-    uint8_t left = p_data[i] >> 4;
-    uint8_t right = p_data[i] & 0x0f;
-    m_num_set+=count_bits_lookup[left] + count_bits_lookup[right];
+    uint8_t left = bitmap->p_data[i] >> 4;
+    uint8_t right = bitmap->p_data[i] & 0x0f;
+    bitmap->m_num_set+=count_bits_lookup[left] + count_bits_lookup[right];
   }
 }
-
-} /* furious
-*/ 
+  
+} /* furious */ 

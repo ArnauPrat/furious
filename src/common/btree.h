@@ -18,15 +18,15 @@ struct BTree
 {
   struct Entry
   {
-    entity_id_t m_key;
+    uint32_t    m_key;
     T*          p_value;
   };
 
   struct Iterator 
   {
   public:
-    Iterator(BTRoot* root);
-    ~Iterator() = default;
+    Iterator(btree_t* root);
+    ~Iterator();
 
     bool 
     has_next() const;
@@ -35,10 +35,10 @@ struct BTree
     next();
     
   private:
-    BTIterator m_iterator;
+    mutable btree_iter_t m_iterator;
   };
 
-  BTree();
+  BTree(mem_allocator_t* allocator = nullptr);
   BTree(const BTree&) = delete;
   BTree(BTree&&) = delete;
   ~BTree();
@@ -121,8 +121,9 @@ struct BTree
   void clear();
 
 private:
-   BTRoot*    p_root;
-   size_t     m_size;
+   btree_t*     p_root;
+   size_t       m_size;
+  mem_allocator_t m_allocator;
 };
 
 } /* furious */ 

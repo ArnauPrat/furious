@@ -69,8 +69,7 @@ BitTable::add(entity_id_t id)
                                  sizeof(bitmap_t), 
                                  FURIOUS_NO_HINT);
     *bitmap = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &m_allocator);
-    void** ptr = btree_insert(m_bitmaps, bitset_id).p_place;
-    *ptr = bitmap;
+    btree_insert(m_bitmaps, bitset_id, bitmap);
   }
   FURIOUS_ASSERT(bitmap->m_num_set <= FURIOUS_TABLE_BLOCK_SIZE && "Bitmap num set out of bounds");
   
@@ -128,10 +127,10 @@ BitTable::clear()
 
 void
 BitTable::apply_bitset(uint32_t id,
-                       const bitmap_t* bitmap,
+                       FURIOUS_RESTRICT(const bitmap_t*) bitmap,
                        logic_operation_t operation)
 {
-  bitmap_t* bm = get_bitset(id);
+  FURIOUS_RESTRICT(bitmap_t*) bm = get_bitset(id);
   switch(operation)
   {
     case logic_operation_t::E_AND:
@@ -151,13 +150,12 @@ BitTable::apply_bitset(uint32_t id,
       }
       else
       {
-        void** ptr = btree_insert(m_bitmaps, id).p_place;
-        *ptr = mem_alloc(&m_allocator, 
-                         1, 
-                         sizeof(bitmap_t), 
-                         -1);
-        bitmap_t* nbitmap = (bitmap_t*)*ptr;
+        FURIOUS_RESTRICT(bitmap_t*) nbitmap = (bitmap_t*)mem_alloc(&m_allocator, 
+                                                                   1, 
+                                                                   sizeof(bitmap_t), 
+                                                                   -1);
         *nbitmap = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &m_allocator);
+        btree_insert(m_bitmaps, id, nbitmap);
         bitmap_set_or(nbitmap,bitmap);
         m_size += nbitmap->m_num_set;
       }
@@ -182,6 +180,7 @@ BitTable::get_bitset(uint32_t bitset_id) const
 void
 bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second)
 {
+  FURIOUS_ASSERT( first != second && "Cannot call union the same BitTable");
   btree_iter_t it = btree_iter_create(second->m_bitmaps);
   while(btree_iter_has_next(&it))
   {
@@ -196,6 +195,7 @@ bittable_union(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTabl
 void
 bittable_difference(FURIOUS_RESTRICT(BitTable*) first, FURIOUS_RESTRICT(const BitTable*) second)
 {
+  FURIOUS_ASSERT( first != second && "Cannot call difference the same BitTable");
   btree_iter_t it = btree_iter_create(second->m_bitmaps);
   while(btree_iter_has_next(&it))
   {

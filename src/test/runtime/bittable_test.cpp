@@ -109,6 +109,15 @@ TEST(BitTableTest, BitTableUnion)
     ASSERT_TRUE(bittable1->exists(i));
   }
 
+  bittable_union(bittable1, bittable2);
+
+  for(uint32_t i = 0;
+      i < num_elements; 
+      ++i)
+  {
+    ASSERT_TRUE(bittable1->exists(i));
+  }
+
   bittable1->clear();
   bittable2->clear();
 

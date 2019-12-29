@@ -30,7 +30,7 @@ copy_component_ptr(uint32_t chunk_size,
                    uint32_t stride,
                    entity_id_t source,
                    entity_id_t target,
-                   const DynArray<FURIOUS_RESTRICT(hashtable_t*)>* hash_tables, 
+                   const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables, 
                    FURIOUS_RESTRICT(Table*)* tables,
                    uint32_t num_tables);
 
@@ -86,7 +86,7 @@ frontiers_union(const DynArray<FURIOUS_RESTRICT(BitTable*)>* next_frontiers,
 template <typename...TComponents>
 void
 gather(block_cluster_t* cluster,
-       const DynArray<FURIOUS_RESTRICT(hashtable_t*)>* hash_tables,
+       const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables,
        uint32_t chunk_size, 
        uint32_t stride,
        TableView<TComponents>*...table_view);

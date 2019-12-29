@@ -201,6 +201,7 @@ template<typename T>
 T& 
 DynArray<T>::operator[](std::size_t index)
 {
+  FURIOUS_ASSERT(index < m_num_elements && "Index out of bounds");
   return ((T*)p_data)[index];
 }
 
@@ -208,6 +209,7 @@ template<typename T>
 const T& 
 DynArray<T>::operator[](std::size_t index) const
 {
+  FURIOUS_ASSERT(index < m_num_elements && "Index out of bounds");
   return ((T*)p_data)[index];
 }
 

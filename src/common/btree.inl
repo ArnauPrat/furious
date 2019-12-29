@@ -84,7 +84,7 @@ template<typename T>
 T* 
 BTree<T>::insert_copy(uint32_t key, const T* element) 
 {
-  btree_insert_t insert = btree_insert(p_root, key);
+  btree_insert_t insert = btree_insert(p_root, key, nullptr);
   if(insert.m_inserted)
   {
     *insert.p_place = mem_alloc(&m_allocator, 
@@ -103,7 +103,7 @@ template <typename...Args>
 T* 
 BTree<T>::insert_new(uint32_t key, Args &&... args)
 {
-  btree_insert_t insert = btree_insert(p_root, key);
+  btree_insert_t insert = btree_insert(p_root, key, nullptr);
   if(insert.m_inserted)
   {
     *insert.p_place = mem_alloc(&m_allocator, 

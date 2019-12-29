@@ -86,7 +86,7 @@ bitmap_create(uint32_t max_bits, mem_allocator_t* allocator)
   bitmap.m_num_set = 0;
   uint32_t nchunks = num_chunks(bitmap.m_max_bits);
   bitmap.p_data = (uint8_t*)mem_alloc(allocator, 
-                                      64, 
+                                      FURIOUS_BITMAP_ALIGNMENT, 
                                       sizeof(uint8_t)*nchunks, 
                                       -1);
   memset(bitmap.p_data, 0, sizeof(uint8_t)*nchunks);
@@ -199,7 +199,9 @@ bitmap_set_bitmap(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap,
   FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
   uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
   dst_bitmap->m_num_set = src_bitmap->m_num_set;
-  memcpy(dst_bitmap->p_data, src_bitmap->p_data, sizeof(uint8_t)*nchunks);
+  FURIOUS_ALIGNED(FURIOUS_RESTRICT(void*), dst_data, FURIOUS_BITMAP_ALIGNMENT) = dst_bitmap->p_data;
+  FURIOUS_ALIGNED(FURIOUS_RESTRICT(void*), src_data, FURIOUS_BITMAP_ALIGNMENT) = src_bitmap->p_data;
+  memcpy(dst_data, src_data, sizeof(uint8_t)*nchunks);
 }
 
 /**
@@ -214,9 +216,11 @@ bitmap_set_and(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap,
 {
   FURIOUS_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
   uint32_t nchunks = num_chunks(dst_bitmap->m_max_bits);
+  FURIOUS_ALIGNED(FURIOUS_RESTRICT(uint8_t*), dst_data, FURIOUS_BITMAP_ALIGNMENT) = dst_bitmap->p_data;
+  FURIOUS_ALIGNED(FURIOUS_RESTRICT(uint8_t*), src_data, FURIOUS_BITMAP_ALIGNMENT) = src_bitmap->p_data;
   for(uint32_t i = 0; i < nchunks; ++i)
   {
-    dst_bitmap->p_data[i] = dst_bitmap->p_data[i] & src_bitmap->p_data[i];
+    dst_data[i] = dst_data[i] & src_data[i];
   }
   bitmap_refresh_num_set(dst_bitmap);
 }

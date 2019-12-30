@@ -121,7 +121,7 @@ void* linear_alloc_alloc(void* state,
   int32_t min_alignment = alignment > 16 ? alignment : 16;
   linear_alloc_t* lalloc = (linear_alloc_t*)state;
   linear_alloc_header_t* last_chunk = lalloc->p_last_chunk;
-  uint32_t modulo = ((uint64_t)&(((char*)last_chunk->p_data)[last_chunk->m_next_free])) % min_alignment;
+  uint32_t modulo = ((uint64_t)&(((char*)last_chunk->p_data)[last_chunk->m_next_free])) & (min_alignment-1);
   if(modulo != 0)
   {
     last_chunk->m_next_free += min_alignment - modulo;
@@ -147,7 +147,7 @@ void* linear_alloc_alloc(void* state,
     last_chunk->p_next_header = new_chunk;
     lalloc->p_last_chunk = new_chunk;
 
-    uint32_t modulo = ((uint64_t)&(((char*)new_chunk->p_data)[new_chunk->m_next_free])) % min_alignment;
+    uint32_t modulo = ((uint64_t)&(((char*)new_chunk->p_data)[new_chunk->m_next_free])) & (min_alignment-1);
     if(modulo != 0)
     {
       new_chunk->m_next_free += min_alignment - modulo;

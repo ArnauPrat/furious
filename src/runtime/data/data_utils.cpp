@@ -12,14 +12,14 @@ copy_component_ptr(uint32_t chunk_size,
                    uint32_t stride,
                    entity_id_t source,
                    entity_id_t target,
-                   const DynArray<FURIOUS_RESTRICT(hashtable_t*)>* hash_tables, 
+                   const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables, 
                    FURIOUS_RESTRICT(Table*)* tables,
                    uint32_t num_tables)
 {
   uint32_t other_block_id = (target / FURIOUS_TABLE_BLOCK_SIZE);
   uint32_t other_hash_table_index = block_get_offset(other_block_id, chunk_size, stride );
-  hashtable_t* hash_table = (*hash_tables)[other_hash_table_index];
-  block_cluster_t* cluster = (block_cluster_t*)hashtable_get(hash_table, other_block_id);
+  btree_t* hash_table = (*hash_tables)[other_hash_table_index];
+  block_cluster_t* cluster = (block_cluster_t*)btree_get(hash_table, other_block_id);
   if(cluster != nullptr)
   {
     if(bitmap_is_set(&cluster->m_enabled, target % FURIOUS_TABLE_BLOCK_SIZE))

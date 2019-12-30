@@ -15,7 +15,6 @@ struct TestValue
 {
   uint32_t m_val;
 };
-
 TEST(BTreeTest, btree_create) 
 {
   mem_allocator_t lallocator = linear_alloc_create();
@@ -81,20 +80,20 @@ TEST(BTreeTest, btree_next_leaf)
   for (uint32_t i = 0; i < FURIOUS_BTREE_LEAF_MAX_ARITY; ++i) 
   {
     TestValue* value = new TestValue();
-    value->m_val = i;
+    value->m_val = i*2;
     node->m_leaf.m_leafs[i] = value;
-    node->m_leaf.m_keys[i] = i*3;
+    node->m_leaf.m_keys[i] = i*2;
     node->m_leaf.m_nleafs++;
   }
 
   for (uint32_t i = 0; i < FURIOUS_BTREE_LEAF_MAX_ARITY; ++i) 
   {
-    ASSERT_EQ(btree_next_leaf(node,i*3), i);
+    ASSERT_EQ(btree_next_leaf(node,i*2), i);
   }
 
   for (uint32_t i = 0; i < FURIOUS_BTREE_LEAF_MAX_ARITY; ++i) 
   {
-    ASSERT_EQ(btree_next_leaf(node,i*3-(i != 0 ? 1 : 0)), i);
+    ASSERT_EQ(btree_next_leaf(node,i*2+1), i+1);
   }
 
   for (uint32_t i = 0; i < FURIOUS_BTREE_LEAF_MAX_ARITY; ++i) 
@@ -309,21 +308,17 @@ TEST(BTreeTest, btree_insert_root)
   btree_t root = btree_create();
   TestValue val1;
   TestValue val2;
-  btree_insert_t insert = btree_insert(&root, 0); 
+  btree_insert_t insert = btree_insert(&root, 0, &val1); 
   ASSERT_EQ(insert.m_inserted, true);
-  *insert.p_place = &val1;
 
-  insert =btree_insert(&root, 1); 
+  insert =btree_insert(&root, 1, &val2); 
   ASSERT_EQ(insert.m_inserted, true);
-  *insert.p_place = &val2;
 
-  insert =btree_insert(&root, 0); 
+  insert =btree_insert(&root, 0, &val1); 
   ASSERT_EQ(insert.m_inserted, false);
-  ASSERT_EQ(*insert.p_place, &val1);
 
-  insert =btree_insert(&root, 1); 
+  insert =btree_insert(&root, 1, &val2); 
   ASSERT_EQ(insert.m_inserted, false);
-  ASSERT_EQ(*insert.p_place, &val2);
 
   btree_destroy(&root);
 }
@@ -413,9 +408,8 @@ TEST(BTreeTest, BTIteratorTest)
   while(hashtable_iter_has_next(&iter))
   {
     TestValue* next = (TestValue*)hashtable_iter_next(&iter).p_value;
-    btree_insert_t insert = btree_insert(&btree, next->m_val);
+    btree_insert_t insert = btree_insert(&btree, next->m_val, next);
     ASSERT_TRUE(insert.m_inserted);
-    *insert.p_place = next;
   }
   hashtable_iter_destroy(&iter);
 
@@ -459,9 +453,7 @@ TEST(BTreeTest, BTreeSteps)
   uint32_t offset = 21604;
   for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
   {
-    btree_insert_t insert = btree_insert(&btree, i*stride + offset);
-    void* val = (void*)((uint64_t)i*stride + offset);
-    *insert.p_place = val;
+    btree_insert(&btree, i*stride + offset, (void*)((uint64_t)i*stride + offset));
   }
 
   for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 

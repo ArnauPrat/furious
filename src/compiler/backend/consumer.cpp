@@ -332,7 +332,7 @@ consume_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
     fprintf(fd, 
             "*cluster = block_cluster_create(&task_allocator);\n");
@@ -340,19 +340,17 @@ consume_join(FILE*fd,
             "block_cluster_append(cluster,%s);\n", 
             source); 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
-            hashtable, 
-            source); 
-
-
+            "btree_insert(&%s, cluster->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            hashtable); 
   }
   else 
   {
 
       fprintf(fd,
-              "block_cluster_t* build = (block_cluster_t*)hashtable_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
+              "block_cluster_t* build = (block_cluster_t*)btree_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
               hashtable,
               source);
+
       fprintf(fd,
               "if(build != nullptr)\n{\n");
       char clustername[MAX_CLUSTER_VARNAME];
@@ -408,7 +406,7 @@ consume_leftfilter_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -418,14 +416,14 @@ consume_leftfilter_join(FILE*fd,
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
   else 
   {
     fprintf(fd,
-            "block_cluster_t* build = (block_cluster_t*)hashtable_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
+            "block_cluster_t* build = (block_cluster_t*)btree_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
     fprintf(fd,
@@ -485,7 +483,7 @@ consume_cross_join(FILE*fd,
     str_builder_append(&str_builder,"left_%s", hashtable);
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -495,7 +493,7 @@ consume_cross_join(FILE*fd,
             source);
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
     str_builder_destroy(&str_builder);
@@ -506,7 +504,7 @@ consume_cross_join(FILE*fd,
     str_builder_append(&str_builder,"right_%s", hashtable);
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -516,7 +514,7 @@ consume_cross_join(FILE*fd,
             source);
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
     str_builder_destroy(&str_builder);
@@ -848,7 +846,7 @@ consume_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -859,7 +857,7 @@ consume_gather(FILE*fd,
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -914,7 +912,7 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -925,7 +923,7 @@ consume_cascading_gather(FILE*fd,
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&ref_%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&ref_%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -938,7 +936,7 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&global_mem_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
@@ -949,7 +947,7 @@ consume_cascading_gather(FILE*fd,
             source); 
 
     fprintf(fd, 
-            "hashtable_add(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
 

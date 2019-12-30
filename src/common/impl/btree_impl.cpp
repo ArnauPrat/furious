@@ -174,12 +174,28 @@ __btree_next_leaf(btree_node_t* node,
                   uint32_t key) 
 {
   FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
-  uint32_t i = 0;
+  /*uint32_t i = 0;
   for (; i < FURIOUS_BTREE_LEAF_MAX_ARITY && 
        node->m_leaf.m_leafs[i] != nullptr && 
        key > node->m_leaf.m_keys[i]; 
        ++i);
   return i;
+  */
+  int32_t left = 0;
+  int32_t right = node->m_leaf.m_nleafs;
+  while(left < right)
+  {
+    int32_t mid = (right + left) / 2;
+    if(node->m_leaf.m_keys[mid] < key)
+    {
+      left = mid+1;
+    }
+    else
+    {
+      right = mid;
+    }
+  }
+  return left;
 }
 
 
@@ -212,8 +228,8 @@ btree_get_node(btree_node_t* node,
   { // LEAF NODE
     uint32_t i = __btree_next_leaf(node, ekey);
     if(i < FURIOUS_BTREE_LEAF_MAX_ARITY &&
-       node->m_leaf.m_keys[i] == ekey && 
-       node->m_leaf.m_leafs[i] != nullptr)
+       node->m_leaf.m_leafs[i] != nullptr && 
+       node->m_leaf.m_keys[i] == ekey)
     {
       return node->m_leaf.m_leafs[i];
     }
@@ -374,7 +390,8 @@ btree_split_child_full(btree_t* btree,
 btree_insert_t 
 btree_insert_node(btree_t* btree, 
                   FURIOUS_RESTRICT(btree_node_t*) node, 
-                  uint32_t key) 
+                  uint32_t key, 
+                  void* ptr) 
 {
   if(node->m_type == btree_node_type_t::E_INTERNAL) 
   {
@@ -403,7 +420,7 @@ btree_insert_node(btree_t* btree,
                                    node, 
                                    child_idx, 
                                    key);
-    return btree_insert_node(btree, child, key);
+    return btree_insert_node(btree, child, key, ptr);
   } 
   else 
   { 
@@ -415,6 +432,7 @@ btree_insert_node(btree_t* btree,
                               node, 
                               pos, 
                               key);
+      node->m_leaf.m_leafs[pos] = ptr;
       return btree_insert_t{true, &node->m_leaf.m_leafs[pos]};
     }
     return btree_insert_t{false, &node->m_leaf.m_leafs[pos]};
@@ -424,7 +442,8 @@ btree_insert_node(btree_t* btree,
 
 btree_insert_t 
 btree_insert(btree_t* btree, 
-             uint32_t key) 
+             uint32_t key, 
+             void* ptr) 
 {
   btree_node_t* root = btree->p_root;
   FURIOUS_ASSERT(root->m_type == btree_node_type_t::E_INTERNAL);
@@ -469,7 +488,8 @@ btree_insert(btree_t* btree,
                                  key);
   return btree_insert_node(btree,
                            child, 
-                           key);
+                           key, 
+                           ptr);
 }
 
 void 

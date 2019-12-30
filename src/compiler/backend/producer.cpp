@@ -276,31 +276,38 @@ produce_join(FILE* fd,
 
 
   fprintf(fd,
-          "hashtable_t %s = hashtable_create(512);\n", 
+          "btree_t %s = btree_create(&task_allocator);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = join->p_subplan;
   produce(fd,&subplan->m_nodes[join->m_join.m_left], parallel_stream);
+
+
   produce(fd,&subplan->m_nodes[join->m_join.m_right], parallel_stream);
 
-  fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
-          hashtable, 
-          hashtable);
+
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", hashtable);
+          "btree_iter_t iter_%s = btree_iter_create(&%s);\n",
+          hashtable,
+          hashtable);
+
+  fprintf(fd, 
+          "while(btree_iter_has_next(&iter_%s))\n{\n",
+          hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&iter_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"hashtable_iter_destroy(&it_%s);\n", hashtable);
-  fprintf(fd,"hashtable_destroy(&%s);\n", hashtable);
+
+  fprintf(fd,
+          "btree_destroy(&%s);\n", 
+          hashtable);
 }
 
 void
@@ -315,7 +322,7 @@ produce_leftfilter_join(FILE* fd,
                           MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,
-          "hashtable_t %s = hashtable_create(512);\n", 
+          "btree_t %s = btree_create(&task_allocator);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = left_filter_join->p_subplan;
@@ -323,23 +330,23 @@ produce_leftfilter_join(FILE* fd,
   produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right], parallel_stream);
 
   fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
+          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
           hashtable,
           hashtable);
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"hashtable_iter_destroy(&it_%s);\n", hashtable);
-  fprintf(fd,"hashtable_destroy(&%s);\n", hashtable);
+  fprintf(fd,"btree_iter_destroy(&it_%s);\n", hashtable);
+  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
 }
 
 void
@@ -357,7 +364,7 @@ produce_cross_join(FILE* fd,
   str_builder_t str_builder_left = str_builder_create();
   str_builder_append(&str_builder_left, "left_%s", hashtable);
   fprintf(fd,
-          "hashtable_t %s = hashtable_create(512);\n", 
+          "btree_t %s = btree_create(&task_allocator);\n", 
           str_builder_left.p_buffer);
 
   fcc_subplan_t* subplan = cross_join->p_subplan;
@@ -366,15 +373,15 @@ produce_cross_join(FILE* fd,
   str_builder_t str_builder_right = str_builder_create();
   str_builder_append(&str_builder_right, "right_%s", hashtable);
   fprintf(fd,
-          "hashtable_t %s = hashtable_create(512);\n", 
+          "btree_t %s = btree_create(&task_allocator);\n", 
           str_builder_right.p_buffer);
   produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right], parallel_stream);
 
-  fprintf(fd, "hashtable_iter_t left_iter_hashtable_%d = hashtable_iter_create(&%s);\n", 
+  fprintf(fd, "btree_iter_t left_iter_hashtable_%d = btree_iter_create(&%s);\n", 
           cross_join->m_id, 
           str_builder_left.p_buffer);
 
-  fprintf(fd, "while(hashtable_iter_has_next(&left_iter_hashtable_%d))\n{\n", cross_join->m_id);
+  fprintf(fd, "while(btree_iter_has_next(&left_iter_hashtable_%d))\n{\n", cross_join->m_id);
 
   char cluster[MAX_CLUSTER_VARNAME];
   generate_cluster_name(cross_join, 
@@ -384,20 +391,20 @@ produce_cross_join(FILE* fd,
   str_builder_t str_builder_cluster_left = str_builder_create();
   str_builder_append(&str_builder_cluster_left,"left_%s", cluster);
   fprintf(fd,
-          "block_cluster_t* %s = (block_cluster_t*)hashtable_iter_next(&left_iter_hashtable_%d).p_value;\n", 
+          "block_cluster_t* %s = (block_cluster_t*)btree_iter_next(&left_iter_hashtable_%d).p_value;\n", 
           str_builder_cluster_left.p_buffer,
           cross_join->m_id);
 
-  fprintf(fd, "hashtable_iter_t right_iter_hashtable_%d = hashtable_iter_create(&%s);\n", 
+  fprintf(fd, "btree_iter_t right_iter_hashtable_%d = btree_iter_create(&%s);\n", 
           cross_join->m_id,
           str_builder_right.p_buffer);
 
-  fprintf(fd, "while(hashtable_iter_has_next(&right_iter_hashtable_%d))\n{\n", cross_join->m_id);
+  fprintf(fd, "while(btree_iter_has_next(&right_iter_hashtable_%d))\n{\n", cross_join->m_id);
 
   str_builder_t str_builder_cluster_right = str_builder_create();
   str_builder_append(&str_builder_cluster_right,"right_%s", cluster);
   fprintf(fd,
-          "block_cluster_t* %s = (block_cluster_t*)hashtable_iter_next(&right_iter_hashtable_%d).p_value;\n", 
+          "block_cluster_t* %s = (block_cluster_t*)btree_iter_next(&right_iter_hashtable_%d).p_value;\n", 
           str_builder_cluster_right.p_buffer,
           cross_join->m_id);
 
@@ -435,52 +442,52 @@ produce_cross_join(FILE* fd,
 
   fprintf(fd, 
           "}\n"); 
-  fprintf(fd,"hashtable_iter_destroy(&right_iter_hashtable_%d);\n", 
+  fprintf(fd,"btree_iter_destroy(&right_iter_hashtable_%d);\n", 
           cross_join->m_id);
   fprintf(fd, 
           "}\n"); 
 
   fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
+          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
           str_builder_left.p_buffer,
           str_builder_left.p_buffer);
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", str_builder_left.p_buffer);
+          "while(btree_iter_has_next(&it_%s))\n{\n", str_builder_left.p_buffer);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
           str_builder_left.p_buffer);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
 
-  fprintf(fd,"hashtable_iter_destroy(&it_%s);\n", 
+  fprintf(fd,"btree_iter_destroy(&it_%s);\n", 
           str_builder_left.p_buffer);
-  fprintf(fd,"hashtable_iter_destroy(&left_iter_hashtable_%d);\n", 
+  fprintf(fd,"btree_iter_destroy(&left_iter_hashtable_%d);\n", 
           cross_join->m_id);
-  fprintf(fd,"hashtable_destroy(&%s);\n", str_builder_left.p_buffer);
+  fprintf(fd,"btree_destroy(&%s);\n", str_builder_left.p_buffer);
 
   fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
+          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
           str_builder_right.p_buffer,
           str_builder_right.p_buffer);
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", str_builder_right.p_buffer);
+          "while(btree_iter_has_next(&it_%s))\n{\n", str_builder_right.p_buffer);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
           str_builder_right.p_buffer);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"hashtable_iter_destroy(&it_%s);\n", 
+  fprintf(fd,"btree_iter_destroy(&it_%s);\n", 
           str_builder_right.p_buffer);
-  fprintf(fd,"hashtable_destroy(&%s);\n", str_builder_right.p_buffer);
+  fprintf(fd,"btree_destroy(&%s);\n", str_builder_right.p_buffer);
 
   str_builder_destroy(&str_builder_joined_cluster);
   str_builder_destroy(&str_builder_cluster_left);
@@ -609,7 +616,7 @@ produce_gather(FILE* fd,
                           MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"hashtable_t %s = hashtable_create(512);\n", hashtable);
+  fprintf(fd,"btree_t %s = btree_create(&task_allocator);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -690,7 +697,7 @@ produce_gather(FILE* fd,
           "}\n");
 
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(hashtable_t*)> hash_tables;\n");
+          "DynArray<FURIOUS_RESTRICT(btree_t*)> hash_tables;\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -703,7 +710,7 @@ produce_gather(FILE* fd,
           gather->p_subplan->m_id,
           gather->m_id);
   fprintf(fd,
-          "hashtable_t* ht = (hashtable_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "btree_t* ht = (btree_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           gather->p_subplan->m_id, 
           gather->m_id);
   fprintf(fd, 
@@ -827,26 +834,26 @@ produce_gather(FILE* fd,
           "}\n");
 
   fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
+          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
           hashtable, 
           hashtable);
 
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
   fprintf(fd,
-          "hashtable_iter_destroy(&it_%s);\n", 
+          "btree_iter_destroy(&it_%s);\n", 
           hashtable);
-  fprintf(fd,"hashtable_destroy(&%s);\n", hashtable);
+  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
 
 }
 
@@ -875,7 +882,7 @@ produce_cascading_gather(FILE* fd,
                           MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"hashtable_t %s = hashtable_create(512);\n", hashtable);
+  fprintf(fd,"btree_t %s = btree_create(&task_allocator);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -986,7 +993,7 @@ produce_cascading_gather(FILE* fd,
           "}\n");
 
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(hashtable_t*)> hash_tables;\n");
+          "DynArray<FURIOUS_RESTRICT(btree_t*)> hash_tables;\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -999,7 +1006,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "hashtable_t* ht = (hashtable_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "btree_t* ht = (btree_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
   fprintf(fd, 
@@ -1008,7 +1015,7 @@ produce_cascading_gather(FILE* fd,
           "}\n");
 
   // DECLARE HASH TABLE
-  fprintf(fd,"hashtable_t ref_%s = hashtable_create(512);\n", hashtable);
+  fprintf(fd,"btree_t ref_%s = btree_create(&task_allocator);\n", hashtable);
 
   // PRODUCING REFERENCE TABLE
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
@@ -1153,11 +1160,11 @@ produce_cascading_gather(FILE* fd,
                            itername,
                            MAX_ITER_VARNAME);
 
-  fprintf(fd, "hashtable_iter_t iter_ref_hashtable_%d = hashtable_iter_create(&ref_%s);\n", 
+  fprintf(fd, "btree_iter_t iter_ref_hashtable_%d = btree_iter_create(&ref_%s);\n", 
           casc_gather->m_id, 
           hashtable);
 
-  fprintf(fd, "while(hashtable_iter_has_next(&iter_ref_hashtable_%d))\n{\n", casc_gather->m_id);
+  fprintf(fd, "while(btree_iter_has_next(&iter_ref_hashtable_%d))\n{\n", casc_gather->m_id);
 
   char clustername[MAX_CLUSTER_VARNAME];
   generate_cluster_name(casc_gather,
@@ -1166,7 +1173,7 @@ produce_cascading_gather(FILE* fd,
 
   fprintf(fd, "block_cluster_t %s = block_cluster_create(&task_allocator);\n", clustername);
   fprintf(fd, 
-          "build_block_cluster_from_refs((block_cluster_t*)hashtable_iter_next(&iter_ref_hashtable_%d).p_value,"
+          "build_block_cluster_from_refs((block_cluster_t*)btree_iter_next(&iter_ref_hashtable_%d).p_value,"
           "current_frontier_%u,"
           "next_frontier_%u,"
           "&%s",
@@ -1196,7 +1203,7 @@ produce_cascading_gather(FILE* fd,
           clustername);
   fprintf(fd,"}\n");
 
-  fprintf(fd, "hashtable_iter_destroy(&iter_ref_hashtable_%d);\n", 
+  fprintf(fd, "btree_iter_destroy(&iter_ref_hashtable_%d);\n", 
           casc_gather->m_id);
 
   fprintf(fd,
@@ -1230,42 +1237,42 @@ produce_cascading_gather(FILE* fd,
           "}\n\n");
 
   fprintf(fd,
-          "hashtable_iter_t it_%s = hashtable_iter_create(&%s);\n", 
+          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
           hashtable, 
           hashtable);
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"hashtable_iter_destroy(&it_%s);\n", hashtable);
-  fprintf(fd,"hashtable_destroy(&%s);\n", hashtable);
+  fprintf(fd,"btree_iter_destroy(&it_%s);\n", hashtable);
+  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
 
   fprintf(fd,
-          "hashtable_iter_t it_ref_%s = hashtable_iter_create(&ref_%s);\n", 
+          "btree_iter_t it_ref_%s = btree_iter_create(&ref_%s);\n", 
           hashtable, 
           hashtable);
 
   fprintf(fd,
-          "while(hashtable_iter_has_next(&it_ref_%s))\n{\n", hashtable);
+          "while(btree_iter_has_next(&it_ref_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)hashtable_iter_next(&it_ref_%s).p_value;\n", 
+          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_ref_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
           "block_cluster_destroy(next, &task_allocator);\n");
   fprintf(fd,
-          "mem_free(&global_mem_allocator,next);\n");
+          "mem_free(&task_allocator,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"hashtable_iter_destroy(&it_ref_%s);\n", hashtable);
-  fprintf(fd,"hashtable_destroy(&ref_%s);\n", hashtable);
+  fprintf(fd,"btree_iter_destroy(&it_ref_%s);\n", hashtable);
+  fprintf(fd,"btree_destroy(&ref_%s);\n", hashtable);
 
   fprintf(fd,"delete current_frontier_%u;\n", 
           casc_gather->m_id);

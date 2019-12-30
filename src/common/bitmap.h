@@ -9,11 +9,13 @@
 namespace furious
 {
 
+#define FURIOUS_BITMAP_ALIGNMENT 64
+
 struct bitmap_t 
 {
   uint32_t m_max_bits;          //< The maximum number of bits
   uint32_t m_num_set;           //< The number of bits set to one
-  FURIOUS_ALIGNED(uint8_t*,p_data,64);  //< The buffer with the bitmap
+  FURIOUS_ALIGNED(uint8_t*,p_data,FURIOUS_BITMAP_ALIGNMENT);  //< The buffer with the bitmap
 };
 
 /**
@@ -89,8 +91,8 @@ bitmap_is_set(const bitmap_t* bitmap,
  */
 
 void
-bitmap_set_bitmap(bitmap_t* dst_bitmap, 
-                  const bitmap_t* src_bitmap);
+bitmap_set_bitmap(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
+                  FURIOUS_RESTRICT(const bitmap_t*) src_bitmap);
 
 /**
  * \brief Ands this bitmap with the given bitmap

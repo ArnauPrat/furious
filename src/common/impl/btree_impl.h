@@ -14,10 +14,10 @@ namespace furious
  * \brief This is the arity of the BTree. The arity is choosen in order to make
  * the tree nodes to be close to multiples of cache lines (assuming lines of 64
  * bytes)*/
-constexpr uint32_t FURIOUS_BTREE_INTERNAL_MAX_ARITY=10;
+constexpr uint32_t FURIOUS_BTREE_INTERNAL_MAX_ARITY=64;
 constexpr uint32_t FURIOUS_BTREE_INTERNAL_MIN_ARITY=(FURIOUS_BTREE_INTERNAL_MAX_ARITY+2-1)/2;
 
-constexpr uint32_t FURIOUS_BTREE_LEAF_MAX_ARITY=9;
+constexpr uint32_t FURIOUS_BTREE_LEAF_MAX_ARITY=64;
 constexpr uint32_t FURIOUS_BTREE_LEAF_MIN_ARITY=(FURIOUS_BTREE_LEAF_MAX_ARITY+2-1)/2;
 
 enum class btree_node_type_t : uint8_t 
@@ -284,16 +284,15 @@ btree_shift_insert_leaf(btree_t* root,
  *
  * \param node A pointer to the node to insert the element to
  * \param key The key of the element to insert
- * \param element The element to insert
- * \param place A pointer to the location where the pointer to the element to
- * insert should be written 
+ * \param ptr The ptr to the element to insert
  *
  * \return Returns a btree_insert_t structure.
  */
 btree_insert_t 
 btree_insert_node(btree_t* root,
                   btree_node_t* node, 
-                  uint32_t key);
+                  uint32_t key,
+                  void* ptr);
 
 /**
  * \brief Inserts a given element to the given node. This method assumes that a
@@ -303,13 +302,15 @@ btree_insert_node(btree_t* root,
  * growing the tree from the upper side
  *
  * \param node A pointer to a pointer to an internal node
- * \param key The key of the element to add
+ * \param key The key of the element to insert
+ * \param ptr the ptr to the element to insert
  *
  * \return Returns a btree_insert_t structure.
  */
 btree_insert_t 
 btree_insert(btree_t* node, 
-             uint32_t key);
+             uint32_t key,
+             void* ptr);
 
 /**
  * \brief Removes the element at position idx and shifts the rest of elements to

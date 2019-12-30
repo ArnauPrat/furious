@@ -31,9 +31,11 @@ ht_registry_insert(ht_registry_t* registry,
 {
   registry->m_mutex.lock();
   uint32_t hash_key = hash(key);
-  void** ptr =  btree_insert(registry->p_root, 
-                                      hash_key).p_place;
-  *ptr = value;
+  btree_insert_t insert = btree_insert(registry->p_root, hash_key, value);
+  if(insert.m_inserted == false)
+  {
+    *insert.p_place = value;
+  }
   registry->m_mutex.unlock();
 }
 

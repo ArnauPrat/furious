@@ -90,7 +90,7 @@ private:
    */
   void
   apply_bitset(uint32_t id, 
-               const bitmap_t* bitmap,
+               FURIOUS_RESTRICT(const bitmap_t*) bitmap,
                logic_operation_t operation);
 
   /**

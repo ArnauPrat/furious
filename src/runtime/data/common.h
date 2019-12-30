@@ -12,11 +12,9 @@ using table_id_t  = int32_t;
 constexpr table_id_t INVALID_TABLE_ID = 0xffffffff;
 
 /**
- * \brief The number of components per block. The current number, 16 is not
- * arbitrarily chosen. Assuming a cache line of 64 bytes long, 16 4byte components
- * can be stored in a line.
+ * \brief The number of components per block.
  */
-constexpr uint32_t FURIOUS_TABLE_BLOCK_SIZE = 64;
+constexpr uint32_t FURIOUS_TABLE_BLOCK_SIZE = 256;
 
 constexpr entity_id_t FURIOUS_INVALID_ID = 0xffffffff;
 

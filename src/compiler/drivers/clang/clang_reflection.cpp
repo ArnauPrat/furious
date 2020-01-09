@@ -1,6 +1,7 @@
 
 #include "../../../runtime/data/reflection.h"
 #include "../../driver.h"
+#include "../../../common/dyn_array.inl"
 #include "clang_tools.h"
 
 #include <clang/AST/RecursiveASTVisitor.h>
@@ -33,13 +34,13 @@ public:
       const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(decl);
       get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal(),
                     p_refl_data.get()->m_type_name,
-                    MAX_TYPE_NAME);
+                    FCC_MAX_TYPE_NAME);
 
     }
     else
     {
       std::string str = decl->getName();
-      FURIOUS_COPY_AND_CHECK_STR(p_refl_data.get()->m_type_name, str.c_str(), MAX_TYPE_NAME);
+      FURIOUS_COPY_AND_CHECK_STR(p_refl_data.get()->m_type_name, str.c_str(), FCC_MAX_TYPE_NAME);
     }
     p_refl_data.get()->m_is_union = decl->getTypeForDecl()->isUnionType();
 
@@ -56,7 +57,7 @@ public:
       {
         FieldDecl* field  = cast<FieldDecl>(*child_decl);
         std::string str = field->getName();
-        FURIOUS_COPY_AND_CHECK_STR(refl_field.m_name, str.c_str(), MAX_FIELD_NAME);
+        FURIOUS_COPY_AND_CHECK_STR(refl_field.m_name, str.c_str(), FCC_MAX_FIELD_NAME);
 
         refl_field.m_type = ReflType::E_UNKNOWN;
         refl_field.m_anonymous = field->isAnonymousStructOrUnion();
@@ -168,9 +169,9 @@ public:
 
       if(type->isRecordType())
       {
-        char tmp[MAX_TYPE_NAME];
-        get_tagged_type_name(qtype, tmp, MAX_TYPE_NAME);  
-        if(strncmp(tmp, "std::string", MAX_TYPE_NAME) == 0)
+        char tmp[FCC_MAX_TYPE_NAME];
+        get_tagged_type_name(qtype, tmp, FCC_MAX_TYPE_NAME);  
+        if(strncmp(tmp, "std::string", FCC_MAX_TYPE_NAME) == 0)
         {
           refl_field.m_type = ReflType::E_STD_STRING;
         }

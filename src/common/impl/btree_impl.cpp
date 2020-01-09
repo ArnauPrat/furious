@@ -68,7 +68,7 @@ btree_node_t*
 btree_create_internal(btree_t* btree) 
 {
   btree_node_t* node = (btree_node_t*)mem_alloc(&btree->m_allocator, 
-                                                64, 
+                                                FURIOUS_BTREE_NODE_ALIGNMENT, 
                                                 sizeof(btree_node_t), 
                                                 -1); 
   memset(node,0,sizeof(btree_node_t));
@@ -80,7 +80,7 @@ btree_node_t*
 btree_create_leaf(btree_t* btree) 
 {
   btree_node_t* node = (btree_node_t*)mem_alloc(&btree->m_allocator, 
-                                                64, 
+                                                FURIOUS_BTREE_NODE_ALIGNMENT, 
                                                 sizeof(btree_node_t), 
                                                 -1); 
   memset(node,0,sizeof(btree_node_t));
@@ -174,14 +174,13 @@ __btree_next_leaf(btree_node_t* node,
                   uint32_t key) 
 {
   FURIOUS_ASSERT(node->m_type == btree_node_type_t::E_LEAF && "Node must be a leaf node");
-  /*uint32_t i = 0;
+  uint32_t i = 0;
   for (; i < FURIOUS_BTREE_LEAF_MAX_ARITY && 
        node->m_leaf.m_leafs[i] != nullptr && 
        key > node->m_leaf.m_keys[i]; 
        ++i);
   return i;
-  */
-  int32_t left = 0;
+  /*int32_t left = 0;
   int32_t right = node->m_leaf.m_nleafs;
   while(left < right)
   {
@@ -196,6 +195,7 @@ __btree_next_leaf(btree_node_t* node,
     }
   }
   return left;
+  */
 }
 
 

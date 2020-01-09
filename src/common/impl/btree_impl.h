@@ -10,14 +10,16 @@
 namespace furious 
 {
 
+#define FURIOUS_BTREE_NODE_ALIGNMENT 64
+
 /**
  * \brief This is the arity of the BTree. The arity is choosen in order to make
  * the tree nodes to be close to multiples of cache lines (assuming lines of 64
  * bytes)*/
-constexpr uint32_t FURIOUS_BTREE_INTERNAL_MAX_ARITY=64;
+constexpr uint32_t FURIOUS_BTREE_INTERNAL_MAX_ARITY=10;
 constexpr uint32_t FURIOUS_BTREE_INTERNAL_MIN_ARITY=(FURIOUS_BTREE_INTERNAL_MAX_ARITY+2-1)/2;
 
-constexpr uint32_t FURIOUS_BTREE_LEAF_MAX_ARITY=64;
+constexpr uint32_t FURIOUS_BTREE_LEAF_MAX_ARITY=9;
 constexpr uint32_t FURIOUS_BTREE_LEAF_MIN_ARITY=(FURIOUS_BTREE_LEAF_MAX_ARITY+2-1)/2;
 
 enum class btree_node_type_t : uint8_t 
@@ -200,7 +202,7 @@ btree_next_leaf(btree_node_t* node,
  */
 void* 
 btree_get_node(btree_node_t* node, 
-          uint32_t ekey);
+               uint32_t ekey);
 
 /**
  * \brief Gets the pointer to the value associated with the given key

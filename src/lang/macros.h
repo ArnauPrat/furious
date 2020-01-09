@@ -8,8 +8,4 @@
 #define FURIOUS_DISABLE_COMPONENT(context, Component, id)\
   context->disable_component<Component>(#Component, id)
 
-#define FURIOUS_COMPONENT(Component)\
-  static const char* _component_name() {return #Component;}
-    
-
 #endif

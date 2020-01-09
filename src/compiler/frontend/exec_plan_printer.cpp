@@ -5,6 +5,7 @@
 #include "drivers/clang/clang_tools.h"
 #include "../common/str_builder.h"
 #include "operator.h"
+#include "../common/dyn_array.inl"
 
 namespace furious
 {
@@ -168,10 +169,10 @@ fcc_subplan_printer_print_scan(fcc_subplan_printer_t* printer,
   const fcc_column_t* column = &scan->m_columns[0];
   if(column->m_type == fcc_column_type_t::E_COMPONENT)
   {
-    char ctype[MAX_TYPE_NAME];
+    char ctype[FCC_MAX_TYPE_NAME];
     fcc_type_name(column->m_component_type,
                   ctype,
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
     snprintf(buffer, 
              buffer_length,
@@ -271,10 +272,10 @@ fcc_subplan_printer_print_fetch(fcc_subplan_printer_t* printer,
                                 const fcc_operator_t* fetch) 
 {
 
-  char ctype[MAX_TYPE_NAME];
+  char ctype[FCC_MAX_TYPE_NAME];
   fcc_type_name(fetch->m_columns[0].m_component_type,
                 ctype,
-                MAX_TYPE_NAME);
+                FCC_MAX_TYPE_NAME);
 
   snprintf(buffer, 
            buffer_length, 
@@ -350,10 +351,10 @@ fcc_subplan_printer_print_component_filter(fcc_subplan_printer_t* printer,
     type = has_not_type;
   }
 
-  char ctype[MAX_TYPE_NAME];
+  char ctype[FCC_MAX_TYPE_NAME];
   fcc_type_name(component_filter->m_component_filter.m_filter_type,
                 ctype,
-                MAX_TYPE_NAME);
+                FCC_MAX_TYPE_NAME);
 
 
   snprintf(buffer,

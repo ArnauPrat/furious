@@ -7,7 +7,12 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define FURIOUS_ASSERT(_cond) assert(_cond);
+#ifdef FURIOUS_ENABLE_ASSERTS
+#define FURIOUS_ASSERT(_cond) if(!(_cond)) abort();
+#else
+#define FURIOUS_ASSERT(_cond)
+#endif
+
 #define FURIOUS_PERMA_ASSERT(_cond) if(!(_cond)) abort();
 
 #define FURIOUS_COPY_AND_CHECK_STR(dest, origin, capacity) \
@@ -17,34 +22,38 @@
 #define FURIOUS_RESTRICT(type) type  __restrict__
 #define FURIOUS_ALIGNED(type, name, alignment) type __attribute__((aligned(alignment))) name
 
-namespace furious 
-{
 
 
-constexpr uint32_t MAX_TYPE_NAME = 256;
-constexpr uint32_t MAX_QUALIFIED_TYPE_NAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_FIELD_NAME = 256;
-constexpr uint32_t MAX_REF_NAME = 256;
-constexpr uint32_t MAX_TAG_NAME = 256;
-constexpr uint32_t MAX_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_REF_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_TAG_TABLE_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_SYSTEM_WRAPPER_VARNAME=MAX_TYPE_NAME+32;
-constexpr uint32_t MAX_HASHTABLE_VARNAME=256;
-constexpr uint32_t MAX_CLUSTER_VARNAME=256;
-constexpr uint32_t MAX_ITER_VARNAME=256;
-constexpr uint32_t MAX_BLOCK_VARNAME=256;
-constexpr uint32_t MAX_INCLUDE_PATH_LENGTH=2048;
+/// RUNTIME
+#define FURIOUS_MIN_ALIGNMENT 16
+#define FURIOUS_TBLOCK_ALIGNMENT 64
+#define FURIOUS_TBLOCK_DATA_ALIGNMENT 64
 
-class Platform {
+#define FURIOUS_TBLOCK_PAGE_SIZE KILOBYTES(4)
+#define FURIOUS_TBLOCK_DATA_PAGE_SIZE KILOBYTES(64)
+#define FURIOUS_TBLOCK_BITMAP_PAGE_SIZE KILOBYTES(4)
+#define FURIOUS_TABLE_BTREE_PAGE_SIZE KILOBYTES(4)
 
-  Platform() = delete;
-  ~Platform() = delete;
+#define FURIOUS_INVALID_TABLE_ID 0xffffffff
+#define FURIOUS_INVALID_ID  0xffffffff
+#define FURIOUS_TABLE_BLOCK_SIZE 256
 
-public: 
-  /** Platform dependant values **/
+/// FCC_COMPILER 
+#define FCC_MAX_TYPE_NAME 256
+#define FCC_MAX_QUALIFIED_TYPE_NAME FCC_MAX_TYPE_NAME+32
+#define FCC_MAX_FIELD_NAME 256
+#define FCC_MAX_REF_NAME 256
+#define FCC_MAX_TAG_NAME 256
+#define FCC_MAX_TABLE_VARNAME FCC_MAX_TYPE_NAME+32
+#define FCC_MAX_REF_TABLE_VARNAME FCC_MAX_TYPE_NAME+32
+#define FCC_MAX_TAG_TABLE_VARNAME FCC_MAX_TYPE_NAME+32
+#define FCC_MAX_SYSTEM_WRAPPER_VARNAME FCC_MAX_TYPE_NAME+32
+#define FCC_MAX_HASHTABLE_VARNAME 256
+#define FCC_MAX_CLUSTER_VARNAME 256
+#define FCC_MAX_ITER_VARNAME 256
+#define FCC_MAX_BLOCK_VARNAME 256
+#define FCC_MAX_INCLUDE_PATH_LENGTH 2048
 
-};
-}
+
 
 #endif

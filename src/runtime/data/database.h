@@ -84,12 +84,6 @@ struct Database
   TableView<T>
   create_table();
 
-  /**
-   * Drops an existing table
-   */
-  template <typename T>
-  void 
-  remove_table();
 
   /**
    * Gets the table from type 
@@ -129,20 +123,18 @@ struct Database
    *
    * @return Returns True if the table exists. False otherwise
    */
-  template<typename T>
+  template <typename T>
   bool 
   exists_table();
 
   /**
-   * \brief Gets the id of a table 
+   * \brief Removes a table
    *
-   * \param tablename The name of a table
-   *
-   * \return Returns the id of the table
+   * \param table_name The name of the table
    */
   template <typename T>
-  uint32_t
-  get_table_id();
+  void
+  remove_table();
 
   /**
    * Clears and removes all the tables from the database
@@ -195,14 +187,34 @@ struct Database
   get_tagged_entities(const char* tag);
 
   /**
-   * \brief Gets a reference table
+   * \brief Finds or Creates a reference table
    *
    * \param ref_name The reference name
    *
    * \return Returns a TableView of the reference table
    */
   TableView<uint32_t>
-  get_references(const char* ref_name);
+  find_or_create_ref_table(const char* ref_name);
+
+  /**
+   * \brief  Finds a ref  table
+   *
+   * \param ref_name The reference table to find
+   *
+   * \return Returns a table view of the reference table
+   */
+  TableView<uint32_t>
+  find_ref_table(const char* ref_name);
+
+  /**
+   * \brief Creates a ref  table
+   *
+   * \param ref_name The reference table to find
+   *
+   * \return Returns a table view of the reference table
+   */
+  TableView<uint32_t>
+  create_ref_table(const char* ref_name);
 
   /**
    * @brief Adds a reference between two entities
@@ -341,6 +353,7 @@ struct Database
   T*
   create_global(Args...args);
 
+
   /**
    * \brief Removes an existing global
    *
@@ -387,11 +400,9 @@ struct Database
   /**
    * \brief Tests whether a global exists or not
    *
-   * \tparam TComponent The global stored in the table
-   *
    * \return Returns True if the global exists. False otherwise
    */
-  template<typename T>
+  template <typename T>
   bool 
   exists_global();
 
@@ -401,7 +412,7 @@ struct Database
    *
    * \param refl_strct The reflection data to add
    */
-  template<typename T>
+  template <typename T>
   void
   add_refl_data(RefCountPtr<ReflData> refl_strct);
 
@@ -411,16 +422,19 @@ struct Database
    *
    * @tparam T
    */
-  template<typename T>
+  template <typename T>
   const ReflData* 
   get_refl_data();
 
 private:
 
+  uint32_t
+  get_table_id(const char* table_name);
+
   BTree<BitTable*>              m_tags;
-  BTree<Table*>                 m_tables;           /** Holds a map between component types and their tables **/
-  BTree<Table*>                 m_references;
-  BTree<Table*>                 m_temp_tables;
+  BTree<table_t*>               m_tables;           /** Holds a map between component types and their tables **/
+  BTree<table_t*>               m_references;
+  BTree<table_t*>               m_temp_tables;
   BTree<GlobalInfo>             m_globals;
   BTree<RefCountPtr<ReflData>>  m_refl_data;
   entity_id_t                   m_next_entity_id;
@@ -430,8 +444,8 @@ private:
 
 }
 
-#include "database.inl"
-
 #endif
+
+#include "database.inl"
 
 

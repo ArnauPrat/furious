@@ -1,6 +1,6 @@
 
 #include "clang_tools.h"
-#include "../common/dyn_array.h"
+#include "../common/dyn_array.inl"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/Lex/Lexer.h>
@@ -46,7 +46,7 @@ public:
             strcmp(extension, ".inl") != 0))
         {
           FURIOUS_ASSERT(strcmp(filename, "") != 0);
-          FURIOUS_COPY_AND_CHECK_STR(dependency.m_include_file, filename, MAX_INCLUDE_PATH_LENGTH);
+          FURIOUS_COPY_AND_CHECK_STR(dependency.m_include_file, filename, FCC_MAX_INCLUDE_PATH_LENGTH);
         } 
         else 
         {

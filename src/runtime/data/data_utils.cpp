@@ -13,7 +13,7 @@ copy_component_ptr(uint32_t chunk_size,
                    entity_id_t source,
                    entity_id_t target,
                    const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables, 
-                   FURIOUS_RESTRICT(Table*)* tables,
+                   FURIOUS_RESTRICT(table_t*)* tables,
                    uint32_t num_tables)
 {
   uint32_t other_block_id = (target / FURIOUS_TABLE_BLOCK_SIZE);
@@ -26,8 +26,8 @@ copy_component_ptr(uint32_t chunk_size,
     {
       for(uint32_t i = 0; i < num_tables; ++i)
       {
-        Table* table_ptr = tables[i];
-        void* ptr = table_ptr->alloc_component(source);
+        table_t* table_ptr = tables[i];
+        void* ptr = table_alloc_component(table_ptr, source);
         size_t esize = block_cluster_get_tblock(cluster,i)->m_esize;
         void* object = &(((char*)block_cluster_get_tblock(cluster,i)->p_data)[(target%FURIOUS_TABLE_BLOCK_SIZE)*esize]);
         FURIOUS_ASSERT(object != nullptr && "Pointer to component cannot be null");
@@ -45,7 +45,7 @@ find_roots_and_blacklist(block_cluster_t*  block_cluster,
   FURIOUS_ASSERT(block_cluster->m_num_columns == 1 && "Find roots only works with single column block clusters");
   FURIOUS_ASSERT(!bitmap_is_set(&block_cluster->m_global, 0) && "block_cluster_t cannot be global");
 
-  TBlock* table_block = block_cluster_get_tblock(block_cluster,0);
+  table_block_t* table_block = block_cluster_get_tblock(block_cluster,0);
   entity_id_t* data = (entity_id_t*)table_block->p_data;
   for(uint32_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i)
   {

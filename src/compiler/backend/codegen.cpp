@@ -1,6 +1,6 @@
 
 #include "../driver.h"
-#include "../common/dyn_array.h"
+#include "../common/dyn_array.inl"
 #include "../fcc_context.h"
 #include "../frontend/exec_plan_printer.h"
 #include "../frontend/operator.h"
@@ -156,10 +156,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   const uint32_t num_components = vars_extr.m_components.size();
   for (uint32_t i = 0; i < num_components; ++i) 
   {
-    char tmp[MAX_TABLE_VARNAME];
+    char tmp[FCC_MAX_TABLE_VARNAME];
     generate_table_name(vars_extr.m_components[i], 
                         tmp,
-                        MAX_TABLE_VARNAME);
+                        FCC_MAX_TABLE_VARNAME);
 
 
     fprintf(fd, "TableView<%s> %s;\n", vars_extr.m_components[i], tmp);
@@ -168,10 +168,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   const uint32_t num_references = vars_extr.m_references.size();
   for (uint32_t i = 0; i < num_references; ++i) 
   {
-    char tmp[MAX_REF_TABLE_VARNAME];
+    char tmp[FCC_MAX_REF_TABLE_VARNAME];
     generate_ref_table_name(vars_extr.m_references[i], 
                             tmp, 
-                            MAX_REF_TABLE_VARNAME);
+                            FCC_MAX_REF_TABLE_VARNAME);
 
     fprintf(fd, "TableView<entity_id_t> %s;\n", tmp);
   }
@@ -180,10 +180,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   const uint32_t num_tags = vars_extr.m_tags.size();
   for (uint32_t i = 0; i < num_tags; ++i) 
   {
-    char tmp[MAX_TAG_TABLE_VARNAME];
+    char tmp[FCC_MAX_TAG_TABLE_VARNAME];
     generate_bittable_name(vars_extr.m_tags[i],
                            tmp,
-                           MAX_TAG_TABLE_VARNAME);
+                           FCC_MAX_TAG_TABLE_VARNAME);
 
 
     fprintf(fd, "BitTable* %s;\n", tmp);
@@ -194,16 +194,16 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for(uint32_t i = 0; i < stmts.size();++i)
   {
     const fcc_stmt_t* match = stmts[i];
-    char system_name[MAX_TYPE_NAME];
+    char system_name[FCC_MAX_TYPE_NAME];
     fcc_type_name(match->p_system->m_system_type, 
                   system_name, 
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
-    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    char wrapper_name[FCC_MAX_SYSTEM_WRAPPER_VARNAME];
     generate_system_wrapper_name(system_name, 
                                  match->p_system->m_id,
                                  wrapper_name, 
-                                 MAX_SYSTEM_WRAPPER_VARNAME);
+                                 FCC_MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     fprintf(fd, "%s* %s;\n", system_name, wrapper_name);
@@ -233,10 +233,10 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
-    fprintf(fd, "mem_allocator_t task_allocator = linear_alloc_create(&frame_mem_allocator);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(&frame_mem_allocator);\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
-    fprintf(fd, "linear_alloc_destroy(&task_allocator);\n");
+    fprintf(fd, "stack_alloc_destroy(&task_allocator);\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
@@ -260,31 +260,31 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
-    fprintf(fd, "mem_allocator_t task_allocator = linear_alloc_create(&frame_mem_allocator);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(&frame_mem_allocator);\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
-    fprintf(fd, "linear_alloc_destroy(&task_allocator);\n");
+    fprintf(fd, "stack_alloc_destroy(&task_allocator);\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
   }
 
-  /// GENERATING __furious__init  
+  /// GENERATING furious__init  
   fprintf(fd, "\n\n\n");
   fprintf(fd, "// Variable initializations \n");
-  fprintf(fd, "void __furious_init(Database* database)\n{\n");
+  fprintf(fd, "void furious_init(Database* database)\n{\n");
 
   // INITIALIZING HT REGISTRY
-  fprintf(fd, "ht_registry_init(&ht_registry\n);");
+  fprintf(fd, "ht_registry_init(&ht_registry\n);\n");
 
   // INITIALIZING TABLEVIEWS 
   {
     const uint32_t num_components = vars_extr.m_components.size();
     for (uint32_t i = 0; i < num_components; ++i) 
     {
-      char tmp[MAX_TABLE_VARNAME];
+      char tmp[FCC_MAX_TABLE_VARNAME];
       generate_table_name(vars_extr.m_components[i],
                           tmp,
-                          MAX_TABLE_VARNAME);
+                          FCC_MAX_TABLE_VARNAME);
 
       fprintf(fd,
               "%s  = FURIOUS_FIND_OR_CREATE_TABLE(database, %s);\n",
@@ -298,14 +298,14 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     for (uint32_t i = 0; i < num_references; ++i) 
     {
 
-      char tmp[MAX_REF_TABLE_VARNAME];
+      char tmp[FCC_MAX_REF_TABLE_VARNAME];
       generate_ref_table_name(vars_extr.m_references[i], 
                               tmp, 
-                              MAX_REF_TABLE_VARNAME);
+                              FCC_MAX_REF_TABLE_VARNAME);
 
 
       fprintf(fd,
-              "%s  = database->get_references(\"%s\");\n",
+              "%s  = FURIOUS_FIND_OR_CREATE_REF_TABLE(database, \"%s\");\n",
               tmp,
               vars_extr.m_references[i]);
     }
@@ -316,14 +316,14 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     const uint32_t num_tags = vars_extr.m_tags.size();
     for (uint32_t i = 0; i < num_tags; ++i) 
     {
-      char tmp[MAX_TAG_TABLE_VARNAME];
+      char tmp[FCC_MAX_TAG_TABLE_VARNAME];
       generate_bittable_name(vars_extr.m_tags[i], 
                              tmp, 
-                             MAX_TAG_TABLE_VARNAME);
+                             FCC_MAX_TAG_TABLE_VARNAME);
 
 
       fprintf(fd,
-              "%s = database->get_tagged_entities(\"%s\");\n",
+              "%s = FURIOUS_FIND_TAG_TABLE(database, \"%s\");\n",
               tmp,
               vars_extr.m_tags[i]);
     }
@@ -333,17 +333,17 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   for(uint32_t i = 0; i < stmts.size(); ++i)
   {
     const fcc_stmt_t* match = stmts[i];
-    char system_name[MAX_TYPE_NAME];
+    char system_name[FCC_MAX_TYPE_NAME];
     fcc_type_name(match->p_system->m_system_type, 
                   system_name, 
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
 
-    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    char wrapper_name[FCC_MAX_SYSTEM_WRAPPER_VARNAME];
     generate_system_wrapper_name(system_name, 
                                  match->p_system->m_id,
                                  wrapper_name, 
-                                 MAX_SYSTEM_WRAPPER_VARNAME);
+                                 FCC_MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     fprintf(fd,
@@ -406,59 +406,44 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
   fprintf(fd,"}\n");
 
-  /// GENERATING __furious_frame CODE
+  /// GENERATING furious_frame CODE
   {
     fprintf(fd,"\n\n\n");
-    fprintf(fd,"void __furious_frame(float delta, Database* database, void* user_data)\n{\n");
+    fprintf(fd,"void furious_frame(float delta, Database* database, void* user_data)\n{\n");
 
-    /*DynArray<uint32_t> seq = get_valid_exec_sequence(exec_plan);
-    const uint32_t num_in_sequence = seq.size();
-    for (uint32_t j = 0; j < num_in_sequence; ++j) 
-    {
-      fprintf(fd, "__task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
-    }
-    */
     fprintf(fd, "task_graph_run(task_graph, delta, database, user_data);\n");
+
     fprintf(fd, "}\n");
   }
 
 
-  /// GENERATING __furious_post_frame CODE
+  /// GENERATING furious_post_frame CODE
   {
     fprintf(fd,"\n\n\n");
-    fprintf(fd,"void __furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
-
-
-    /*DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
-    const uint32_t num_in_sequence = seq.size();
-    for (uint32_t j = 0; j < num_in_sequence; ++j) 
-    {
-      fprintf(fd, "__pf_task_%d(delta, database, user_data, 1, 0, 1);\n", seq[j]);
-    }
-    */
+    fprintf(fd,"void furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
 
     fprintf(fd, "task_graph_run(post_task_graph, delta, database, user_data);\n");
 
     fprintf(fd, "}\n");
   }
 
-  // GENERATING __furious_release CODE
+  // GENERATING furious_release CODE
   fprintf(fd, "// Variable releases \n");
-  fprintf(fd, "void __furious_release()\n{\n");
+  fprintf(fd, "void furious_release()\n{\n");
 
   for(uint32_t i = 0; i < stmts.size(); ++i)
   {
     const fcc_stmt_t* match = stmts[i];
-    char system_name[MAX_TYPE_NAME];
+    char system_name[FCC_MAX_TYPE_NAME];
     fcc_type_name(match->p_system->m_system_type, 
                   system_name, 
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
-    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    char wrapper_name[FCC_MAX_SYSTEM_WRAPPER_VARNAME];
     generate_system_wrapper_name(system_name, 
                                  match->p_system->m_id,
                                  wrapper_name, 
-                                 MAX_SYSTEM_WRAPPER_VARNAME);
+                                 FCC_MAX_SYSTEM_WRAPPER_VARNAME);
 
 
 
@@ -478,14 +463,14 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   fprintf(fd, "}\n");
 
   fprintf(fd,
-          "task_graph_t* __furious_task_graph()\n{\n");
+          "task_graph_t* furious_task_graph()\n{\n");
   fprintf(fd, 
           "return task_graph;\n");
   fprintf(fd, 
           "}\n");
 
   fprintf(fd,
-          "task_graph_t* __furious_post_task_graph()\n{\n");
+          "task_graph_t* furious_post_task_graph()\n{\n");
   fprintf(fd, 
           "return post_task_graph;\n");
   fprintf(fd, 

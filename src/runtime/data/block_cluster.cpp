@@ -3,6 +3,7 @@
 #include "../../common/platform.h"
 #include "table.h"
 #include "../../common/bitmap.h"
+#include "string.h"
 
 namespace furious
 {
@@ -39,7 +40,7 @@ block_cluster_destroy(block_cluster_t* bc,
 
 void 
 block_cluster_append(block_cluster_t* bc,
-                     TBlock* block)
+                     table_block_t* block)
 {
   FURIOUS_ASSERT(bc->m_num_columns < FURIOUS_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
   FURIOUS_ASSERT((bc->m_start == FURIOUS_INVALID_BLOCK_START || bc->m_start == block->m_start ) && "Unaligned block cluster");
@@ -104,19 +105,19 @@ block_cluster_filter(FURIOUS_RESTRICT(block_cluster_t*) bc,
   bitmap_set_and(&bc->m_enabled, &other->m_enabled);
 }
 
-TBlock* 
+table_block_t* 
 block_cluster_get_tblock(block_cluster_t* bc, 
                          uint32_t index)
 {
-  FURIOUS_ASSERT(!bitmap_is_set(&bc->m_global, index) && "Trying to get tblock which is a global from a BlockCluster");
-  return (TBlock*)bc->p_blocks[index];
+  FURIOUS_ASSERT(!bitmap_is_set(&bc->m_global, index) && "Trying to get table_block_t which is a global from a BlockCluster");
+  return (table_block_t*)bc->p_blocks[index];
 }
 
 void* 
 block_cluster_get_global(block_cluster_t* bc, 
                          uint32_t index)
 {
-  FURIOUS_ASSERT(bitmap_is_set(&bc->m_global, index) && "Trying to get global which is a tblock from a BlockCluster");
+  FURIOUS_ASSERT(bitmap_is_set(&bc->m_global, index) && "Trying to get global which is a table_block_t from a BlockCluster");
   return bc->p_blocks[index];
 }
 

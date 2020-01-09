@@ -61,7 +61,7 @@ struct fcc_entity_match_t
   DynArray<char*>                     m_has_not_tags;                 // The "has_not" tags
   DynArray<fcc_decl_t>                m_filter_func;                  // The filter function
   bool                                m_from_expand;                  // True if this comes from an expand
-  char                                m_ref_name[MAX_REF_NAME];       // The reference name if comes form an expand
+  char                                m_ref_name[FCC_MAX_REF_NAME];       // The reference name if comes form an expand
 };
 
 /**

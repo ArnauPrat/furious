@@ -13,7 +13,7 @@ TEST(BasicTest, BasicTest )
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   std::vector<furious::Entity> entities;
   for(int i = 0; i < 1000; ++i)
@@ -24,7 +24,7 @@ TEST(BasicTest, BasicTest )
     entities.push_back(entity);
   }
 
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_frame(0.1,database, nullptr);
 
   for(furious::Entity& entity : entities)
   {
@@ -33,7 +33,7 @@ TEST(BasicTest, BasicTest )
     ASSERT_EQ(position->m_y,0.1f);
     ASSERT_EQ(position->m_z,0.1f);
   }
-  furious::__furious_release();
+  furious::furious_release();
   delete database;
 }
 

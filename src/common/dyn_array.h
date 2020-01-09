@@ -77,6 +77,6 @@ private:
 } /* furious
  */ 
 
-#include "dyn_array.inl"
-
 #endif
+
+#include "dyn_array.inl"

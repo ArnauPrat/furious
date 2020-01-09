@@ -8,6 +8,7 @@
 #include "drivers/clang/clang_parsing.h"
 #include "drivers/clang/clang_tools.h"
 #include "backend/codegen.h"
+#include "../common/dyn_array.inl"
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -447,10 +448,10 @@ fcc_validate(const fcc_stmt_t* match)
     if(allow_writes[i] == false &&
        !match_type->m_is_read_only)
     {
-      char ctype[MAX_TYPE_NAME];
+      char ctype[FCC_MAX_TYPE_NAME];
       fcc_type_name(match_type->m_type,
                     ctype,
-                    MAX_TYPE_NAME);
+                    FCC_MAX_TYPE_NAME);
 
 
       FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
@@ -461,10 +462,10 @@ fcc_validate(const fcc_stmt_t* match)
     if(allow_globals[i] == false &&
        match_type->m_is_global)
     {
-      char ctype[MAX_TYPE_NAME];
+      char ctype[FCC_MAX_TYPE_NAME];
       fcc_type_name(match_type->m_type,
                     ctype,
-                    MAX_TYPE_NAME);
+                    FCC_MAX_TYPE_NAME);
 
       FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
                                            "\"%s\" scope modifier after\
@@ -481,10 +482,10 @@ fcc_validate(const fcc_stmt_t* match)
       const fcc_component_match_t* match_type = &matches[i];
       if(!match_type->m_is_read_only && match_type->m_is_global)
       {
-        char ctype[MAX_TYPE_NAME];
+        char ctype[FCC_MAX_TYPE_NAME];
         fcc_type_name(match_type->m_type,
                       ctype,
-                      MAX_TYPE_NAME);
+                      FCC_MAX_TYPE_NAME);
 
         FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_ACCESS_MODE_ON_EXPAND,
                                              "\"%s\" read-write access mode on globals is \

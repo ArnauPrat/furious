@@ -21,7 +21,7 @@ gather(block_cluster_t* cluster,
 {
   FURIOUS_ASSERT(cluster->m_num_columns == 1 && "Cluster passed to gather must have a single column of references");
 
-  FURIOUS_RESTRICT(Table*) tables[sizeof...(TComponents)] = {table_view->get_raw()...};
+  FURIOUS_RESTRICT(table_t*) tables[sizeof...(TComponents)] = {table_view->get_raw()...};
   
   const bitmap_t* enabled = &cluster->m_enabled;
   const entity_id_t* ref_data = (entity_id_t*)block_cluster_get_tblock(cluster,0)->p_data;
@@ -53,13 +53,13 @@ build_block_cluster_from_refs(FURIOUS_RESTRICT(block_cluster_t*) ref_cluster,
   FURIOUS_ASSERT(ref_cluster->m_num_columns == 1 && "The ref_cluster should contain a single column");
 
   uint32_t block_id = ref_cluster->m_start / FURIOUS_TABLE_BLOCK_SIZE;
-  FURIOUS_RESTRICT(Table*) tables[sizeof...(TComponents)] = {table_views->get_raw()...};
+  FURIOUS_RESTRICT(table_t*) tables[sizeof...(TComponents)] = {table_views->get_raw()...};
   for(uint32_t i = 0; i < sizeof...(TComponents); ++i)
   {
-    FURIOUS_RESTRICT(TBlock*) tblock = tables[i]->get_block(block_id);
-    if(tblock != nullptr)
+    FURIOUS_RESTRICT(table_block_t*) table_block_t = table_get_block(tables[i], block_id);
+    if(table_block_t != nullptr)
     {
-      block_cluster_append(cluster, tblock);
+      block_cluster_append(cluster, table_block_t);
     }
   }
   FURIOUS_ASSERT((cluster->m_num_columns == 0 || cluster->m_num_columns == sizeof...(TComponents)) && "The block should eexist in all or in no tables");

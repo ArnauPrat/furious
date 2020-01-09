@@ -1,9 +1,13 @@
 
+#ifndef _FURIOUS_ENTITY_INL_
+#define _FURIOUS_ENTITY_INL_
+
 #include "database.h"
 #include <assert.h>
 #include <utility>
 
-namespace furious  {
+namespace furious  
+{
 
 template<typename TComponent, typename...Args>
   TComponent* 
@@ -28,4 +32,6 @@ template<typename TComponent>
   }
 
 } /* furious  */ 
+
+#endif
 

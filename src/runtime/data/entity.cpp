@@ -1,4 +1,5 @@
 
+#include "macros.h"
 #include "entity.h"
 #include "bit_table.h"
 
@@ -77,7 +78,7 @@ Entity::remove_reference(const char* ref_name)
 Entity
 Entity::get_reference(const char* ref_name)
 {
-  TableView<uint32_t> ref_table = p_database->get_references(ref_name);
+  TableView<uint32_t> ref_table = FURIOUS_FIND_OR_CREATE_REF_TABLE(p_database, ref_name);
   uint32_t* other = ref_table.get_component(m_id);
   if(other != nullptr)
   {

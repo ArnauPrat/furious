@@ -1,5 +1,6 @@
 
 #include "ast_visitor.h"
+#include "../../../common/dyn_array.inl"
 #include "../../fcc_context.h"
 #include "clang_parsing.h"
 

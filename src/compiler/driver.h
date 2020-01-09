@@ -13,7 +13,7 @@ struct FccExecPlan;
 
 struct Dependency 
 {
-  char            m_include_file[MAX_INCLUDE_PATH_LENGTH];
+  char            m_include_file[FCC_MAX_INCLUDE_PATH_LENGTH];
   fcc_decl_t      m_decl;
 };
 

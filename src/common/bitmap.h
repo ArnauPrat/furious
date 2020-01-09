@@ -10,6 +10,7 @@ namespace furious
 {
 
 #define FURIOUS_BITMAP_ALIGNMENT 64
+#define FURIOUS_BITMAP_NUM_CHUNKS(bits) (bits + 7) / 8
 
 struct bitmap_t 
 {

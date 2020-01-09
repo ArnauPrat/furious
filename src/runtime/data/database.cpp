@@ -24,10 +24,12 @@ Database::~Database()
 void Database::clear() 
 {
   lock();
-  BTree<Table*>::Iterator it_tables = m_tables.iterator();
+  BTree<table_t*>::Iterator it_tables = m_tables.iterator();
   while (it_tables.has_next()) 
   {
-    delete *it_tables.next().p_value;
+    table_t* table =  *it_tables.next().p_value;
+    table_destroy(table);
+    delete table;
   }
   m_tables.clear();
 
@@ -38,17 +40,21 @@ void Database::clear()
   }
   m_tags.clear();
 
-  BTree<Table*>::Iterator it_references = m_references.iterator();
+  BTree<table_t*>::Iterator it_references = m_references.iterator();
   while (it_references.has_next()) 
   {
-    delete *it_references.next().p_value;
+    table_t* table =  *it_references.next().p_value;
+    table_destroy(table);
+    delete table;
   }
   m_references.clear();
 
-  BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
+  BTree<table_t*>::Iterator it_temp_tables = m_temp_tables.iterator();
   while (it_temp_tables.has_next()) 
   {
-    delete *it_temp_tables.next().p_value;
+    table_t* table = *it_temp_tables.next().p_value;
+    table_destroy(table);
+    delete table;
   }
   m_temp_tables.clear();
 
@@ -62,6 +68,7 @@ void Database::clear()
   m_globals.clear();
   release();
 }
+
 
 entity_id_t 
 Database::get_next_entity_id() 
@@ -77,11 +84,11 @@ void
 Database::clear_entity(entity_id_t id) 
 {
   lock();
-  BTree<Table*>::Iterator it = m_tables.iterator();
+  BTree<table_t*>::Iterator it = m_tables.iterator();
   while(it.has_next()) 
   {
-    Table* table = *it.next().p_value;
-    table->dealloc_and_destroy_component(id);
+    table_t* table = *it.next().p_value;
+    table_dealloc_component(table, id);
   }
   release();
 }
@@ -137,21 +144,61 @@ Database::get_tagged_entities(const char* tag)
 }
 
 TableView<uint32_t>
-Database::get_references(const char* ref_name)
+Database::find_or_create_ref_table(const char* ref_name)
 {
   uint32_t hash_value = hash(ref_name);
   lock();
-  Table* table_ptr = nullptr;
-  Table** ref_table = m_references.get(hash_value);
+  table_t* table_ptr = nullptr;
+  table_t** ref_table = m_references.get(hash_value);
   if (ref_table == nullptr) 
   {
-    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
+    table_ptr = new table_t;
+    *table_ptr = table_create(ref_name, 
+                              hash_value, 
+                              sizeof(uint32_t), 
+                              destructor<uint32_t>);
     m_references.insert_copy( hash_value, &table_ptr);
   } 
   else
   {
     table_ptr = *ref_table;
   }
+  release();
+  return TableView<uint32_t>(table_ptr);
+}
+
+TableView<uint32_t>
+Database::find_ref_table(const char* ref_name)
+{
+  uint32_t hash_value = hash(ref_name);
+  lock();
+  table_t* table_ptr = nullptr;
+  table_t** ref_table = m_references.get(hash_value);
+  if (ref_table != nullptr) 
+  {
+    table_ptr = *ref_table;
+  }
+  release();
+  return TableView<uint32_t>(table_ptr);
+}
+
+TableView<uint32_t>
+Database::create_ref_table(const char* ref_name)
+{
+  uint32_t hash_value = hash(ref_name);
+  lock();
+  table_t* table_ptr = nullptr;
+  table_t** ref_table = m_references.get(hash_value);
+  if (ref_table == nullptr) 
+  {
+    table_ptr = new table_t();
+    *table_ptr = table_create(ref_name, 
+                              hash_value, 
+                              sizeof(uint32_t), 
+                              destructor<uint32_t>);
+    
+    m_references.insert_copy( hash_value, &table_ptr);
+  } 
   release();
   return TableView<uint32_t>(table_ptr);
 }
@@ -163,11 +210,12 @@ Database::add_reference( const char* ref_name,
 {
   uint32_t hash_value = hash(ref_name);
   lock();
-  Table* table_ptr = nullptr;
-  Table** ref_table = m_references.get(hash_value);
+  table_t* table_ptr = nullptr;
+  table_t** ref_table = m_references.get(hash_value);
   if (ref_table == nullptr) 
   {
-    table_ptr = new Table(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
+    table_ptr = new table_t();
+    *table_ptr = table_create(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
     m_references.insert_copy( hash_value, &table_ptr);
   } 
   else
@@ -186,11 +234,11 @@ Database::remove_reference( const char* ref_name,
 {
   uint32_t hash_value = hash(ref_name);
   lock();
-  Table** ref_table = m_references.get(hash_value);
+  table_t** ref_table = m_references.get(hash_value);
   if (ref_table != nullptr) 
   {
-    Table* table_ptr = *ref_table;
-    table_ptr->dealloc_and_destroy_component(tail);
+    table_t* table_ptr = *ref_table;
+    table_dealloc_component(table_ptr, tail);
   }
   release();
   return;
@@ -230,13 +278,13 @@ size_t
 Database::meta_data(TableInfo* data, uint32_t capacity)
 {
   lock();
-  BTree<Table*>::Iterator it = m_tables.iterator();
+  BTree<table_t*>::Iterator it = m_tables.iterator();
   uint32_t count = 0; 
   while(it.has_next() && count < capacity)
   {
-    Table* table = *it.next().p_value;
-    strncpy(&data[count].m_name[0], table->name(), _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
-    data[count].m_size = table->size();
+    table_t* table = *it.next().p_value;
+    strncpy(&data[count].m_name[0], table->p_name, _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
+    data[count].m_size = table_size(table);
     count++;
   }
   release();
@@ -255,6 +303,12 @@ Database::release() const
   m_mutex.unlock();
 }
 
+uint32_t
+Database::get_table_id(const char* table_name)
+{
+  return hash(table_name);
+}
+
 void
 Database::remove_temp_tables()
 {
@@ -266,12 +320,15 @@ Database::remove_temp_tables()
 void
 Database::remove_temp_tables_no_lock()
 {
-  BTree<Table*>::Iterator it_temp_tables = m_temp_tables.iterator();
+  BTree<table_t*>::Iterator it_temp_tables = m_temp_tables.iterator();
   while (it_temp_tables.has_next()) 
   {
-    delete *it_temp_tables.next().p_value;
+    table_t* table = *it_temp_tables.next().p_value;
+    table_destroy(table);
+    delete table; 
   }
   m_temp_tables.clear();
 }
+
 
 } /* furious */ 

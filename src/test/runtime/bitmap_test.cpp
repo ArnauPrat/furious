@@ -1,6 +1,6 @@
 
 #include "../../common/bitmap.h"
-#include "../../runtime/memory/linear_allocator.h"
+#include "../../runtime/memory/stack_allocator.h"
 
 #include <gtest/gtest.h>
 #include <set>
@@ -10,7 +10,7 @@ namespace furious {
 TEST(BitmapTest, BitmapTest ) 
 {
   constexpr uint32_t BITMAP_SIZE = 304;
-  mem_allocator_t lallocator = linear_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create();
   bitmap_t bitmap =  bitmap_create(BITMAP_SIZE, &lallocator);
   ASSERT_EQ(bitmap.m_num_set, 0);
 
@@ -106,7 +106,7 @@ TEST(BitmapTest, BitmapTest )
   }
   bitmap_destroy(&bitmap, &lallocator);
   bitmap_destroy(&bitmap2, &lallocator);
-  linear_alloc_destroy(&lallocator);
+  stack_alloc_destroy(&lallocator);
 }
 
 }

@@ -1,9 +1,11 @@
 
+#ifndef _FURIOUS_DYNAMIC_ARRAY_INL_
+#define _FURIOUS_DYNAMIC_ARRAY_INL_
 #include "memory/memory.h"
 #include "platform.h"
-#include <utility>
 #include <new>
 #include <stdio.h>
+#include <utility>
 
 namespace furious
 {
@@ -259,3 +261,4 @@ DynArray<T>::buffer() const
 }
   
 }  
+#endif

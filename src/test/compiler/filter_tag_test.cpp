@@ -12,7 +12,7 @@ TEST(FilterTagTest, FilterTagTest )
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   std::vector<furious::Entity> entities;
   for(uint32_t i = 0; i < 1000; ++i)
@@ -33,7 +33,7 @@ TEST(FilterTagTest, FilterTagTest )
     entities.push_back(entity);
   }
 
-  furious::__furious_frame(0.1f, database, nullptr);
+  furious::furious_frame(0.1f, database, nullptr);
 
   for(furious::Entity& entity : entities)
   {
@@ -54,7 +54,7 @@ TEST(FilterTagTest, FilterTagTest )
     }
 
   }
-  furious::__furious_release();
+  furious::furious_release();
   delete database;
 }
 

@@ -10,7 +10,7 @@
 namespace furious 
 {
 
-class Database;
+struct Database;
 
 class Entity 
 {
@@ -117,6 +117,7 @@ get_entity(Database* database,
   
 } /* furious */ 
 
-#include "entity.inl"
 
 #endif /* ifndef _FURIOUS_ENTITY_H_H */
+
+#include "entity.inl"

@@ -1,48 +1,53 @@
 
 
-#include "linear_allocator.h"
+#include "stack_allocator.h"
 #include "../../common/platform.h"
 
 namespace furious
 {
 
-#define FURIOUS_LINEAR_ALLOC_MIN_ALLOC 4096
+#define FURIOUS_STACK_ALLOC_MIN_ALLOC 4096
 
-struct linear_alloc_header_t
+struct stack_alloc_t;
+
+void
+stack_alloc_flush(stack_alloc_t* stack_alloc);
+
+void* 
+stack_alloc_alloc(void* state, 
+                  uint32_t alignment, 
+                  uint32_t size,
+                  uint32_t hint);
+void
+stack_alloc_free(void* state, 
+                 void* ptr);
+ 
+
+struct stack_alloc_header_t
 {
   void*                   p_data;
   uint32_t                m_next_free;
   uint32_t                m_size;
-  linear_alloc_header_t*  p_next_header;
+  stack_alloc_header_t*  p_next_header;
 };
 
-struct linear_alloc_t
+struct stack_alloc_t
 {
-  linear_alloc_header_t*  p_first_chunk;
-  linear_alloc_header_t*  p_last_chunk;
-  mem_allocator_t         m_allocator;
+  stack_alloc_header_t*  p_first_chunk;
+  stack_alloc_header_t*  p_last_chunk;
+  mem_allocator_t        m_allocator;
 };
 
-void
-linear_alloc_flush(linear_alloc_t* linear_alloc);
-void* 
-linear_alloc_alloc(void* state, 
-                   uint32_t alignment, 
-                   uint32_t size,
-                   uint32_t hint);
-void
-linear_alloc_free(void* state, 
-                  void* ptr);
-  
+ 
 /**
- * \brief Creates a linear allocator
+ * \brief Creates a stack allocator
  *
  * \param allocator The allocator to use 
  *
- * \return Returns a new linear allocator
+ * \return Returns a new stack allocator
  */
 mem_allocator_t
-linear_alloc_create(mem_allocator_t* allocator)
+stack_alloc_create(mem_allocator_t* allocator)
 {
   FURIOUS_ASSERT(((allocator == nullptr) ||
                  (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
@@ -57,49 +62,49 @@ linear_alloc_create(mem_allocator_t* allocator)
   {
     use_allocator = global_mem_allocator;
   }
-  linear_alloc_t* lalloc = (linear_alloc_t*)mem_alloc(&use_allocator, 1, sizeof(linear_alloc_t), -1);
+  stack_alloc_t* lalloc = (stack_alloc_t*)mem_alloc(&use_allocator, 1, sizeof(stack_alloc_t), -1);
   lalloc->m_allocator = use_allocator;
 
   // allocating first chunk
-  lalloc->p_first_chunk = (linear_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(linear_alloc_header_t), -1);
+  lalloc->p_first_chunk = (stack_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(stack_alloc_header_t), -1);
   lalloc->p_first_chunk->m_next_free = 0;
   lalloc->p_first_chunk->p_next_header = nullptr;
-  lalloc->p_first_chunk->p_data = mem_alloc(&lalloc->m_allocator, 64, FURIOUS_LINEAR_ALLOC_MIN_ALLOC, -1);
-  lalloc->p_first_chunk->m_size = FURIOUS_LINEAR_ALLOC_MIN_ALLOC;
+  lalloc->p_first_chunk->p_data = mem_alloc(&lalloc->m_allocator, 64, FURIOUS_STACK_ALLOC_MIN_ALLOC, -1);
+  lalloc->p_first_chunk->m_size = FURIOUS_STACK_ALLOC_MIN_ALLOC;
   lalloc->p_last_chunk = lalloc->p_first_chunk;
   mem_allocator_t mem_allocator = {lalloc, 
-                                   linear_alloc_alloc, 
-                                   linear_alloc_free
+                                   stack_alloc_alloc, 
+                                   stack_alloc_free
                                   };
   return mem_allocator;
 }
 
 void
-linear_alloc_destroy(mem_allocator_t* mem_allocator)
+stack_alloc_destroy(mem_allocator_t* mem_allocator)
 {
-  linear_alloc_t* lalloc = (linear_alloc_t*)mem_allocator->p_mem_state;
-  linear_alloc_flush(lalloc);
+  stack_alloc_t* lalloc = (stack_alloc_t*)mem_allocator->p_mem_state;
+  stack_alloc_flush(lalloc);
   mem_free(&lalloc->m_allocator, lalloc);
 }
 
 /**
- * \brief Flushes all data allocated with the linear alocator
+ * \brief Flushes all data allocated with the stack alocator
  *
- * \param linear_alloc The allocator to flush
+ * \param stack_alloc The allocator to flush
  */
 void
-linear_alloc_flush(linear_alloc_t* linear_alloc)
+stack_alloc_flush(stack_alloc_t* stack_alloc)
 {
-  linear_alloc_header_t* next_chunk = linear_alloc->p_first_chunk;
+  stack_alloc_header_t* next_chunk = stack_alloc->p_first_chunk;
   while(next_chunk != nullptr)
   {
-    linear_alloc_header_t* tmp = next_chunk;
+    stack_alloc_header_t* tmp = next_chunk;
     next_chunk = tmp->p_next_header;
-    mem_free(&linear_alloc->m_allocator, tmp->p_data);
-    mem_free(&linear_alloc->m_allocator, tmp);
+    mem_free(&stack_alloc->m_allocator, tmp->p_data);
+    mem_free(&stack_alloc->m_allocator, tmp);
   }
-  linear_alloc->p_first_chunk = nullptr;
-  linear_alloc->p_last_chunk = nullptr;
+  stack_alloc->p_first_chunk = nullptr;
+  stack_alloc->p_last_chunk = nullptr;
 }
 
 /**
@@ -113,14 +118,20 @@ linear_alloc_flush(linear_alloc_t* linear_alloc)
  *
  * @return 
  */
-void* linear_alloc_alloc(void* state, 
+void* stack_alloc_alloc(void* state, 
                          uint32_t alignment, 
                          uint32_t size,
                          uint32_t hint)
 {
-  int32_t min_alignment = alignment > 16 ? alignment : 16;
-  linear_alloc_t* lalloc = (linear_alloc_t*)state;
-  linear_alloc_header_t* last_chunk = lalloc->p_last_chunk;
+  int32_t min_alignment = alignment > FURIOUS_MIN_ALIGNMENT ? alignment : FURIOUS_MIN_ALIGNMENT;
+  stack_alloc_t* lalloc = (stack_alloc_t*)state;
+  stack_alloc_header_t* last_chunk = lalloc->p_last_chunk;
+
+  if(last_chunk->p_data == nullptr)
+  {
+    return nullptr;
+  }
+
   uint32_t modulo = ((uint64_t)&(((char*)last_chunk->p_data)[last_chunk->m_next_free])) & (min_alignment-1);
   if(modulo != 0)
   {
@@ -139,11 +150,17 @@ void* linear_alloc_alloc(void* state,
   }
   else
   {
-    linear_alloc_header_t* new_chunk = (linear_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(linear_alloc_header_t), FURIOUS_NO_HINT);
+    stack_alloc_header_t* new_chunk = (stack_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(stack_alloc_header_t), FURIOUS_NO_HINT);
     new_chunk->m_next_free = 0;
     new_chunk->p_next_header = nullptr;
-    new_chunk->m_size = size + min_alignment > FURIOUS_LINEAR_ALLOC_MIN_ALLOC ? size + min_alignment : FURIOUS_LINEAR_ALLOC_MIN_ALLOC;
+    new_chunk->m_size = size + min_alignment > FURIOUS_STACK_ALLOC_MIN_ALLOC ? size + min_alignment : FURIOUS_STACK_ALLOC_MIN_ALLOC;
     new_chunk->p_data = mem_alloc(&lalloc->m_allocator, min_alignment, new_chunk->m_size, FURIOUS_NO_HINT);
+
+    if(new_chunk->p_data == nullptr)
+    {
+      return nullptr;
+    }
+
     last_chunk->p_next_header = new_chunk;
     lalloc->p_last_chunk = new_chunk;
 
@@ -165,10 +182,10 @@ void* linear_alloc_alloc(void* state,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void linear_alloc_free(void* state, 
+void stack_alloc_free(void* state, 
                            void* ptr )
 {
-  // Arnau: Intentionally left blank. The linear allocator is freed using the
+  // Arnau: Intentionally left blank. The stack allocator is freed using the
   // flush method
 }
 

@@ -11,7 +11,7 @@
 namespace furious
 {
 
-struct TBlock;
+struct table_block_t;
 
 /**
  * \brief This is used to represent a joined block of data, mostly table blocks.
@@ -48,7 +48,7 @@ block_cluster_destroy(block_cluster_t* bc,
 
 void 
 block_cluster_append(block_cluster_t* bc, 
-                     TBlock* block);
+                     table_block_t* block);
 
 void 
 block_cluster_append_global(block_cluster_t* bc, 
@@ -62,7 +62,7 @@ void
 block_cluster_filter(FURIOUS_RESTRICT(block_cluster_t*) bc,
                      FURIOUS_RESTRICT(const block_cluster_t*) other);
 
-TBlock* 
+table_block_t* 
 block_cluster_get_tblock(block_cluster_t* bc,
                          uint32_t index);
 

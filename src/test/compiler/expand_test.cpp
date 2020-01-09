@@ -14,7 +14,7 @@ TEST(ExpandTest, ExpandTestSimple)
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   furious::Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
@@ -29,7 +29,7 @@ TEST(ExpandTest, ExpandTestSimple)
   entities[4].add_reference("parent",entities[5]);
   entities[6].add_reference("parent",entities[7]);
 
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_frame(0.1,database, nullptr);
 
   for(uint32_t i = 0; i < 8; i+=2)
   {
@@ -47,7 +47,7 @@ TEST(ExpandTest, ExpandTestSimple)
     }
   }
 
-  furious::__furious_release();
+  furious::furious_release();
 
   delete database;
 }
@@ -58,7 +58,7 @@ TEST(ExpandTest, ExpandTest )
   database->start_webserver("localhost", 
                             "8080");
 
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   furious::Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
@@ -83,7 +83,7 @@ TEST(ExpandTest, ExpandTest )
   entities[4].add_tag("test");
   entities[5].add_tag("test");
 
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_frame(0.1,database, nullptr);
 
   uint32_t first_level_entities[2] = {0,1};
   uint32_t second_level_entities[4] = {2,3,4,5};
@@ -125,7 +125,7 @@ TEST(ExpandTest, ExpandTest )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[third_level_entities[i]], FieldMesh)->m_z,2.0f);
   }
 
-  furious::__furious_release();
+  furious::furious_release();
 
   delete database;
 }
@@ -135,7 +135,7 @@ TEST(ExpandTest, ExpandTestLarge )
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   constexpr uint32_t num_entities = 65536;
   furious::Entity entities[num_entities];
@@ -153,7 +153,7 @@ TEST(ExpandTest, ExpandTestLarge )
     entities[i].add_reference("parent",entities[0]);
   }
 
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_frame(0.1,database, nullptr);
 
   for(uint32_t i = 1; i < num_entities; ++i)
   {
@@ -162,7 +162,7 @@ TEST(ExpandTest, ExpandTestLarge )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], Position)->m_z,0.2f);
   }
 
-  furious::__furious_release();
+  furious::furious_release();
 
   delete database;
 }

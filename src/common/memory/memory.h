@@ -8,6 +8,11 @@ namespace furious
 {
 
 #define FURIOUS_NO_HINT 0xffffffff
+#define BYTES(value) (value)
+#define KILOBYTES(value) (BYTES(value)*(uint64_t)1024)
+#define MEGABYTES(value) (KILOBYTES(value)*(uint64_t)1024)
+#define GIGABYTES(value) (MEGABYTES(value)*(uint64_t)1024)
+
 //constexpr int32_t ALIGNMENT = 64; 
   
 using furious_alloc_t = void* (*) (void*,     // ptr to state

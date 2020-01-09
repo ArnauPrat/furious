@@ -23,8 +23,8 @@ TEST(GlobalTest, GlobalTest )
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
   }
 
-  furious::__furious_init(database);
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_init(database);
+  furious::furious_frame(0.1,database, nullptr);
 
   // FIRST LEVEL
   for(uint32_t i = 0; i < 8; ++i)
@@ -34,7 +34,7 @@ TEST(GlobalTest, GlobalTest )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_z, 1.0f);
   }
 
-  furious::__furious_release();
+  furious::furious_release();
 
   delete database;
 }

@@ -14,7 +14,7 @@ struct TableView
     struct Block 
     {
       typedef TComponent type;
-      Block(TBlock* block);
+      Block(table_block_t* block);
       ~Block() = default;
 
       TComponent* 
@@ -32,28 +32,29 @@ struct TableView
       const bitmap_t* 
       get_enabled() const;
 
-      TBlock*     get_raw() const;
+      table_block_t*     
+      get_raw() const;
 
     private:
-      TBlock* p_tblock;
+      table_block_t* p_table_block_t;
     };
 
     struct BlockIterator 
     {
-      BlockIterator(Table::Iterator iter);
-      ~BlockIterator() = default;
+      BlockIterator(table_iter_t iter);
+      ~BlockIterator();
 
       Block next();
 
-      bool has_next() const;
+      bool has_next();
 
     private:
-      Table::Iterator m_iterator;
+      table_iter_t m_iterator;
 
     };
 
   TableView();
-  TableView( Table* table );
+  TableView( table_t* table );
   TableView(const TableView& other) = default;
   ~TableView() = default;
 
@@ -157,11 +158,11 @@ struct TableView
    *
    * \return The pointer to the raw table.
    */
-  Table*
+  table_t*
   get_raw();
 
 private:
-  Table*  p_table;
+  table_t*  p_table;
 };
   
 } /* furious */ 

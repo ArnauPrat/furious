@@ -13,7 +13,7 @@ TEST(ReflectionTest, ReflectionTest )
   furious::Database* database = new furious::Database();
   database->start_webserver("localhost", 
                             "8080");
-  furious::__furious_init(database);
+  furious::furious_init(database);
 
   furious::Entity entity = furious::create_entity(database);
   FURIOUS_ADD_COMPONENT(entity, TestComponent);
@@ -26,10 +26,10 @@ TEST(ReflectionTest, ReflectionTest )
   test_component->X.m_a = 6.0f;
   test_component->X.m_b = 6.0f;
 
-  furious::__furious_frame(0.1,database, nullptr);
+  furious::furious_frame(0.1,database, nullptr);
 
   void* raw_pointer = test_component;
-  const furious::ReflData* refl_data = database->get_refl_data<TestComponent>();
+  const furious::ReflData* refl_data = FURIOUS_GET_REFL_DATA(database, TestComponent);
   ASSERT_TRUE(refl_data != nullptr);
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
@@ -106,7 +106,7 @@ TEST(ReflectionTest, ReflectionTest )
     }
   }
 
-  furious::__furious_release();
+  furious::furious_release();
 
   delete database;
 }

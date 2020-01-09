@@ -43,7 +43,7 @@ enum class ReflType
 
 struct ReflData
 {
-  char                  m_type_name[MAX_TYPE_NAME];
+  char                  m_type_name[FCC_MAX_TYPE_NAME];
   DynArray<ReflField>   m_fields;
   bool                  m_is_union;
 };
@@ -55,7 +55,7 @@ struct ReflData
 
 struct ReflField
 {
-  char                        m_name[MAX_FIELD_NAME];
+  char                        m_name[FCC_MAX_FIELD_NAME];
   ReflType                    m_type;
   size_t                      m_offset;
   bool                        m_anonymous;

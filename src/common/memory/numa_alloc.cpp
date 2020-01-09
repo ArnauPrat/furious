@@ -1,8 +1,10 @@
 
 
+#include "../platform.h"
+#include "memory.h"
 #include "numa_alloc.h"
+
 #include <numa.h>
-#include <memory.h>
 #include <stdlib.h>
 
 namespace furious {
@@ -17,7 +19,7 @@ void* numa_alloc(void* state,
                  uint32_t hint) 
 {
 
-  uint32_t min_alignment = alignment < 16 ? 16 : alignment;
+  uint32_t min_alignment = alignment < FURIOUS_MIN_ALIGNMENT ? FURIOUS_MIN_ALIGNMENT : alignment;
   uint32_t residual = size % min_alignment;
   uint32_t real_size = size;
   if(residual != 0)

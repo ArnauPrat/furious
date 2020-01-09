@@ -46,7 +46,7 @@ struct fcc_column_t
 {
   fcc_column_type_t     m_type;
   fcc_type_t            m_component_type;
-  char                  m_ref_name[MAX_REF_NAME];
+  char                  m_ref_name[FCC_MAX_REF_NAME];
   fcc_access_mode_t     m_access_mode;
 };
 
@@ -80,7 +80,7 @@ struct fcc_fetch_t
 struct fcc_tag_filter_t
 {
   uint32_t              m_child;
-  char                  m_tag[MAX_TYPE_NAME];
+  char                  m_tag[FCC_MAX_TYPE_NAME];
   bool                  m_on_column;
   fcc_filter_op_type_t  m_op_type;
 };

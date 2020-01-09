@@ -190,7 +190,7 @@ process_expand(ASTContext* ast_context,
   const Expr* param_expr = call->getArg(0);
   get_string_literal(param_expr,
                      entity_match->m_ref_name,
-                     MAX_REF_NAME);
+                     FCC_MAX_REF_NAME);
 
   entity_match->m_from_expand = true;
 
@@ -391,8 +391,8 @@ process_has_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      char* buffer = new char[MAX_TAG_NAME];
-      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
+      char* buffer = new char[FCC_MAX_TAG_NAME];
+      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), FCC_MAX_TAG_NAME);
       entity_match->m_has_tags.append(buffer);
     } 
     else
@@ -428,8 +428,8 @@ process_has_not_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      char* buffer = new char[MAX_TAG_NAME];
-      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), MAX_TAG_NAME);
+      char* buffer = new char[FCC_MAX_TAG_NAME];
+      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), FCC_MAX_TAG_NAME);
       entity_match->m_has_not_tags.append(buffer);
     } 
     else

@@ -5,6 +5,7 @@
 #include "../drivers/clang/clang_tools.h"
 #include "../driver.h"
 #include "operator.h"
+#include "../common/dyn_array.inl"
 
 namespace furious 
 {
@@ -41,10 +42,10 @@ is_dependent(const fcc_exec_plan_t* exec_plan,
   for(uint32_t i = 0; i < size_a; ++i)
   {
     fcc_type_t type_a = component_matches_a[i].m_type;
-    char name_a[MAX_TYPE_NAME];
+    char name_a[FCC_MAX_TYPE_NAME];
     fcc_type_name(type_a,
                   name_a,
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
     bool is_read_only = component_matches_a[i].m_is_read_only;
 
@@ -53,10 +54,10 @@ is_dependent(const fcc_exec_plan_t* exec_plan,
     for(uint32_t ii = 0; ii < size_b; ++ii)
     {
       fcc_type_t type_b = write_types_b[ii];
-      char name_b[MAX_TYPE_NAME];
+      char name_b[FCC_MAX_TYPE_NAME];
       fcc_type_name(type_b,
                     name_b,
-                    MAX_TYPE_NAME);
+                    FCC_MAX_TYPE_NAME);
       if((strcmp(name_a, name_b) == 0) && is_read_only)
       {
         return true;
@@ -85,10 +86,10 @@ insert(fcc_exec_plan_t* exec_plan,
   uint32_t added_node_id = num_nodes -1; 
   fcc_exec_plan_node_t* added_node = &exec_plan->m_nodes[added_node_id];
   const fcc_stmt_t* added_node_match = exec_plan->p_stmts[added_node_id];
-  char added_system_name[MAX_TYPE_NAME];
+  char added_system_name[FCC_MAX_TYPE_NAME];
   fcc_type_name(added_node_match->p_system->m_system_type,
                 added_system_name,
-                MAX_TYPE_NAME);
+                FCC_MAX_TYPE_NAME);
 
   subplan_init(added_node_match, 
                exec_plan->m_subplans[added_node_id]);
@@ -101,10 +102,10 @@ insert(fcc_exec_plan_t* exec_plan,
     uint32_t next_node_id = i;
     fcc_exec_plan_node_t* next_node = &exec_plan->m_nodes[next_node_id];
     const fcc_stmt_t* next_node_match = exec_plan->p_stmts[next_node_id];
-    char next_system_name[MAX_TYPE_NAME];
+    char next_system_name[FCC_MAX_TYPE_NAME];
     fcc_type_name(next_node_match->p_system->m_system_type,
                   next_system_name,
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
 
     if(is_dependent(exec_plan, added_node_id, next_node_id))

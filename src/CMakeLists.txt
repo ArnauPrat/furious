@@ -6,6 +6,8 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/memory/memory.cpp
   ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.cpp
   ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.h
+  ${CMAKE_SOURCE_DIR}/src/common/mutex.h
+  ${CMAKE_SOURCE_DIR}/src/common/mutex.cpp
   ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
   ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
   ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
@@ -17,7 +19,6 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/common.h
   ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.cpp
   ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.h
-  ${CMAKE_SOURCE_DIR}/src/common/platform.cpp
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
   ${CMAKE_SOURCE_DIR}/src/common/reference.h
   ${CMAKE_SOURCE_DIR}/src/common/hashtable.cpp
@@ -59,12 +60,15 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
+  #${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
+  #${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/task/task.h
   ${CMAKE_SOURCE_DIR}/src/runtime/task/task.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/linear_allocator.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/linear_allocator.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/stack_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/stack_allocator.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/pool_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/memory/pool_allocator.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/log/log.cpp
   )
 
 

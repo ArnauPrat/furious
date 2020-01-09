@@ -4,19 +4,16 @@
 
 namespace furious {
 
-struct Component 
-{
-  FURIOUS_COMPONENT(Component);
+FURIOUS_BEGIN_COMPONENT(Component, KILOBYTES(4))
 
   uint32_t field1_;
   double field2_;
+
   Component(uint32_t field1, double field2) : 
     field1_(field1),
     field2_(field2)
   {}
-
-  static const char* name() { return "Component"; }
-};
+FURIOUS_END_COMPONENT
 
 TEST(DatabaseTest, CreateAndRemoveTable) {
   auto database = new Database();

@@ -4,30 +4,13 @@
 
 namespace furious {
 
-struct ComponentA 
-{
-  FURIOUS_COMPONENT(ComponentA);
-
+FURIOUS_BEGIN_COMPONENT(ComponentA, KILOBYTES(4))
   uint32_t m_field;
+FURIOUS_END_COMPONENT
 
-  static const char* name()
-  {
-    return "ComponentA";
-  }
-};
-
-struct ComponentB 
-{
-  FURIOUS_COMPONENT(ComponentB);
-
+FURIOUS_BEGIN_COMPONENT(ComponentB, KILOBYTES(4))
   uint32_t m_field;
-
-  static const char* name()
-  {
-    return "ComponentB";
-  }
-};
-
+FURIOUS_END_COMPONENT
 
 TEST(RefsTest,TagWorks) 
 {

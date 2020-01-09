@@ -6,7 +6,7 @@ namespace furious
 {
 
 template<typename TComponent>
-TableView<TComponent>::Block::Block(TBlock* block) : p_tblock{block} 
+TableView<TComponent>::Block::Block(table_block_t* block) : p_table_block_t{block} 
 {
 
 }
@@ -15,20 +15,20 @@ template<typename TComponent>
 TComponent* 
 TableView<TComponent>::Block::get_data() const 
 {
-  return reinterpret_cast<TComponent*>(p_tblock->p_data);
+  return reinterpret_cast<TComponent*>(p_table_block_t->p_data);
 }
 
 template<typename TComponent>
 size_t 
 TableView<TComponent>::Block::get_num_components() const 
 {
-  return p_tblock->m_num_components;
+  return p_table_block_t->m_num_components;
 }
 
 template<typename TComponent>
 entity_id_t TableView<TComponent>::Block::get_start() const 
 {
-  return p_tblock->m_start;
+  return p_table_block_t->m_start;
 }
 
 template<typename TComponent>
@@ -41,14 +41,14 @@ template<typename TComponent>
 const bitmap_t*   
 TableView<TComponent>::Block::get_enabled() const 
 {
-  return &p_tblock->m_enabled;
+  return &p_table_block_t->m_enabled;
 }
 
 template<typename TComponent>
-TBlock* 
+table_block_t* 
 TableView<TComponent>::Block::get_raw() const 
 {
-  return p_tblock;
+  return p_table_block_t;
 }
 
 ////////////////////////////////////////////////
@@ -57,23 +57,23 @@ TableView<TComponent>::Block::get_raw() const
 
 
 template<typename TComponent>
-TableView<TComponent>::BlockIterator::BlockIterator(Table::Iterator iter ) : 
+TableView<TComponent>::BlockIterator::BlockIterator(table_iter_t iter ) : 
 m_iterator(iter) 
 {
 }
 
 template<typename TComponent>
 bool 
-TableView<TComponent>::BlockIterator::has_next() const 
+TableView<TComponent>::BlockIterator::has_next() 
 {
-  return m_iterator.has_next();
+  return table_iter_has_next(&m_iterator);
 }
 
 template<typename TComponent>
 typename TableView<TComponent>::Block 
 TableView<TComponent>::BlockIterator::next() 
 {
-  return Block{m_iterator.next()};
+  return Block{table_iter_next(&m_iterator)};
 }
 
 ////////////////////////////////////////////////
@@ -87,7 +87,7 @@ template<typename TComponent>
 }
 
 template<typename TComponent>
-  TableView<TComponent>::TableView( Table* table ) :
+  TableView<TComponent>::TableView( table_t* table ) :
     p_table(table)
 {
   assert(p_table != nullptr);
@@ -97,14 +97,14 @@ template<typename TComponent>
 void 
 TableView<TComponent>::clear() 
 {
-  p_table->clear();
+  table_clear(p_table);
 }
 
 template<typename TComponent>
 TComponent* 
 TableView<TComponent>::get_component(entity_id_t id) const  
 {
-  return static_cast<TComponent*>(p_table->get_component(id));
+  return static_cast<TComponent*>(table_get_component(p_table, id));
 }
 
 template<typename TComponent>
@@ -112,57 +112,63 @@ template<typename...Args>
 TComponent* 
 TableView<TComponent>::insert_component(entity_id_t id, Args&&...args)
 {
- return new (p_table->alloc_component(id)) TComponent{std::forward<Args>(args)...};
+ return new (table_alloc_component(p_table, id)) TComponent{std::forward<Args>(args)...};
 }
 
 template<typename TComponent>
 void  TableView<TComponent>::remove_component(entity_id_t id)
 {
-  p_table->dealloc_and_destroy_component(id);
+  table_dealloc_component(p_table, id);
 }
 
 template<typename TComponent>
 void  TableView<TComponent>::enable_component(entity_id_t id)
 {
-  p_table->enable_component(id);
+  table_enable_component(p_table, id);
 }
 
 template<typename TComponent>
 void TableView<TComponent>::disable_component(entity_id_t id)
 {
-  p_table->disable_component(id);
+  table_disable_component(p_table, id);
 }
 
 template<typename TComponent>
 bool TableView<TComponent>::is_enabled(entity_id_t id)
 {
- return p_table->is_enabled(id);
+ return table_is_enabled(p_table, id);
 }
 
 
 template<typename TComponent>
 size_t TableView<TComponent>::size() const 
 {
-  return p_table->size();
+  return table_size(p_table);
 }
 
 template<typename TComponent>
 typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator() 
 {
-  return BlockIterator{p_table->iterator()};
+  return BlockIterator{table_iter_create(p_table)};
 }
 
 template<typename TComponent>
 typename TableView<TComponent>::BlockIterator TableView<TComponent>::iterator(uint32_t chunk_size, uint32_t offset, uint32_t stride) 
 {
-  return BlockIterator{p_table->iterator(chunk_size, offset, stride)};
+  return BlockIterator{table_iter_create(p_table, chunk_size, offset, stride)};
 }
 
 template <typename TComponent>
-Table*
+table_t*
 TableView<TComponent>::get_raw()
 {
   return p_table;
+}
+
+template <typename TComponent>
+TableView<TComponent>::BlockIterator::~BlockIterator()
+{
+  table_iter_destroy(&m_iterator);
 }
 
 } /* furious */ 

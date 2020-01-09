@@ -3,7 +3,8 @@
 
 #include <gtest/gtest.h>
 
-namespace furious {
+namespace furious 
+{
 
 struct test_t
 {

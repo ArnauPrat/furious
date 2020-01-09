@@ -31,7 +31,7 @@ copy_component_ptr(uint32_t chunk_size,
                    entity_id_t source,
                    entity_id_t target,
                    const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables, 
-                   FURIOUS_RESTRICT(Table*)* tables,
+                   FURIOUS_RESTRICT(table_t*)* tables,
                    uint32_t num_tables);
 
 

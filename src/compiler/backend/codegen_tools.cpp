@@ -2,7 +2,6 @@
 
 #include "../common/types.h"
 #include "../common/str_builder.h"
-#include "../common/dyn_array.h"
 #include "consumer.h"
 #include "producer.h"
 #include "../frontend/operator.h"
@@ -15,6 +14,8 @@
 
 namespace furious 
 {
+
+//DynArray<Dependency> __DYNARRAY_DEPENDENCY__;
 
 static void
 fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
@@ -132,8 +133,8 @@ fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
       }
       if(!found)
       {
-        char* buffer = new char[MAX_INCLUDE_PATH_LENGTH];
-        FURIOUS_COPY_AND_CHECK_STR(buffer, dep.m_include_file, MAX_INCLUDE_PATH_LENGTH);
+        char* buffer = new char[FCC_MAX_INCLUDE_PATH_LENGTH];
+        FURIOUS_COPY_AND_CHECK_STR(buffer, dep.m_include_file, FCC_MAX_INCLUDE_PATH_LENGTH);
         deps_extr->m_include_files.append(buffer);
       }
     }
@@ -423,10 +424,10 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
 {
   if(scan->m_columns[0].m_type == fcc_column_type_t::E_COMPONENT)
   {
-    char tmp[MAX_TYPE_NAME];
+    char tmp[FCC_MAX_TYPE_NAME];
     fcc_type_name(scan->m_columns[0].m_component_type, 
                   tmp, 
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
     const uint32_t num_components = vars_extr->m_components.size();
     bool found = false;
@@ -440,8 +441,8 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
     }
     if(!found)
     {
-      char* buffer = new char [MAX_TYPE_NAME];
-      strncpy(buffer, tmp, MAX_TYPE_NAME);
+      char* buffer = new char [FCC_MAX_TYPE_NAME];
+      strncpy(buffer, tmp, FCC_MAX_TYPE_NAME);
       vars_extr->m_components.append(buffer);
       fcc_decl_t decl;
       fcc_type_decl(scan->m_columns[0].m_component_type, &decl);
@@ -475,8 +476,8 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
     }
     if (!found) 
     {
-      char* buffer = new char[MAX_REF_NAME];
-      strncpy(buffer, scan->m_columns[0].m_ref_name, MAX_REF_NAME);
+      char* buffer = new char[FCC_MAX_REF_NAME];
+      strncpy(buffer, scan->m_columns[0].m_ref_name, FCC_MAX_REF_NAME);
       vars_extr->m_references.append(buffer);
     }
   }
@@ -537,9 +538,9 @@ void
 fcc_vars_extr_extract_tag_filter(fcc_vars_extr_t* vars_extr, 
                       const fcc_operator_t* tag_filter) 
 {
-  char* buffer = new char[MAX_TAG_NAME];
-  strncpy(buffer, tag_filter->m_tag_filter.m_tag, MAX_TAG_NAME);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, tag_filter->m_tag_filter.m_tag, MAX_TAG_NAME)
+  char* buffer = new char[FCC_MAX_TAG_NAME];
+  strncpy(buffer, tag_filter->m_tag_filter.m_tag, FCC_MAX_TAG_NAME);
+  FURIOUS_COPY_AND_CHECK_STR(buffer, tag_filter->m_tag_filter.m_tag, FCC_MAX_TAG_NAME)
   vars_extr->m_tags.append(buffer);
   fcc_subplan_t* subplan = tag_filter->p_subplan;
   fcc_vars_extr_extract(vars_extr, 
@@ -550,10 +551,10 @@ void
 fcc_vars_extr_extract_component_filter(fcc_vars_extr_t* vars_extr, 
                       const fcc_operator_t* component_filter) 
 {
-  char tmp[MAX_TYPE_NAME];
+  char tmp[FCC_MAX_TYPE_NAME];
   fcc_type_name(component_filter->m_component_filter.m_filter_type, 
                 tmp, 
-                MAX_TYPE_NAME);
+                FCC_MAX_TYPE_NAME);
 
   bool found = false;
   const uint32_t num_components = vars_extr->m_components.size();
@@ -567,8 +568,8 @@ fcc_vars_extr_extract_component_filter(fcc_vars_extr_t* vars_extr,
 
   if(!found)
   {
-    char* buffer = new char[MAX_TYPE_NAME];
-    strncpy(buffer, tmp, MAX_TYPE_NAME);
+    char* buffer = new char[FCC_MAX_TYPE_NAME];
+    strncpy(buffer, tmp, FCC_MAX_TYPE_NAME);
     vars_extr->m_components.append(buffer);
     fcc_decl_t decl;
     fcc_type_decl(component_filter->m_component_filter.m_filter_type, &decl);
@@ -662,8 +663,8 @@ generate_table_name(const char* type_name,
                     uint32_t buffer_length,
                     const fcc_operator_t* op)
 {
-  char tmp[MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
+  char tmp[FCC_MAX_TYPE_NAME];
+  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
 
   str_builder_t str_builder = str_builder_create();
@@ -686,10 +687,10 @@ generate_temp_table_name(const char* type_name,
                          uint32_t buffer_length,
                          const fcc_operator_t* op)
 {
-  char tmp[MAX_TABLE_VARNAME];
+  char tmp[FCC_MAX_TABLE_VARNAME];
   generate_table_name(type_name, 
                       tmp,
-                      MAX_TABLE_VARNAME,
+                      FCC_MAX_TABLE_VARNAME,
                       op);
 
   str_builder_t str_builder = str_builder_create();
@@ -707,10 +708,10 @@ generate_ref_table_name(const char* ref_name,
                         uint32_t buffer_length,
                         const fcc_operator_t* op)
 {
-  char tmp[MAX_TABLE_VARNAME];
+  char tmp[FCC_MAX_TABLE_VARNAME];
   generate_table_name(ref_name, 
                       tmp,
-                      MAX_TABLE_VARNAME,
+                      FCC_MAX_TABLE_VARNAME,
                       op);
 
   str_builder_t str_builder = str_builder_create();
@@ -764,8 +765,8 @@ generate_block_name(const char* type_name,
                     uint32_t buffer_length,
                     const fcc_operator_t* op)
 {
-  char tmp[MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
+  char tmp[FCC_MAX_TYPE_NAME];
+  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
 
   str_builder_t str_builder = str_builder_create();
@@ -799,8 +800,8 @@ generate_ref_groups_name(const char* ref_name,
                          uint32_t buffer_length,
                          const fcc_operator_t* op)
 {
-  char tmp[MAX_REF_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, ref_name, MAX_REF_NAME);
+  char tmp[FCC_MAX_REF_NAME];
+  FURIOUS_COPY_AND_CHECK_STR(tmp, ref_name, FCC_MAX_REF_NAME);
   sanitize_name(tmp);
   str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "ref_%s_groups_%u", tmp, op->m_id);
@@ -830,8 +831,8 @@ generate_system_wrapper_name(const char* system_name,
                              uint32_t buffer_length,
                              const fcc_operator_t* op)
 {
-  char base_name[MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(base_name, system_name, MAX_TYPE_NAME);
+  char base_name[FCC_MAX_TYPE_NAME];
+  FURIOUS_COPY_AND_CHECK_STR(base_name, system_name, FCC_MAX_TYPE_NAME);
   tolower(base_name);
   str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "%s_%d",base_name, system_id  );
@@ -851,9 +852,9 @@ generate_global_name(const char* type_name,
                      uint32_t buffer_length,
                      const fcc_operator_t* op)
 {
-  char tmp[MAX_TYPE_NAME];
+  char tmp[FCC_MAX_TYPE_NAME];
   strncpy(tmp, type_name, buffer_length);
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, MAX_TYPE_NAME);
+  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
   str_builder_t str_builder = str_builder_create();
   str_builder_append(&str_builder, "global_%s", tmp);

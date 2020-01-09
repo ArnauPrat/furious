@@ -16,6 +16,8 @@
 #include "../../../common/str_builder.h"
 #include "../../driver.h"
 
+#include "../common/dyn_array.inl"
+
 #include "string.h"
 
 using namespace clang::driver;
@@ -228,13 +230,13 @@ fcc_decl_code(fcc_decl_t decl,
 
         str_builder_append(&str_builder, "auto predicate = [] (");
         auto array = func_decl->parameters();
-        char tmp[MAX_TYPE_NAME];
-        get_type_name(array[0]->getType(), tmp, MAX_TYPE_NAME);
+        char tmp[FCC_MAX_TYPE_NAME];
+        get_type_name(array[0]->getType(), tmp, FCC_MAX_TYPE_NAME);
         str_builder_append(&str_builder, "%s%s", tmp, array[0]->getNameAsString().c_str());
 
         for(size_t i = 1; i < array.size(); ++i)
         {
-          get_type_name(array[i]->getType(), tmp, MAX_TYPE_NAME);
+          get_type_name(array[i]->getType(), tmp, FCC_MAX_TYPE_NAME);
           str_builder_append(&str_builder, ",%s%s", tmp, array[i]->getNameAsString().c_str());
         }
         std::string function_body = get_code(func_decl->getASTContext().getSourceManager(),

@@ -6,16 +6,14 @@
 
 namespace furious {
 
-struct Component 
-{
-  FURIOUS_COMPONENT(Component);
+FURIOUS_BEGIN_COMPONENT(Component, KILOBYTES(4))
 
   int32_t field1_;
   float field2_;
 
   Component(int32_t field1, double field2) : field1_(field1), field2_(field2) {}
 
-};
+FURIOUS_END_COMPONENT
 
 TEST(TableTest,TableWorks) 
 {
@@ -88,8 +86,7 @@ TEST(TableTest,TableWorks)
   table.clear();
   ASSERT_EQ(table.size(),0);
 
-  //FURIOUS_REMOVE_TABLE(database, Component);
-  database->remove_table<Component>();
+  FURIOUS_REMOVE_TABLE(database, Component);
   delete database;
 }
 
@@ -100,7 +97,7 @@ TEST(IteratorTest,TableWorks)
   Database* database = new Database();
   FURIOUS_CREATE_TABLE(database, Component);
   TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
-   int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
+  int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_components; ++i) 
   {

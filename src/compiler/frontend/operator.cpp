@@ -2,10 +2,13 @@
 #include "operator.h"
 #include "../driver.h"
 
+#include "../common/dyn_array.inl"
+
 #include <string.h>
 
 namespace furious 
 {
+
 
 static uint32_t
 create_operator(fcc_subplan_t* subplan,
@@ -55,7 +58,7 @@ create_scan(fcc_subplan_t* subplan,
   fcc_operator_t* op = &subplan->m_nodes[id];
   fcc_column_t column;
   column.m_type = fcc_column_type_t::E_ID;
-  FURIOUS_COPY_AND_CHECK_STR(column.m_ref_name, ref_name, MAX_REF_NAME);
+  FURIOUS_COPY_AND_CHECK_STR(column.m_ref_name, ref_name, FCC_MAX_REF_NAME);
   column.m_access_mode = fcc_access_mode_t::E_READ;
   op->m_columns.append(column);
   return id;
@@ -166,7 +169,7 @@ create_tag_filter(fcc_subplan_t* subplan,
                                 fcc_operator_type_t::E_TAG_FILTER, 
                                 "TagFilter");
   fcc_operator_t* op = &subplan->m_nodes[id];
-  FURIOUS_COPY_AND_CHECK_STR(op->m_tag_filter.m_tag, tag, MAX_TAG_NAME);
+  FURIOUS_COPY_AND_CHECK_STR(op->m_tag_filter.m_tag, tag, FCC_MAX_TAG_NAME);
   subplan->m_nodes[child].m_parent = id;
   op->m_tag_filter.m_child = child;
   op->m_tag_filter.m_op_type = op_type;
@@ -472,15 +475,15 @@ subplan_init(const fcc_stmt_t* match,
           {
             fcc_type_t match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_component_types[k].m_type;
 
-            char expand_type_name[MAX_TYPE_NAME];
+            char expand_type_name[FCC_MAX_TYPE_NAME];
             fcc_type_name(expand_type, 
                           expand_type_name,
-                          MAX_TYPE_NAME);
+                          FCC_MAX_TYPE_NAME);
 
-            char match_type_name[MAX_TYPE_NAME];
+            char match_type_name[FCC_MAX_TYPE_NAME];
             fcc_type_name(match_type, 
                           match_type_name,
-                          MAX_TYPE_NAME);
+                          FCC_MAX_TYPE_NAME);
 
             if(!(fcc_type_access_mode(match_type) == fcc_access_mode_t::E_READ) &&
                strcmp(expand_type_name, match_type_name) == 0)

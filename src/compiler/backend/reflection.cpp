@@ -8,6 +8,7 @@
 
 #include <string.h>
 
+
 namespace furious
 {
 
@@ -41,8 +42,8 @@ generate_reflection_code(FILE* fd,
                          char* buffer,
                          uint32_t buffer_length)
 {
-  char tmp[MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, refl_data->m_type_name, MAX_TYPE_NAME);
+  char tmp[FCC_MAX_TYPE_NAME];
+  FURIOUS_COPY_AND_CHECK_STR(tmp, refl_data->m_type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
 
   str_builder_t str_builder = str_builder_create();
@@ -99,13 +100,13 @@ generate_reflection_code(FILE* fd,
 
     if(field->m_type == ReflType::E_STRUCT || field->m_type == ReflType::E_UNION)
     {
-      char field_name[MAX_FIELD_NAME];
+      char field_name[FCC_MAX_FIELD_NAME];
       generate_reflection_code(fd, 
                                field->p_strct_type.get(), 
                                root, 
                                str_builder.p_buffer,
                                field_name,
-                               MAX_FIELD_NAME);
+                               FCC_MAX_FIELD_NAME);
       fprintf(fd, "field.p_strct_type = %s;\n", field_name);
     }
     fprintf(fd, "%s.get()->m_fields.append(field);\n", buffer);
@@ -120,14 +121,14 @@ generate_reflection_code(FILE* fd, fcc_decl_t decl)
 {
   fprintf(fd,"{\n");
   ReflData refl_data = get_reflection_data(decl);
-  char var_name[MAX_FIELD_NAME];
+  char var_name[FCC_MAX_FIELD_NAME];
   generate_reflection_code(fd, 
                            &refl_data, 
                            refl_data.m_type_name, 
                            "", 
                            var_name, 
-                           MAX_FIELD_NAME);
-  fprintf(fd, "database->add_refl_data<%s>(%s);\n", refl_data.m_type_name, var_name);
+                           FCC_MAX_FIELD_NAME);
+  fprintf(fd, "FURIOUS_ADD_REFL_DATA(database, %s, %s);\n", refl_data.m_type_name, var_name);
   fprintf(fd,"}\n");
 }
 

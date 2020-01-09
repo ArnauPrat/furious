@@ -6,9 +6,9 @@
 namespace furious 
 {
 
-TEST(linear_alloc_test, linear_alloc_test) 
+TEST(stack_alloc_test, stack_alloc_test) 
 {
-  mem_allocator_t alloc = linear_alloc_create();
+  mem_allocator_t alloc = stack_alloc_create();
 
   constexpr uint32_t num_alignments = 10;
   uint32_t alignments[num_alignments] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
@@ -46,7 +46,7 @@ TEST(linear_alloc_test, linear_alloc_test)
     mem_free(&alloc, allocation_addrs[i]);
   }
 
-  linear_alloc_destroy(&alloc);
+  stack_alloc_destroy(&alloc);
 }
 
 }

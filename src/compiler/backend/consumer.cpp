@@ -8,6 +8,8 @@
 #include "fcc_context.h"
 #include "producer.h"
 
+#include "../common/dyn_array.inl"
+
 namespace furious 
 {
 
@@ -156,10 +158,10 @@ consume_foreach(FILE*fd,
                                            be applied to reference column type: \"%s\"", 
                                            column->m_ref_name);
     }
-    char tmp[MAX_TYPE_NAME+32];
+    char tmp[FCC_MAX_QUALIFIED_TYPE_NAME];
     fcc_type_qualified_name(column->m_component_type,
                             tmp,
-                            MAX_TYPE_NAME+32);
+                            FCC_MAX_QUALIFIED_TYPE_NAME);
 
     switch(column->m_type)
     {
@@ -205,17 +207,17 @@ consume_foreach(FILE*fd,
     //const fcc_system_t* info = foreach->p_systems[i];
     const fcc_system_t* info = foreach->m_foreach.p_system;
 
-    char system_name[MAX_TYPE_NAME];
+    char system_name[FCC_MAX_TYPE_NAME];
     fcc_type_name(info->m_system_type, 
                   system_name, 
-                  MAX_TYPE_NAME);
+                  FCC_MAX_TYPE_NAME);
 
 
-    char wrapper_name[MAX_SYSTEM_WRAPPER_VARNAME];
+    char wrapper_name[FCC_MAX_SYSTEM_WRAPPER_VARNAME];
     generate_system_wrapper_name(system_name, 
                                  info->m_id,
                                  wrapper_name, 
-                                 MAX_SYSTEM_WRAPPER_VARNAME);
+                                 FCC_MAX_SYSTEM_WRAPPER_VARNAME);
 
 
     if(all_globals)
@@ -323,10 +325,10 @@ consume_join(FILE*fd,
         const fcc_operator_t* caller)
 {
 
-  char hashtable[MAX_HASHTABLE_VARNAME];
+  char hashtable[FCC_MAX_HASHTABLE_VARNAME];
   generate_hashtable_name(join,
                           hashtable,
-                          MAX_HASHTABLE_VARNAME);
+                          FCC_MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == join->m_join.m_left) 
   {
@@ -353,10 +355,10 @@ consume_join(FILE*fd,
 
       fprintf(fd,
               "if(build != nullptr)\n{\n");
-      char clustername[MAX_CLUSTER_VARNAME];
+      char clustername[FCC_MAX_CLUSTER_VARNAME];
       generate_cluster_name(join,
                             clustername,
-                            MAX_CLUSTER_VARNAME);
+                            FCC_MAX_CLUSTER_VARNAME);
 
       fprintf(fd,
               "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
@@ -397,10 +399,10 @@ consume_leftfilter_join(FILE*fd,
         const char* source,
         const fcc_operator_t* caller)
 {
-  char hashtable[MAX_HASHTABLE_VARNAME];
+  char hashtable[FCC_MAX_HASHTABLE_VARNAME];
   generate_hashtable_name(left_filter_join,
                           hashtable,
-                          MAX_HASHTABLE_VARNAME);
+                          FCC_MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == left_filter_join->m_leftfilter_join.m_left) 
   {
@@ -428,10 +430,10 @@ consume_leftfilter_join(FILE*fd,
             source);
     fprintf(fd,
             "if(build != nullptr)\n{\n");
-    char clustername[MAX_CLUSTER_VARNAME];
+    char clustername[FCC_MAX_CLUSTER_VARNAME];
     generate_cluster_name(left_filter_join,
                           clustername,
-                          MAX_CLUSTER_VARNAME);
+                          FCC_MAX_CLUSTER_VARNAME);
 
       fprintf(fd,
               "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
@@ -472,10 +474,10 @@ consume_cross_join(FILE*fd,
         const fcc_operator_t* caller)
 {
 
-  char hashtable[MAX_HASHTABLE_VARNAME];
+  char hashtable[FCC_MAX_HASHTABLE_VARNAME];
   generate_hashtable_name(join,
                           hashtable,
-                          MAX_HASHTABLE_VARNAME);
+                          FCC_MAX_HASHTABLE_VARNAME);
 
   if(caller->m_id == join->m_cross_join.m_left) 
   {
@@ -538,10 +540,10 @@ consume_tag_filter(FILE*fd,
                    const fcc_operator_t* caller)
 {
 
-  char bittable_name[MAX_TAG_TABLE_VARNAME];
+  char bittable_name[FCC_MAX_TAG_TABLE_VARNAME];
   generate_bittable_name(tag_filter->m_tag_filter.m_tag,
                          bittable_name,
-                         MAX_TAG_TABLE_VARNAME);
+                         FCC_MAX_TAG_TABLE_VARNAME);
   fprintf(fd,"\n");
 
   if(!tag_filter->m_tag_filter.m_on_column)
@@ -673,10 +675,10 @@ consume_predicate_filter(FILE*fd,
                                            column->m_ref_name);
     }
 
-    char tmp[MAX_QUALIFIED_TYPE_NAME];
+    char tmp[FCC_MAX_QUALIFIED_TYPE_NAME];
     fcc_type_qualified_name(column->m_component_type,
                             tmp,
-                            MAX_QUALIFIED_TYPE_NAME);
+                            FCC_MAX_QUALIFIED_TYPE_NAME);
 
     switch(column->m_type)
     {
@@ -821,14 +823,14 @@ consume_gather(FILE*fd,
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
       fcc_column_t* column = &child_columns[i];
-      char ctype[MAX_TYPE_NAME];
+      char ctype[FCC_MAX_TYPE_NAME];
       fcc_type_name(column->m_component_type,
                     ctype,
-                    MAX_TYPE_NAME); 
+                    FCC_MAX_TYPE_NAME); 
 
-      char tablename[MAX_TABLE_VARNAME];
+      char tablename[FCC_MAX_TABLE_VARNAME];
       generate_temp_table_name(ctype, tablename, 
-                               MAX_TABLE_VARNAME,
+                               FCC_MAX_TABLE_VARNAME,
                                gather);
 
 
@@ -839,10 +841,10 @@ consume_gather(FILE*fd,
   }
   else
   {
-    char hashtable[MAX_HASHTABLE_VARNAME];
+    char hashtable[FCC_MAX_HASHTABLE_VARNAME];
     generate_hashtable_name(gather,
                             hashtable,
-                            MAX_HASHTABLE_VARNAME);
+                            FCC_MAX_HASHTABLE_VARNAME);
 
 
     fprintf(fd, 
@@ -889,14 +891,14 @@ consume_cascading_gather(FILE*fd,
     for(uint32_t i = 0; i < child_columns.size(); ++i)
     {
       fcc_column_t* column = &child_columns[i];
-      char ctype[MAX_TYPE_NAME];
+      char ctype[FCC_MAX_TYPE_NAME];
       fcc_type_name(column->m_component_type,
                     ctype,
-                    MAX_TYPE_NAME); 
+                    FCC_MAX_TYPE_NAME); 
 
-      char tablename[MAX_TABLE_VARNAME];
+      char tablename[FCC_MAX_TABLE_VARNAME];
       generate_temp_table_name(ctype, tablename, 
-                               MAX_TABLE_VARNAME,
+                               FCC_MAX_TABLE_VARNAME,
                                casc_gather);
 
 
@@ -905,10 +907,10 @@ consume_cascading_gather(FILE*fd,
     }
     fprintf(fd,");\n");
 
-    char hashtable[MAX_HASHTABLE_VARNAME];
+    char hashtable[FCC_MAX_HASHTABLE_VARNAME];
     generate_hashtable_name(casc_gather,
                             hashtable,
-                            MAX_HASHTABLE_VARNAME);
+                            FCC_MAX_HASHTABLE_VARNAME);
 
 
     fprintf(fd, 
@@ -929,10 +931,10 @@ consume_cascading_gather(FILE*fd,
   }
   else
   {
-    char hashtable[MAX_HASHTABLE_VARNAME];
+    char hashtable[FCC_MAX_HASHTABLE_VARNAME];
     generate_hashtable_name(casc_gather,
                             hashtable,
-                            MAX_HASHTABLE_VARNAME);
+                            FCC_MAX_HASHTABLE_VARNAME);
 
 
     fprintf(fd, 

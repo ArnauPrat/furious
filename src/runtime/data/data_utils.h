@@ -5,7 +5,6 @@
 
 #include "../../common/btree.h"
 #include "../../common/dyn_array.h"
-#include "../../common/btree.h"
 
 #include "table_view.h"
 

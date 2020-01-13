@@ -25,55 +25,64 @@ struct Component \
 ////////////////////////////////////////////////
 
 #define FURIOUS_CREATE_TABLE(database, Component) \
-   (database)->create_table<Component>()
+   database_create_table<Component>(database)
 
 #define FURIOUS_CREATE_TABLE_DESTRUCTOR(database, Component, Destructor) \
-   (database)->create_table<Component, Destructor>()
+  database_create_table<Component, Destructor>(database)
 
 #define FURIOUS_REMOVE_TABLE(database, Component)\
-  (database)->remove_table<Component>()
+  database_remove_table<Component>(database)
 
 #define FURIOUS_FIND_TABLE(database, Component)\
-  (database)->find_table<Component>()
+  database_find_table<Component>(database)
 
 #define FURIOUS_FIND_OR_CREATE_TABLE(database, Component)\
-  (database)->find_or_create_table<Component>()
+  database_find_or_create_table<Component>(database)
 
 #define FURIOUS_FIND_OR_CREATE_TABLE_DESTRUCTOR(database, Component, Destructor)\
-  (database)->find_or_create_table<Component, Destructor>()
+  database_find_or_create_table<Component, Destructor>(database)
 
 #define FURIOUS_EXISTS_TABLE(database, Component)\
-  (database)->exists_table()
+  database_exists_table(database)
 
 #define FURIOUS_CREATE_GLOBAL(database, Component, ...) \
-   (database)->create_global<Component>(__VA_ARGS__)
+  database_create_global<Component>(database, __VA_ARGS__)
 
 #define FURIOUS_REMOVE_GLOBAL(database, Component)\
-  (database)->remove_global()
+  database_remove_global(database)
 
 #define FURIOUS_FIND_GLOBAL(database, Component)\
-  (database)->find_global<Component>()
+  database_find_global<Component>(database)
 
 #define FURIOUS_FIND_GLOBAL_NO_LOCK(database, Component)\
-  (database)->find_global_no_lock<Component>()
+  database_find_global_no_lock<Component>(database)
 
 #define FURIOUS_FIND_OR_CREATE_GLOBAL(database, Component, ...)\
-  (database)->find_or_create_global<Component>( __VA_ARGS__)
+  database_find_or_create_global<Component>(database, __VA_ARGS__)
 
 #define FURIOUS_EXISTS_GLOBAL(database, Component)\
-  (database)->exists_global()
+  database_exists_global<Component>(database)
 
 #define FURIOUS_FIND_REF_TABLE(database, ref_name)\
-  (database)->find_ref_table(ref_name)
+  database_find_ref_table(database, ref_name)
 
 #define FURIOUS_FIND_OR_CREATE_REF_TABLE(database, ref_name)\
-  (database)->find_or_create_ref_table(ref_name)
+  database_find_or_create_ref_table(database, ref_name)
 
 #define FURIOUS_CREATE_REF_TABLE(database, ref_name)\
-  (database)->find_or_create_ref_table(ref_name)
+  database_find_or_create_ref_table(database, ref_name)
 
 #define FURIOUS_FIND_TAG_TABLE(database, tagname)\
-  (database)->get_tagged_entities(tagname)
+  database_get_tagged_entities(database, tagname)
+
+#define FURIOUS_ADD_REFL_DATA(database, Component, ref_data)\
+  database_add_refl_data<Component>(database, ref_data)
+
+#define FURIOUS_GET_REFL_DATA(database, Component) \
+  database_get_refl_data<TestComponent>(database);
+
+#define FURIOUS_CREATE_TEMP_TABLE(database, Component, name) \
+   database_create_temp_table<Component>(database, name)
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -111,15 +120,5 @@ struct Component \
 
 #define FURIOUS_GET_REFERENCE(entity, reference) \
   (entity).get_reference(reference)
-
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-////////////////////////////////////////////////
-
-#define FURIOUS_ADD_REFL_DATA(database, Component, ref_data)\
-  (database)->add_refl_data<Component>(ref_data)
-
-#define FURIOUS_GET_REFL_DATA(database, Component) \
-  (database)->get_refl_data<TestComponent>();
 
 #endif

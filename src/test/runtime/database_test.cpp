@@ -16,21 +16,21 @@ FURIOUS_BEGIN_COMPONENT(Component, KILOBYTES(4))
 FURIOUS_END_COMPONENT
 
 TEST(DatabaseTest, CreateAndRemoveTable) {
-  auto database = new Database();
-  database->clear();
-  FURIOUS_CREATE_TABLE(database, Component);
-  FURIOUS_REMOVE_TABLE(database, Component);
-  delete database;
+  database_t database = database_create();
+  database_clear(&database);
+  FURIOUS_CREATE_TABLE(&database, Component);
+  FURIOUS_REMOVE_TABLE(&database, Component);
+  database_destroy(&database);
 }
 
 
 TEST(DatabaseTest, FindTable) {
-  auto database = new Database();
-  database->clear();
-  FURIOUS_CREATE_TABLE(database, Component);
-  FURIOUS_FIND_TABLE(database, Component);
-  FURIOUS_REMOVE_TABLE(database, Component);
-  delete database;
+  database_t database = database_create();
+  database_clear(&database);
+  FURIOUS_CREATE_TABLE(&database, Component);
+  FURIOUS_FIND_TABLE(&database, Component);
+  FURIOUS_REMOVE_TABLE(&database, Component);
+  database_destroy(&database);
 }
 
 } /* furious */ 

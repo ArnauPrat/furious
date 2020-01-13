@@ -1,7 +1,6 @@
 
 #include "operator.h"
 #include "../driver.h"
-
 #include "../common/dyn_array.inl"
 
 #include <string.h>

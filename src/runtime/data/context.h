@@ -3,13 +3,12 @@
 #ifndef _FURIOUS_CONTEXT_H_
 #define _FURIOUS_CONTEXT_H_ value
 
-#include "../../common/common.h"
-#include <vector>
+#include "../../common/platform.h"
 
 namespace furious 
 {
 
-class Database;
+struct database_t;
 
 struct IdComponentPair
 {
@@ -21,7 +20,7 @@ class Context
 {
 public:
   Context(float dt, 
-          Database* database,
+          database_t* database,
           void* user_data,
           uint32_t chunk_size,
           uint32_t thread_id,
@@ -41,9 +40,7 @@ public:
   uint32_t    m_num_threads;
 
 private:
-  Database*     p_database;
-  std::vector<IdComponentPair> m_to_enable;
-  std::vector<IdComponentPair> m_to_disable;
+  database_t*     p_database;
 };
   
 } /* furious */ 

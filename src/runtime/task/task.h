@@ -10,11 +10,11 @@
 namespace furious
 {
 
-class Database;
+struct database_t;
 class barrier_t;
 
 using task_func_t = void (*) (float, // delta 
-                              Database*, // database
+                              database_t*, // database
                               void*, // userdata
                               uint32_t, // chunksize 
                               uint32_t,  // offset
@@ -67,7 +67,7 @@ task_graph_set_root(task_graph_t* task_graph,
 void
 task_graph_run(task_graph_t* task_graph,
                float delta,
-               Database* database,
+               database_t* database,
                void* user_data);
 
 

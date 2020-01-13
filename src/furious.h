@@ -6,22 +6,23 @@
 #include "common/common.h"
 #include "runtime/runtime.h"
 #include "lang/macros.h"
-#include "stddef.h"
+#include <stddef.h>
+#include <string.h>
 
 namespace furious
 {
 
 extern void 
-furious_init(Database* database);
+furious_init(database_t* database);
 
 extern void 
 furious_frame(float delta, 
-              Database* database,
+              database_t* database,
               void* user_data);
 
 extern void 
 furious_post_frame(float delta, 
-                   Database* database,
+                   database_t* database,
                    void* user_data);
 
 extern task_graph_t* 

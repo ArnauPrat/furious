@@ -8,14 +8,18 @@
 #include <iostream>
 
 
+namespace furious
+{
+  
 TEST(ReflectionTest, ReflectionTest ) 
 {
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
-  furious::furious_init(database);
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
+  furious_init(&database);
 
-  furious::Entity entity = furious::create_entity(database);
+  Entity entity = FURIOUS_CREATE_ENTITY(&database);
   FURIOUS_ADD_COMPONENT(entity, TestComponent);
   TestComponent* test_component = FURIOUS_GET_COMPONENT(entity, TestComponent);
   test_component->m_x = 1.0f;
@@ -26,14 +30,14 @@ TEST(ReflectionTest, ReflectionTest )
   test_component->X.m_a = 6.0f;
   test_component->X.m_b = 6.0f;
 
-  furious::furious_frame(0.1,database, nullptr);
+  furious_frame(0.1, &database, nullptr);
 
   void* raw_pointer = test_component;
-  const furious::ReflData* refl_data = FURIOUS_GET_REFL_DATA(database, TestComponent);
+  const ReflData* refl_data = FURIOUS_GET_REFL_DATA(&database, TestComponent);
   ASSERT_TRUE(refl_data != nullptr);
   for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
   {
-    const furious::ReflField* field = &refl_data->m_fields[i];
+    const ReflField* field = &refl_data->m_fields[i];
     if(strcmp(field->m_name,"m_x")==0)
     {
       float* field_ptr = (float*)((char*)raw_pointer + field->m_offset);
@@ -58,10 +62,10 @@ TEST(ReflectionTest, ReflectionTest )
 
     if(strcmp(field->m_name,"") == 0 && field->m_anonymous)
     {
-      const furious::ReflData* child = field->p_strct_type.get();
+      const ReflData* child = field->p_strct_type.get();
       for(uint32_t j = 0; j < child->m_fields.size(); ++j)
       {
-        const furious::ReflField* child_field = &child->m_fields[j];
+        const ReflField* child_field = &child->m_fields[j];
 
         if(strcmp(child_field->m_name,"m_q")==0)
         {
@@ -83,10 +87,10 @@ TEST(ReflectionTest, ReflectionTest )
 
     if(strcmp(field->m_name,"X") == 0)
     {
-      const furious::ReflData* child = field->p_strct_type.get();
+      const ReflData* child = field->p_strct_type.get();
       for(uint32_t j = 0; j < child->m_fields.size(); ++j)
       {
-        const furious::ReflField* child_field = &child->m_fields[j];
+        const ReflField* child_field = &child->m_fields[j];
 
         if(strcmp(child_field->m_name,"m_a") == 0)
         {
@@ -106,10 +110,11 @@ TEST(ReflectionTest, ReflectionTest )
     }
   }
 
-  furious::furious_release();
-
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
+
+} /*  furious */ 
 
 int main(int argc, char *argv[])
 {

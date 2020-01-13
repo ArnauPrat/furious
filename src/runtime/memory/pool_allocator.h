@@ -23,9 +23,9 @@ namespace furious
  */
 mem_allocator_t
 pool_alloc_create(uint32_t alignment, 
-                   uint32_t block_size, 
-                   uint32_t page_size, 
-                   mem_allocator_t* allocator = nullptr);
+                  uint32_t block_size, 
+                  uint32_t page_size, 
+                  mem_allocator_t* allocator = nullptr);
 
 /**
  * \brief Destroys a pool allocator

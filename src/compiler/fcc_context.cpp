@@ -1,20 +1,14 @@
 
-
-
+#include "backend/codegen.h"
 #include "driver.h"
 #include "fcc_context.h"
 #include "frontend/exec_plan.h"
 #include "frontend/exec_plan_printer.h"
-#include "drivers/clang/clang_parsing.h"
-#include "drivers/clang/clang_tools.h"
-#include "backend/codegen.h"
-#include "../common/dyn_array.inl"
 
 #include <stdlib.h>
 #include <stdarg.h>
-
 #include <stdio.h>
-#include <vector>
+#include <string.h>
 
 namespace furious 
 {
@@ -120,7 +114,7 @@ handle_parsing_error(fcc_parsing_error_type_t type,
                         line, 
                         column, 
                         message);
-  llvm::errs() << str_builder.p_buffer;
+  printf("%s\n", str_builder.p_buffer);
   str_builder_destroy(&str_builder);
   abort();
 }
@@ -151,7 +145,7 @@ handle_compilation_error(fcc_compilation_error_type_t type,
       str_builder_append(&str_builder, "No Error. This should never be reported");
       break;
   }
-  llvm::errs() << str_builder.p_buffer;
+  printf("%s\n", str_builder.p_buffer);
   str_builder_destroy(&str_builder);
   abort();
 }
@@ -319,7 +313,7 @@ fcc_run(int argc,
     handle_compilation_error(err, "");
   }
 
-  llvm::errs() << "Printing Frame execplan" << "\n";
+  printf("Printing Frame execplan\n");
   {
     fcc_subplan_printer_t printer;
     fcc_subplan_printer_init(&printer);
@@ -332,14 +326,14 @@ fcc_run(int argc,
       fcc_subplan_printer_print(&printer, 
                                 exec_plan->m_subplans[seq[j]]);
     }
-    llvm::errs() << printer.m_str_builder.p_buffer << "\n";
+    printf("%s\n", printer.m_str_builder.p_buffer);
     fcc_subplan_printer_release(&printer);
   }
 
   {
     fcc_subplan_printer_t post_printer;
     fcc_subplan_printer_init(&post_printer);
-    llvm::errs() << "Printing PostFrame execplan" << "\n"; 
+    printf("Printing PostFrame execplan"); 
     DynArray<uint32_t> seq = get_valid_exec_sequence(post_exec_plan);
     const uint32_t num_in_seq = seq.size();
     for(uint32_t j = 0; 
@@ -349,7 +343,7 @@ fcc_run(int argc,
       fcc_subplan_printer_print(&post_printer, 
                                 post_exec_plan->m_subplans[seq[j]]);
     }
-    llvm::errs() << post_printer.m_str_builder.p_buffer << "\n";
+    printf("%s\n", post_printer.m_str_builder.p_buffer);
     fcc_subplan_printer_release(&post_printer);
   }
 

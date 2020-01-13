@@ -3,11 +3,9 @@
 #ifndef _FURIOUS_BIT_TABLE_H_
 #define _FURIOUS_BIT_TABLE_H_
 
-#include "../../common/types.h"
+#include "../../common/platform.h"
 #include "../../common/bitmap.h"
 #include "../../common/btree.h"
-
-#include "common.h"
 
 
 namespace furious

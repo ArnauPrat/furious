@@ -8,7 +8,7 @@ namespace furious {
 TEST(BitTableTest, BitTableWorks) 
 {
 
-  mem_allocator_t lallocator = stack_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
   BitTable* bittable = new BitTable(&lallocator);
   constexpr uint32_t num_elements = 32000;
   for(uint32_t i = 0;

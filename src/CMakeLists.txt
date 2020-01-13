@@ -15,10 +15,8 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.h
-  ${CMAKE_SOURCE_DIR}/src/common/btree.inl
+  ${CMAKE_SOURCE_DIR}/src/common/btree.cpp
   ${CMAKE_SOURCE_DIR}/src/common/common.h
-  ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/impl/btree_impl.h
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
   ${CMAKE_SOURCE_DIR}/src/common/reference.h
   ${CMAKE_SOURCE_DIR}/src/common/hashtable.cpp
@@ -35,7 +33,6 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/bit_table.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/common.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/context.cpp
   ${CMAKE_SOURCE_DIR}/src/runtime/data/context.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data.h

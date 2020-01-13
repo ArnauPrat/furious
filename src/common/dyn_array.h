@@ -3,11 +3,11 @@
 #ifndef _FURIOUS_DYNAMIC_ARRAY_H_
 #define _FURIOUS_DYNAMIC_ARRAY_H_
 
-#include "types.h"
-#include "stdlib.h"
+#include "platform.h"
 #include "memory/memory.h"
 
 #include <initializer_list>
+#include <stdlib.h>
 
 namespace furious
 {

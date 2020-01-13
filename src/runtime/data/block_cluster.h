@@ -3,8 +3,7 @@
 #define _FURIOUS_BLOCK_CLUSTER_H_H value
 
 #include "../../common/bitmap.h"
-#include "../../common/types.h"
-#include "common.h"
+#include "../../common/platform.h"
 
 #define FURIOUS_MAX_CLUSTER_SIZE 16
 

@@ -1,7 +1,7 @@
 #ifndef _FURIOUS_DRIVER_H
 #define _FURIOUS_DRIVER_H value
 
-#include "../common/common.h"
+#include "../common/platform.h"
 #include "../runtime/data/reflection.h"
 #include "fcc_context.h"
 

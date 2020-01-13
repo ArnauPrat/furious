@@ -9,6 +9,8 @@
 
 #include <type_traits>
 
+#include <string>
+
 /**
  * This file contain objects and functions that conform the DSL used to
  * implement the game logic. The code calling the functions of this file is not

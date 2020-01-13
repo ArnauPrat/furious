@@ -1,55 +1,68 @@
 
 #ifndef _FURIOUS_DATABASE_INL_
 #define _FURIOUS_DATABASE_INL_
+
 #include "../../common/utils.h"
-#include <utility>
+#include <string.h>
 
 namespace furious 
 {
 
 template <typename T, void (*fp)(T*)>
 TableView<T> 
-Database::create_table() 
+database_create_table(database_t* database) 
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  assert(m_tables.get(hash_value) == nullptr);
-  if(m_tables.get(hash_value) != nullptr)
+  FURIOUS_ASSERT(btree_get(&database->m_tables, hash_value) == nullptr && "Table already exists");
+  if(btree_get(&database->m_tables, hash_value) != nullptr)
   {
-    release();
+    database_release(database);
     return TableView<T>(nullptr);
   }
 
-  table_t* table = new table_t;
+  table_t* table = (table_t*)mem_alloc(&database->m_table_allocator, 
+                                       FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                       sizeof(table_t), 
+                                       FURIOUS_NO_HINT);;
+
   *table = table_create(T::__component_name(), 
                           hash_value, 
                           sizeof(T), 
                           destructor_manual<T,fp>);
-  m_tables.insert_copy(hash_value,&table);
-  release();
+
+  btree_insert(&database->m_tables, 
+               hash_value, 
+               table);
+
+  database_release(database);
   return TableView<T>(table); 
 }
 
 template <typename T>
 TableView<T> 
-Database::create_table() 
+database_create_table(database_t* database) 
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  assert(m_tables.get(hash_value) == nullptr);
-  if(m_tables.get(hash_value) != nullptr)
+  FURIOUS_ASSERT(btree_get(&database->m_tables, hash_value) == nullptr && "Table already exists");
+  if(btree_get(&database->m_tables, hash_value) != nullptr)
   {
-    release();
+    database_release(database);
     return TableView<T>(nullptr);
   }
 
-  table_t* table = new table_t;
+  table_t* table = (table_t*)mem_alloc(&database->m_table_allocator, 
+                                       FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                       sizeof(table_t), 
+                                       FURIOUS_NO_HINT);;
+
   *table = table_create(T::__component_name(), 
                           hash_value, 
                           sizeof(T), 
                           destructor<T>);
-  m_tables.insert_copy(hash_value,&table);
-  release();
+  btree_insert(&database->m_tables, hash_value, table);
+  database_release(database);
   return TableView<T>(table); 
 }
 
@@ -58,160 +71,188 @@ Database::create_table()
 
 template <typename T>
 TableView<T> 
-Database::find_table() 
+database_find_table(database_t* database) 
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  table_t* table = *m_tables.get(hash_value);
-  assert(table != nullptr);
-  release();
+  table_t* table = (table_t*)btree_get(&database->m_tables, hash_value);
+  FURIOUS_ASSERT(table != nullptr && "Find on a null table");
+  database_release(database);
   return TableView<T>(table);
 }
 
 template <typename T>
 TableView<T> 
-Database::find_or_create_table()
+database_find_or_create_table(database_t* database)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name()); 
-  table_t** table = m_tables.get(hash_value);
+  table_t* table = (table_t*)btree_get(&database->m_tables, hash_value);
   if(table != nullptr) 
   {
-    release();
-    return TableView<T>(*table);
+    database_release(database);
+    return TableView<T>(table);
   }
-  table_t* table_ptr = new table_t;
-  *table_ptr = table_create(T::__component_name(), 
-                          hash_value, 
-                          sizeof(T), 
-                          destructor<T>);
-  m_tables.insert_copy(hash_value,&table_ptr);
-  release();
-  return TableView<T>(table_ptr); 
+  table = (table_t*)mem_alloc(&database->m_table_allocator, 
+                              FURIOUS_DATABASE_TABLE_ALIGNMENT,
+                              sizeof(table_t), 
+                              FURIOUS_NO_HINT);;
+
+  *table = table_create(T::__component_name(), 
+                        hash_value, 
+                        sizeof(T), 
+                        destructor<T>);
+  btree_insert(&database->m_tables, hash_value, table);
+  database_release(database);
+  return TableView<T>(table); 
 }
 
 template <typename T, void (*fp)(T*)>
 TableView<T> 
-Database::find_or_create_table()
+database_find_or_create_table(database_t* database)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name()); 
-  table_t** table = m_tables.get(hash_value);
+  table_t* table = (table_t*)btree_get(&database->m_tables, hash_value);
   if(table != nullptr) 
   {
-    release();
+    database_release(database);
     return TableView<T>(*table);
   }
-  table_t* table_ptr = new table_t;
-  *table_ptr = table_create(T::__component_name(), 
-                          hash_value, 
-                          sizeof(T), 
-                          destructor_manual<T,fp>);
-  m_tables.insert_copy(hash_value,&table_ptr);
-  release();
-  return TableView<T>(table_ptr); 
+  table = (table_t*)mem_alloc(&database->m_table_allocator, 
+                              FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                              sizeof(table_t), 
+                              FURIOUS_NO_HINT);;
+
+  *table = table_create(T::__component_name(), 
+                            hash_value, 
+                            sizeof(T), 
+                            destructor_manual<T,fp>);
+  btree_insert(&database->m_tables, hash_value, table);
+  database_release(database);
+  return TableView<T>(table); 
 }
 
 template <typename T>
-bool Database::exists_table() 
+bool database_exists_table(database_t* database) 
 {
-  lock();
+  database_lock(database);
   uint32_t table_id = get_table_id(T::__component_name());
-  bool res = m_tables.get(table_id) != nullptr;
-  release();
+  bool res = btree_get(&database->m_tables, table_id) != nullptr;
+  database_release(database);
   return res;
 }
 
 
 template <typename T>
 TableView<T>
-Database::create_temp_table(const char* table_name)
+database_create_temp_table(database_t* database,
+                           const char* table_name)
 {
-  lock();
-  TableView<T> res = create_temp_table_no_lock<T>(table_name);
-  release();
+  database_lock(database);
+  TableView<T> res = database_create_temp_table_no_lock<T>(database, table_name);
+  database_release(database);
   return res;
 }
 
 template <typename T>
 TableView<T>
-Database::create_temp_table_no_lock(const char* table_name)
+database_create_temp_table_no_lock(database_t* database,
+                                   const char* table_name)
 {
   uint32_t hash_value = hash(table_name); 
-  table_t** table = m_temp_tables.get(hash_value);
+  table_t* table = (table_t*)btree_get(&database->m_temp_tables, 
+                                       hash_value);
   if(table != nullptr) {
-    return TableView<T>(*table);
+    return TableView<T>(table);
   }
-  table_t* table_ptr = new table_t;
-  *table_ptr = table_create(table_name, 
-                          hash_value, 
-                          sizeof(T), 
-                          nullptr);
-  m_temp_tables.insert_copy(hash_value,&table_ptr);
-  return TableView<T>(table_ptr); 
+  table = (table_t*)mem_alloc(&database->m_table_allocator, 
+                              FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                              sizeof(table_t), 
+                              FURIOUS_NO_HINT);;
+
+  *table = table_create(table_name, 
+                        hash_value, 
+                        sizeof(T), 
+                        nullptr);
+  btree_insert(&database->m_temp_tables, hash_value, table);
+  return TableView<T>(table); 
 }
 
 template <typename T>
 void
-Database::remove_temp_table(TableView<T> table_view)
+database_remove_temp_table(database_t* database,
+                           TableView<T> table_view)
 {
-  lock();
-  remove_temp_table_no_lock<T>(table_view);
-  release();
+  database_lock(database);
+  database_remove_temp_table_no_lock<T>(database, 
+                               table_view);
+  database_release(database);
 }
 
 template <typename T>
 void
-Database::remove_temp_table_no_lock(TableView<T> table_view)
+database_remove_temp_table_no_lock(database_t* database,
+                                   TableView<T> table_view)
 {
   uint32_t hash_value = hash(table_view.get_raw()->m_name);
-  table_t** table = m_temp_tables.get(hash_value);
+  table_t* table = (table_t*)btree_get(&database->m_temp_tables, hash_value);
   if(table != nullptr)
   {
-    table_destroy(*table);
-    delete *table;
-    m_temp_tables.remove(hash_value);
+    table_destroy(table);
+    mem_free(&database->m_table_allocator, table);
+    btree_remove(&database->m_temp_tables, hash_value);
   }
 }
 
 template <typename T,typename...Args>
 T*
-Database::create_global(Args...args)
+database_create_global(database_t* database,
+                       Args...args)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  assert(m_globals.get(hash_value) == nullptr);
-  if(m_globals.get(hash_value) != nullptr)
+  GlobalInfo* global = (GlobalInfo*)btree_get(&database->m_globals, hash_value);
+  FURIOUS_ASSERT(global == nullptr && "Global already exists");
+  if(global != nullptr)
   {
-    release();
+    database_release(database);
     return nullptr;
   }
-  GlobalInfo g_info;
-  void* buffer = mem_alloc(&global_mem_allocator, 64, sizeof(T), -1);
-  g_info.p_global = new (buffer) T{std::forward<Args>(args)...};
-  g_info.m_destructor = destructor<T>;
-  m_globals.insert_copy(hash_value,&g_info);
-  release();
-  return (T*)g_info.p_global; 
+  global = (GlobalInfo*)mem_alloc(&database->m_global_allocator, 
+                                  64, 
+                                  sizeof(GlobalInfo), 
+                                  FURIOUS_NO_HINT);
+
+  void* buffer = mem_alloc(&database->m_global_allocator, 
+                           64, 
+                           sizeof(T), 
+                           FURIOUS_NO_HINT);
+
+  global->p_global = new (buffer) T{std::forward<Args>(args)...};
+  global->m_destructor = destructor<T>;
+  btree_insert(&database->m_globals, hash_value, global);
+  database_release(database);
+  return (T*)global->p_global; 
 }
 
 
 template <typename T>
 T* 
-Database::find_global()
+database_find_global(database_t* database)
 {
-  lock();
-  T* global = find_global_no_lock<T>();
-  release();
+  database_lock(database);
+  T* global = database_find_global_no_lock<T>(database);
+  database_release(database);
   return global;
 }
 
 template <typename T>
 T* 
-Database::find_global_no_lock()
+database_find_global_no_lock(database_t* database)
 {
   uint32_t hash_value = get_table_id(T::__component_name());
-  GlobalInfo* global = m_globals.get(hash_value);
+  GlobalInfo* global = (GlobalInfo*)btree_get(&database->m_globals, hash_value);
   if(global == nullptr)
   {
     return nullptr;
@@ -221,97 +262,110 @@ Database::find_global_no_lock()
 
 template <typename T,typename...Args>
 T* 
-Database::find_or_create_global(Args...args)
+database_find_or_create_global(database_t* database, 
+                               Args...args)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  GlobalInfo* global = m_globals.get(hash_value); 
+  GlobalInfo* global = (GlobalInfo*)btree_get(&database->m_globals, hash_value); 
   if(global != nullptr)
   {
     T temp = T(std::forward<Args>(args)...);
     *((T*)global->p_global) = temp;
-    release();
+    database_release(database);
     return global;
   }
-  GlobalInfo g_info;
-  char* buffer = new char[sizeof(T)];
-  g_info.p_global = new(buffer) T{std::forward<Args>(args)...};
-  g_info.m_destructor = destructor<T>;
-  m_globals.insert_copy(hash_value,&g_info);
-  release();
-  return g_info.p_global; 
+  global = (GlobalInfo*)mem_alloc(&database->m_global_allocator, 
+                                  64, 
+                                  sizeof(GlobalInfo), 
+                                  FURIOUS_NO_HINT);
+
+  void* buffer = mem_alloc(&database->m_global_allocator, 
+                           64, 
+                           sizeof(T), 
+                           FURIOUS_NO_HINT);
+
+  global->p_global = new(buffer) T{std::forward<Args>(args)...};
+  global->m_destructor = destructor<T>;
+  btree_insert(&database->m_globals, hash_value, global);
+  database_release(database);
+  return global->p_global; 
 }
 
 template <typename T>
 void
-Database::add_refl_data(RefCountPtr<ReflData> refl_strct)
+database_add_refl_data(database_t* database,
+                       RefCountPtr<ReflData> refl_strct)
 {
   FURIOUS_ASSERT(strcmp(T::__component_name(), refl_strct.get()->m_type_name) == 0);
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  m_refl_data.insert_copy(hash_value, &refl_strct);
-  release();
+  RefCountPtr<ReflData>* refl_cpy = new RefCountPtr<ReflData>();
+  *refl_cpy = refl_strct;
+  btree_insert(&database->m_refl_data, hash_value, refl_cpy);
+  database_release(database);
   return;
 }
 
 template <typename T>
 const ReflData* 
-Database::get_refl_data()
+database_get_refl_data(database_t* database)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  RefCountPtr<ReflData>* data = m_refl_data.get(hash_value);
+  RefCountPtr<ReflData>* data = (RefCountPtr<ReflData>*)btree_get(&database->m_refl_data, hash_value);
   ReflData* ret = nullptr;
   if(data != nullptr)
   {
     ret = data->get();
   }
-  release();
+  database_release(database);
   return ret;
 }
 
 template <typename T>
 void 
-Database::remove_global()
+database_remove_global(database_t* database)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  GlobalInfo* global = m_globals.get(hash_value);
+  GlobalInfo* global = (GlobalInfo*)btree_get(&database->m_globals, hash_value);
   if(global != nullptr)
   {
     global->m_destructor(global->p_global);
-    mem_free(&global_mem_allocator, global->p_global); 
-    m_globals.remove(hash_value);
+    mem_free(&database->m_global_allocator, global->p_global); 
+    mem_free(&database->m_global_allocator, global); 
+    btree_remove(&database->m_globals, hash_value);
   }
-  release();
+  database_release(database);
   return;
 }
 
 template <typename T>
 bool 
-Database::exists_global()
+database_exists_global(database_t* database)
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  bool res = m_globals.get(hash_value) != nullptr;
-  release();
+  bool res = btree_get(&database->m_globals, hash_value) != nullptr;
+  database_release(database);
   return res;
 }
 
 template <typename T>
 void 
-Database::remove_table() 
+database_remove_table(database_t* database) 
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = get_table_id(T::__component_name());
-  table_t** table = m_tables.get(hash_value);
+  table_t* table = (table_t*)btree_get(&database->m_tables, hash_value);
   if(table != nullptr)
   {
-    table_destroy(*table);
-    delete *table;
-    m_tables.remove(hash_value);
+    table_destroy(table);
+    mem_free(&database->m_table_allocator, table);
+    btree_remove(&database->m_tables, hash_value);
   }
-  release();
+  database_release(database);
   return;
 }
 

@@ -2,17 +2,16 @@
 #ifndef _FURIOUS_HASHTABLE_REGISTRY_H_
 #define _FURIOUS_HASHTABLE_REGISTRY_H_ value
 
-#include <mutex>
+#include "../../common/mutex.h" 
+#include "../../common/btree.h" 
 
 namespace furious
 {
 
-struct btree_t;
-
 struct ht_registry_t
 {
-  btree_t* p_root;
-  std::mutex m_mutex;
+  btree_t   m_registry;
+  mutex_t   m_mutex;
 };
 
 void

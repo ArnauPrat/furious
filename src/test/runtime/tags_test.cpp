@@ -15,13 +15,13 @@ FURIOUS_END_COMPONENT
 
 TEST(TagTests,TagWorks) 
 {
-  Database* database = new Database();
-  FURIOUS_CREATE_TABLE(database, ComponentA);
-  FURIOUS_CREATE_TABLE(database, ComponentB);
+  database_t database = database_create();
+  FURIOUS_CREATE_TABLE(&database, ComponentA);
+  FURIOUS_CREATE_TABLE(&database, ComponentB);
 
-  Entity entity1 = create_entity(database);
-  Entity entity2 = create_entity(database);
-  Entity entity3 = create_entity(database);
+  Entity entity1 = create_entity(&database);
+  Entity entity2 = create_entity(&database);
+  Entity entity3 = create_entity(&database);
   entity1.add_tag("selected");
   entity3.add_tag("selected");
 
@@ -32,7 +32,7 @@ TEST(TagTests,TagWorks)
   destroy_entity(entity1);
   destroy_entity(entity2);
   destroy_entity(entity3);
-  delete database;
+  database_destroy(&database);
 }
 }
 

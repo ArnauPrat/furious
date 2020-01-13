@@ -1,7 +1,6 @@
 
-#include "btree_impl.h"
-#include "../memory/memory.h"
-#include "../platform.h"
+#include "btree.h"
+#include "memory/memory.h"
 #include <string.h>
 
 namespace furious 
@@ -95,6 +94,7 @@ btree_create(mem_allocator_t* allocator)
                  (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
                  "Provided allocator is ill-formed.")
   btree_t btree;
+  btree.m_size = 0;
   if(allocator != nullptr)
   {
     btree.m_allocator = *allocator; 
@@ -110,12 +110,18 @@ btree_create(mem_allocator_t* allocator)
 void
 btree_destroy(btree_t* root)
 {
-  if(root->p_root != nullptr)
-  {
     btree_destroy_node(root, 
                        root->p_root);
     root->p_root = nullptr;
-  }
+}
+
+void
+btree_clear(btree_t* btree)
+{
+  btree_destroy_node(btree, 
+                     btree->p_root);
+  btree->p_root = btree_create_internal(btree);
+  btree->m_size = 0;
 }
 
 void 
@@ -433,6 +439,7 @@ btree_insert_node(btree_t* btree,
                               pos, 
                               key);
       node->m_leaf.m_leafs[pos] = ptr;
+      btree->m_size++;
       return btree_insert_t{true, &node->m_leaf.m_leafs[pos]};
     }
     return btree_insert_t{false, &node->m_leaf.m_leafs[pos]};
@@ -657,6 +664,7 @@ btree_remove_node(btree_t* btree,
     {
       return nullptr;
     }
+    btree->m_size -= 1;
     void* value = btree_remove_shift_leaf(node, child_idx);
     if(child_idx == 0) 
     {

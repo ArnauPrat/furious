@@ -675,7 +675,7 @@ produce_gather(FILE* fd,
             gather->p_subplan->m_id,
             gather->m_id);
 
-    fprintf(fd,"TableView<%s*> %s = database->create_temp_table<%s*>(tmp_buffer_%d_%d);\n", 
+    fprintf(fd,"TableView<%s*> %s = FURIOUS_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d);\n", 
             ctype,
             temptablename,
             ctype,
@@ -971,7 +971,7 @@ produce_cascading_gather(FILE* fd,
             casc_gather->p_subplan->m_id,
             casc_gather->m_id);
 
-    fprintf(fd,"TableView<%s*> %s = database->create_temp_table<%s*>(tmp_buffer_%d_%d);\n", 
+    fprintf(fd,"TableView<%s*> %s = FURIOUS_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d);\n", 
             ctype,
             temp_table_names[i],
             ctype,

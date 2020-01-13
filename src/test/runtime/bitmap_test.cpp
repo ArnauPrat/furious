@@ -10,7 +10,7 @@ namespace furious {
 TEST(BitmapTest, BitmapTest ) 
 {
   constexpr uint32_t BITMAP_SIZE = 304;
-  mem_allocator_t lallocator = stack_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
   bitmap_t bitmap =  bitmap_create(BITMAP_SIZE, &lallocator);
   ASSERT_EQ(bitmap.m_num_set, 0);
 

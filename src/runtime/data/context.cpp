@@ -7,7 +7,7 @@ namespace furious
 {
 
 Context::Context(float dt, 
-                 Database* database, 
+                 database_t* database, 
                  void* user_data,
                  uint32_t chunk_size,
                  uint32_t thread_id, 

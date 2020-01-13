@@ -1,9 +1,10 @@
 
-#include <gtest/gtest.h>
+#include "../../common/hashtable.h"
 #include "../../common/btree.h"
 #include "../../common/types.h"
-#include "../../common/hashtable.h"
 #include "../../runtime/memory/stack_allocator.h"
+
+#include <gtest/gtest.h>
 #include <iostream>
 
 namespace furious 
@@ -17,7 +18,7 @@ struct TestValue
 };
 TEST(BTreeTest, btree_create) 
 {
-  mem_allocator_t lallocator = stack_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
   btree_t btree = btree_create(&lallocator);
   btree_node_t* internal = btree_create_internal(&btree);
   for (uint32_t i = 0; i < FURIOUS_BTREE_INTERNAL_MAX_ARITY; ++i) 
@@ -392,7 +393,7 @@ TEST(BTreeTest, btree_remove_shift_leaf)
 
 TEST(BTreeTest, BTIteratorTest) 
 {
-  mem_allocator_t lallocator = stack_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
   btree_t btree = btree_create(&lallocator);
 
   uint32_t BTREE_MAX_BLOCK=1024;
@@ -446,7 +447,7 @@ TEST(BTreeTest, BTIteratorTest)
 
 TEST(BTreeTest, BTreeSteps) 
 {
-  mem_allocator_t lallocator = stack_alloc_create();
+  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
   btree_t btree = btree_create(&lallocator);
   constexpr uint32_t MAX_ELEMENTS = 1000;
   uint32_t stride = 21;
@@ -467,6 +468,7 @@ TEST(BTreeTest, BTreeSteps)
   //ASSERT_EQ(btree_num_allocations, 0);
 }
 
+/*
 TEST(BTreeTest, BTree) 
 {
   BTree<TestValue*>* btree = new BTree<TestValue*>();
@@ -540,6 +542,7 @@ TEST(BTreeTest, BTree)
 
   //ASSERT_EQ(btree_num_allocations, 0);
 }
+*/
 
 } /* furious */ 
 

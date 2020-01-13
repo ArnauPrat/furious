@@ -7,24 +7,27 @@
 #include <vector>
 #include <iostream>
 
-
+namespace furious
+{
+  
 TEST(GlobalTest, GlobalTest ) 
 {
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
 
-  FURIOUS_CREATE_GLOBAL(database, GlobalComponent, 1.0f, 1.0f, 1.0f);
+  FURIOUS_CREATE_GLOBAL(&database, GlobalComponent, 1.0f, 1.0f, 1.0f);
 
-  furious::Entity entities[8];
+  Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
   {
-    entities[i] = furious::create_entity(database);
+    entities[i] = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
   }
 
-  furious::furious_init(database);
-  furious::furious_frame(0.1,database, nullptr);
+  furious_init(&database);
+  furious_frame(0.1, &database, nullptr);
 
   // FIRST LEVEL
   for(uint32_t i = 0; i < 8; ++i)
@@ -34,10 +37,11 @@ TEST(GlobalTest, GlobalTest )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_z, 1.0f);
   }
 
-  furious::furious_release();
-
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
+
+} /* furious */ 
 
 int main(int argc, char *argv[])
 {

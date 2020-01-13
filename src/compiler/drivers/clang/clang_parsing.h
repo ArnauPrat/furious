@@ -3,9 +3,7 @@
 #ifndef _FURIOUS_COMPILER_PARSING_H_
 #define _FURIOUS_COMPILER_PARSING_H_ value
 
-#include <string>
 #include <clang/AST/AST.h>
-
 
 using namespace clang;
 

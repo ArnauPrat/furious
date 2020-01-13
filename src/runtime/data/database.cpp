@@ -2,332 +2,446 @@
 
 
 #include "../../common/utils.h"
+#include "../memory/pool_allocator.h"
+#include "../memory/stack_allocator.h"
 #include "bit_table.h"
 #include "database.h"
 #include "webserver/webserver.h"
 
+#include <string.h>
+
 namespace furious 
 {
 
-Database::Database() : 
-m_next_entity_id(0),
-p_webserver(nullptr)
+database_t
+database_create(mem_allocator_t* allocator)  
 {
+  FURIOUS_ASSERT(((allocator == nullptr) ||
+                 (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
+                 "Provided allocator is ill-formed.")
+
+  database_t database;
+
+  if(allocator != nullptr)
+  {
+    database.m_page_allocator = *allocator; 
+  }
+  else
+  {
+    database.m_page_allocator = global_mem_allocator;
+  }
+
+  // Initializing allocators
+  database.m_table_allocator = pool_alloc_create(FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                                 sizeof(table_t), 
+                                                 FURIOUS_DATABASE_TABLE_PAGE_SIZE, 
+                                                 &database.m_page_allocator);
+
+  database.m_bittable_allocator = pool_alloc_create(FURIOUS_DATABASE_BITTABLE_ALIGNMENT, 
+                                                 sizeof(BitTable), 
+                                                 FURIOUS_DATABASE_BITTABLE_PAGE_SIZE, 
+                                                 &database.m_page_allocator);
+
+  database.m_btree_allocator = pool_alloc_create(FURIOUS_BITMAP_ALIGNMENT, 
+                                                 sizeof(btree_node_t), 
+                                                 FURIOUS_DATABASE_BTREE_PAGE_SIZE, 
+                                                 &database.m_page_allocator);
+
+  database.m_global_allocator = stack_alloc_create(FURIOUS_DATABASE_GLOBAL_PAGE_SIZE, 
+                                                   &database.m_page_allocator);
+
+  // Initializing members
+  database.m_next_entity_id = 0;
+  database.p_webserver = nullptr;
+  database.m_tags = btree_create(&database.m_btree_allocator);
+  database.m_tables = btree_create(&database.m_btree_allocator);
+  database.m_references = btree_create(&database.m_btree_allocator);
+  database.m_temp_tables = btree_create(&database.m_btree_allocator);
+  database.m_globals = btree_create(&database.m_btree_allocator);
+  database.m_refl_data = btree_create(&database.m_btree_allocator);
+  database.m_mutex = mutex_create();
+
+
+  return database;
 }
 
-Database::~Database() 
+void
+database_destroy(database_t* database) 
 {
-  stop_webserver();
-  clear();
+  database_stop_webserver(database);
+  database_clear(database);
+
+  btree_iter_t it_refl = btree_iter_create(&database->m_refl_data);
+  while (btree_iter_has_next(&it_refl)) 
+  {
+    btree_entry_t entry = btree_iter_next(&it_refl);
+    RefCountPtr<ReflData>* ref_data = (RefCountPtr<ReflData>*)entry.p_value;
+    delete ref_data;
+  }
+  btree_iter_destroy(&it_refl);
+
+  // destroying members
+  mutex_destroy(&database->m_mutex);
+  btree_destroy(&database->m_refl_data);
+  btree_destroy(&database->m_globals);
+  btree_destroy(&database->m_temp_tables);
+  btree_destroy(&database->m_references);
+  btree_destroy(&database->m_tables);
+  btree_destroy(&database->m_tags);
+
+  // destroying allocators
+  stack_alloc_destroy(&database->m_global_allocator);
+  pool_alloc_destroy(&database->m_btree_allocator);
+  pool_alloc_destroy(&database->m_bittable_allocator);
+  pool_alloc_destroy(&database->m_table_allocator);
 }
 
-void Database::clear() 
+void database_clear(database_t* database) 
 {
-  lock();
-  BTree<table_t*>::Iterator it_tables = m_tables.iterator();
-  while (it_tables.has_next()) 
+  database_lock(database);
+  btree_iter_t it_tables = btree_iter_create(&database->m_tables);
+  while (btree_iter_has_next(&it_tables)) 
   {
-    table_t* table =  *it_tables.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_tables);
+    table_t* table =  (table_t*)entry.p_value;
     table_destroy(table);
-    delete table;
+    mem_free(&database->m_table_allocator, table);
   }
-  m_tables.clear();
+  btree_iter_destroy(&it_tables);
+  btree_clear(&database->m_tables);
 
-  BTree<BitTable*>::Iterator it_tags = m_tags.iterator();
-  while (it_tags.has_next()) 
+  btree_iter_t it_tags = btree_iter_create(&database->m_tags);
+  while (btree_iter_has_next(&it_tags))
   {
-    delete *it_tags.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_tags);
+    BitTable* bittable = (BitTable*)(entry.p_value);
+    bittable->~BitTable();
+    mem_free(&database->m_bittable_allocator, bittable);
   }
-  m_tags.clear();
+  btree_iter_destroy(&it_tags);
+  btree_clear(&database->m_tags);
 
-  BTree<table_t*>::Iterator it_references = m_references.iterator();
-  while (it_references.has_next()) 
+  btree_iter_t it_references = btree_iter_create(&database->m_references);
+  while (btree_iter_has_next(&it_references)) 
   {
-    table_t* table =  *it_references.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_references);
+    table_t* table =  (table_t*)entry.p_value;
     table_destroy(table);
-    delete table;
+    mem_free(&database->m_table_allocator, table);
   }
-  m_references.clear();
+  btree_iter_destroy(&it_references);
+  btree_clear(&database->m_references);
 
-  BTree<table_t*>::Iterator it_temp_tables = m_temp_tables.iterator();
-  while (it_temp_tables.has_next()) 
+  btree_iter_t it_temp_tables = btree_iter_create(&database->m_temp_tables);
+  while (btree_iter_has_next(&it_temp_tables)) 
   {
-    table_t* table = *it_temp_tables.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_temp_tables);
+    table_t* table = (table_t*)entry.p_value;
     table_destroy(table);
-    delete table;
+    mem_free(&database->m_table_allocator, table);
   }
-  m_temp_tables.clear();
+  btree_iter_destroy(&it_temp_tables);
+  btree_clear(&database->m_temp_tables);
 
-  BTree<GlobalInfo>::Iterator it_globals = m_globals.iterator();
-  while (it_globals.has_next()) 
+  btree_iter_t it_globals = btree_iter_create(&database->m_globals);
+  while (btree_iter_has_next(&it_globals)) 
   {
-    BTree<GlobalInfo>::Entry entry = it_globals.next();
-    entry.p_value->m_destructor(entry.p_value->p_global);
-    delete [] ((char*)entry.p_value->p_global);
+    btree_entry_t entry = btree_iter_next(&it_globals);
+    ((GlobalInfo*)entry.p_value)->m_destructor(((GlobalInfo*)entry.p_value)->p_global);
+    mem_free(&database->m_global_allocator,((GlobalInfo*)entry.p_value)->p_global);
+    mem_free(&database->m_global_allocator, entry.p_value);
   }
-  m_globals.clear();
-  release();
+  btree_iter_destroy(&it_globals);
+  btree_clear(&database->m_globals);
+
+  database_release(database);
 }
 
 
 entity_id_t 
-Database::get_next_entity_id() 
+database_get_next_entity_id(database_t* database) 
 {
-  lock();
-  entity_id_t next_id = m_next_entity_id;
-  m_next_entity_id++;
-  release();
+  database_lock(database);
+  entity_id_t next_id = database->m_next_entity_id;
+  database->m_next_entity_id++;
+  database_release(database);
   return next_id;
 }
 
 void 
-Database::clear_entity(entity_id_t id) 
+database_clear_entity(database_t* database, 
+                      entity_id_t id) 
 {
-  lock();
-  BTree<table_t*>::Iterator it = m_tables.iterator();
-  while(it.has_next()) 
+  database_lock(database);
+  btree_iter_t it_tables = btree_iter_create(&database->m_tables);
+  while(btree_iter_has_next(&it_tables)) 
   {
-    table_t* table = *it.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_tables);
+    table_t* table = (table_t*)entry.p_value;
     table_dealloc_component(table, id);
   }
-  release();
+  database_release(database);
 }
 
-void Database::tag_entity(entity_id_t entity_id, 
-                          const char* tag) 
+void database_tag_entity(database_t* database, 
+                         entity_id_t entity_id, 
+                         const char* tag) 
 {
   uint32_t hash_value = hash(tag);
-  lock();
-  BitTable** bit_table = m_tags.get(hash_value);
-  BitTable* bit_table_ptr = nullptr;
+  database_lock(database);
+  BitTable* bit_table = (BitTable*)btree_get(&database->m_tags, hash_value);
   if(bit_table == nullptr) 
   {
-    bit_table_ptr = new BitTable();
-    m_tags.insert_copy(hash_value, &bit_table_ptr);
+    void* buffer = mem_alloc(&database->m_bittable_allocator, 
+                             FURIOUS_DATABASE_BITTABLE_ALIGNMENT, 
+                             sizeof(BitTable), 
+                             FURIOUS_NO_HINT);
+
+    bit_table = new(buffer) BitTable();
+    btree_insert(&database->m_tags, hash_value, bit_table);
   }
-  else
-  {
-    bit_table_ptr = *bit_table;
-  }
-  release();
-  bit_table_ptr->add(entity_id);
+
+  database_release(database);
+  bit_table->add(entity_id);
 }
 
-void Database::untag_entity(entity_id_t entity_id, 
-                            const char* tag) 
+void database_untag_entity(database_t* database, 
+                           entity_id_t entity_id, 
+                           const char* tag) 
 {
-  lock();
+  database_lock(database);
   uint32_t hash_value = hash(tag);
-  BitTable** bit_table = m_tags.get(hash_value);
+  BitTable* bit_table = (BitTable*)btree_get(&database->m_tags, hash_value);
   if(bit_table != nullptr) 
   {
-    (*bit_table)->remove(entity_id);
+    bit_table->remove(entity_id);
   }
-  release();
+  database_release(database);
 }
 
 BitTable* 
-Database::get_tagged_entities(const char* tag) 
+database_get_tagged_entities(database_t* database, 
+                             const char* tag) 
 {
   uint32_t hash_value = hash(tag);
-  lock();
-  BitTable** bit_table = m_tags.get(hash_value);
+  database_lock(database);
+  BitTable* bit_table = (BitTable*)btree_get(&database->m_tags, hash_value);
   if(bit_table != nullptr) 
   {
-    release();
-    return *bit_table;
+    database_release(database);
+    return bit_table;
   }
-  BitTable* bit_table_ptr = new BitTable();
-  m_tags.insert_copy(hash_value, &bit_table_ptr);
-  release();
-  return bit_table_ptr;
+
+  void* buffer = mem_alloc(&database->m_bittable_allocator, 
+                           FURIOUS_DATABASE_BITTABLE_ALIGNMENT,  
+                           sizeof(BitTable), 
+                           FURIOUS_NO_HINT);
+
+  bit_table = new(buffer) BitTable();
+  btree_insert(&database->m_tags, hash_value, bit_table);
+  database_release(database);
+  return bit_table;
 }
 
 TableView<uint32_t>
-Database::find_or_create_ref_table(const char* ref_name)
+database_find_or_create_ref_table(database_t* database, 
+                                  const char* ref_name)
 {
   uint32_t hash_value = hash(ref_name);
-  lock();
-  table_t* table_ptr = nullptr;
-  table_t** ref_table = m_references.get(hash_value);
-  if (ref_table == nullptr) 
+  database_lock(database);
+  table_t* table_ptr = (table_t*)btree_get(&database->m_references, hash_value);
+  if (table_ptr == nullptr) 
   {
-    table_ptr = new table_t;
+    
+    table_ptr = (table_t*)mem_alloc(&database->m_table_allocator, 
+                                    FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                    sizeof(table_t), 
+                                    FURIOUS_NO_HINT);;
+
     *table_ptr = table_create(ref_name, 
                               hash_value, 
                               sizeof(uint32_t), 
                               destructor<uint32_t>);
-    m_references.insert_copy( hash_value, &table_ptr);
+
+    btree_insert(&database->m_references,  hash_value, table_ptr);
   } 
-  else
-  {
-    table_ptr = *ref_table;
-  }
-  release();
+  database_release(database);
   return TableView<uint32_t>(table_ptr);
 }
 
 TableView<uint32_t>
-Database::find_ref_table(const char* ref_name)
+database_find_ref_table(database_t* database, 
+                        const char* ref_name)
 {
   uint32_t hash_value = hash(ref_name);
-  lock();
-  table_t* table_ptr = nullptr;
-  table_t** ref_table = m_references.get(hash_value);
-  if (ref_table != nullptr) 
-  {
-    table_ptr = *ref_table;
-  }
-  release();
+  database_lock(database);
+  table_t* table_ptr = (table_t*)btree_get(&database->m_references, hash_value);
+  FURIOUS_ASSERT(table_ptr != nullptr && "Cannot find ref table");
+  database_release(database);
   return TableView<uint32_t>(table_ptr);
 }
 
 TableView<uint32_t>
-Database::create_ref_table(const char* ref_name)
+database_create_ref_table(database_t* database, 
+                          const char* ref_name)
 {
   uint32_t hash_value = hash(ref_name);
-  lock();
-  table_t* table_ptr = nullptr;
-  table_t** ref_table = m_references.get(hash_value);
-  if (ref_table == nullptr) 
+  database_lock(database);
+  table_t* table_ptr = (table_t*)btree_get(&database->m_references, hash_value);
+  if (table_ptr == nullptr) 
   {
-    table_ptr = new table_t();
+    table_ptr = (table_t*)mem_alloc(&database->m_table_allocator, 
+                                    FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                    sizeof(table_t), 
+                                    FURIOUS_NO_HINT);;
+
     *table_ptr = table_create(ref_name, 
                               hash_value, 
                               sizeof(uint32_t), 
                               destructor<uint32_t>);
     
-    m_references.insert_copy( hash_value, &table_ptr);
+    btree_insert(&database->m_references, hash_value, table_ptr);
   } 
-  release();
+  database_release(database);
   return TableView<uint32_t>(table_ptr);
 }
 
 void 
-Database::add_reference( const char* ref_name, 
-                         entity_id_t tail, 
-                         entity_id_t head) 
+database_add_reference(database_t* database, 
+                       const char* ref_name, 
+                       entity_id_t tail, 
+                       entity_id_t head) 
 {
   uint32_t hash_value = hash(ref_name);
-  lock();
-  table_t* table_ptr = nullptr;
-  table_t** ref_table = m_references.get(hash_value);
-  if (ref_table == nullptr) 
+  database_lock(database);
+  table_t* table_ptr = (table_t*)btree_get(&database->m_references, hash_value);
+  if (table_ptr == nullptr) 
   {
-    table_ptr = new table_t();
-    *table_ptr = table_create(ref_name, hash_value, sizeof(uint32_t), destructor<uint32_t>);
-    m_references.insert_copy( hash_value, &table_ptr);
+    table_ptr = (table_t*)mem_alloc(&database->m_table_allocator, 
+                                    FURIOUS_DATABASE_TABLE_ALIGNMENT, 
+                                    sizeof(table_t), 
+                                    FURIOUS_NO_HINT);;
+
+    *table_ptr = table_create(ref_name, 
+                              hash_value, 
+                              sizeof(uint32_t),
+                              destructor<uint32_t>);
+
+    btree_insert(&database->m_references, hash_value, table_ptr);
   } 
-  else
-  {
-    table_ptr = *ref_table;
-  }
+
   TableView<uint32_t> t_view(table_ptr);
   t_view.insert_component(tail, head);
-  release();
+  database_release(database);
   return;
 }
 
 void 
-Database::remove_reference( const char* ref_name, 
-                            entity_id_t tail) 
+database_remove_reference(database_t* database, 
+                          const char* ref_name, 
+                          entity_id_t tail) 
 {
   uint32_t hash_value = hash(ref_name);
-  lock();
-  table_t** ref_table = m_references.get(hash_value);
-  if (ref_table != nullptr) 
+  database_lock(database);
+  table_t* table_ptr = (table_t*)btree_get(&database->m_references, hash_value);
+  if (table_ptr != nullptr) 
   {
-    table_t* table_ptr = *ref_table;
     table_dealloc_component(table_ptr, tail);
   }
-  release();
+  database_release(database);
   return;
 }
 
 void
-Database::start_webserver(const char* address, 
-                          const char* port)
+database_start_webserver(database_t* database, 
+                         const char* address, 
+                         const char* port)
 {
-  p_webserver = new WebServer();
-  p_webserver->start(this,
-                     address,
-                     port);
+  database->p_webserver = new WebServer();
+  database->p_webserver->start(database,
+                               address,
+                               port);
 }
 
 void
-Database::stop_webserver()
+database_stop_webserver(database_t* database)
 {
-  if(p_webserver != nullptr)
+  if(database->p_webserver != nullptr)
   {
-    p_webserver->stop();
-    delete p_webserver;
-    p_webserver = nullptr;
+    database->p_webserver->stop();
+    delete database->p_webserver;
+    database->p_webserver = nullptr;
   }
 }
 
 size_t
-Database::num_tables() const
+database_num_tables(database_t* database)
 {
-  lock();
-  size_t size = m_tables.size();
-  release();
+  database_lock(database);
+  size_t size = database->m_tables.m_size;
+  database_release(database);
   return size;
 }
 
 size_t 
-Database::meta_data(TableInfo* data, uint32_t capacity)
+database_metadata(database_t* database, 
+                   TableInfo* data, 
+                   uint32_t capacity)
 {
-  lock();
-  BTree<table_t*>::Iterator it = m_tables.iterator();
+  database_lock(database);
+  btree_iter_t it_tables = btree_iter_create(&database->m_tables);
   uint32_t count = 0; 
-  while(it.has_next() && count < capacity)
+  while(btree_iter_has_next(&it_tables) && count < capacity)
   {
-    table_t* table = *it.next().p_value;
-    strncpy(&data[count].m_name[0], table->p_name, _FURIOUS_TABLE_INFO_MAX_NAME_LENGTH);
+    btree_entry_t entry = btree_iter_next(&it_tables);
+    table_t* table = (table_t*)entry.p_value;
+    memcpy(&data[0], &table->m_name[0], sizeof(char)*FURIOUS_MAX_TABLE_NAME);
     data[count].m_size = table_size(table);
     count++;
   }
-  release();
+  database_release(database);
   return count;
 }
 
 void
-Database::lock() const
+database_lock(database_t* database) 
 {
-  m_mutex.lock();
+  mutex_lock(&database->m_mutex);
 }
 
 void
-Database::release() const
+database_release(database_t* database)
 {
-  m_mutex.unlock();
+  mutex_unlock(&database->m_mutex);
 }
 
 uint32_t
-Database::get_table_id(const char* table_name)
+get_table_id(const char* table_name)
 {
   return hash(table_name);
 }
 
 void
-Database::remove_temp_tables()
+database_remove_temp_tables(database_t* database)
 {
-  lock();
-  remove_temp_tables_no_lock();
-  release();
+  database_lock(database);
+  database_remove_temp_tables_no_lock(database);
+  database_release(database);
 }
 
 void
-Database::remove_temp_tables_no_lock()
+database_remove_temp_tables_no_lock(database_t* database)
 {
-  BTree<table_t*>::Iterator it_temp_tables = m_temp_tables.iterator();
-  while (it_temp_tables.has_next()) 
+  btree_iter_t it_temp_tables = btree_iter_create(&database->m_temp_tables);
+  while (btree_iter_has_next(&it_temp_tables)) 
   {
-    table_t* table = *it_temp_tables.next().p_value;
+    btree_entry_t entry = btree_iter_next(&it_temp_tables);
+    table_t* table = (table_t*)entry.p_value;
     table_destroy(table);
-    delete table; 
+    mem_free(&database->m_table_allocator, table);
   }
-  m_temp_tables.clear();
+  btree_iter_destroy(&it_temp_tables);
+  btree_clear(&database->m_temp_tables);
 }
 
 

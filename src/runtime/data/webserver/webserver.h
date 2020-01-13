@@ -16,7 +16,7 @@ class thread;
 namespace furious
 {
 
-struct Database;
+struct database_t;
 struct TableInfo;
 
 struct WebServer
@@ -26,7 +26,7 @@ struct WebServer
   ~WebServer();
 
   void
-  start(Database* database,
+  start(database_t* database,
         const char* address,
         const char* port);
 
@@ -34,7 +34,7 @@ struct WebServer
   stop();
 
 
-  Database*     p_database; 
+  database_t*   p_database; 
   std::thread*  p_thread;
   uint32_t      m_table_infos_capacity;
   TableInfo*    m_table_infos;

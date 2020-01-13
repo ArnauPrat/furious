@@ -18,10 +18,10 @@ FURIOUS_END_COMPONENT
 TEST(TableTest,TableWorks) 
 {
 
-  Database* database = new Database();
-  FURIOUS_CREATE_TABLE(database, Component);
+  database_t database = database_create();
+  FURIOUS_CREATE_TABLE(&database, Component);
   //database.add_table<Component>();
-  TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
+  TableView<Component> table = FURIOUS_FIND_TABLE(&database, Component);
   int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_components; ++i) 
@@ -86,17 +86,17 @@ TEST(TableTest,TableWorks)
   table.clear();
   ASSERT_EQ(table.size(),0);
 
-  FURIOUS_REMOVE_TABLE(database, Component);
-  delete database;
+  FURIOUS_REMOVE_TABLE(&database, Component);
+  database_destroy(&database);
 }
 
 
 TEST(IteratorTest,TableWorks) 
 {
 
-  Database* database = new Database();
-  FURIOUS_CREATE_TABLE(database, Component);
-  TableView<Component> table = FURIOUS_FIND_TABLE(database, Component);
+  database_t database = database_create();
+  FURIOUS_CREATE_TABLE(&database, Component);
+  TableView<Component> table = FURIOUS_FIND_TABLE(&database, Component);
   int32_t num_components = FURIOUS_TABLE_BLOCK_SIZE*2048;
 
   for(int32_t i = 0; i < num_components; ++i) 
@@ -120,7 +120,7 @@ TEST(IteratorTest,TableWorks)
     ASSERT_TRUE(block_start % 2 == 1);
   }
 
-  delete database;
+  database_destroy(&database);
 }
 
 }

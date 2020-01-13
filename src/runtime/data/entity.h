@@ -2,23 +2,20 @@
 #ifndef _FURIOUS_ENTITY_H_ 
 #define _FURIOUS_ENTITY_H_
 
-#include "../../common/types.h"
-#include "common.h"
-
-#include <string>
+#include "../../common/platform.h"
 
 namespace furious 
 {
 
-struct Database;
+struct database_t;
 
 class Entity 
 {
 public: 
   Entity();
-  Entity(Database* database,
+  Entity(database_t* database,
           entity_id_t id);
-  Entity( Database* database  );
+  Entity( database_t* database  );
   ~Entity() = default;
 
   Entity( const Entity& entity) = default;
@@ -69,7 +66,7 @@ public:
    * @return 
    */
   static Entity 
-  create_entity(Database* database);
+  create_entity(database_t* database);
 
   /**
    * @brief Removes the given entity
@@ -79,12 +76,12 @@ public:
   static void 
   remove_entity(Entity entity);
 
-  Database* get_database();
+  database_t* get_database();
 
   uint32_t m_id;
 
 private:
-  Database*   p_database;
+  database_t*   p_database;
 };
 
 /**
@@ -93,7 +90,7 @@ private:
  * @return A newly created entity
  */
 Entity 
-create_entity(Database* database);
+create_entity(database_t* database);
 
 /**
  * @brief Removes the given entity
@@ -112,7 +109,7 @@ destroy_entity(Entity entity);
  * \return 
  */
 Entity
-get_entity(Database* database,
+get_entity(database_t* database,
            entity_id_t id);
   
 } /* furious */ 

@@ -7,19 +7,23 @@
 #include <vector>
 #include <iostream>
 
+namespace furious
+{
+  
 
 TEST(ExpandTest, ExpandTestSimple)
 {
 
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
-  furious::furious_init(database);
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
+  furious_init(&database);
 
-  furious::Entity entities[8];
+  Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
   {
-    entities[i] = furious::create_entity(database);
+    entities[i] = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entities[i],SimpleComponent1, 0.0f, 0.0f, 0.0f);
     FURIOUS_ADD_COMPONENT(entities[i],SimpleComponent2, (float)i, (float)i, (float)i);
   }
@@ -29,7 +33,7 @@ TEST(ExpandTest, ExpandTestSimple)
   entities[4].add_reference("parent",entities[5]);
   entities[6].add_reference("parent",entities[7]);
 
-  furious::furious_frame(0.1,database, nullptr);
+  furious_frame(0.1, &database, nullptr);
 
   for(uint32_t i = 0; i < 8; i+=2)
   {
@@ -47,23 +51,23 @@ TEST(ExpandTest, ExpandTestSimple)
     }
   }
 
-  furious::furious_release();
-
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
 
 TEST(ExpandTest, ExpandTest ) 
 {
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
 
-  furious::furious_init(database);
+  furious_init(&database);
 
-  furious::Entity entities[8];
+  Entity entities[8];
   for(uint32_t i = 0; i < 8; ++i)
   {
-    entities[i] = furious::create_entity(database);
+    entities[i] = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
     FURIOUS_ADD_COMPONENT(entities[i],FieldMesh, 0.0f, 0.0f, 0.0f);
     FURIOUS_ADD_COMPONENT(entities[i],Velocity, 1.0f, 1.0f, 1.0f);
@@ -83,7 +87,7 @@ TEST(ExpandTest, ExpandTest )
   entities[4].add_tag("test");
   entities[5].add_tag("test");
 
-  furious::furious_frame(0.1,database, nullptr);
+  furious_frame(0.1, &database, nullptr);
 
   uint32_t first_level_entities[2] = {0,1};
   uint32_t second_level_entities[4] = {2,3,4,5};
@@ -125,23 +129,23 @@ TEST(ExpandTest, ExpandTest )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[third_level_entities[i]], FieldMesh)->m_z,2.0f);
   }
 
-  furious::furious_release();
-
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
 
 TEST(ExpandTest, ExpandTestLarge ) 
 {
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
-  furious::furious_init(database);
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
+  furious_init(&database);
 
   constexpr uint32_t num_entities = 65536;
-  furious::Entity entities[num_entities];
+  Entity entities[num_entities];
   for(uint32_t i = 0; i < num_entities; ++i)
   {
-    entities[i] = furious::create_entity(database);
+    entities[i] = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
     FURIOUS_ADD_COMPONENT(entities[i],Velocity, 1.0f, 1.0f, 1.0f);
     FURIOUS_ADD_COMPONENT(entities[i],FieldMesh, 0.0f, 0.0f, 0.0f);
@@ -153,7 +157,7 @@ TEST(ExpandTest, ExpandTestLarge )
     entities[i].add_reference("parent",entities[0]);
   }
 
-  furious::furious_frame(0.1,database, nullptr);
+  furious_frame(0.1, &database, nullptr);
 
   for(uint32_t i = 1; i < num_entities; ++i)
   {
@@ -162,10 +166,11 @@ TEST(ExpandTest, ExpandTestLarge )
     ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i], Position)->m_z,0.2f);
   }
 
-  furious::furious_release();
-
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
+
+} /* furious */ 
 
 int main(int argc, char *argv[])
 {

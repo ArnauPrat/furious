@@ -59,17 +59,18 @@ pool_alloc_create(uint32_t alignment,
                  (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
                  "Provided allocator is ill-formed.")
 
-  mem_allocator_t use_allocator;
+  pool_alloc_t* palloc = (pool_alloc_t*)mem_alloc(&global_mem_allocator, 
+                                                  1, 
+                                                  sizeof(pool_alloc_t), 
+                                                  FURIOUS_NO_HINT);
   if(allocator != nullptr)
   {
-    use_allocator = *allocator; 
+    palloc->m_allocator = *allocator; 
   }
   else
   {
-    use_allocator = global_mem_allocator;
+    palloc->m_allocator = global_mem_allocator;
   }
-  pool_alloc_t* palloc = (pool_alloc_t*)mem_alloc(&use_allocator, 1, sizeof(pool_alloc_t), -1);
-  palloc->m_allocator = use_allocator;
   palloc->p_first_free = nullptr;
   int32_t min_alignment = alignment > FURIOUS_MIN_ALIGNMENT ? alignment : FURIOUS_MIN_ALIGNMENT;
   palloc->m_alignment = min_alignment;
@@ -78,9 +79,10 @@ pool_alloc_create(uint32_t alignment,
   palloc->m_next_free = 0;
   palloc->p_first_chunk = nullptr;
   palloc->p_last_chunk = nullptr;
-  uint64_t min_growth = sizeof(pool_alloc_header_t) <= palloc->m_block_size ? palloc->m_block_size : sizeof(pool_alloc_header_t);
-  //uint64_t extra = sizeof(pool_alloc_header_t) % palloc->m_alignment == 0 ? 0 : 1;
-  //palloc->m_grow_offset = ((min_growth / palloc->m_alignment) + extra) * palloc->m_alignment;
+  uint64_t min_growth = sizeof(pool_alloc_header_t) <= palloc->m_block_size ? 
+                                                       palloc->m_block_size : 
+                                                       sizeof(pool_alloc_header_t);
+
   palloc->m_grow_offset = ((min_growth + palloc->m_alignment - 1) / palloc->m_alignment)  * palloc->m_alignment;
 
   FURIOUS_ASSERT(palloc->m_grow_offset+palloc->m_block_size <= palloc->m_page_size && "Misconfigured pool block allocator. Chunk size is too small");
@@ -98,7 +100,7 @@ pool_alloc_destroy(mem_allocator_t* mem_allocator)
 {
   pool_alloc_t* palloc = (pool_alloc_t*)mem_allocator->p_mem_state;
   pool_alloc_flush(palloc);
-  mem_free(&palloc->m_allocator, palloc);
+  mem_free(&global_mem_allocator, palloc);
 }
 
 /**
@@ -139,7 +141,7 @@ void* pool_alloc_alloc(void* state,
 #ifdef FURIOUS_ENABLE_ASSERTS
   uint32_t min_alignment = alignment > FURIOUS_MIN_ALIGNMENT ? alignment : FURIOUS_MIN_ALIGNMENT;
 #endif
-  FURIOUS_ASSERT(palloc->m_alignment == min_alignment && "Requestes alignment mismatches the pool allocator alignment");
+  FURIOUS_ASSERT(palloc->m_alignment == min_alignment && "Requested alignment mismatches the pool allocator alignment");
   FURIOUS_ASSERT(palloc->m_block_size == size && "Requested size mismatches the pool allocator size");
   void* ret = nullptr;
   if(palloc->p_first_free != nullptr)

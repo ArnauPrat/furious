@@ -7,17 +7,22 @@
 #include <vector>
 #include <iostream>
 
+namespace furious
+{
+  
+
 TEST(FilterTagTest, FilterTagTest ) 
 {
-  furious::Database* database = new furious::Database();
-  database->start_webserver("localhost", 
-                            "8080");
-  furious::furious_init(database);
+  database_t database = database_create();
+  database_start_webserver(&database, 
+                           "localhost", 
+                           "8080");
+  furious::furious_init(&database);
 
   std::vector<furious::Entity> entities;
   for(uint32_t i = 0; i < 1000; ++i)
   {
-    furious::Entity entity = furious::create_entity(database);
+    furious::Entity entity = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entity, Position, 0.0f, 0.0f, 0.0f);
     FURIOUS_ADD_COMPONENT(entity, Velocity, 1.0f, 1.0f, 1.0f);
     if(entity.m_id % 2 == 0)
@@ -33,7 +38,7 @@ TEST(FilterTagTest, FilterTagTest )
     entities.push_back(entity);
   }
 
-  furious::furious_frame(0.1f, database, nullptr);
+  furious::furious_frame(0.1f, &database, nullptr);
 
   for(furious::Entity& entity : entities)
   {
@@ -55,8 +60,10 @@ TEST(FilterTagTest, FilterTagTest )
 
   }
   furious::furious_release();
-  delete database;
+  database_destroy(&database);
 }
+
+} /* furious */ 
 
 int main(int argc, char *argv[])
 {

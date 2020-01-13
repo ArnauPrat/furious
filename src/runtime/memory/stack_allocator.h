@@ -19,7 +19,8 @@ namespace furious
  * \return Returns a new stack allocator
  */
 mem_allocator_t
-stack_alloc_create(mem_allocator_t* allocator = nullptr);
+stack_alloc_create(uint32_t page_size, 
+                   mem_allocator_t* allocator = nullptr);
 
 /**
  * \brief Destroys a stack allocator

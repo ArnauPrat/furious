@@ -8,7 +8,7 @@ namespace furious
 
 TEST(stack_alloc_test, stack_alloc_test) 
 {
-  mem_allocator_t alloc = stack_alloc_create();
+  mem_allocator_t alloc = stack_alloc_create(KILOBYTES(4));
 
   constexpr uint32_t num_alignments = 10;
   uint32_t alignments[num_alignments] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
@@ -19,7 +19,7 @@ TEST(stack_alloc_test, stack_alloc_test)
   srand(time(NULL));
   for (uint32_t i = 0; i < num_allocations; ++i) 
   {
-    allocation_sizes[i] = (uint32_t)(rand() % 65536);
+    allocation_sizes[i] = (uint32_t)(rand() % KILOBYTES(4)) + 1;
     allocation_addrs[i] = nullptr;
     allocation_alignments[i] = (uint32_t)alignments[(uint32_t)rand() % num_alignments];
   }

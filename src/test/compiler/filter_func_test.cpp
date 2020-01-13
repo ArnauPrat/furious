@@ -7,16 +7,19 @@
 #include <vector>
 #include <iostream>
 
+namespace furious
+{
+  
 
 TEST(FilterFuncTest, FilterFuncTest ) 
 {
-  furious::Database* database = new furious::Database();
-  furious::furious_init(database);
+  database_t database = database_create();
+  furious_init(&database);
 
-  std::vector<furious::Entity> entities;
+  std::vector<Entity> entities;
   for(int i = 0; i < 1000; ++i)
   {
-    furious::Entity entity = furious::create_entity(database);
+    Entity entity = FURIOUS_CREATE_ENTITY(&database);
     FURIOUS_ADD_COMPONENT(entity,Position, 0.0f, 0.0f, 0.0f);
     if(entity.m_id % 2 == 0)
     {
@@ -28,9 +31,9 @@ TEST(FilterFuncTest, FilterFuncTest )
     entities.push_back(entity);
   }
 
-  furious::furious_frame(0.1f, database, nullptr);
+  furious_frame(0.1f, &database, nullptr);
 
-  for(furious::Entity& entity : entities)
+  for(Entity& entity : entities)
   {
     Position* position = FURIOUS_GET_COMPONENT(entity,Position);
 
@@ -46,9 +49,11 @@ TEST(FilterFuncTest, FilterFuncTest )
       ASSERT_EQ(position->m_z, 0.0f);
     }
   }
-  furious::furious_release();
-  delete database;
+  furious_release();
+  database_destroy(&database);
 }
+
+} /* furious */ 
 
 int main(int argc, char *argv[])
 {

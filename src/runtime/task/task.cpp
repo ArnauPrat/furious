@@ -78,7 +78,7 @@ all_visited_parents(const task_graph_t* task_graph,
 void
 task_graph_run(task_graph_t* task_graph,
                float delta,
-               Database* database,
+               database_t* database,
                void* user_data)
 {
   const uint32_t num_nodes = task_graph->m_num_tasks;

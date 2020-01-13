@@ -222,7 +222,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                               exec_plan->m_subplans[i]);
     fprintf(fd,"const char* __task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
     fprintf(fd,"void __task_%d(float delta,\n\
-    Database* database,\n\
+            database_t* database,\n\
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
@@ -233,7 +233,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
-    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(&frame_mem_allocator);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(KILOBYTES(4), &frame_mem_allocator);\n");
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
     fprintf(fd, "stack_alloc_destroy(&task_allocator);\n");
@@ -251,7 +251,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                               post_exec_plan->m_subplans[i]);
     fprintf(fd,"const char* __pf_task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
     fprintf(fd,"void __pf_task_%d(float delta,\n\
-    Database* database,\n\
+            databaset* database,\n\
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
@@ -260,7 +260,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd,"{\n");
 
     fprintf(fd, "Context context(delta,database,user_data, chunk_size, offset, stride);\n");
-    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(&frame_mem_allocator);\n");
+    fprintf(fd, "mem_allocator_t task_allocator = stack_alloc_create(KILOBYTES(4), &frame_mem_allocator);\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
     fprintf(fd, "stack_alloc_destroy(&task_allocator);\n");
@@ -271,7 +271,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   /// GENERATING furious__init  
   fprintf(fd, "\n\n\n");
   fprintf(fd, "// Variable initializations \n");
-  fprintf(fd, "void furious_init(Database* database)\n{\n");
+  fprintf(fd, "void furious_init(database_t* database)\n{\n");
 
   // INITIALIZING HT REGISTRY
   fprintf(fd, "ht_registry_init(&ht_registry\n);\n");
@@ -409,7 +409,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   /// GENERATING furious_frame CODE
   {
     fprintf(fd,"\n\n\n");
-    fprintf(fd,"void furious_frame(float delta, Database* database, void* user_data)\n{\n");
+    fprintf(fd,"void furious_frame(float delta, database_t* database, void* user_data)\n{\n");
 
     fprintf(fd, "task_graph_run(task_graph, delta, database, user_data);\n");
 
@@ -420,7 +420,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   /// GENERATING furious_post_frame CODE
   {
     fprintf(fd,"\n\n\n");
-    fprintf(fd,"void furious_post_frame(float delta, Database* database, void* user_data)\n{\n");
+    fprintf(fd,"void furious_post_frame(float delta, database_t* database, void* user_data)\n{\n");
 
     fprintf(fd, "task_graph_run(post_task_graph, delta, database, user_data);\n");
 

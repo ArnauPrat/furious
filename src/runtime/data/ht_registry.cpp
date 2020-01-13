@@ -1,8 +1,7 @@
 
 #include "ht_registry.h"
+#include "../../common/btree.h"
 #include "../../common/memory/memory.h"
-
-#include "../../common/impl/btree_impl.h"
 #include "../../common/utils.h"
 
 namespace furious
@@ -11,17 +10,15 @@ namespace furious
 void
 ht_registry_init(ht_registry_t* registry)
 {
-  registry->p_root = (btree_t*) mem_alloc(&global_mem_allocator, 
-                                          1, sizeof(btree_t), -1);
-  *registry->p_root = btree_create();
+  registry->m_registry = btree_create();
+  registry->m_mutex = mutex_create();
 }
 
 void
 ht_registry_release(ht_registry_t* registry)
 {
-  btree_destroy(registry->p_root);
-  mem_free(&global_mem_allocator, 
-           registry->p_root);
+  mutex_destroy(&registry->m_mutex);
+  btree_destroy(&registry->m_registry);
 }
 
 void
@@ -29,25 +26,25 @@ ht_registry_insert(ht_registry_t* registry,
                    const char* key,
                    void* value)
 {
-  registry->m_mutex.lock();
+  mutex_lock(&registry->m_mutex);
   uint32_t hash_key = hash(key);
-  btree_insert_t insert = btree_insert(registry->p_root, hash_key, value);
+  btree_insert_t insert = btree_insert(&registry->m_registry, hash_key, value);
   if(insert.m_inserted == false)
   {
     *insert.p_place = value;
   }
-  registry->m_mutex.unlock();
+  mutex_unlock(&registry->m_mutex);
 }
 
 void*
 ht_registry_get(ht_registry_t* registry,
                 const char* key)
 {
-  registry->m_mutex.lock();
+  mutex_lock(&registry->m_mutex);
   uint32_t hash_key = hash(key);
-  void* ptr =  btree_get(registry->p_root,
-                        hash_key);
-  registry->m_mutex.unlock();
+  void* ptr =  btree_get(&registry->m_registry,
+                         hash_key);
+  mutex_unlock(&registry->m_mutex);
   return ptr;
 }
 
@@ -55,11 +52,11 @@ void
 ht_registry_remove(ht_registry_t* registry, 
                    const char* key)
 {
-  registry->m_mutex.lock();
+  mutex_lock(&registry->m_mutex);
   uint32_t hash_key = hash(key);
-  btree_remove(registry->p_root, 
-                    hash_key);
-  registry->m_mutex.unlock();
+  btree_remove(&registry->m_registry, 
+               hash_key);
+  mutex_unlock(&registry->m_mutex);
 }
 
 

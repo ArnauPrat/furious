@@ -283,23 +283,19 @@ table_create(const char* name,
   table.m_esize = esize;
   table.m_num_components = 0;
   table.m_destructor = destructor;
-  size_t name_length =strlen(name)+1;
-  table.p_name = (char*)mem_alloc(&global_mem_allocator, 
-                                  64, sizeof(char)*name_length, 0);
+  FURIOUS_COPY_AND_CHECK_STR(&table.m_name[0], name, FURIOUS_MAX_TABLE_NAME);
 
-  strncpy(table.p_name, name, name_length);
-
-  table.m_tblock_allocator = pool_alloc_create(FURIOUS_TBLOCK_ALIGNMENT,
+  table.m_tblock_allocator = pool_alloc_create(FURIOUS_TABLE_BLOCK_ALIGNMENT,
                                           sizeof(table_block_t), 
-                                          FURIOUS_TBLOCK_PAGE_SIZE);
+                                          FURIOUS_TABLE_BLOCK_PAGE_SIZE);
 
-  table.m_data_allocator   = pool_alloc_create(FURIOUS_TBLOCK_DATA_ALIGNMENT, 
+  table.m_data_allocator   = pool_alloc_create(FURIOUS_TABLE_BLOCK_DATA_ALIGNMENT, 
                                           esize*FURIOUS_TABLE_BLOCK_SIZE, 
-                                          FURIOUS_TBLOCK_DATA_PAGE_SIZE);
+                                          FURIOUS_TABLE_BLOCK_DATA_PAGE_SIZE);
 
   table.m_bitmap_allocator = pool_alloc_create(FURIOUS_BITMAP_ALIGNMENT, 
                                           FURIOUS_BITMAP_NUM_CHUNKS(FURIOUS_TABLE_BLOCK_SIZE), 
-                                          FURIOUS_TBLOCK_BITMAP_PAGE_SIZE);
+                                          FURIOUS_TABLE_BLOCK_BITMAP_PAGE_SIZE);
 
   table.m_btree_allocator = pool_alloc_create(FURIOUS_BITMAP_ALIGNMENT, 
                                          sizeof(btree_node_t), 
@@ -322,9 +318,6 @@ table_destroy(table_t* table)
   pool_alloc_destroy(&table->m_bitmap_allocator);
   pool_alloc_destroy(&table->m_data_allocator);
   pool_alloc_destroy(&table->m_tblock_allocator);
-
-  mem_free(&global_mem_allocator, 
-           table->p_name);
 }
 
 size_t
@@ -403,7 +396,7 @@ table_alloc_component(table_t* table,
   if (block == nullptr) 
   {
     block = (table_block_t*)mem_alloc(&table->m_tblock_allocator, 
-                                      FURIOUS_TBLOCK_ALIGNMENT, 
+                                      FURIOUS_TABLE_BLOCK_ALIGNMENT, 
                                       sizeof(table_block_t), 
                                       decoded_id.m_block_id);
 

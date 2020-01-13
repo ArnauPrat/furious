@@ -1,6 +1,7 @@
 
 
 #include "stack_allocator.h"
+#include "pool_allocator.h"
 #include "../../common/platform.h"
 
 namespace furious
@@ -27,7 +28,6 @@ struct stack_alloc_header_t
 {
   void*                   p_data;
   uint32_t                m_next_free;
-  uint32_t                m_size;
   stack_alloc_header_t*  p_next_header;
 };
 
@@ -35,7 +35,9 @@ struct stack_alloc_t
 {
   stack_alloc_header_t*  p_first_chunk;
   stack_alloc_header_t*  p_last_chunk;
+  uint32_t               m_page_size;
   mem_allocator_t        m_allocator;
+  mem_allocator_t        m_header_allocator;
 };
 
  
@@ -47,44 +49,59 @@ struct stack_alloc_t
  * \return Returns a new stack allocator
  */
 mem_allocator_t
-stack_alloc_create(mem_allocator_t* allocator)
+stack_alloc_create(uint32_t page_size, 
+                   mem_allocator_t* allocator)
 {
   FURIOUS_ASSERT(((allocator == nullptr) ||
                  (allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr)) &&
                  "Provided allocator is ill-formed.")
 
-  mem_allocator_t use_allocator;
+  stack_alloc_t* salloc = (stack_alloc_t*)mem_alloc(&global_mem_allocator, 
+                                                    1, 
+                                                    sizeof(stack_alloc_t), 
+                                                    FURIOUS_NO_HINT);
   if(allocator != nullptr)
   {
-    use_allocator = *allocator; 
+    salloc->m_allocator = *allocator; 
   }
   else
   {
-    use_allocator = global_mem_allocator;
+    salloc->m_allocator = global_mem_allocator;
   }
-  stack_alloc_t* lalloc = (stack_alloc_t*)mem_alloc(&use_allocator, 1, sizeof(stack_alloc_t), -1);
-  lalloc->m_allocator = use_allocator;
+  salloc->m_page_size = page_size;
+  salloc->m_header_allocator = pool_alloc_create(32, 
+                                                 sizeof(stack_alloc_header_t), 
+                                                 salloc->m_page_size, 
+                                                 &salloc->m_allocator);
 
   // allocating first chunk
-  lalloc->p_first_chunk = (stack_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(stack_alloc_header_t), -1);
-  lalloc->p_first_chunk->m_next_free = 0;
-  lalloc->p_first_chunk->p_next_header = nullptr;
-  lalloc->p_first_chunk->p_data = mem_alloc(&lalloc->m_allocator, 64, FURIOUS_STACK_ALLOC_MIN_ALLOC, -1);
-  lalloc->p_first_chunk->m_size = FURIOUS_STACK_ALLOC_MIN_ALLOC;
-  lalloc->p_last_chunk = lalloc->p_first_chunk;
-  mem_allocator_t mem_allocator = {lalloc, 
+  salloc->p_first_chunk = (stack_alloc_header_t*)mem_alloc(&salloc->m_header_allocator, 
+                                                           32, 
+                                                           sizeof(stack_alloc_header_t), 
+                                                           FURIOUS_NO_HINT);
+
+  salloc->p_first_chunk->m_next_free = 0;
+  salloc->p_first_chunk->p_next_header = nullptr;
+
+  salloc->p_first_chunk->p_data = mem_alloc(&salloc->m_allocator, 
+                                            64, 
+                                            FURIOUS_STACK_ALLOC_MIN_ALLOC, 
+                                            FURIOUS_NO_HINT);
+
+  salloc->p_last_chunk = salloc->p_first_chunk;
+  mem_allocator_t mem_allocator = {salloc, 
                                    stack_alloc_alloc, 
-                                   stack_alloc_free
-                                  };
+                                   stack_alloc_free};
   return mem_allocator;
 }
 
 void
 stack_alloc_destroy(mem_allocator_t* mem_allocator)
 {
-  stack_alloc_t* lalloc = (stack_alloc_t*)mem_allocator->p_mem_state;
-  stack_alloc_flush(lalloc);
-  mem_free(&lalloc->m_allocator, lalloc);
+  stack_alloc_t* salloc = (stack_alloc_t*)mem_allocator->p_mem_state;
+  stack_alloc_flush(salloc);
+  pool_alloc_destroy(&salloc->m_header_allocator);
+  mem_free(&global_mem_allocator, salloc);
 }
 
 /**
@@ -101,7 +118,7 @@ stack_alloc_flush(stack_alloc_t* stack_alloc)
     stack_alloc_header_t* tmp = next_chunk;
     next_chunk = tmp->p_next_header;
     mem_free(&stack_alloc->m_allocator, tmp->p_data);
-    mem_free(&stack_alloc->m_allocator, tmp);
+    mem_free(&stack_alloc->m_header_allocator, tmp);
   }
   stack_alloc->p_first_chunk = nullptr;
   stack_alloc->p_last_chunk = nullptr;
@@ -123,9 +140,10 @@ void* stack_alloc_alloc(void* state,
                          uint32_t size,
                          uint32_t hint)
 {
+  stack_alloc_t* salloc = (stack_alloc_t*)state;
+  FURIOUS_ASSERT(size <= salloc->m_page_size && "Requested allocation is too large for the given page size");
   int32_t min_alignment = alignment > FURIOUS_MIN_ALIGNMENT ? alignment : FURIOUS_MIN_ALIGNMENT;
-  stack_alloc_t* lalloc = (stack_alloc_t*)state;
-  stack_alloc_header_t* last_chunk = lalloc->p_last_chunk;
+  stack_alloc_header_t* last_chunk = salloc->p_last_chunk;
 
   if(last_chunk->p_data == nullptr)
   {
@@ -136,39 +154,46 @@ void* stack_alloc_alloc(void* state,
   if(modulo != 0)
   {
     last_chunk->m_next_free += min_alignment - modulo;
-    if(last_chunk->m_next_free > last_chunk->m_size)
+    if(last_chunk->m_next_free > salloc->m_page_size)
     {
-      last_chunk->m_next_free = last_chunk->m_size;
+      last_chunk->m_next_free = salloc->m_page_size;
     }
   }
 
   void* ret = nullptr;
-  if(last_chunk->m_next_free + size < last_chunk->m_size)
+  if(last_chunk->m_next_free + size < salloc->m_page_size)
   {
     ret = &((char*)last_chunk->p_data)[last_chunk->m_next_free];
     last_chunk->m_next_free += size;
   }
   else
   {
-    stack_alloc_header_t* new_chunk = (stack_alloc_header_t*)mem_alloc(&lalloc->m_allocator, 1, sizeof(stack_alloc_header_t), FURIOUS_NO_HINT);
+    stack_alloc_header_t* new_chunk = (stack_alloc_header_t*)mem_alloc(&salloc->m_header_allocator, 
+                                                                       32, 
+                                                                       sizeof(stack_alloc_header_t), 
+                                                                       FURIOUS_NO_HINT);
     new_chunk->m_next_free = 0;
     new_chunk->p_next_header = nullptr;
-    new_chunk->m_size = size + min_alignment > FURIOUS_STACK_ALLOC_MIN_ALLOC ? size + min_alignment : FURIOUS_STACK_ALLOC_MIN_ALLOC;
-    new_chunk->p_data = mem_alloc(&lalloc->m_allocator, min_alignment, new_chunk->m_size, FURIOUS_NO_HINT);
+    new_chunk->p_data = mem_alloc(&salloc->m_allocator, 
+                                  min_alignment, 
+                                  salloc->m_page_size, 
+                                  FURIOUS_NO_HINT);
 
     if(new_chunk->p_data == nullptr)
     {
+      FURIOUS_ASSERT(false && "Cannot allocate page for stack allocator");
       return nullptr;
     }
 
     last_chunk->p_next_header = new_chunk;
-    lalloc->p_last_chunk = new_chunk;
+    salloc->p_last_chunk = new_chunk;
 
     uint32_t modulo = ((uint64_t)&(((char*)new_chunk->p_data)[new_chunk->m_next_free])) & (min_alignment-1);
     if(modulo != 0)
     {
       new_chunk->m_next_free += min_alignment - modulo;
     }
+    FURIOUS_ASSERT(new_chunk->m_next_free + size <= salloc->m_page_size && "Cannot allocate the requeted size with the given alignment");
     ret = &((char*)new_chunk->p_data)[new_chunk->m_next_free];
     new_chunk->m_next_free += size;
   }

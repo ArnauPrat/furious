@@ -12,22 +12,22 @@ p_database(nullptr)
 {
 }
 
-Entity::Entity(Database* database,
+Entity::Entity(database_t* database,
                entity_id_t id) :
 m_id(id),
 p_database(database)
 {
 }
 
-Entity::Entity(Database* database) : 
-  m_id(database->get_next_entity_id()),
+Entity::Entity(database_t* database) : 
+  m_id(database_get_next_entity_id(database)),
   p_database(database)
 {
 }
 
 
 Entity 
-Entity::create_entity(Database* database) 
+Entity::create_entity(database_t* database) 
 {
   Entity entity(database);
   return entity;
@@ -36,26 +36,27 @@ Entity::create_entity(Database* database)
 void 
 Entity::remove_entity(Entity entity) 
 {
-  entity.get_database()->clear_entity(entity.m_id);
+  database_clear_entity(entity.p_database, 
+                        entity.m_id);
   entity.m_id = FURIOUS_INVALID_ID;
 }
 
 void 
 Entity::add_tag(const char* tag) 
 {
-  p_database->tag_entity(m_id, tag);
+  database_tag_entity(p_database, m_id, tag);
 }
 
 void 
 Entity::remove_tag(const char* tag) 
 {
-  p_database->untag_entity(m_id, tag);
+  database_untag_entity(p_database, m_id, tag);
 }
 
 bool 
 Entity::has_tag(const char* tag)
 {
-  const BitTable* bit_table = p_database->get_tagged_entities(tag);
+  const BitTable* bit_table = database_get_tagged_entities(p_database, tag);
   return bit_table->exists(m_id);
 }
 
@@ -63,16 +64,18 @@ void
 Entity::add_reference(const char* ref_name,
                       Entity other)
 {
-  p_database->add_reference(ref_name, 
-                            m_id, 
-                            other.m_id);
+  database_add_reference(p_database, 
+                         ref_name, 
+                         m_id, 
+                         other.m_id);
 }
 
 void
 Entity::remove_reference(const char* ref_name)
 {
-  p_database->remove_reference(ref_name, 
-                               m_id);
+  database_remove_reference(p_database, 
+                            ref_name, 
+                            m_id);
 }
 
 Entity
@@ -84,10 +87,10 @@ Entity::get_reference(const char* ref_name)
   {
     return Entity(p_database,*other);
   }
-  return Entity(p_database,_FURIOUS_INVALID_ENTITY_ID);
+  return Entity(p_database,FURIOUS_INVALID_ID);
 }
 
-Database* 
+database_t* 
 Entity::get_database() 
 {
   return p_database;
@@ -96,11 +99,11 @@ Entity::get_database()
 bool
 Entity::is_valid()
 {
-  return m_id != _FURIOUS_INVALID_ENTITY_ID;
+  return m_id != FURIOUS_INVALID_ID;
 }
 
 Entity 
-create_entity(Database* database) 
+create_entity(database_t* database) 
 {
  return Entity::create_entity(database);
 }

@@ -2,14 +2,13 @@
 #ifndef _FURIOUS_TABLE_IMPL_H_
 #define _FURIOUS_TABLE_IMPL_H_
 
-#include "../../common/impl/btree_impl.h"
 #include "../../common/bitmap.h"
-#include "../memory/pool_allocator.h"
+#include "../../common/btree.h"
 #include "../../common/mutex.h"
+#include "../memory/pool_allocator.h"
 
 namespace furious
 {
-
 
 /**
  * \brief A row of a table block. This is used to conveniently access the
@@ -22,13 +21,18 @@ struct table_entry_t
   const bool    m_enabled;
 };
 
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
 /**
  * \brief Represents a block of data in a table. Each block contains
  * FURIOUS_TABLE_BLOCK_SIZE elements
  */
 struct table_block_t 
 {
-  FURIOUS_ALIGNED(void*, p_data, FURIOUS_TBLOCK_DATA_ALIGNMENT);    // The pointer to the block data
+  FURIOUS_ALIGNED(void*, p_data, FURIOUS_TABLE_BLOCK_DATA_ALIGNMENT);    // The pointer to the block data
   entity_id_t m_start;                                              // The id of the first component in the block
   size_t m_num_components;                                          // The number of components in the block
   size_t m_num_enabled_components;                                  // The number of enabled components in the block
@@ -76,6 +80,9 @@ table_entry_t
 table_block_get_component(const table_block_t *block, 
                           entity_id_t id);
 
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
 
 /**
  * \brief Iterator to iterate over the components of a table block. 
@@ -137,13 +144,13 @@ tblock_iter_reset(tblock_iter_t* iter,
 
 struct table_t 
 {
-  char*                 p_name;           //< The name of the table
-  uint64_t              m_id;             //< The id of the table
-  size_t                m_esize;          //< The size of each component in bytes
-  btree_t               m_blocks;         //< The btree with the table blocks
-  size_t                m_num_components; //< The number of components in this table
-  void (*m_destructor)(void *ptr);        //< The pointer to the destructor for the components
-  mutex_t               m_mutex;          //< The able mutex
+  char                  m_name[FURIOUS_MAX_TABLE_NAME]; //< The name of the table
+  uint64_t              m_id;                           //< The id of the table
+  size_t                m_esize;                        //< The size of each component in bytes
+  btree_t               m_blocks;                       //< The btree with the table blocks
+  size_t                m_num_components;               //< The number of components in this table
+  void (*m_destructor)(void *ptr);                      //< The pointer to the destructor for the components
+  mutex_t               m_mutex;                        //< The able mutex
 
   // fixed block memory allocators for the different parts
   mem_allocator_t       m_tblock_allocator; //< The allocator for the table blocks structure
@@ -294,14 +301,18 @@ table_size(table_t* table);
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
+
+/**
+ * \brief Iterator of a table, used to iterate over the table blocks of a table
+ */
 struct table_iter_t 
 {
-  btree_t*                              p_blocks;
-  btree_iter_t                          m_it;
-  uint32_t                              m_chunk_size;
-  uint32_t                              m_offset;
-  uint32_t                              m_stride;
-  table_block_t*                        m_next;
+  btree_t*                              p_blocks;       //< The table btree with the blocks
+  btree_iter_t                          m_it;           //< The btree iterator
+  uint32_t                              m_chunk_size;   //< The size of consecutive blocks (chunks) to iterate
+  uint32_t                              m_offset;       //< The offset in chunk size to start iterate from
+  uint32_t                              m_stride;       //< The amount of blocks to skip (in chunk size) after a chunk has been consumed
+  table_block_t*                        m_next;         //< The next table block to iterate
 };
 
 /**

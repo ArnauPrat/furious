@@ -36,7 +36,7 @@ generate_json_from_infos(WebServer* webserver, uint32_t num_infos)
 void
 generate_json(WebServer* webserver)
 {
-  uint32_t num_tables = webserver->p_database->num_tables();
+  uint32_t num_tables = database_num_tables(webserver->p_database);
   if(num_tables > webserver->m_table_infos_capacity)
   {
     webserver->m_table_infos_capacity += num_tables;
@@ -46,8 +46,9 @@ generate_json(WebServer* webserver)
     }
     webserver->m_table_infos = new TableInfo[webserver->m_table_infos_capacity];
   }
-  uint32_t num_infos = webserver->p_database->meta_data(webserver->m_table_infos, 
-                                                        webserver->m_table_infos_capacity);
+  uint32_t num_infos = database_metadata(webserver->p_database, 
+                                         webserver->m_table_infos, 
+                                         webserver->m_table_infos_capacity);
   // generate json here
   char headers[] = "HTTP/1.1 200 OK\r\nServer: CPi\r\nContent-type: application/json\r\n\r\n";
   
@@ -146,7 +147,7 @@ WebServer::~WebServer()
 }
 
 void
-WebServer::start(Database* database,
+WebServer::start(database_t* database,
                  const char* address,
                  const char* port)
 {

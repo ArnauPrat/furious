@@ -12,14 +12,13 @@
 
 #include <string.h>
 
-namespace furious 
-{
+// autogen includes
+#include "autogen//fcc_depcy_array.h"
 
-//DynArray<Dependency> __DYNARRAY_DEPENDENCY__;
 
-static void
+static void 
 fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
-                      const DynArray<Dependency>& deps);
+                      fcc_depcy_array_t* deps);
 
 static void
 fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
@@ -76,37 +75,45 @@ fcc_deps_extr_extract_component_filter(fcc_deps_extr_t* deps_extr,
 void
 fcc_deps_extr_init(fcc_deps_extr_t* deps_extr)
 {
+  *deps_extr = {};
+  deps_extr->m_incs = cchar_ptr_array_init();
+  deps_extr->m_decls = fcc_decl_array_init();
 }
 
 void
 fcc_deps_extr_release(fcc_deps_extr_t* deps_extr)
 {
-  const uint32_t num_includes = deps_extr->m_include_files.size();
+  const uint32_t num_includes = deps_extr->m_incs.m_count;
+  const char** incs = deps_extr->m_incs.m_data;
   for (uint32_t i = 0; i < num_includes; ++i) 
   {
-    delete [] deps_extr->m_include_files[i];
+    delete [] incs[i];
   }
+  fcc_decl_array_release(&deps_extr->m_decls);
+  cchar_ptr_array_release(&deps_extr->m_incs);
 }
-
 void
 fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
-                      const DynArray<Dependency>& deps)
+                      fcc_depcy_array_t* deps_array)
 {
-  for(uint32_t i = 0; i < deps.size(); ++i) 
+  uint32_t ndeps = deps_array->m_count;
+  fcc_depcy_t* deps = deps_array->m_data;
+  for(uint32_t i = 0; i < ndeps; ++i) 
   {
-    const Dependency& dep = deps[i];
-    if(fcc_decl_is_valid(dep.m_decl))
+    fcc_depcy_t* dep = &deps[i];
+    if(fcc_decl_is_valid(dep->m_decl))
     {
-      bool is_var_or_struct = fcc_decl_is_variable_or_struct(dep.m_decl);
-      bool is_function = fcc_decl_is_function(dep.m_decl);
-      bool is_member = fcc_decl_is_member(dep.m_decl);
+      bool is_var_or_struct = fcc_decl_is_variable_or_struct(dep->m_decl);
+      bool is_function = fcc_decl_is_function(dep->m_decl);
+      bool is_member = fcc_decl_is_member(dep->m_decl);
       if( is_var_or_struct || (is_function && !is_member))
       {
         bool found = false;
-        const uint32_t num_decls = deps_extr->m_declarations.size();
+        const uint32_t num_decls = deps_extr->m_decls.m_count;
+        fcc_decl_t* decls = deps_extr->m_decls.m_data;
         for (uint32_t j = 0; j < num_decls; ++j) 
         {
-          if(fcc_decl_is_same(dep.m_decl, deps_extr->m_declarations[j]))
+          if(fcc_decl_is_same(dep->m_decl, decls[j]))
           {
             found = true;
             break;
@@ -115,17 +122,18 @@ fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
 
         if(!found)
         {
-          deps_extr->m_declarations.append(dep.m_decl);
+          fcc_decl_array_append(&deps_extr->m_decls, &dep->m_decl);
         }
       }
     } 
     else 
     {
       bool found = false;
-      const uint32_t num_includes = deps_extr->m_include_files.size();
+      const uint32_t num_includes = deps_extr->m_incs.m_count;
+      const char** incs = deps_extr->m_incs.m_data;
       for (uint32_t j = 0; j < num_includes; ++j) 
       {
-        if(strcmp(deps_extr->m_include_files[j], dep.m_include_file) == 0)
+        if(strcmp(incs[j], dep->m_include_file) == 0)
         {
           found = true;
           break;
@@ -134,8 +142,9 @@ fcc_deps_extr_extract(fcc_deps_extr_t* deps_extr,
       if(!found)
       {
         char* buffer = new char[FCC_MAX_INCLUDE_PATH_LENGTH];
-        FURIOUS_COPY_AND_CHECK_STR(buffer, dep.m_include_file, FCC_MAX_INCLUDE_PATH_LENGTH);
-        deps_extr->m_include_files.append(buffer);
+        FDB_COPY_AND_CHECK_STR(buffer, dep->m_include_file, FCC_MAX_INCLUDE_PATH_LENGTH);
+        const char* ptr = buffer;
+        cchar_ptr_array_append(&deps_extr->m_incs, &ptr);
       }
     }
   }
@@ -188,8 +197,14 @@ fcc_deps_extr_extract_foreach(fcc_deps_extr_t* deps_extr,
                               const fcc_operator_t* foreach)
 {
   const fcc_system_t* system = foreach->m_foreach.p_system;
-  fcc_deps_extr_extract(deps_extr, fcc_type_dependencies(system->m_system_type));
-  fcc_deps_extr_extract(deps_extr, &foreach->p_subplan->m_nodes[foreach->m_foreach.m_child]);
+  fcc_depcy_array_t array = fcc_depcy_array_init();
+  fcc_type_dependencies(system->m_system_type, &array);
+  fcc_deps_extr_extract(deps_extr,
+                        &array);
+  fcc_depcy_array_release(&array);
+  const uint32_t child_idx = foreach->m_foreach.m_child;
+  fcc_operator_t* op =&foreach->p_subplan->m_nodes[child_idx];
+  fcc_deps_extr_extract(deps_extr, op);
 }
 
 void 
@@ -198,8 +213,11 @@ fcc_deps_extr_extract_scan(fcc_deps_extr_t* deps_extr,
 {
   if(scan->m_columns[0].m_type == fcc_column_type_t::E_COMPONENT)
   {
+    fcc_depcy_array_t array = fcc_depcy_array_init();
+    fcc_type_dependencies(scan->m_columns[0].m_component_type, &array);
     fcc_deps_extr_extract(deps_extr,
-                          fcc_type_dependencies(scan->m_columns[0].m_component_type));
+                          &array);
+    fcc_depcy_array_release(&array);
   }
 } 
 
@@ -236,7 +254,11 @@ fcc_deps_extr_extract_fetch(fcc_deps_extr_t* deps_extr,
 {
   if(fetch->m_columns[0].m_type == fcc_column_type_t::E_GLOBAL)
   {
-    fcc_deps_extr_extract(deps_extr, fcc_type_dependencies(fetch->m_columns[0].m_component_type));
+    fcc_depcy_array_t array = fcc_depcy_array_init();
+    fcc_type_dependencies(fetch->m_columns[0].m_component_type, &array);
+    fcc_deps_extr_extract(deps_extr,
+                          &array);
+    fcc_depcy_array_release(&array);
   }
 }
 
@@ -253,7 +275,11 @@ fcc_deps_extr_extract_component_filter(fcc_deps_extr_t* deps_extr,
                                        const fcc_operator_t* component_filter) 
 {
   fcc_subplan_t* subplan = component_filter->p_subplan;
-  fcc_deps_extr_extract(deps_extr, fcc_type_dependencies(component_filter->m_component_filter.m_filter_type));
+  fcc_depcy_array_t array = fcc_depcy_array_init();
+  fcc_type_dependencies(component_filter->m_component_filter.m_filter_type, &array);
+  fcc_deps_extr_extract(deps_extr,
+                        &array);
+  fcc_depcy_array_release(&array);
   fcc_deps_extr_extract(deps_extr, &subplan[component_filter->m_component_filter.m_child]);
 }
 
@@ -262,7 +288,11 @@ fcc_deps_extr_extract_predicate_filter(fcc_deps_extr_t* deps_extr,
                                        const fcc_operator_t* predicate_filter) 
 {
   fcc_subplan_t* subplan = predicate_filter->p_subplan;
-  fcc_deps_extr_extract(deps_extr, fcc_decl_dependencies(predicate_filter->m_predicate_filter.m_func_decl));
+  fcc_depcy_array_t array = fcc_depcy_array_init();\
+  fcc_decl_dependencies(predicate_filter->m_predicate_filter.m_func_decl, &array);\
+  fcc_deps_extr_extract(deps_extr,\
+                        &array);\
+  fcc_depcy_array_release(&array);
   fcc_deps_extr_extract(deps_extr, &subplan->m_nodes[predicate_filter->m_predicate_filter.m_child]);
 }
 
@@ -344,28 +374,40 @@ fcc_vars_extr_extract_component_filter(fcc_vars_extr_t* vars_extr,
 void
 fcc_vars_extr_init(fcc_vars_extr_t* vars_extr)
 {
+  memset(vars_extr, 0, sizeof(fcc_vars_extr_t));
+  vars_extr->m_comp_decls = fcc_decl_array_init();
+  vars_extr->m_tags = cchar_ptr_array_init();
+  vars_extr->m_refs = cchar_ptr_array_init();
+  vars_extr->m_comps = cchar_ptr_array_init();
 }
 
 void
 fcc_vars_extr_release(fcc_vars_extr_t* vars_extr)
 {
-  const uint32_t num_components = vars_extr->m_components.size();
-  for (uint32_t i = 0; i < num_components; ++i) 
+  const uint32_t ncomps = vars_extr->m_comps.m_count;
+  const char** comps = vars_extr->m_comps.m_data;
+  for (uint32_t i = 0; i < ncomps; ++i) 
   {
-    delete [] vars_extr->m_components[i];
+    delete [] comps[i];
   }
 
-  const uint32_t num_tags = vars_extr->m_tags.size();
-  for (uint32_t i = 0; i < num_tags; ++i) 
+  const uint32_t ntags = vars_extr->m_tags.m_count;
+  const char** tags = vars_extr->m_tags.m_data;
+  for (uint32_t i = 0; i < ntags; ++i) 
   {
-    delete [] vars_extr->m_tags[i];
+    delete [] tags[i];
   }
 
-  const uint32_t num_refs = vars_extr->m_references.size();
-  for (uint32_t i = 0; i < num_refs; ++i) 
+  const uint32_t nrefs = vars_extr->m_refs.m_count;
+  const char** refs = vars_extr->m_refs.m_data;
+  for (uint32_t i = 0; i < nrefs; ++i) 
   {
-    delete [] vars_extr->m_references[i];
+    delete [] refs[i];
   }
+
+  cchar_ptr_array_release(&vars_extr->m_tags);
+  cchar_ptr_array_release(&vars_extr->m_refs);
+  cchar_ptr_array_release(&vars_extr->m_comps);
 }
 
 void 
@@ -429,11 +471,12 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
                   tmp, 
                   FCC_MAX_TYPE_NAME);
 
-    const uint32_t num_components = vars_extr->m_components.size();
+    const uint32_t ncomps = vars_extr->m_comps.m_count;
+    const char** comps = vars_extr->m_comps.m_data;
     bool found = false;
-    for(uint32_t i = 0; i < num_components; ++i)
+    for(uint32_t i = 0; i < ncomps; ++i)
     {
-      if(strcmp(tmp, vars_extr->m_components[i]) == 0)
+      if(strcmp(tmp, comps[i]) == 0)
       {
         found = true;
         break;
@@ -442,15 +485,17 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
     if(!found)
     {
       char* buffer = new char [FCC_MAX_TYPE_NAME];
-      strncpy(buffer, tmp, FCC_MAX_TYPE_NAME);
-      vars_extr->m_components.append(buffer);
+      FDB_COPY_AND_CHECK_STR(buffer, tmp, FCC_MAX_TYPE_NAME);
+      const char* ptr = buffer;
+      cchar_ptr_array_append(&vars_extr->m_comps, &ptr);
       fcc_decl_t decl;
       fcc_type_decl(scan->m_columns[0].m_component_type, &decl);
       bool found = false;
-      const uint32_t num_decls = vars_extr->m_component_decls.size();
-      for (uint32_t i = 0; i < num_decls; ++i) 
+      const uint32_t ndecls = vars_extr->m_comp_decls.m_count;
+      fcc_decl_t* cdecls = vars_extr->m_comp_decls.m_data;
+      for (uint32_t i = 0; i < ndecls; ++i) 
       {
-        if(fcc_decl_is_same(vars_extr->m_component_decls[i], decl))
+        if(fcc_decl_is_same(cdecls[i], decl))
         {
           found = true;
           break;
@@ -458,17 +503,18 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
       }
       if(!found)
       {
-        vars_extr->m_component_decls.append(decl);
+        fcc_decl_array_append(&vars_extr->m_comp_decls, &decl);
       }
     }
   }
   else
   {
     bool found = false;
-    const uint32_t num_references = vars_extr->m_references.size();
-    for (uint32_t i = 0; i < num_references; ++i) 
+    const uint32_t nrefs = vars_extr->m_refs.m_count;
+    const char**   refs = vars_extr->m_refs.m_data;
+    for (uint32_t i = 0; i < nrefs; ++i) 
     {
-      if(strcmp(vars_extr->m_references[i], scan->m_columns[0].m_ref_name) == 0)
+      if(strcmp(refs[i], scan->m_columns[0].m_ref_name) == 0)
       {
         found = true;
         break;
@@ -477,8 +523,9 @@ fcc_vars_extr_extract_scan(fcc_vars_extr_t* vars_extr,
     if (!found) 
     {
       char* buffer = new char[FCC_MAX_REF_NAME];
-      strncpy(buffer, scan->m_columns[0].m_ref_name, FCC_MAX_REF_NAME);
-      vars_extr->m_references.append(buffer);
+      FDB_COPY_AND_CHECK_STR(buffer, scan->m_columns[0].m_ref_name, FCC_MAX_REF_NAME);
+      const char* ptr = buffer;
+      cchar_ptr_array_append(&vars_extr->m_refs, &ptr);
     }
   }
 }
@@ -518,10 +565,11 @@ fcc_vars_extr_extract_fetch(fcc_vars_extr_t* vars_extr,
   fcc_decl_t decl;
   fcc_type_decl(fetch->m_columns[0].m_component_type, &decl);
   bool found = false;
-  const uint32_t num_decls = vars_extr->m_component_decls.size();
-  for (uint32_t i = 0; i < num_decls; ++i) 
+  const uint32_t ndecls = vars_extr->m_comp_decls.m_count;
+  fcc_decl_t* decls = vars_extr->m_comp_decls.m_data;
+  for (uint32_t i = 0; i < ndecls; ++i) 
   {
-    if(fcc_decl_is_same(decl, vars_extr->m_component_decls[i]))
+    if(fcc_decl_is_same(decl, decls[i]))
     {
       found = true;
       break;
@@ -530,7 +578,7 @@ fcc_vars_extr_extract_fetch(fcc_vars_extr_t* vars_extr,
 
   if (!found)
   {
-    vars_extr->m_component_decls.append(decl);
+    fcc_decl_array_append(&vars_extr->m_comp_decls, &decl);
   }
 }
 
@@ -539,9 +587,9 @@ fcc_vars_extr_extract_tag_filter(fcc_vars_extr_t* vars_extr,
                       const fcc_operator_t* tag_filter) 
 {
   char* buffer = new char[FCC_MAX_TAG_NAME];
-  strncpy(buffer, tag_filter->m_tag_filter.m_tag, FCC_MAX_TAG_NAME);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, tag_filter->m_tag_filter.m_tag, FCC_MAX_TAG_NAME)
-  vars_extr->m_tags.append(buffer);
+  FDB_COPY_AND_CHECK_STR(buffer, tag_filter->m_tag_filter.m_tag, FCC_MAX_TAG_NAME)
+  const char* ptr = buffer;
+  cchar_ptr_array_append(&vars_extr->m_tags, &ptr);
   fcc_subplan_t* subplan = tag_filter->p_subplan;
   fcc_vars_extr_extract(vars_extr, 
                        &subplan->m_nodes[tag_filter->m_tag_filter.m_child]);
@@ -557,10 +605,11 @@ fcc_vars_extr_extract_component_filter(fcc_vars_extr_t* vars_extr,
                 FCC_MAX_TYPE_NAME);
 
   bool found = false;
-  const uint32_t num_components = vars_extr->m_components.size();
-  for(uint32_t i = 0; i < num_components; ++i)
+  const uint32_t ncomps = vars_extr->m_comps.m_count;
+  const char** comps = vars_extr->m_comps.m_data;
+  for(uint32_t i = 0; i < ncomps; ++i)
   {
-    if(strcmp(vars_extr->m_components[i], tmp) == 0)
+    if(strcmp(comps[i], tmp) == 0)
     {
       found = true;
     }
@@ -569,11 +618,12 @@ fcc_vars_extr_extract_component_filter(fcc_vars_extr_t* vars_extr,
   if(!found)
   {
     char* buffer = new char[FCC_MAX_TYPE_NAME];
-    strncpy(buffer, tmp, FCC_MAX_TYPE_NAME);
-    vars_extr->m_components.append(buffer);
+    FDB_COPY_AND_CHECK_STR(buffer, tmp, FCC_MAX_TYPE_NAME);
+    const char* ptr = buffer;
+    cchar_ptr_array_append(&vars_extr->m_comps, &ptr);
     fcc_decl_t decl;
     fcc_type_decl(component_filter->m_component_filter.m_filter_type, &decl);
-    vars_extr->m_component_decls.append(decl);
+    fcc_decl_array_append(&vars_extr->m_comp_decls, &decl);
     fcc_subplan_t* subplan = component_filter->p_subplan;
     fcc_vars_extr_extract(vars_extr, &subplan->m_nodes[component_filter->m_component_filter.m_child]);
   }
@@ -664,20 +714,21 @@ generate_table_name(const char* type_name,
                     const fcc_operator_t* op)
 {
   char tmp[FCC_MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
+  FDB_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "table_%s", tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "table_%s", tmp);
 
   if(op != nullptr)
   {
-    str_builder_append(&str_builder,"_%u",op->m_id);
+    fdb_str_builder_append(&str_builder,"_%u",op->m_id);
   }
 
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -693,12 +744,13 @@ generate_temp_table_name(const char* type_name,
                       FCC_MAX_TABLE_VARNAME,
                       op);
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "temp_%s", tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "temp_%s", tmp);
 
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -714,11 +766,12 @@ generate_ref_table_name(const char* ref_name,
                       FCC_MAX_TABLE_VARNAME,
                       op);
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "ref_%s", tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "ref_%s", tmp);
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -729,15 +782,16 @@ generate_bittable_name(const char* tag_name,
                        const fcc_operator_t* op)
 {
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "tagged_%s", tag_name);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "tagged_%s", tag_name);
   if(op != nullptr)
   {
-    str_builder_append(&str_builder, "_%u", op->m_id);
+    fdb_str_builder_append(&str_builder, "_%u", op->m_id);
   }
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -747,15 +801,16 @@ generate_table_iter_name(const char* table_name,
                          uint32_t buffer_length,
                          const fcc_operator_t* op)
 {
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "iter_%s", table_name);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "iter_%s", table_name);
   if(op != nullptr)
   {
-    str_builder_append(&str_builder, "_%u", op->m_id);
+    fdb_str_builder_append(&str_builder, "_%u", op->m_id);
   }
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -766,18 +821,19 @@ generate_block_name(const char* type_name,
                     const fcc_operator_t* op)
 {
   char tmp[FCC_MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
+  FDB_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "block_%s", tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "block_%s", tmp);
   if(op != nullptr)
   {
-    str_builder_append(&str_builder, "_%u", op->m_id);
+    fdb_str_builder_append(&str_builder, "_%u", op->m_id);
   }
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -786,11 +842,12 @@ generate_cluster_name(const fcc_operator_t* op,
                       char* buffer,
                       uint32_t buffer_length)
 {
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "cluster_%u", op->m_id);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "cluster_%u", op->m_id);
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -801,13 +858,14 @@ generate_ref_groups_name(const char* ref_name,
                          const fcc_operator_t* op)
 {
   char tmp[FCC_MAX_REF_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, ref_name, FCC_MAX_REF_NAME);
+  FDB_COPY_AND_CHECK_STR(tmp, ref_name, FCC_MAX_REF_NAME);
   sanitize_name(tmp);
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "ref_%s_groups_%u", tmp, op->m_id);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "ref_%s_groups_%u", tmp, op->m_id);
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -816,11 +874,12 @@ generate_hashtable_name(const fcc_operator_t* op,
                         char* buffer,
                         uint32_t buffer_length)
 {
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "hashtable_%u",op->m_id);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "hashtable_%u",op->m_id);
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -832,17 +891,18 @@ generate_system_wrapper_name(const char* system_name,
                              const fcc_operator_t* op)
 {
   char base_name[FCC_MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(base_name, system_name, FCC_MAX_TYPE_NAME);
+  FDB_COPY_AND_CHECK_STR(base_name, system_name, FCC_MAX_TYPE_NAME);
   tolower(base_name);
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "%s_%d",base_name, system_id  );
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "%s_%d",base_name, system_id  );
   if(op != nullptr)
   {
-    str_builder_append(&str_builder, "_%u", op->m_id);
+    fdb_str_builder_append(&str_builder, "_%u", op->m_id);
   }
   const uint32_t length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
@@ -854,21 +914,20 @@ generate_global_name(const char* type_name,
 {
   char tmp[FCC_MAX_TYPE_NAME];
   strncpy(tmp, type_name, buffer_length);
-  FURIOUS_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
+  FDB_COPY_AND_CHECK_STR(tmp, type_name, FCC_MAX_TYPE_NAME);
   sanitize_name(tmp);
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "global_%s", tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "global_%s", tmp);
   if(op != nullptr)
   {
-    str_builder_append(&str_builder, "_%u", op->m_id);
+    fdb_str_builder_append(&str_builder, "_%u", op->m_id);
   }
 
   const uint32_t length = str_builder.m_pos;
   strncpy(buffer, str_builder.p_buffer, buffer_length);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
+  FDB_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
+  fdb_str_builder_release(&str_builder);
   return length;
 }
 
-
-} /* furious */ 

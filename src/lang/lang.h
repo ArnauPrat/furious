@@ -27,15 +27,13 @@
  * compiled and linked with the final program.
  **/
 
-#define BEGIN_FURIOUS_SCRIPT   \
+#define BEGIN_FDB_SCRIPT   \
   static void furious_script() \
   {
 
-#define END_FURIOUS_SCRIPT \
+#define END_FDB_SCRIPT \
   }
 
-namespace furious
-{
 
 template<typename T>
 struct Global
@@ -81,7 +79,7 @@ struct RegisterSystemInfo
 template <typename T, typename ... TComponents>
 typename std::enable_if<(std::is_pointer<TComponents>::value && ...), RegisterSystemInfo<T, TComponents ...> >::type
 __register_foreach(T *system,
-      void (T::*)(Context *, uint32_t id, TComponents...))
+      void (T::*)(fdb_context_t *, uint32_t id, TComponents...))
 {
   return RegisterSystemInfo<T, TComponents ...>();
 }
@@ -197,7 +195,5 @@ MatchQueryBuilder<TComponents...> match()
   return MatchQueryBuilder<TComponents...>();
 }
 
-
-} // namespace furious
 
 #endif /* ifndef _FURIOUS_LANG_H_ */

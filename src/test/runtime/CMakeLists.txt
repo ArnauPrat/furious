@@ -12,7 +12,6 @@ include_directories(${FURIOUS_INCLUDE_DIR})
 function(create_test NAME)
   add_executable(${NAME}
     ${NAME}.cpp
-    data_test.h
     )
 
   target_link_libraries(${NAME} ${GTEST_LIBRARIES} furious) 

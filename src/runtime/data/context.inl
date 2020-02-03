@@ -1,8 +1,6 @@
 
 #include "database.h"
 
-namespace furious 
-{
 
 //template <typename TComponent>
 //void Context::enable_component(const std::string& component_name,
@@ -17,5 +15,3 @@ namespace furious
 //{
 //  m_to_disable.emplace_back(id, p_database->get_table_id<TComponent>(component_name));
 //}
-
-} /* furious */ 

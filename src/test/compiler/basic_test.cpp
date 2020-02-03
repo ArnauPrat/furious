@@ -3,45 +3,47 @@
 #include "basic_test_header.h"
 
 #include <gtest/gtest.h>
-#include <set>
-#include <vector>
-#include <iostream>
 
-namespace furious
-{
   
 
 TEST(BasicTest, BasicTest ) 
 {
-  database_t database = database_create();
-  database_start_webserver(&database, 
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
+  fdb_database_start_webserver(&database, 
                            "localhost", 
                            "8080");
   furious_init(&database);
 
-  std::vector<Entity> entities;
-  for(int i = 0; i < 1000; ++i)
+  fdb_table_t* pos_table = FDB_FIND_TABLE(&database, Position);
+  fdb_table_t* vel_table = FDB_FIND_TABLE(&database, Velocity);
+
+  entity_id_t NUM_ENTITIES = 1000;
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    Entity entity = FURIOUS_CREATE_ENTITY(&database);
-    FURIOUS_ADD_COMPONENT(entity,Position,0.0f,0.0f,0.0f);
-    FURIOUS_ADD_COMPONENT(entity,Velocity,1.0f,1.0f,1.0f);
-    entities.push_back(entity);
+    Position* pos = FDB_ADD_COMPONENT(pos_table, Position, i);
+    pos->m_x = 0.0;
+    pos->m_y = 0.0;
+    pos->m_z = 0.0;
+
+    Velocity* vel = FDB_ADD_COMPONENT(vel_table, Velocity, i);
+    vel->m_x = 1.0f;
+    vel->m_y = 1.0f;
+    vel->m_z = 1.0f;
   }
 
   furious_frame(0.1, &database, nullptr);
 
-  for(Entity& entity : entities)
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    Position* position = FURIOUS_GET_COMPONENT(entity, Position);
-    ASSERT_EQ(position->m_x,0.1f);
-    ASSERT_EQ(position->m_y,0.1f);
-    ASSERT_EQ(position->m_z,0.1f);
+    Position* pos = FDB_GET_COMPONENT(pos_table, Position, i);
+    ASSERT_EQ(pos->m_x,0.1f);
+    ASSERT_EQ(pos->m_y,0.1f);
+    ASSERT_EQ(pos->m_z,0.1f);
   }
   furious_release();
-  database_destroy(&database);
+  fdb_database_release(&database);
 }
-
-} /*  furious */ 
 
 int main(int argc, char *argv[])
 {

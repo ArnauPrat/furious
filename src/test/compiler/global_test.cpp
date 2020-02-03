@@ -7,23 +7,28 @@
 #include <vector>
 #include <iostream>
 
-namespace furious
-{
   
 TEST(GlobalTest, GlobalTest ) 
 {
-  database_t database = database_create();
-  database_start_webserver(&database, 
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
+  fdb_database_start_webserver(&database, 
                            "localhost", 
                            "8080");
 
-  FURIOUS_CREATE_GLOBAL(&database, GlobalComponent, 1.0f, 1.0f, 1.0f);
+  fdb_table_t* pos_table = FDB_FIND_OR_CREATE_TABLE(&database, Position, nullptr);
+  GlobalComponent* g = FDB_CREATE_GLOBAL(&database, GlobalComponent, nullptr);
+  g->m_x = 1.0;
+  g->m_y = 1.0;
+  g->m_z = 1.0;
 
-  Entity entities[8];
-  for(uint32_t i = 0; i < 8; ++i)
+  entity_id_t NUM_ENTITIES = 8;
+  for(uint32_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    entities[i] = FURIOUS_CREATE_ENTITY(&database);
-    FURIOUS_ADD_COMPONENT(entities[i],Position, 0.0f, 0.0f, 0.0f);
+    Position* pos = FDB_ADD_COMPONENT(pos_table, Position, i);
+    pos->m_x = 0.0f;
+    pos->m_y = 0.0f;
+    pos->m_z = 0.0f;
   }
 
   furious_init(&database);
@@ -32,16 +37,15 @@ TEST(GlobalTest, GlobalTest )
   // FIRST LEVEL
   for(uint32_t i = 0; i < 8; ++i)
   {
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_x, 1.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_y, 1.0f);
-    ASSERT_EQ(FURIOUS_GET_COMPONENT(entities[i],Position)->m_z, 1.0f);
+    Position* pos = FDB_GET_COMPONENT(pos_table,Position,i);
+    ASSERT_EQ(pos->m_x, 1.0f);
+    ASSERT_EQ(pos->m_y, 1.0f);
+    ASSERT_EQ(pos->m_z, 1.0f);
   }
 
   furious_release();
-  database_destroy(&database);
+  fdb_database_release(&database);
 }
-
-} /* furious */ 
 
 int main(int argc, char *argv[])
 {

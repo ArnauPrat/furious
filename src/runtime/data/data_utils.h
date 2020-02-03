@@ -1,19 +1,17 @@
 
 
-#ifndef _FURIOUS_DATA_UTILS_H_
-#define _FURIOUS_DATA_UTILS_H_
+#ifndef _FDB_DATA_UTILS_H_
+#define _FDB_DATA_UTILS_H_
 
 #include "../../common/btree.h"
-#include "../../common/dyn_array.h"
+#include "table.h"
 
-#include "table_view.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-
-namespace furious
-{
-
-struct block_cluster_t;
-struct BitTable;
+typedef struct fdb_bcluster_t fdb_bcluster_t;
+typedef struct fdb_bittable_t fdb_bittable_t;
 
 /**
  * \brief Copies the ptr to the given component to the table at the given
@@ -29,8 +27,8 @@ copy_component_ptr(uint32_t chunk_size,
                    uint32_t stride,
                    entity_id_t source,
                    entity_id_t target,
-                   const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables, 
-                   FURIOUS_RESTRICT(table_t*)* tables,
+                   FDB_RESTRICT(fdb_btree_t*)* hash_tables, 
+                   FDB_RESTRICT(fdb_table_t*)* tables,
                    uint32_t num_tables);
 
 
@@ -43,9 +41,9 @@ copy_component_ptr(uint32_t chunk_size,
  * \param blacklist The bittable to plalce the roots to
  */
 void
-find_roots_and_blacklist(block_cluster_t* block_cluster, 
-                         FURIOUS_RESTRICT(BitTable*) roots,
-                         FURIOUS_RESTRICT(BitTable*) blacklist);
+find_roots_and_blacklist(fdb_bcluster_t* block_cluster, 
+                         FDB_RESTRICT(fdb_bittable_t*) roots,
+                         FDB_RESTRICT(fdb_bittable_t*) blacklist);
 
 /**
  * \brief Filters the contents of a frontier by the partial black lists in the
@@ -55,8 +53,9 @@ find_roots_and_blacklist(block_cluster_t* block_cluster,
  * \param current_frontier The current frontier
  */
 void
-filter_blacklists(const DynArray<FURIOUS_RESTRICT(BitTable*)>* partial_lists,
-                  FURIOUS_RESTRICT(BitTable*) current_frontier);
+filter_blacklists(FDB_RESTRICT(fdb_bittable_t*) partial_lists[],
+                  uint32_t cpartial_lists,
+                  FDB_RESTRICT(fdb_bittable_t*) current_frontier);
 
 /**
  * \brief Performs the union of a set of frontiers into a destinaion one
@@ -65,8 +64,9 @@ filter_blacklists(const DynArray<FURIOUS_RESTRICT(BitTable*)>* partial_lists,
  * \param current_frontier The destination frontier
  */
 void
-frontiers_union(const DynArray<FURIOUS_RESTRICT(BitTable*)>* next_frontiers,
-                FURIOUS_RESTRICT(BitTable*) current_frontier);
+frontiers_union(FDB_RESTRICT(fdb_bittable_t*) next_frontiers[],
+                uint32_t num_frontiers,
+                FDB_RESTRICT(fdb_bittable_t*) current_frontier);
 
 
 /**
@@ -82,13 +82,13 @@ frontiers_union(const DynArray<FURIOUS_RESTRICT(BitTable*)>* next_frontiers,
  * \param stride The stride (used to compute which hash_table to reference)
  * \param table_view The temporal tables to store the references to the components
  */
-template <typename...TComponents>
 void
-gather(block_cluster_t* cluster,
-       const DynArray<FURIOUS_RESTRICT(btree_t*)>* hash_tables,
-       uint32_t chunk_size, 
-       uint32_t stride,
-       TableView<TComponents>*...table_view);
+gather(fdb_bcluster_t* cluster,
+       FDB_RESTRICT(fdb_btree_t*) hash_tables[],
+       uint32_t   chunk_size, 
+       uint32_t   stride,
+       FDB_RESTRICT(fdb_table_t*)*  tables, 
+       uint32_t   num_tables);
 
 /**
  * \brief Builds a block cluster by fetching the blocks with the given start id 
@@ -101,13 +101,13 @@ gather(block_cluster_t* cluster,
  * \param cluster The cluster to append to blocks to
  * \param ...table_views The tables to fetch the blocks from
  */
-template <typename...TComponents>
 void
-build_block_cluster_from_refs(FURIOUS_RESTRICT(block_cluster_t*) ref_cluster,  
-                              FURIOUS_RESTRICT(const BitTable*) current_frontier,
-                              FURIOUS_RESTRICT(BitTable*) next_frontier,
-                              FURIOUS_RESTRICT(block_cluster_t*) cluster, 
-                              TableView<TComponents>*...table_views);
+build_fdb_bcluster_from_refs(FDB_RESTRICT(fdb_bcluster_t*) ref_cluster,  
+                              FDB_RESTRICT(const fdb_bittable_t*) current_frontier,
+                              FDB_RESTRICT(fdb_bittable_t*) next_frontier,
+                              FDB_RESTRICT(fdb_bcluster_t*) cluster, 
+                              FDB_RESTRICT(fdb_table_t*)*  tables, 
+                              uint32_t   num_tables);
 
 /**
  * \brief This operation assumes that the "column" column in the block cluster
@@ -120,8 +120,8 @@ build_block_cluster_from_refs(FURIOUS_RESTRICT(block_cluster_t*) ref_cluster,
  * \param column The column of the block cluster
  */
 void
-filter_bittable_exists(const BitTable* bittable, 
-                       block_cluster_t* block_cluster,
+filter_bittable_exists(const fdb_bittable_t* bittable, 
+                       fdb_bcluster_t* block_cluster,
                        uint32_t column);
 
 /**
@@ -135,12 +135,10 @@ filter_bittable_exists(const BitTable* bittable,
  * \param column The column of the block cluster
  */
 void
-filter_bittable_not_exists(const BitTable* bittable, 
-                           block_cluster_t* block_cluster,
+filter_bittable_not_exists(const fdb_bittable_t* bittable, 
+                           fdb_bcluster_t* block_cluster,
                            uint32_t column);
-} /* furious */ 
-
-#include "data_utils.inl"
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif

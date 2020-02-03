@@ -7,8 +7,6 @@
 
 using namespace clang;
 
-namespace furious 
-{
 
 struct fcc_context_t;
 struct fcc_stmt_t;
@@ -161,8 +159,5 @@ report_parsing_error(const SourceManager& sm,
                      const SourceLocation& location,
                      fcc_parsing_error_type_t error_type,
                      const char* message);
-
-
-} /* furious */ 
 
 #endif /* ifndef _FURIOUS_COMPILER_CLANG_TOOLS_H_ */

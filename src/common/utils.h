@@ -5,8 +5,9 @@
 
 #include "types.h"
 
-namespace furious 
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Computes a hash on the given string
@@ -18,7 +19,8 @@ namespace furious
 uint32_t
 hash(const char* str);
 
+#ifdef __cplusplus
 }
-
+#endif
 
 #endif /* ifndef _FURIOUS_UTILS_H_ */

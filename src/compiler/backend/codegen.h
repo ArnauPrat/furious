@@ -1,12 +1,10 @@
 
 
-#ifndef _FURIOUS_COMPILER_CODEGEN_H_
-#define _FURIOUS_COMPILER_CODEGEN_H_ value
+#ifndef _FDB_COMPILER_CODEGEN_H_
+#define _FDB_COMPILER_CODEGEN_H_ value
 
 #include "common/platform.h"
 
-namespace furious 
-{
 
 struct fcc_exec_plan_t;
 
@@ -37,7 +35,5 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
 
 
-  
-} /* furious */ 
 
-#endif /* ifndef _FURIOUS_COMPILER_CODEGEN_H_ */
+#endif /* ifndef _FDB_COMPILER_CODEGEN_H_ */

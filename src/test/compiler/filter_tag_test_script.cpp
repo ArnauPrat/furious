@@ -2,14 +2,14 @@
 #include "filter_tag_test_header.h"
 #include "lang/lang.h"
 
-BEGIN_FURIOUS_SCRIPT
+BEGIN_FDB_SCRIPT
 
 struct UpdatePosition
 {
 
   UpdatePosition(float speed) : m_speed{speed} {}
 
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            Position* position,
            const Velocity* velocity)
@@ -22,8 +22,8 @@ struct UpdatePosition
   float m_speed = 1.0f;
 };
 
-furious::match<Position,Velocity>().has_tag("affected")
+match<Position,Velocity>().has_tag("affected")
                                    .has_not_tag("not_affected")
                                    .foreach<UpdatePosition>(1.0f);
 
-END_FURIOUS_SCRIPT
+END_FDB_SCRIPT

@@ -1,13 +1,13 @@
 
-#ifndef _FURIOUS_COMPILER_STRUCTS_H_
-#define _FURIOUS_COMPILER_STRUCTS_H_
+#ifndef _FDB_COMPILER_STRUCTS_H_
+#define _FDB_COMPILER_STRUCTS_H_
 
-#include "../common/dyn_array.h"
 #include "../common/platform.h"
 
-namespace furious 
-{
-
+// autogen includes
+#include "autogen/fcc_ematch_ptr_array.h"
+#include "autogen/fcc_stmt_ptr_array.h"
+#include "autogen/fcc_decl_array.h"
 
 struct fcc_context_t;
 extern fcc_context_t* p_fcc_context;
@@ -18,13 +18,13 @@ typedef void* fcc_decl_t;
 
 enum class fcc_operation_type_t 
 {
-  E_UNKNOWN,
+  E_UNKNOWN = 0,
   E_FOREACH
 };
 
 enum class fcc_access_mode_t 
 {
-  E_READ,
+  E_READ = 0,
   E_READ_WRITE,
 };
 
@@ -40,11 +40,19 @@ struct fcc_component_match_t
  */
 struct fcc_system_t 
 {
-  fcc_type_t                      m_system_type;                // The type of the system
-  DynArray<fcc_expr_t>            m_ctor_params;                // The expressions of the system's constructor parameters 
-  DynArray<fcc_component_match_t> m_component_types;            // The types of the components of the system
-  int32_t                         m_id;                         // The id of the system  
+  fcc_type_t                      m_system_type;                                // The type of the system
+  fcc_expr_t                      m_ctor_params[FCC_MAX_CTOR_PARAMS];           // The expressions of the system's constructor parameters 
+  uint32_t                        m_nctor_params;                               // The number of ctor parameters
+  fcc_component_match_t           m_cmatches[FCC_MAX_SYSTEM_COMPONENTS];        // The types of the components of the system
+  uint32_t                        m_ncmatches;                                  // Number of component types
+  int32_t                         m_id;                                         // The id of the system  
 };
+
+void
+fcc_system_add_ctor_param(fcc_system_t* sys, fcc_expr_t ctorp);
+
+void
+fcc_system_add_cmatch(fcc_system_t* sys, fcc_component_match_t cmatch);
 
 
 /**
@@ -54,35 +62,65 @@ struct fcc_system_t
  */
 struct fcc_entity_match_t 
 {
-  DynArray<fcc_component_match_t>     m_component_types;              // The types this match is matching against
-  DynArray<fcc_type_t>                m_has_components;               // The types of the "has" components
-  DynArray<fcc_type_t>                m_has_not_components;           // The types of the "has_not" components
-  DynArray<char*>                     m_has_tags;                     // The "with" tags  
-  DynArray<char*>                     m_has_not_tags;                 // The "has_not" tags
-  DynArray<fcc_decl_t>                m_filter_func;                  // The filter function
-  bool                                m_from_expand;                  // True if this comes from an expand
-  char                                m_ref_name[FCC_MAX_REF_NAME];       // The reference name if comes form an expand
+  fcc_component_match_t         m_cmatches[FCC_MAX_SYSTEM_COMPONENTS];              // The types this match is matching against
+  fcc_type_t                    m_has_components[FCC_MAX_HAS_COMPONENTS];               // The types of the "has" components
+  fcc_type_t                    m_has_not_components[FCC_MAX_HAS_NOT_COMPONENTS];           // The types of the "has_not" components
+  const char*                   m_has_tags[FCC_MAX_HAS_TAGS];                     // The "with" tags  
+  const char*                   m_has_not_tags[FCC_MAX_HAS_NOT_TAGS];                 // The "has_not" tags
+  fcc_decl_t                    m_filter_func[FCC_MAX_FILTER_FUNC];                  // The filter function
+  uint32_t                      m_nfuncs;
+  uint32_t                      m_ncmatches; 
+  uint32_t                      m_nhas_components;
+  uint32_t                      m_nhas_not_components;
+  uint32_t                      m_nhas_tags;
+  uint32_t                      m_nhas_not_tags;
+  bool                          m_from_expand;                  // True if this comes from an expand
+  char                          m_ref_name[FCC_MAX_REF_NAME];       // The reference name if comes form an expand
 };
 
-/**
- * \brief Creates a fcc_entity_match_t
- *
- * \return The created fcc_entity_match
- */
-fcc_entity_match_t* 
-fcc_entity_match_create();
+
+fcc_entity_match_t
+fcc_entity_match_init();
 
 /**
- * \brief Destroys a fcc_entity_match_t
+ * \brief releases a fcc_entity_match_t
  *
- * \param fcc_entity_match The fcc_entity_match_t to destroy
+ * \param fcc_entity_match The fcc_entity_match_t to release
  */
 void
-fcc_entity_match_destroy(fcc_entity_match_t* fcc_entity_match);
+fcc_entity_match_release(fcc_entity_match_t* fcc_entity_match);
 
-enum class fcc_match_place_t 
+void
+fcc_entity_match_add_cmatch(fcc_entity_match_t* ematch, 
+                            fcc_component_match_t cmatch);
+
+void
+fcc_entity_match_add_has_comp(fcc_entity_match_t* ematch, 
+                              fcc_type_t comp);
+
+void
+fcc_entity_match_add_has_not_comp(fcc_entity_match_t* ematch, 
+                                  fcc_type_t comp);
+
+void
+fcc_entity_match_add_has_tag(fcc_entity_match_t* ematch, 
+                             const char* tag);
+
+void
+fcc_entity_match_add_has_not_tag(fcc_entity_match_t* ematch, 
+                             const char* tag);
+
+void
+fcc_entity_match_add_filter(fcc_entity_match_t* ematch, 
+                            fcc_decl_t fdecl);
+
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+////////////////////////////////////////////////
+
+enum class fcc_stmt_place_t 
 {
-  E_FRAME,
+  E_FRAME = 0,
   E_POST_FRAME,
 };
 
@@ -92,23 +130,23 @@ enum class fcc_match_place_t
 struct fcc_stmt_t
 {
   fcc_operation_type_t            m_operation_type; // The type of operations
-  DynArray<fcc_entity_match_t*>   p_entity_matches; // The set of entity matches that conform this query
+  fcc_ematch_ptr_array_t          m_ematches; // The set of entity matches that conform this query
   fcc_system_t*                   p_system;         // The system that executes on the results of this match
   fcc_expr_t                      m_expr;           // The expression of this match
   uint32_t                        m_priority;       // The execution priority of this match
-  fcc_match_place_t               m_place;          // Where this match code should be output
+  fcc_stmt_place_t               m_place;          // Where this match code should be output
 };
 
 /**
- * \brief Creates an fcc_stmt_t 
+ * \brief inits an fcc_stmt_t 
  *
- * \return Returns a pointer to the created fcc_stmt_t
+ * \return Returns a pointer to the initd fcc_stmt_t
  */
-fcc_stmt_t*
-fcc_stmt_create();
+fcc_stmt_t
+fcc_stmt_init();
 
 void
-fcc_stmt_destroy(fcc_stmt_t* fcc_stmt);
+fcc_stmt_release(fcc_stmt_t* fcc_stmt);
 
 
 ////////////////////////////////////////////////
@@ -122,8 +160,8 @@ fcc_stmt_destroy(fcc_stmt_t* fcc_stmt);
 enum class fcc_parsing_error_type_t
 {
   E_UNKNOWN_ERROR,
-  E_UNKNOWN_FURIOUS_OPERATION,
-  E_INCOMPLETE_FURIOUS_STATEMENT,
+  E_UNKNOWN_FDB_OPERATION,
+  E_INCOMPLETE_FDB_STATEMENT,
   E_UNSUPPORTED_VAR_DECLARATIONS,
   E_UNSUPPORTED_STATEMENT,
   E_UNSUPPORTED_TYPE_MODIFIER,
@@ -157,8 +195,8 @@ struct fcc_context_t
   FCC_PARSING_ERROR_CALLBACK  p_pecallback;             // Pointer to function handling parsing errors
   FCC_COMP_ERROR_CALLBACK     p_cecallback;             // Pointer to the function handling compilation errors
 
-  DynArray<fcc_stmt_t*>               p_stmts;          // The furious stmts extracted from the input code
-  DynArray<fcc_decl_t>                m_using_decls;
+  fcc_stmt_ptr_array_t        m_stmts;          // The furious stmts extracted from the input code
+  fcc_decl_array_t            m_using_decls;
 };
 
 /**
@@ -205,14 +243,14 @@ FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
                                      ...);
 
 ///**
-// * \brief Creates an FccExecInfo in this context
+// * \brief inits an FccExecInfo in this context
 // *
 // * \param The ASTContext this execution info refers to
 // *
-// * \return The created FccExecInfo.
+// * \return The initd FccExecInfo.
 // */
 //fcc_stmt_t*
-//fcc_context_create_match(ASTContext* ast_context, 
+//fcc_context_init_match(ASTContext* ast_context, 
 //                         Expr* expr);
 
 /**
@@ -221,7 +259,7 @@ FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t error_type,
  * \param context The context to initialize
  */
 void
-fcc_context_create();
+fcc_context_init();
 
 /**
  * \brief Releases the given fcc_context
@@ -229,7 +267,7 @@ fcc_context_create();
  * \param context The context to release 
  */
 void 
-fcc_context_destroy();
+fcc_context_release();
 
 
 /**
@@ -253,7 +291,5 @@ fcc_run(int argc,
  */
 void
 fcc_validate(const fcc_stmt_t* match);
-
-} /* furious */ 
 
 #endif

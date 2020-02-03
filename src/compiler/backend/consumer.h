@@ -4,9 +4,6 @@
 
 #include <stdio.h>
 
-namespace furious 
-{
-
 struct fcc_operator_t;
 
 /**
@@ -17,7 +14,5 @@ consume(FILE* fd,
         const fcc_operator_t* op,
         const char* source,
         const fcc_operator_t* caller);
-
-} /* consume_visitor */ 
 
 #endif

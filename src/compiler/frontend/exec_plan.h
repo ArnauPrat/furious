@@ -3,12 +3,11 @@
 #define _FURIOUS_EXECUTION_PLAN_H_
 
 #include "../common/types.h"
-#include "../common/dyn_array.h"
-
 #include "fcc_context.h"
 
-namespace furious 
-{
+// autogen includes
+#include "autogen/uint32_array.h"
+
 
 struct fcc_subplan_t;
 
@@ -18,19 +17,23 @@ struct fcc_subplan_t;
 
 struct fcc_exec_plan_node_t 
 {
-  DynArray<uint32_t>            m_parents;
-  DynArray<uint32_t>            m_children;
+  uint32_array_t      m_parents;
+  uint32_array_t      m_children;
 };
 
 struct fcc_exec_plan_t 
 {
   // Graph members
-  DynArray<fcc_exec_plan_node_t>   m_nodes;
-  DynArray<uint32_t>               m_roots;
+  fcc_exec_plan_node_t*   m_nodes;
+  uint32_t*               m_roots;
 
   // Node attributes
-  DynArray<const fcc_stmt_t*>     p_stmts;
-  DynArray<fcc_subplan_t*>        m_subplans;
+  const fcc_stmt_t**      p_stmts;
+  fcc_subplan_t**         m_subplans;
+
+  uint32_t                m_maxnodes;
+  uint32_t                m_nnodes;
+  uint32_t                m_nroots;
 };
 
 /**
@@ -41,8 +44,8 @@ struct fcc_exec_plan_t
  *
  */
 void
-insert(fcc_exec_plan_t* exec_plan, 
-       const fcc_stmt_t* stmt);
+fcc_exec_plan_insert(fcc_exec_plan_t* exec_plan, 
+                     const fcc_stmt_t* stmt);
 
 
 /**
@@ -51,7 +54,7 @@ insert(fcc_exec_plan_t* exec_plan,
  * \return Returns true if the graph is acyclyc
  */
 bool 
-is_acyclic(const fcc_exec_plan_t* exec_plan);
+fcc_exec_plan_is_acyclic(const fcc_exec_plan_t* exec_plan);
 
 /**
  * \brief Gets a valid execution sequence from a given root node
@@ -61,11 +64,13 @@ is_acyclic(const fcc_exec_plan_t* exec_plan);
  *
  * \return An array with the sequence of node ids.
  */
-DynArray<uint32_t>
-get_valid_exec_sequence(const fcc_exec_plan_t* exec_plan);
+void
+fcc_exec_plan_get_valid_exec_sequence(const fcc_exec_plan_t* exec_plan, 
+                                      uint32_t* seq, 
+                                      uint32_t  nseq);
 
 /**
- * \brief Creates an excution plan out of a sequence of fcc_stmt_t statements
+ * \brief inits an excution plan out of a sequence of fcc_stmt_t statements
  *
  * \param stmts[]   The array of fcc_stmt_t
  * \param num_stmts The number of matches in the array
@@ -74,19 +79,17 @@ get_valid_exec_sequence(const fcc_exec_plan_t* exec_plan);
  * \return Returns NO_ERROR if succeeds. The corresponding error code otherwise
  */
 fcc_compilation_error_type_t
-create_execplan(const fcc_stmt_t* stmts[], 
-                uint32_t num_stmts,
-                fcc_exec_plan_t** exec_plan);
+fcc_exec_plan_init(fcc_exec_plan_t* exec_plan, 
+                     const fcc_stmt_t* stmts[], 
+                     uint32_t num_stmts);
 
 /**
- * \brief Destroys the execution plan
+ * \brief releases the execution plan
  *
- * \param exec_plan The execution plan to destroy
+ * \param exec_plan The execution plan to release
  */
 void
-destroy_execplan(fcc_exec_plan_t* exec_plan);
-
-}  
+fcc_exec_plan_release(fcc_exec_plan_t* exec_plan);
 
 
 #endif /* ifndef SYMBOL */

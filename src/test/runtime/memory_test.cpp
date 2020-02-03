@@ -4,18 +4,14 @@
 #include <gtest/gtest.h>
 #include <set>
 
-namespace furious {
-
 TEST(MemoryTest, NUMA ) {
-  void* ptr = mem_alloc(&global_mem_allocator, 
+  void* ptr = mem_alloc(fdb_get_global_mem_allocator(), 
                         64, 
                         sizeof(int32_t)*1024, 
                         0);
   ASSERT_NE(ptr, nullptr);
-  mem_free(&global_mem_allocator, 
+  mem_free(fdb_get_global_mem_allocator(), 
            ptr);
-}
-
 }
 
 int main(int argc, char *argv[])

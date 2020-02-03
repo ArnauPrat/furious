@@ -1,11 +1,8 @@
 
 #include "ast_visitor.h"
-#include "../../../common/dyn_array.inl"
 #include "../../fcc_context.h"
 #include "clang_parsing.h"
 
-namespace furious 
-{
 
 FuriousExprVisitor::FuriousExprVisitor(ASTContext *ast_context) : 
 p_ast_context(ast_context), 
@@ -16,9 +13,10 @@ p_fcc_stmt(nullptr)
 fcc_stmt_t*
 FuriousExprVisitor::parse_expression(Expr* expr)
 {
-  p_fcc_stmt = fcc_stmt_create();
+  p_fcc_stmt = new fcc_stmt_t;
+  *p_fcc_stmt = fcc_stmt_init();
   p_fcc_stmt->m_expr = expr;
-  p_fcc_context->p_stmts.append(p_fcc_stmt); 
+  fcc_stmt_ptr_array_append(&p_fcc_context->m_stmts, &p_fcc_stmt); 
   this->TraverseStmt(expr);
   return p_fcc_stmt;
 }
@@ -198,7 +196,7 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
               const UsingDirectiveDecl* using_decl = cast<UsingDirectiveDecl>(decl);
               fcc_decl_t fcc_decl;
               fcc_decl = (void*)using_decl;
-              p_fcc_context->m_using_decls.append(fcc_decl);
+              fcc_decl_array_append(&p_fcc_context->m_using_decls, &fcc_decl);
             }
             else 
             {
@@ -215,5 +213,4 @@ bool FccASTVisitor::VisitFunctionDecl(FunctionDecl *func)
     }
   }
   return true;
-}
 }

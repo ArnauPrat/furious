@@ -3,8 +3,6 @@
 #ifndef _FURIOUS_COMPILER_TRANSFORMS_H_
 #define _FURIOUS_COMPILER_TRANSFORMS_H_
 
-namespace furious 
-{
 
 struct Foreach;
 struct FccContext;
@@ -29,7 +27,5 @@ merge_foreach(FccContext* context,
 
 
 
-
-} /* furious */ 
 
 #endif /* ifndef _FURIOUS_COMPILER_TRANSFORMS_H_ */

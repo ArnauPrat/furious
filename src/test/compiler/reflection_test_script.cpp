@@ -2,11 +2,11 @@
 #include "lang/lang.h"
 #include "reflection_test_header.h"
 
-BEGIN_FURIOUS_SCRIPT
+BEGIN_FDB_SCRIPT
 
 struct TestSystem 
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            TestComponent* position)
   {
@@ -15,6 +15,6 @@ struct TestSystem
   }
 };
 
-furious::match<TestComponent>().foreach<TestSystem>();
+match<TestComponent>().foreach<TestSystem>();
 
-END_FURIOUS_SCRIPT
+END_FDB_SCRIPT

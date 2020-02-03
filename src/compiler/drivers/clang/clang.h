@@ -17,8 +17,6 @@ namespace clang
 
 using namespace clang;
 
-namespace furious
-{
 
 struct clang_expr_handler_t
 {
@@ -32,7 +30,5 @@ push_type(QualType qtype);
 clang_expr_handler_t*
 push_expr(ASTContext* ctx, 
           const Expr* expr);
-
-}
 
 #endif /* ifndef _FURIOUS_CLANG_H_H */

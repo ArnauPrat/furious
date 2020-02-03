@@ -7,13 +7,13 @@ bool test(const Position* pos, const Velocity* vel)
   return true;
 }
 
-BEGIN_FURIOUS_SCRIPT
+BEGIN_FDB_SCRIPT
 
 struct UpdatePosition
 {
   UpdatePosition(float speed) : m_speed{speed} {}
 
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            Position* position,
            const Velocity* velocity)
@@ -26,6 +26,6 @@ struct UpdatePosition
   float m_speed = 1.0;
 };
 
-furious::match<Position,Velocity>().filter(test).foreach<UpdatePosition>(1.0);
+match<Position,Velocity>().filter(test).foreach<UpdatePosition>(1.0);
 
-END_FURIOUS_SCRIPT
+END_FDB_SCRIPT

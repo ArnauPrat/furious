@@ -1,12 +1,13 @@
 
 
-#ifndef _FURIOUS_NUMA_ALLOC_H_
-#define _FURIOUS_NUMA_ALLOC_H_ value
+#ifndef _FDB_NUMA_ALLOC_H_
+#define _FDB_NUMA_ALLOC_H_ value
 
 #include "../../common/types.h"
 
-namespace furious  
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /**
@@ -14,7 +15,7 @@ namespace furious
  *
  * @return Returns the number of numa nodes in the system
  */
-int32_t numa_nodes();
+int32_t fdb_numa_nodes();
 
 
 /**
@@ -28,10 +29,10 @@ int32_t numa_nodes();
  *
  * @return 
  */
-void* numa_alloc(void* state, 
-                 uint32_t alignment, 
-                 uint32_t size,
-                 uint32_t hint);
+void* fdb_numa_alloc(void* state, 
+                     uint32_t alignment, 
+                     uint32_t size,
+                     uint32_t hint);
 
 
 /**
@@ -40,11 +41,12 @@ void* numa_alloc(void* state,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void numa_free( void* state, 
-                void* ptr );
+void fdb_numa_free( void* state, 
+                    void* ptr );
+
+#ifdef __cplusplus
+}
+#endif
 
 
-  
-} /* furious  */ 
-
-#endif /* ifndef _FURIOUS_NUMA_ALLOC_H_ */
+#endif /* ifndef _FDB_NUMA_ALLOC_H_ */

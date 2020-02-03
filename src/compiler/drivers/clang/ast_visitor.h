@@ -9,8 +9,6 @@
 
 using namespace clang;
 
-namespace furious
-{
 
 struct FccContext;
 
@@ -58,7 +56,5 @@ public:
   virtual 
   bool VisitFunctionDecl(FunctionDecl* func);
 };
-
-} // namespace furious
 
 #endif /* ifndef _FURIOUS_CLANGASTVISITOR_H_ */

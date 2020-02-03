@@ -1,31 +1,37 @@
 
-#ifndef _FURIOUS_BITMAP_H_
-#define _FURIOUS_BITMAP_H_ value
+#ifndef _FDB_BITMAP_H_
+#define _FDB_BITMAP_H_
 
 #include "types.h"
 #include "platform.h"
 #include "memory/memory.h"
 
-namespace furious
-{
+#include <stdbool.h>
 
-#define FURIOUS_BITMAP_ALIGNMENT 64
-#define FURIOUS_BITMAP_NUM_CHUNKS(bits) (bits + 7) / 8
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-struct bitmap_t 
+#define FDB_BITMAP_ALIGNMENT 64
+#define FDB_BITMAP_NUM_CHUNKS(bits) (bits + 7) / 8
+
+typedef struct fdb_bitmap_t 
 {
   uint32_t m_max_bits;          //< The maximum number of bits
   uint32_t m_num_set;           //< The number of bits set to one
-  FURIOUS_ALIGNED(uint8_t*,p_data,FURIOUS_BITMAP_ALIGNMENT);  //< The buffer with the bitmap
-};
+  FDB_ALIGNED(uint8_t*,p_data,FDB_BITMAP_ALIGNMENT);  //< The buffer with the bitmap
+} fdb_bitmap_t;
 
 /**
  * \brief Initializes a bitmap
  *
- * \return  The created bitmap
+ * \return  The initd bitmap
  */
-bitmap_t
-bitmap_create(uint32_t max_bits, mem_allocator_t* allocator);
+
+void
+fdb_bitmap_init(fdb_bitmap_t* bitmap,
+                uint32_t max_bits, 
+                fdb_mem_allocator_t* allocator);
 
 /**
  * \brief  Releases a bitmap
@@ -34,7 +40,7 @@ bitmap_create(uint32_t max_bits, mem_allocator_t* allocator);
  */
 
 void
-bitmap_destroy(bitmap_t* bitmap, mem_allocator_t* allocator);
+fdb_bitmap_release(fdb_bitmap_t* bitmap, fdb_mem_allocator_t* allocator);
 
 /**
  * \brief Sets to one the ith element of the bitmap
@@ -44,8 +50,8 @@ bitmap_destroy(bitmap_t* bitmap, mem_allocator_t* allocator);
  */
 
 void
-bitmap_set(bitmap_t* bitmap, 
-           uint32_t element);
+fdb_bitmap_set(fdb_bitmap_t* bitmap, 
+               uint32_t element);
 
 /**
  * \brief Sets to 0 the ith element of the bitmap
@@ -55,8 +61,8 @@ bitmap_set(bitmap_t* bitmap,
  */
 
 void
-bitmap_unset(bitmap_t* bitmap, 
-             uint32_t element);
+fdb_bitmap_unset(fdb_bitmap_t* bitmap, 
+                 uint32_t element);
 
 /**
  * \brief Sets the bit of the given element to the specified value
@@ -67,9 +73,9 @@ bitmap_unset(bitmap_t* bitmap,
  */
 
 void
-bitmap_set_bit(bitmap_t* bitmap, 
-               uint32_t element, 
-               bool value);
+fdb_bitmap_set_bit(fdb_bitmap_t* bitmap, 
+                   uint32_t element, 
+                   bool value);
 
 /**
  * \brief Checks if a given element is set to 1
@@ -81,8 +87,8 @@ bitmap_set_bit(bitmap_t* bitmap,
  */
 
 bool
-bitmap_is_set(const bitmap_t* bitmap, 
-              uint32_t element);
+fdb_bitmap_is_set(const fdb_bitmap_t* bitmap, 
+                  uint32_t element);
 
 /**
  * \brief Sets the bits based on the given bitmap
@@ -92,8 +98,8 @@ bitmap_is_set(const bitmap_t* bitmap,
  */
 
 void
-bitmap_set_bitmap(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap, 
-                  FURIOUS_RESTRICT(const bitmap_t*) src_bitmap);
+fdb_bitmap_set_bitmap(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap, 
+                      FDB_RESTRICT(const fdb_bitmap_t*) src_bitmap);
 
 /**
  * \brief Ands this bitmap with the given bitmap
@@ -103,8 +109,8 @@ bitmap_set_bitmap(FURIOUS_RESTRICT(bitmap_t*) dst_bitmap,
  */
 
 void
-bitmap_set_and(bitmap_t* dst_bitmap, 
-               const bitmap_t* src_bitmap);
+fdb_bitmap_set_and(fdb_bitmap_t* dst_bitmap, 
+                   const fdb_bitmap_t* src_bitmap);
 
 /**
  * \brief Ors this bitmap with the given bitmap
@@ -114,8 +120,8 @@ bitmap_set_and(bitmap_t* dst_bitmap,
  */
 
 void
-bitmap_set_or(bitmap_t* dst_bitmap, 
-              const bitmap_t* src_bitmap);
+fdb_bitmap_set_or(fdb_bitmap_t* dst_bitmap, 
+                  const fdb_bitmap_t* src_bitmap);
 
 /**
  * \brief Diffs this bitmap with the given bitmap
@@ -125,8 +131,8 @@ bitmap_set_or(bitmap_t* dst_bitmap,
  */
 
 void
-bitmap_set_diff(bitmap_t* dst_bitmap, 
-                const bitmap_t* src_bitmap);
+fdb_bitmap_set_diff(fdb_bitmap_t* dst_bitmap, 
+                    const fdb_bitmap_t* src_bitmap);
 
 /**
  * \brief Negates the contents of this bitmap
@@ -135,7 +141,7 @@ bitmap_set_diff(bitmap_t* dst_bitmap,
  */
 
 void
-bitmap_negate(bitmap_t* bitmap);
+fdb_bitmap_negate(fdb_bitmap_t* bitmap);
 
 /**
  * \brief Sets the bitmap to all zeros
@@ -143,8 +149,10 @@ bitmap_negate(bitmap_t* bitmap);
  * \param bitmap The bitmap to nullify
  */
 void
-bitmap_nullify(bitmap_t* bitmap);
+fdb_bitmap_nullify(fdb_bitmap_t* bitmap);
 
-} /* furious
- */ 
-#endif /* ifndef _FURIOUS_BITMAP_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ifndef _FDB_BITMAP_H_ */

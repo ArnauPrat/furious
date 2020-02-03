@@ -2,14 +2,9 @@
 #ifndef _FURIOUS_OPERATOR_H_
 #define _FURIOUS_OPERATOR_H_ 
 
-#include "../../common/common.h"
+#include "../../common/platform.h"
 #include "fcc_context.h"
 
-namespace furious
-{
-
-#define _FURIOUS_COMPILER_INVALID_ID 0xffffffff
-#define _FURIOUS_COMPILER_MAX_OPERATOR_NAME 256
 
 struct fcc_subplan_t;
 
@@ -123,8 +118,9 @@ struct fcc_operator_t
   fcc_subplan_t*            p_subplan;
   uint32_t                  m_parent;
   uint32_t                  m_id;
-  char                      m_name[_FURIOUS_COMPILER_MAX_OPERATOR_NAME];
-  DynArray<fcc_column_t>    m_columns;
+  char                      m_name[FCC_MAX_OPERATOR_NAME];
+  fcc_column_t              m_columns[FCC_MAX_OPERATOR_NUM_COLUMNS];
+  uint32_t                  m_num_columns;
   union 
   {
     fcc_scan_t              m_scan;
@@ -211,7 +207,8 @@ struct fcc_subplan_t
 {
   uint32_t                  m_id;
   uint32_t                  m_root;
-  DynArray<fcc_operator_t>  m_nodes;
+  fcc_operator_t            m_nodes[FCC_MAX_SUBPLAN_NODES];
+  uint32_t                  m_num_nodes;
   bool                      m_requires_sync;
 };
 
@@ -234,7 +231,5 @@ subplan_init(const fcc_stmt_t* stmt,
  */
 void 
 subplan_release(fcc_subplan_t* subplan);
-
-} /* furious */ 
 
 #endif /* ifndef _FURIOUS_OPERATOR_H_ */

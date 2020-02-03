@@ -1,6 +1,5 @@
 
 #include "clang_tools.h"
-#include "../common/dyn_array.inl"
 
 #include <clang/AST/ASTContext.h>
 #include <clang/Lex/Lexer.h>
@@ -8,8 +7,9 @@
 
 #include <string.h>
 
-namespace furious
-{
+// autogen includes
+
+#include "../../autogen/fcc_depcy_array.h"
 
 /**
  * @brief Visitor used to extract the dependencies from a declaration, either
@@ -19,12 +19,19 @@ class DependenciesVisitor : public RecursiveASTVisitor<DependenciesVisitor>
 {
 public:
   const ASTContext*             p_ast_context;
-  DynArray<Dependency>          m_dependencies;
+  fcc_depcy_array_t             m_dependencies;
 
   DependenciesVisitor(const ASTContext* context) :
   p_ast_context(context)
   {
 
+    m_dependencies = fcc_depcy_array_init();
+
+  }
+
+  virtual ~DependenciesVisitor()
+  {
+    fcc_depcy_array_release(&m_dependencies);
   }
 
   bool process_decl(Decl* decl) 
@@ -38,21 +45,21 @@ public:
       {
         const char* filename = str_ref.c_str();
         const char* extension = strrchr(filename, '.');
-        Dependency dependency;
+        fcc_depcy_t dependency;
         dependency.m_decl = nullptr;
         if( (extension != nullptr &&
             strcmp(extension, ".cpp") != 0 && 
             strcmp(extension, ".c") != 0 &&
             strcmp(extension, ".inl") != 0))
         {
-          FURIOUS_ASSERT(strcmp(filename, "") != 0);
-          FURIOUS_COPY_AND_CHECK_STR(dependency.m_include_file, filename, FCC_MAX_INCLUDE_PATH_LENGTH);
+          FDB_ASSERT(strcmp(filename, "") != 0);
+          FDB_COPY_AND_CHECK_STR(dependency.m_include_file, filename, FCC_MAX_INCLUDE_PATH_LENGTH);
         } 
         else 
         {
           dependency.m_decl = decl;
         }
-        m_dependencies.append(dependency);
+        fcc_depcy_array_append(&m_dependencies, &dependency);
       }
     }
     return true;
@@ -81,13 +88,14 @@ public:
   }
 };
 
-DynArray<Dependency> 
-get_dependencies(const Decl* decl)
+void 
+get_dependencies(const Decl* decl, 
+                 fcc_depcy_array_t* deps)
 {
   const ASTContext& ast_context = decl->getASTContext();
   DependenciesVisitor dep_visitor{&ast_context};
   dep_visitor.TraverseDecl(const_cast<Decl*>(decl));
-  return dep_visitor.m_dependencies;
+  fcc_depcy_array_copy(deps, &dep_visitor.m_dependencies);
 }
 
 uint32_t 
@@ -100,7 +108,7 @@ get_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
   std::string str = QualType::getAsString(aux.split(), policy);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
+  FDB_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -114,7 +122,7 @@ get_tagged_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = false;
   std::string str = QualType::getAsString(aux.split(), policy);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
+  FDB_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -126,7 +134,7 @@ get_qualified_type_name(const QualType& type,
   PrintingPolicy policy{{}};
   policy.SuppressTagKeyword = true;
   std::string str = QualType::getAsString(type.split(), policy);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
+  FDB_COPY_AND_CHECK_STR(buffer, str.c_str(), buffer_length);
   return str.size();
 }
 
@@ -192,7 +200,7 @@ get_string_literal(const Expr* expr,
 {
   LiteralVisitor visitor;
   visitor.TraverseStmt(const_cast<Expr*>(expr));
-  FURIOUS_COPY_AND_CHECK_STR(buffer, visitor.str.c_str(), buffer_length);
+  FDB_COPY_AND_CHECK_STR(buffer, visitor.str.c_str(), buffer_length);
   return visitor.str.size();
 }
 
@@ -248,4 +256,3 @@ get_type_decl(const QualType& type)
   return t->getAsTagDecl();
 }
 
-} /* furious*/

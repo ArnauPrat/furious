@@ -5,45 +5,35 @@
 
 #include "../../common/platform.h"
 
-namespace furious 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct fdb_context_t 
 {
+  float                   m_dt;                 
+  void*                   p_user_data;
+  uint32_t                m_chunk_size;
+  uint32_t                m_thread_id;
+  uint32_t                m_num_threads;
+  struct fdb_database_t*  p_database;
+} fdb_context_t;
 
-struct database_t;
 
-struct IdComponentPair
-{
-  int32_t id;
-  int64_t table_id;
-};
+void
+fdb_context_init(fdb_context_t* ctx,
+                 float dt, 
+                 struct fdb_database_t* database,
+                 void* user_data,
+                 uint32_t chunk_size,
+                 uint32_t thread_id,
+                 uint32_t num_threads);
 
-class Context 
-{
-public:
-  Context(float dt, 
-          database_t* database,
-          void* user_data,
-          uint32_t chunk_size,
-          uint32_t thread_id,
-          uint32_t num_threads);
-  ~Context() = default;
+void
+fdb_context_release(fdb_context_t* ctx);
 
-  //template<typename TComponent>
-  //  void enable_component(const char* component_name, int32_t id);
-
-  //template<typename TComponent>
-  //  void disable_component(const char* component_name, int32_t id);
-
-  const float m_dt;                 
-  void*       p_user_data;
-  uint32_t    m_chunk_size;
-  uint32_t    m_thread_id;
-  uint32_t    m_num_threads;
-
-private:
-  database_t*     p_database;
-};
+#ifdef __cplusplus
+}
+#endif
   
-} /* furious */ 
-
-#include "context.inl"
 #endif /* ifndef _FURIOUS_CONTEXT_H_ */

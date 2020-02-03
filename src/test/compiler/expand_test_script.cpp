@@ -2,7 +2,7 @@
 #include "lang/lang.h"
 #include "expand_test_header.h"
 
-BEGIN_FURIOUS_SCRIPT
+BEGIN_FDB_SCRIPT
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -11,7 +11,7 @@ BEGIN_FURIOUS_SCRIPT
 
 struct SimpleSystem 
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            SimpleComponent1* simple_component1,
            const SimpleComponent2* simple_component2)
@@ -22,7 +22,7 @@ struct SimpleSystem
   }
 };
 
-furious::match<SimpleComponent1>().expand<SimpleComponent2>("parent").foreach<SimpleSystem>();
+match<SimpleComponent1>().expand<SimpleComponent2>("parent").foreach<SimpleSystem>();
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -32,7 +32,7 @@ struct UpdatePosition
 {
   UpdatePosition(float speed) : m_speed{speed} {}
 
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            Position* position,
            const Velocity* velocity,
@@ -48,7 +48,7 @@ struct UpdatePosition
 
 struct ResetPosition
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            Position* position)
   {
@@ -60,7 +60,7 @@ struct ResetPosition
 
 struct PropagateIntensity
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            FieldMesh* field,
            const Position* parent_position,
@@ -76,7 +76,7 @@ struct PropagateIntensity
 
 struct DrawFieldMesh 
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            const FieldMesh* field)
   {
@@ -87,7 +87,7 @@ struct DrawFieldMesh
 
 struct IncrementFieldMesh
 {
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            FieldMesh* field)
   {
@@ -99,11 +99,11 @@ struct IncrementFieldMesh
   }
 };
 
-furious::match<Position>().foreach<ResetPosition>();
-furious::match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f).set_priority(2);
-furious::match<FieldMesh>().foreach<DrawFieldMesh>();
-furious::match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
-furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>().set_priority(2);
+match<Position>().foreach<ResetPosition>();
+match<Position,Velocity>().expand<Position>("parent").foreach<UpdatePosition>(1.0f).set_priority(2);
+match<FieldMesh>().foreach<DrawFieldMesh>();
+match<FieldMesh>().expand<Position,Intensity>("parent").foreach<PropagateIntensity>();
+match<FieldMesh>().expand<>("parent").has_tag("test").foreach<IncrementFieldMesh>().set_priority(2);
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -112,7 +112,7 @@ furious::match<FieldMesh>().expand<>("parent").has_tag("test").foreach<Increment
 
 struct TestSystemCascading
 {
-  void run(furious::Context* context, 
+  void run(fdb_context_t* context, 
            uint32_t id, 
            TestComponent1* comp_1,
            const TestComponent1* parent_comp_1,
@@ -121,6 +121,6 @@ struct TestSystemCascading
   }
 };
 
-furious::match<TestComponent1>().expand<TestComponent1, TestComponent2>("parent").foreach<TestSystemCascading>();
+match<TestComponent1>().expand<TestComponent1, TestComponent2>("parent").foreach<TestSystemCascading>();
 
-END_FURIOUS_SCRIPT
+END_FDB_SCRIPT

@@ -1,38 +1,42 @@
 
-#ifndef _FURIOUS_HASHTABLE_REGISTRY_H_
-#define _FURIOUS_HASHTABLE_REGISTRY_H_ value
+#ifndef _FDB_HASHTABLE_REGISTRY_H_
+#define _FDB_HASHTABLE_REGISTRY_H_ value
 
 #include "../../common/mutex.h" 
 #include "../../common/btree.h" 
 
-namespace furious
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+typedef struct fdb_htregistry_t
 {
-
-struct ht_registry_t
-{
-  btree_t   m_registry;
-  mutex_t   m_mutex;
-};
+  fdb_btree_t   m_registry;
+  fdb_mutex_t   m_mutex;
+} fdb_htregistry_t;
 
 void
-ht_registry_init(ht_registry_t* registry);
+fdb_htregistry_init(fdb_htregistry_t* registry, fdb_mem_allocator_t* allocator);
 
 void
-ht_registry_release(ht_registry_t* registry);
+fdb_htregistry_release(fdb_htregistry_t* registry);
 
 void
-ht_registry_insert(ht_registry_t* registry, 
+fdb_htregistry_insert(fdb_htregistry_t* registry, 
                    const char* key, 
                    void* value);
 
 void*
-ht_registry_get(ht_registry_t* registry,
+fdb_htregistry_get(fdb_htregistry_t* registry,
                 const char* key);
 
 void
-ht_registry_remove(ht_registry_t* registyr, 
+fdb_htregistry_remove(fdb_htregistry_t* registyr, 
                    const char* key);
 
+#ifdef __cplusplus
+}
+#endif
   
-} /* furious */ 
-#endif /* ifndef _FURIOUS_HASHTABLE_REGISTRY_H_ */
+#endif /* ifndef _FDB_HASHTABLE_REGISTRY_H_ */

@@ -2,46 +2,39 @@
 #include "furious.h"
 #include <gtest/gtest.h>
 
-namespace furious {
-
-FURIOUS_BEGIN_COMPONENT(ComponentA, KILOBYTES(4))
+FDB_BEGIN_COMPONENT(ComponentA, KILOBYTES(4))
   uint32_t m_field;
-FURIOUS_END_COMPONENT
+FDB_END_COMPONENT
 
-FURIOUS_BEGIN_COMPONENT(ComponentB, KILOBYTES(4))
+FDB_BEGIN_COMPONENT(ComponentB, KILOBYTES(4))
   uint32_t m_field;
-FURIOUS_END_COMPONENT
+FDB_END_COMPONENT
 
 TEST(RefsTest,TagWorks) 
 {
-  database_t database = database_create();
-  FURIOUS_CREATE_TABLE(&database, ComponentA);
-  FURIOUS_CREATE_TABLE(&database, ComponentB);
+  fdb_database_t database;
+  fdb_database_init(&database, 
+                    nullptr);
 
-  Entity entity1 = create_entity(&database);
-  Entity entity2 = create_entity(&database);
-  Entity entity3 = create_entity(&database);
+  entity_id_t entX=0;
+  entity_id_t entY=1;
+  entity_id_t entZ=2;
+
+  fdb_reftable_t* rt = fdb_database_find_or_create_reftable(&database, "test_ref");
+  fdb_reftable_add(rt, entX, entY);
+  fdb_reftable_add(rt, entY, entZ);
 
 
-  entity1.add_reference("test_ref", entity2);
-  entity2.add_reference("test_ref", entity3);
+  ASSERT_TRUE(fdb_reftable_exists(rt, entX, entY));
+  ASSERT_TRUE(fdb_reftable_exists(rt, entY, entZ));
+  ASSERT_FALSE(fdb_reftable_exists(rt, entX, entZ));
 
-  ASSERT_TRUE(entity1.get_reference("test_ref").m_id == entity2.m_id);
-  ASSERT_TRUE(entity2.get_reference("test_ref").m_id == entity3.m_id);
+  fdb_reftable_add(rt, entX, entZ);
 
-  entity1.add_reference("test_ref", entity3);
+  ASSERT_TRUE(fdb_reftable_exists(rt, entX, entZ));
+  ASSERT_FALSE(fdb_reftable_exists(rt, entX, entY));
 
-  ASSERT_TRUE(entity1.get_reference("test_ref").m_id == entity3.m_id);
-
-  entity1.remove_reference("test_ref");
-
-  ASSERT_FALSE(entity1.get_reference("test_ref").is_valid());
-
-  destroy_entity(entity1);
-  destroy_entity(entity2);
-  destroy_entity(entity3);
-  database_destroy(&database);
-}
+  fdb_database_release(&database);
 }
 
 int main(int argc, char *argv[])

@@ -1,10 +1,8 @@
 
-#include "../../common/dyn_array.h"
+#include "../../compiler/dyn_array.h"
 
 #include <gtest/gtest.h>
 
-namespace furious 
-{
 
 struct test_t
 {
@@ -27,7 +25,6 @@ create_array()
 TEST(DynArray, DynArrayTest ) 
 {
   DynArray<test_t> array = create_array();
-}
 }
 
 int main(int argc, char *argv[])

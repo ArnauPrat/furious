@@ -3,57 +3,57 @@
 #include "filter_func_test_header.h"
 
 #include <gtest/gtest.h>
-#include <set>
-#include <vector>
-#include <iostream>
 
-namespace furious
-{
-  
 
 TEST(FilterFuncTest, FilterFuncTest ) 
 {
-  database_t database = database_create();
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
   furious_init(&database);
 
-  std::vector<Entity> entities;
-  for(int i = 0; i < 1000; ++i)
+  fdb_table_t* pos_table = FDB_FIND_TABLE(&database, Position);
+  fdb_table_t* vel_table = FDB_FIND_TABLE(&database, Velocity);
+
+  entity_id_t NUM_ENTITIES = 1000;
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    Entity entity = FURIOUS_CREATE_ENTITY(&database);
-    FURIOUS_ADD_COMPONENT(entity,Position, 0.0f, 0.0f, 0.0f);
-    if(entity.m_id % 2 == 0)
+    Position* pos = FDB_ADD_COMPONENT(pos_table, Position, i);
+    pos->m_x = 0.0;
+    pos->m_y = 0.0;
+    pos->m_z = 0.0;
+
+    Velocity* vel = FDB_ADD_COMPONENT(vel_table, Velocity, i);
+    float tmp = 1.0f;
+    if(i % 2 != 0)
     {
-      FURIOUS_ADD_COMPONENT(entity,Velocity, 1.0f, 1.0f, 1.0f);
-    } else
-    {
-      FURIOUS_ADD_COMPONENT(entity,Velocity, 2.0f, 2.0f, 2.0f);
+      tmp = 2.0f;
     }
-    entities.push_back(entity);
+
+    vel->m_x = tmp;
+    vel->m_y = tmp;
+    vel->m_z = tmp;
   }
 
   furious_frame(0.1f, &database, nullptr);
 
-  for(Entity& entity : entities)
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    Position* position = FURIOUS_GET_COMPONENT(entity,Position);
+    Position* pos = FDB_GET_COMPONENT(pos_table, Position, i);
 
-    if(entity.m_id % 2 == 0)
+    float tmp = 0.1;
+    if(i % 2 != 0)
     {
-      ASSERT_EQ(position->m_x, 0.1f);
-      ASSERT_EQ(position->m_y, 0.1f);
-      ASSERT_EQ(position->m_z, 0.1f);
-    } else
-    {
-      ASSERT_EQ(position->m_x, 0.0f);
-      ASSERT_EQ(position->m_y, 0.0f);
-      ASSERT_EQ(position->m_z, 0.0f);
-    }
+      tmp = 0.0;
+    } 
+    
+    ASSERT_EQ(pos->m_x, tmp);
+    ASSERT_EQ(pos->m_y, tmp);
+    ASSERT_EQ(pos->m_z, tmp);
+
   }
   furious_release();
-  database_destroy(&database);
+  fdb_database_release(&database);
 }
-
-} /* furious */ 
 
 int main(int argc, char *argv[])
 {

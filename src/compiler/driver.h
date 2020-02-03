@@ -2,16 +2,16 @@
 #define _FURIOUS_DRIVER_H value
 
 #include "../common/platform.h"
-#include "../runtime/data/reflection.h"
 #include "fcc_context.h"
 
-namespace furious
-{
 
 struct fcc_context_t;
 struct FccExecPlan;
+struct fcc_depcy_array_t;
+struct fdb_mstruct_t;
+struct fdb_mregistry_t;
 
-struct Dependency 
+struct fcc_depcy_t 
 {
   char            m_include_file[FCC_MAX_INCLUDE_PATH_LENGTH];
   fcc_decl_t      m_decl;
@@ -85,8 +85,9 @@ fcc_type_decl(fcc_type_t type, fcc_decl_t* decl);
  *
  * \return Returns a dynamic array with the found dependencies
  */
-DynArray<Dependency> 
-fcc_type_dependencies(fcc_type_t type);
+void  
+fcc_type_dependencies(fcc_type_t type, 
+                      fcc_depcy_array_t* deps);
 
 
 /**
@@ -232,8 +233,9 @@ fcc_decl_code_available(fcc_decl_t decl);
  *
  * @return Returns a dynamic array with the dependencies of a given declaration
  */
-DynArray<Dependency> 
-fcc_decl_dependencies(fcc_decl_t decl);
+void 
+fcc_decl_dependencies(fcc_decl_t decl,
+                      fcc_depcy_array_t* deps);
 
 /**
  * \brief Checks if two declararations are the same
@@ -288,9 +290,8 @@ fcc_expr_code_location(fcc_expr_t expr,
  *
  * \return  Returns the reflection data of the given declaration 
  */
-ReflData
-get_reflection_data(fcc_decl_t decl);
+fdb_mstruct_t*
+get_reflection_data(fcc_decl_t decl, fdb_mregistry_t* reg);
 
 
-} /* furious */ 
 #endif /* ifndef _FURIOUS_DRIVER_H */

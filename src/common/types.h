@@ -1,23 +1,18 @@
 
-#ifndef _FURIOUS_TYPES_H_
-#define _FURIOUS_TYPES_H_
+#ifndef _FDB_TYPES_H_
+#define _FDB_TYPES_H_
 
 #include <stdint.h>
 
-namespace furious 
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-using int8_t    = ::int8_t;
-using int16_t   = ::int16_t;
-using int32_t   = ::int32_t;
-using int64_t   = ::int64_t;
-using uint8_t   = ::uint8_t;
-using uint16_t  = ::uint16_t;
-using uint32_t  = ::uint32_t;
-using uint64_t  = ::uint64_t;
+typedef uint32_t entity_id_t;
+typedef uint32_t table_id_t;
 
-using entity_id_t = uint32_t;
-using table_id_t  = int32_t;
-
+#ifdef __cplusplus
 }
+#endif
+
 #endif

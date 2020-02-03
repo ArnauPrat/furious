@@ -1,26 +1,28 @@
 
 
-#ifndef _FURIOUS_MUTEX_H_
-#define _FURIOUS_MUTEX_H_ value
+#ifndef _FDB_MUTEX_H_
+#define _FDB_MUTEX_H_ value
 
-namespace furious 
+#include <pthread.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+typedef struct fdb_mutex_t
 {
-
-typedef void* mutex_handler_t;
-
-struct mutex_t
-{
-  mutex_handler_t m_mutex_impl;
-};
+  pthread_mutex_t m_mutex;
+} fdb_mutex_t;
   
 
 /**
- * \brief Creates a new mutex 
+ * \brief inits a new mutex 
  *
- * \return The newly created mutex
+ * \return The newly initd mutex
  */
-mutex_t
-mutex_create();
+void
+fdb_mutex_init(fdb_mutex_t* mutex);
 
 /**
  * \brief Destroys a mutex
@@ -28,7 +30,7 @@ mutex_create();
  * \param mutex The mutex to destroy
  */
 void
-mutex_destroy(mutex_t* mutex);
+fdb_mutex_release(fdb_mutex_t* mutex);
 
 /**
  * \brief Locks a mutex
@@ -36,7 +38,7 @@ mutex_destroy(mutex_t* mutex);
  * \param mutex The mutex to lock
  */
 void
-mutex_lock(mutex_t*  mutex);
+fdb_mutex_lock(fdb_mutex_t*  mutex);
 
 /**
  * \brief Unlocks a mutex
@@ -44,8 +46,10 @@ mutex_lock(mutex_t*  mutex);
  * \param mutex The mutex to unlock
  */
 void
-mutex_unlock(mutex_t* mutex);
+fdb_mutex_unlock(fdb_mutex_t* mutex);
 
-} /* tna */ 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef _FURIOUS_MUTEX_H_ */

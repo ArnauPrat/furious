@@ -5,23 +5,25 @@
 
 #include "types.h"
 
-namespace furious
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-struct str_builder_t 
+
+typedef struct fdb_str_builder_t 
 {
   char*     p_buffer;     //string builder buffer
   uint32_t  m_capacity;   //capacity
   uint32_t  m_pos;        //next position
-};
+} fdb_str_builder_t;
 
 /**
  * \brief Initializes a string builder
  *
  * \param The str_builder
  */
-str_builder_t
-str_builder_create();
+void
+fdb_str_builder_init(fdb_str_builder_t* str_builder);
 
 /**
  * \brief Releases a string builder
@@ -29,7 +31,7 @@ str_builder_create();
  * \param The str_builder
  */
 void
-str_builder_destroy(str_builder_t* str_builder);
+fdb_str_builder_release(fdb_str_builder_t* str_builder);
 
 /**
  * \brief Appens the string to the string builder
@@ -39,7 +41,7 @@ str_builder_destroy(str_builder_t* str_builder);
  * \param ... The formatted variables
  */
 void
-str_builder_append(str_builder_t* str_builder,
+fdb_str_builder_append(fdb_str_builder_t* str_builder,
                    const char* str, 
                    ...);
 
@@ -49,10 +51,11 @@ str_builder_append(str_builder_t* str_builder,
  * \param The str_builder
  */
 void
-str_builder_clear(str_builder_t* str_builder);
+fdb_str_builder_clear(fdb_str_builder_t* str_builder);
 
 
+#ifdef __cplusplus
+}
+#endif
   
-} /* furious
- */ 
 #endif /* ifndef _FURIOUS_STRING_BUILDER_H_ */

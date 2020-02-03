@@ -1,7 +1,6 @@
 
 #include "../../../runtime/data/reflection.h"
 #include "../../driver.h"
-#include "../../../common/dyn_array.inl"
 #include "clang_tools.h"
 
 #include <clang/AST/RecursiveASTVisitor.h>
@@ -9,58 +8,68 @@
 using namespace clang;
 
 
-namespace furious
-{
 
 class RecordDeclVisitor : public RecursiveASTVisitor<RecordDeclVisitor>
 {
 public:
 
-  RefCountPtr<ReflData>  p_refl_data;
+  fdb_mregistry_t*  p_reg;
+  fdb_mstruct_t*      p_mstruct;
 
-  RecordDeclVisitor() : 
+  RecordDeclVisitor(fdb_mregistry_t* reg, fdb_mstruct_t* data) : 
   RecursiveASTVisitor<RecordDeclVisitor>(),
-  p_refl_data(new ReflData())
+  p_reg(reg),
+  p_mstruct(data)
   {
+  }
 
+  virtual
+  ~RecordDeclVisitor()
+  {
   }
 
   virtual 
   bool VisitCXXRecordDecl(CXXRecordDecl* decl)
   {
-    //decl->dump();
+
     if(isa<ClassTemplateSpecializationDecl>(decl))
     {
       const ClassTemplateSpecializationDecl* tmplt_decl = cast<ClassTemplateSpecializationDecl>(decl);
       get_type_name(tmplt_decl->getTypeForDecl()->getCanonicalTypeInternal(),
-                    p_refl_data.get()->m_type_name,
+                    p_mstruct->m_type_name,
                     FCC_MAX_TYPE_NAME);
-
     }
     else
     {
       std::string str = decl->getName();
-      FURIOUS_COPY_AND_CHECK_STR(p_refl_data.get()->m_type_name, str.c_str(), FCC_MAX_TYPE_NAME);
+      FDB_COPY_AND_CHECK_STR(p_mstruct->m_type_name, str.c_str(), FDB_MAX_TABLE_NAME);
     }
-    p_refl_data.get()->m_is_union = decl->getTypeForDecl()->isUnionType();
+
+    p_mstruct->m_is_union = decl->getTypeForDecl()->isUnionType();
 
     for(auto child_decl = decl->decls_begin(); 
         child_decl != decl->decls_end();
         ++child_decl)
     {
 
-      ReflField refl_field;
+      if(child_decl->getKind() != Decl::Field )
+      {
+        continue;
+      }
+
+      fdb_mtype_t mtype = fdb_mtype_t::E_UNKNOWN;
+      bool        is_anon = false;
       const clang::Type* type = nullptr;
+      char        name[FCC_MAX_FIELD_NAME];
       QualType qtype;
       size_t num_bytes = 0;
       if(child_decl->getKind() == Decl::Field )
       {
         FieldDecl* field  = cast<FieldDecl>(*child_decl);
         std::string str = field->getName();
-        FURIOUS_COPY_AND_CHECK_STR(refl_field.m_name, str.c_str(), FCC_MAX_FIELD_NAME);
-
-        refl_field.m_type = ReflType::E_UNKNOWN;
-        refl_field.m_anonymous = field->isAnonymousStructOrUnion();
+        FDB_COPY_AND_CHECK_STR(name, str.c_str(), FCC_MAX_FIELD_NAME);
+        mtype = fdb_mtype_t::E_UNKNOWN;
+        is_anon = field->isAnonymousStructOrUnion();
         qtype = field->getType();
         type = qtype.getTypePtr();
       } 
@@ -68,7 +77,7 @@ public:
       {
         IndirectFieldDecl* indirect_field  = cast<IndirectFieldDecl>(*child_decl);
         refl_field.m_name = indirect_field->getName();
-        refl_field.m_type = ReflType::E_UNKNOWN;
+        refl_field.m_type = fdb_mtype_t::E_UNKNOWN;
         qtype = indirect_field->getType();
         type = qtype.getTypePtr();
       }*/
@@ -81,119 +90,104 @@ public:
 
       if(type->isBooleanType())
       {
-        refl_field.m_type = ReflType::E_BOOL;
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
-      }
-
-      if(type->isCharType())
+        mtype = fdb_mtype_t::E_BOOL;
+      } 
+      else if(type->isCharType())
       {
-        refl_field.m_type = ReflType::E_CHAR;
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
+        mtype = fdb_mtype_t::E_CHAR;
       }
-
-      if(type->isSignedIntegerType())
+      else if(type->isSignedIntegerType())
       {
         switch(num_bytes)
         {
           case 1:
-            refl_field.m_type = ReflType::E_INT8;
+            mtype = fdb_mtype_t::E_INT8;
             break;
           case 2:
-            refl_field.m_type = ReflType::E_INT16;
+            mtype = fdb_mtype_t::E_INT16;
             break;
           case 4:
-            refl_field.m_type = ReflType::E_INT32;
+            mtype = fdb_mtype_t::E_INT32;
             break;
           case 8:
-            refl_field.m_type = ReflType::E_INT64;
+            mtype = fdb_mtype_t::E_INT64;
             break;
           default:
-            refl_field.m_type = ReflType::E_UNKNOWN;
+            mtype = fdb_mtype_t::E_UNKNOWN;
             break;
         };
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
       }
-
-      if(type->isUnsignedIntegerType())
+      else if(type->isUnsignedIntegerType())
       {
         switch(num_bytes)
         {
           case 1:
-            refl_field.m_type = ReflType::E_UINT8;
+            mtype = fdb_mtype_t::E_UINT8;
             break;
           case 2:
-            refl_field.m_type = ReflType::E_UINT16;
+            mtype = fdb_mtype_t::E_UINT16;
             break;
           case 4:
-            refl_field.m_type = ReflType::E_UINT32;
+            mtype = fdb_mtype_t::E_UINT32;
             break;
           case 8:
-            refl_field.m_type = ReflType::E_UINT64;
+            mtype = fdb_mtype_t::E_UINT64;
             break;
           default:
-            refl_field.m_type = ReflType::E_UNKNOWN;
+            mtype = fdb_mtype_t::E_UNKNOWN;
             break;
         };
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
       }
-
-      if(type->isFloatingType())
+      else if(type->isFloatingType())
       {
         switch(num_bytes)
         {
           case 4:
-            refl_field.m_type = ReflType::E_FLOAT;
+            mtype = fdb_mtype_t::E_FLOAT;
             break;
           case 8:
-            refl_field.m_type = ReflType::E_DOUBLE;
+            mtype = fdb_mtype_t::E_DOUBLE;
             break;
           default:
-            refl_field.m_type = ReflType::E_UNKNOWN;
+            mtype = fdb_mtype_t::E_UNKNOWN;
             break;
         };
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
       }
-
-      if(type->isPointerType())
+      else if(type->isPointerType())
       {
         // check char*
-        refl_field.m_type = ReflType::E_CHAR_POINTER;
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
+        mtype = fdb_mtype_t::E_CHAR_POINTER;
       }
-
-      if(type->isRecordType())
+      else if(type->isRecordType())
       {
         char tmp[FCC_MAX_TYPE_NAME];
         get_tagged_type_name(qtype, tmp, FCC_MAX_TYPE_NAME);  
         if(strncmp(tmp, "std::string", FCC_MAX_TYPE_NAME) == 0)
         {
-          refl_field.m_type = ReflType::E_STD_STRING;
+          mtype = fdb_mtype_t::E_STD_STRING;
         }
         else 
         {
           if(!type->isUnionType())
           {
-            RecordDeclVisitor visitor;
-            visitor.TraverseCXXRecordDecl(type->getAsCXXRecordDecl());
-            refl_field.m_type = ReflType::E_STRUCT;
-            refl_field.p_strct_type = visitor.p_refl_data;
+            mtype = fdb_mtype_t::E_UNION;
           }
           else
           {
-            RecordDeclVisitor visitor;
-            visitor.TraverseCXXRecordDecl(type->getAsCXXRecordDecl());
-            refl_field.m_type = ReflType::E_UNION;
-            refl_field.p_strct_type = visitor.p_refl_data;
+            mtype = fdb_mtype_t::E_STRUCT;
           }
         }
-        p_refl_data.get()->m_fields.append(refl_field);
-        continue;
+      }
+      fdb_mstruct_t* field = fdb_mregistry_init_mfield(p_reg, 
+                                                       p_mstruct, 
+                                                       name, 
+                                                       mtype, 
+                                                       -1, 
+                                                       is_anon);
+      if(field != nullptr) // Is UNION or STRICT
+      {
+        RecordDeclVisitor visitor(p_reg, field);
+        visitor.TraverseCXXRecordDecl(type->getAsCXXRecordDecl());
       }
 
     }
@@ -202,13 +196,12 @@ public:
 
 };
 
-ReflData
-get_reflection_data(fcc_decl_t decl)
+fdb_mstruct_t* 
+get_reflection_data(fcc_decl_t decl, fdb_mregistry_t* reg)
 {
-  RecordDeclVisitor record_decl_visitor;
+  fdb_mstruct_t* mstruct = fdb_mregistry_init_mstruct(reg, "", false); // NOTE: "" and false will be overwitten by the visitor
+  RecordDeclVisitor record_decl_visitor(reg, mstruct);
   record_decl_visitor.TraverseCXXRecordDecl(cast<CXXRecordDecl>((Decl*)decl));
-  return *record_decl_visitor.p_refl_data.get();
+  return mstruct;
 }
 
-  
-} /* furious */ 

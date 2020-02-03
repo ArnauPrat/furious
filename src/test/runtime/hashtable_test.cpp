@@ -4,17 +4,19 @@
 #include <gtest/gtest.h>
 #include <set>
 
-namespace furious {
 
 TEST(HashtableTest, HashtableTest ) 
 {
-  hashtable_t hashtable = hashtable_create(512);
+  fdb_hashtable_t hashtable;
+  fdb_hashtable_init(&hashtable, 
+                     512, 
+                     nullptr);
   constexpr uint32_t num_elements = 100000;
   for(uint32_t i = 0; 
       i < num_elements;
       ++i)
   {
-    hashtable_add(&hashtable, 
+    fdb_hashtable_add(&hashtable, 
                   i,
                   (void*)(uint64_t)i);
   }
@@ -23,24 +25,25 @@ TEST(HashtableTest, HashtableTest )
       i < num_elements;
       ++i)
   {
-    void* ptr = hashtable_get(&hashtable, 
+    void* ptr = fdb_hashtable_get(&hashtable, 
                   i);
     ASSERT_EQ(ptr, (void*)(uint64_t)i);
   }
 
 
-  hashtable_destroy(&hashtable);
+  fdb_hashtable_release(&hashtable);
 }
 
 TEST(HashtableTest, HashtableIteratorTest ) 
 {
-  hashtable_t hashtable = hashtable_create(512);
+  fdb_hashtable_t hashtable;
+  fdb_hashtable_init(&hashtable, 512, nullptr);
   constexpr uint32_t num_elements = 100000;
   for(uint32_t i = 0; 
       i < num_elements;
       ++i)
   {
-    hashtable_add(&hashtable, 
+    fdb_hashtable_add(&hashtable, 
                   i,
                   (void*)(uint64_t)i);
   }
@@ -48,13 +51,13 @@ TEST(HashtableTest, HashtableIteratorTest )
   bool found[num_elements];
   memset(found, 0, sizeof(bool)*num_elements);
 
-  hashtable_iter_t iter = hashtable_iter_create(&hashtable);
-  while(hashtable_iter_has_next(&iter))
+  fdb_hashtable_iter_t iter = fdb_hashtable_iter_init(&hashtable);
+  while(fdb_hashtable_iter_has_next(&iter))
   {
-    hashtable_entry_t entry = hashtable_iter_next(&iter);
+    fdb_hashtable_entry_t entry = fdb_hashtable_iter_next(&iter);
     found[entry.m_key] = true;
   }
-  hashtable_iter_destroy(&iter);
+  fdb_hashtable_iter_release(&iter);
 
   bool all_true = true;
   for(uint32_t i = 0;
@@ -66,9 +69,7 @@ TEST(HashtableTest, HashtableIteratorTest )
 
   ASSERT_TRUE(all_true);
 
-  hashtable_destroy(&hashtable);
-}
-
+  fdb_hashtable_release(&hashtable);
 }
 
 int main(int argc, char *argv[])

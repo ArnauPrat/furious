@@ -1,55 +1,60 @@
 
 
 
-#ifndef _FURIOUS_HASHTABLE_H_
-#define _FURIOUS_HASHTABLE_H_ 
+#ifndef _FDB_HASHTABLE_H_
+#define _FDB_HASHTABLE_H_ 
 
 #include "types.h"
 #include "memory/memory.h"
 
-namespace furious
+#include <stdbool.h>
+ 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#define _FDB_HASHTABLE_NODE_CAPACITY 8
+
+typedef struct fdb_hashtable_node_t
 {
+  void*                 m_elements[_FDB_HASHTABLE_NODE_CAPACITY]; 
+  uint32_t              m_keys[_FDB_HASHTABLE_NODE_CAPACITY];
+  uint32_t              m_num_elements;
+  struct fdb_hashtable_node_t* p_next;
+} fdb_hashtable_node_t;
 
-#define _FURIOUS_HASHTABLE_NODE_CAPACITY 8
-
-struct hashtable_node_t
+typedef struct fdb_hashtable_t
 {
-  void*              m_elements[_FURIOUS_HASHTABLE_NODE_CAPACITY]; 
-  uint32_t           m_keys[_FURIOUS_HASHTABLE_NODE_CAPACITY];
-  uint32_t           m_num_elements;
-  hashtable_node_t* p_next;
-};
+  uint32_t                m_capacity;
+  uint32_t                m_num_elements;
+  fdb_hashtable_node_t*   m_entries;
+  fdb_mem_allocator_t*     p_allocator;
+} fdb_hashtable_t;
 
-struct hashtable_t
+typedef struct fdb_hashtable_iter_t
 {
-  uint32_t            m_capacity;
-  uint32_t            m_num_elements;
-  hashtable_node_t*   m_entries;
-  mem_allocator_t     m_allocator;
-};
+  fdb_hashtable_t*      p_table;
+  fdb_hashtable_node_t* p_next_node;
+  uint32_t              m_next_entry;
+  uint32_t              m_next_element;
+} fdb_hashtable_iter_t;
 
-struct hashtable_iter_t
-{
-  hashtable_t*      p_table;
-  hashtable_node_t* p_next_node;
-  uint32_t          m_next_entry;
-  uint32_t          m_next_element;
-};
-
-struct hashtable_entry_t
+typedef struct fdb_hashtable_entry_t
 {
   uint32_t  m_key;
   void*     p_value;
-};
+} fdb_hashtable_entry_t;
 
 /**
  * \brief Initializes a hash table
  *
  * \param table The hash table to initialize
  */
-hashtable_t
-hashtable_create(uint32_t capacity, 
-                 mem_allocator_t* allocator = nullptr);
+void
+fdb_hashtable_init(fdb_hashtable_t* ht, 
+                   uint32_t capacity, 
+                   fdb_mem_allocator_t* allocator);
 
 /**
  * \brief Releases a hash table
@@ -57,7 +62,7 @@ hashtable_create(uint32_t capacity,
  * \param table The hash table to release
  */
 void
-hashtable_destroy(hashtable_t* table);
+fdb_hashtable_release(fdb_hashtable_t* table);
 
 
 /**
@@ -70,9 +75,9 @@ hashtable_destroy(hashtable_t* table);
  * \return Returns the former element with the given added key if it existed
  */
 void*
-hashtable_add(hashtable_t* table, 
-              uint32_t key, 
-              void* value);
+fdb_hashtable_add(fdb_hashtable_t* table, 
+                  uint32_t key, 
+                  void* value);
 
 /**
  * \brief Adds an element to the hash table
@@ -82,8 +87,8 @@ hashtable_add(hashtable_t* table,
  * \param value The value of the element to add
  */
 void*
-hashtable_get(hashtable_t* table, 
-              uint32_t key);
+fdb_hashtable_get(fdb_hashtable_t* table, 
+                  uint32_t key);
 
 /**
  * \brief Initialize a hashtable iterator
@@ -91,8 +96,8 @@ hashtable_get(hashtable_t* table,
  * \param iter The iterator to initialize
  * \param hashtable The hashtable this iterator iterates over
  */
-hashtable_iter_t
-hashtable_iter_create(hashtable_t* hashtable);
+fdb_hashtable_iter_t
+fdb_hashtable_iter_init(fdb_hashtable_t* hashtable);
 
 /**
  * \brief Releases the given iterator
@@ -100,7 +105,7 @@ hashtable_iter_create(hashtable_t* hashtable);
  * \param iter The iterator to release
  */
 void
-hashtable_iter_destroy(hashtable_iter_t* iter);
+fdb_hashtable_iter_release(fdb_hashtable_iter_t* iter);
 
 /**
  * \brief Checks if the iterator has next elements
@@ -108,17 +113,20 @@ hashtable_iter_destroy(hashtable_iter_t* iter);
  * \param iter The iterator to check for has next
  */
 bool
-hashtable_iter_has_next(hashtable_iter_t* iter);
+fdb_hashtable_iter_has_next(fdb_hashtable_iter_t* iter);
 
 /**
  * \brief Checks if the iterator has next elements
  *
  * \param iter The iterator to check for has next
  * 
- * \return Returns a hashtable entry structure 
+ * \return Returns a hashtable entry typedef structure 
  */
-hashtable_entry_t
-hashtable_iter_next(hashtable_iter_t* iter);
+fdb_hashtable_entry_t
+fdb_hashtable_iter_next(fdb_hashtable_iter_t* iter);
 
-} /* furious */ 
-#endif /* ifndef _FURIOUS_hashtable_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ifndef _FDB_fdb_hashtable_ */

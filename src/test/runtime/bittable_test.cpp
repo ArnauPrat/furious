@@ -3,74 +3,75 @@
 
 #include <gtest/gtest.h>
 
-namespace furious {
-
 TEST(BitTableTest, BitTableWorks) 
 {
 
-  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
-  BitTable* bittable = new BitTable(&lallocator);
+  fdb_stack_alloc_t lallocator;
+  fdb_stack_alloc_init(&lallocator, 
+                       KILOBYTES(4), nullptr);
+  fdb_bittable_t bt;
+  fdb_bittable_init(&bt, &lallocator.m_super);
   constexpr uint32_t num_elements = 32000;
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable->add(i);
+    fdb_bittable_add(&bt,i);
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable->get_bitmap(i);
-    ASSERT_TRUE(bittable->exists(i));
+    fdb_bittable_get_bitmap(&bt, i);
+    ASSERT_TRUE(fdb_bittable_exists(&bt, i));
   }
 
-  bittable->clear();
+  fdb_bittable_clear(&bt);
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_FALSE(bittable->exists(i));
-  }
-
-  for(uint32_t i = 0;
-      i < num_elements; 
-      ++i)
-  {
-    bittable->add(i);
+    ASSERT_FALSE(fdb_bittable_exists(&bt, i));
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_TRUE(bittable->exists(i));
+    fdb_bittable_add(&bt, i);
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    bittable->remove(i);
+    ASSERT_TRUE(fdb_bittable_exists(&bt, i));
   }
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_FALSE(bittable->exists(i));
+    fdb_bittable_remove(&bt, i);
   }
 
-  bittable->clear();
-  delete bittable;
-  stack_alloc_destroy(&lallocator);
+  for(uint32_t i = 0;
+      i < num_elements; 
+      ++i)
+  {
+    ASSERT_FALSE(fdb_bittable_exists(&bt, i));
+  }
+
+  fdb_bittable_clear(&bt);
+  fdb_bittable_release(&bt);
+  fdb_stack_alloc_release(&lallocator);
 }
 
-TEST(BitTableTest, BitTableClear) 
+/*TEST(BitTableTest, BitTableClear) 
 {
-  BitTable bittable;
+  fdb_bittable_t bt = fdb_bittable_init();
   constexpr uint32_t num_elements = 100000;
   for (uint32_t i = 0; 
        i < num_elements;
@@ -78,57 +79,61 @@ TEST(BitTableTest, BitTableClear)
   {
     if(i % 10000 == 0)
     {
-      bittable.clear();
+      fdb_bittable_clear(&bt);
     }
-    bittable.add(i);
+    fdb_bittable_add(&bt, i);
   }
-  bittable.clear();
-  
+  fdb_bittable_clear(&bt);
 }
+*/
 
 
 TEST(BitTableTest, BitTableUnion) 
 {
-  BitTable* bittable1 = new BitTable();
-  BitTable* bittable2 = new BitTable();
+  fdb_bittable_t bt1;
+  fdb_bittable_init(&bt1, nullptr);
+  fdb_bittable_t bt2;
+  fdb_bittable_init(&bt2, nullptr);
   constexpr uint32_t num_elements = 1000000;
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-      bittable2->add(i);
+      fdb_bittable_add(&bt2, i);
   }
 
-  bittable_union(bittable1, bittable2);
+  fdb_bittable_union(&bt1, &bt2);
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_TRUE(bittable1->exists(i));
+    ASSERT_TRUE(fdb_bittable_exists(&bt1, i));
   }
 
-  bittable_union(bittable1, bittable2);
+  fdb_bittable_union(&bt1, &bt2);
 
   for(uint32_t i = 0;
       i < num_elements; 
       ++i)
   {
-    ASSERT_TRUE(bittable1->exists(i));
+    ASSERT_TRUE(fdb_bittable_exists(&bt1, i));
   }
 
-  bittable1->clear();
-  bittable2->clear();
+  fdb_bittable_clear(&bt1);
+  fdb_bittable_clear(&bt2);
 
-  delete bittable1;
-  delete bittable2;
+  fdb_bittable_release(&bt1);
+  fdb_bittable_release(&bt2);
 }
 
 TEST(BitTableTest, BitTableDifference) 
 {
-  BitTable* bittable1 = new BitTable();
-  BitTable* bittable2 = new BitTable();
+  fdb_bittable_t bt1;
+  fdb_bittable_init(&bt1, nullptr);
+  fdb_bittable_t bt2;
+  fdb_bittable_init(&bt2, nullptr);
   constexpr uint32_t num_elements = 1000000;
 
   for(uint32_t i = 0;
@@ -137,12 +142,12 @@ TEST(BitTableTest, BitTableDifference)
   {
     if(i%2 == 0)
     {
-      bittable2->add(i);
+      fdb_bittable_add(&bt2, i);
     }
-    bittable1->add(i);
+    fdb_bittable_add(&bt1, i);
   }
 
-  bittable_difference(bittable1, bittable2);
+  fdb_bittable_difference(&bt1, &bt2);
 
   for(uint32_t i = 0;
       i < num_elements; 
@@ -150,43 +155,42 @@ TEST(BitTableTest, BitTableDifference)
   {
     if(i%2 == 0)
     {
-      ASSERT_FALSE(bittable1->exists(i));
-      ASSERT_TRUE(bittable2->exists(i));
+      ASSERT_FALSE(fdb_bittable_exists(&bt1, i));
+      ASSERT_TRUE(fdb_bittable_exists(&bt2, i));
     }
     else
     {
-      ASSERT_TRUE(bittable1->exists(i));
+      ASSERT_TRUE(fdb_bittable_exists(&bt1,i));
     }
   }
 
-  bittable1->clear();
-  bittable2->clear();
-  delete bittable1;
-  delete bittable2;
+  fdb_bittable_clear(&bt1);
+  fdb_bittable_clear(&bt2);
+  fdb_bittable_release(&bt1);
+  fdb_bittable_release(&bt2);
 }
 
 TEST(BitTableTest, BitTableSteps) 
 {
-  BitTable* bittable = new BitTable();
+  fdb_bittable_t bt;
+  fdb_bittable_init(&bt,nullptr);
   constexpr uint32_t MAX_ELEMENTS = 1600;
   uint32_t stride = 21;
   uint32_t offset = 21604;
   for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
   {
-    bittable->add(i*stride + offset);
+    fdb_bittable_add(&bt,i*stride + offset);
   }
 
   for (uint32_t i = 0; i < MAX_ELEMENTS; ++i) 
   {
-    const bitmap_t* bt_block = bittable->get_bitmap(i*stride+offset);
+    const fdb_bitmap_t* bt_block = fdb_bittable_get_bitmap(&bt, i*stride+offset);
     ASSERT_NE(bt_block, nullptr);
   }
 
   //ASSERT_EQ(btree_num_allocations, 0);
-  delete bittable;
+  fdb_bittable_release(&bt);
 }
-}
-
 
 int main(int argc, char *argv[])
 {

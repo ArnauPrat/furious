@@ -8,10 +8,6 @@
 #include "fcc_context.h"
 #include "producer.h"
 
-#include "../common/dyn_array.inl"
-
-namespace furious 
-{
 
 void
 consume(FILE* fd,
@@ -63,9 +59,9 @@ consume_cascading_gather(FILE*fd,
 
 static void
 consume_fetch(FILE*fd,
-        const fcc_operator_t* fetch,
-        const char* source,
-        const fcc_operator_t* caller);
+              const fcc_operator_t* fetch,
+              const char* source,
+              const fcc_operator_t* caller);
 
 static void
 consume_tag_filter(FILE*fd,
@@ -75,9 +71,9 @@ consume_tag_filter(FILE*fd,
 
 static void
 consume_predicate_filter(FILE*fd,
-        const fcc_operator_t* predicate_filter,
-        const char* source,
-        const fcc_operator_t* caller);
+                         const fcc_operator_t* predicate_filter,
+                         const char* source,
+                         const fcc_operator_t* caller);
 
 static void
 consume_component_filter(FILE*fd,
@@ -131,13 +127,14 @@ consume(FILE*fd,
 
 void 
 consume_foreach(FILE*fd, 
-        const fcc_operator_t* foreach,
-        const char* source,
-        const fcc_operator_t* caller)
+                const fcc_operator_t* foreach,
+                const char* source,
+                const fcc_operator_t* caller)
 {
 
   bool all_globals = true;
-  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
+  uint32_t ncols = foreach->m_num_columns;
+  for(uint32_t i = 0; i < ncols; ++i)
   {
     if(foreach->m_columns[i].m_type != fcc_column_type_t::E_GLOBAL)
     {
@@ -148,7 +145,7 @@ consume_foreach(FILE*fd,
 
 
   int param_index = 0;
-  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i) 
+  for(uint32_t i = 0; i < ncols; ++i) 
   {
     const fcc_column_t* column = &foreach->m_columns[i];
     if(column->m_type == fcc_column_type_t::E_ID)
@@ -165,42 +162,43 @@ consume_foreach(FILE*fd,
 
     switch(column->m_type)
     {
-     case fcc_column_type_t::E_COMPONENT:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s*,data_%d,64) = (%s*)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    case fcc_column_type_t::E_REFERENCE:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s**,data_%d,64) = (%s**)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    case fcc_column_type_t::E_GLOBAL:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s*,data_%d, 64) = (%s*)(block_cluster_get_global(%s, %d));\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    default:
-      FURIOUS_ASSERT(false && "Should not reach this point");
-      break;
+      case fcc_column_type_t::E_COMPONENT:
+        fprintf(fd,
+                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      case fcc_column_type_t::E_REFERENCE:
+        fprintf(fd,
+                "FDB_ALIGNED(%s**,data_%d,64) = (%s**)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      case fcc_column_type_t::E_GLOBAL:
+        fprintf(fd,
+                "FDB_ALIGNED(%s*,data_%d, 64) = (%s*)(fdb_bcluster_get_global(%s, %d));\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      default:
+        FDB_ASSERT(false && "Should not reach this point");
+        break;
     }
     param_index++;
   }
   fprintf(fd, "\n");
 
-  str_builder_t str_builder = str_builder_create();
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
   //uint32_t size = foreach->p_systems.size();
   //for(uint32_t i = 0; i < size; ++i)
   {
@@ -222,39 +220,39 @@ consume_foreach(FILE*fd,
 
     if(all_globals)
     {
-      str_builder_append(&str_builder, "%s->run(&context,\n0", 
-                            wrapper_name);
+      fdb_str_builder_append(&str_builder, "%s->run(&context,\n0", 
+                         wrapper_name);
     }
     else
     {
-      str_builder_append(&str_builder, "%s->run(&context,\n%s->m_start + i", 
+      fdb_str_builder_append(&str_builder, "%s->run(&context,\n%s->m_start + i", 
                          wrapper_name, 
                          source);
     }
 
-    for(size_t j = 0; j <  foreach->m_columns.size(); ++j) 
+    for(size_t j = 0; j <  ncols; ++j) 
     {
       const fcc_column_t* column = &foreach->m_columns[j];
       switch(column->m_type)
       {
         case fcc_column_type_t::E_COMPONENT:
           // It is a component, thus we need to pass a pointer to data[i] 
-          str_builder_append(&str_builder,",\n&data_%d[i]",j);
+          fdb_str_builder_append(&str_builder,",\n&data_%d[i]",j);
           break;
         case fcc_column_type_t::E_REFERENCE:
           // It is a reference, thus data[i] already contains a pointer
-          str_builder_append(&str_builder,",\ndata_%d[i]",j);
+          fdb_str_builder_append(&str_builder,",\ndata_%d[i]",j);
           break;
         case fcc_column_type_t::E_GLOBAL:
           // It is a global, thus we need directly pass the data pointer
-          str_builder_append(&str_builder,",\ndata_%d",j);
+          fdb_str_builder_append(&str_builder,",\ndata_%d",j);
           break;
         default:
-          FURIOUS_ASSERT(false && "Should not reach this point");
+          FDB_ASSERT(false && "Should not reach this point");
           break;
       }
     }
-    str_builder_append(&str_builder,");\n"); 
+    fdb_str_builder_append(&str_builder,");\n"); 
   }
 
   if(all_globals)
@@ -266,11 +264,11 @@ consume_foreach(FILE*fd,
   else
   {
     fprintf(fd,
-            "if(%s->m_enabled.m_num_set == FURIOUS_TABLE_BLOCK_SIZE)\n{\n", 
+            "if(%s->m_enabled.m_num_set == FDB_TABLE_BLOCK_SIZE)\n{\n", 
             source);
 
     fprintf(fd,
-            "for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FDB_TABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
             "%s",
             str_builder.p_buffer);
@@ -281,9 +279,9 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "else\n{\n");
     fprintf(fd,
-            "for (size_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FDB_TABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
-            "if(bitmap_is_set(&%s->m_enabled, i))\n{\n", 
+            "if(fdb_bitmap_is_set(&%s->m_enabled, i))\n{\n", 
             source);
     fprintf(fd,
             "%s",
@@ -297,9 +295,9 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "}\n");
   }
-  str_builder_destroy(&str_builder);
+  fdb_str_builder_release(&str_builder);
 
-  if(foreach->m_parent != _FURIOUS_COMPILER_INVALID_ID)
+  if(foreach->m_parent != FCC_INVALID_ID)
   {
     fcc_subplan_t* subplan = foreach->p_subplan;
     consume(fd,
@@ -312,17 +310,17 @@ consume_foreach(FILE*fd,
 
 void 
 consume_scan(FILE*fd,
-        const fcc_operator_t* scan,
-        const char* source,
-        const fcc_operator_t* caller)
+             const fcc_operator_t* scan,
+             const char* source,
+             const fcc_operator_t* caller)
 {
 }
 
 void
 consume_join(FILE*fd, 
-        const fcc_operator_t* join,
-        const char* source,
-        const fcc_operator_t* caller)
+             const fcc_operator_t* join,
+             const char* source,
+             const fcc_operator_t* caller)
 {
 
   char hashtable[FCC_MAX_HASHTABLE_VARNAME];
@@ -334,70 +332,74 @@ consume_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
     fprintf(fd, 
-            "block_cluster_append(cluster,%s);\n", 
+            "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source); 
     fprintf(fd, 
-            "btree_insert(&%s, cluster->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, cluster->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable); 
   }
   else 
   {
 
-      fprintf(fd,
-              "block_cluster_t* build = (block_cluster_t*)btree_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
-              hashtable,
-              source);
+    fprintf(fd,
+            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE);\n",
+            hashtable,
+            source);
 
-      fprintf(fd,
-              "if(build != nullptr)\n{\n");
-      char clustername[FCC_MAX_CLUSTER_VARNAME];
-      generate_cluster_name(join,
-                            clustername,
-                            FCC_MAX_CLUSTER_VARNAME);
+    fprintf(fd,
+            "if(build != nullptr)\n{\n");
+    char clustername[FCC_MAX_CLUSTER_VARNAME];
+    generate_cluster_name(join,
+                          clustername,
+                          FCC_MAX_CLUSTER_VARNAME);
 
-      fprintf(fd,
-              "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
-              clustername);
-      fprintf(fd,
-              "block_cluster_append(&%s, build);\n", 
-              clustername);
-      fprintf(fd,
-              "block_cluster_append(&%s, %s);\n", 
-              clustername, 
-              source);
-      fprintf(fd,
-              "if(%s.m_enabled.m_num_set != 0)\n{\n", 
-              clustername);
+    fprintf(fd,
+            "fdb_bcluster_t %s;\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_append_cluster(&%s, build);\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_append_cluster(&%s, %s);\n", 
+            clustername, 
+            source);
+    fprintf(fd,
+            "if(%s.m_enabled.m_num_set != 0)\n{\n", 
+            clustername);
 
-      str_builder_t str_builder = str_builder_create();
-      str_builder_append(&str_builder, "(&%s)", clustername);
-      fcc_subplan_t* subplan = join->p_subplan;
-      consume(fd,
-              &subplan->m_nodes[join->m_parent],
-              str_builder.p_buffer,
-              join);
-      str_builder_destroy(&str_builder);
+    fdb_str_builder_t str_builder;
+    fdb_str_builder_init(&str_builder);
+    fdb_str_builder_append(&str_builder, "(&%s)", clustername);
+    fcc_subplan_t* subplan = join->p_subplan;
+    consume(fd,
+            &subplan->m_nodes[join->m_parent],
+            str_builder.p_buffer,
+            join);
+    fdb_str_builder_release(&str_builder);
 
-      fprintf(fd,"}\n");
+    fprintf(fd,"}\n");
 
-      fprintf(fd,
-              "block_cluster_destroy(&%s, &task_allocator);\n", 
-              clustername);
+    fprintf(fd,
+            "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+            clustername);
 
-      fprintf(fd,"}\n");
+    fprintf(fd,"}\n");
   }
 }
 
 void
 consume_leftfilter_join(FILE*fd, 
-        const fcc_operator_t* left_filter_join,
-        const char* source,
-        const fcc_operator_t* caller)
+                        const fcc_operator_t* left_filter_join,
+                        const char* source,
+                        const fcc_operator_t* caller)
 {
   char hashtable[FCC_MAX_HASHTABLE_VARNAME];
   generate_hashtable_name(left_filter_join,
@@ -408,24 +410,24 @@ consume_leftfilter_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
     fprintf(fd, 
-            "block_cluster_append(cluster,%s);\n", 
+            "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source); 
 
     fprintf(fd, 
-            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
   else 
   {
     fprintf(fd,
-            "block_cluster_t* build = (block_cluster_t*)btree_get(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n",
+            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
     fprintf(fd,
@@ -435,43 +437,47 @@ consume_leftfilter_join(FILE*fd,
                           clustername,
                           FCC_MAX_CLUSTER_VARNAME);
 
-      fprintf(fd,
-              "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
-              clustername);
-      fprintf(fd,
-              "block_cluster_append(&%s, build);\n", 
-              clustername);
     fprintf(fd,
-            "block_cluster_filter(&%s, %s);\n", 
+            "fdb_bcluster_t %s;\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_append_cluster(&%s, build);\n", 
+            clustername);
+    fprintf(fd,
+            "fdb_bcluster_filter(&%s, %s);\n", 
             clustername, 
             source);
     fprintf(fd,
             "if(%s.m_enabled.m_num_set != 0)\n{\n", 
             clustername);
 
-    str_builder_t str_builder = str_builder_create();
-    str_builder_append(&str_builder, "(&%s)", clustername);
+    fdb_str_builder_t str_builder;
+    fdb_str_builder_init(&str_builder);
+    fdb_str_builder_append(&str_builder, "(&%s)", clustername);
     fcc_subplan_t* subplan = left_filter_join->p_subplan;
     consume(fd,
             &subplan->m_nodes[left_filter_join->m_parent],
             str_builder.p_buffer,
             left_filter_join);
-    str_builder_destroy(&str_builder);
+    fdb_str_builder_release(&str_builder);
 
     fprintf(fd,"}\n");
 
-      fprintf(fd,
-              "block_cluster_destroy(&%s, &task_allocator);\n", 
-              clustername);
+    fprintf(fd,
+            "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+            clustername);
     fprintf(fd,"}\n");
   }
 }
 
 void
 consume_cross_join(FILE*fd, 
-        const fcc_operator_t* join,
-        const char* source,
-        const fcc_operator_t* caller)
+                   const fcc_operator_t* join,
+                   const char* source,
+                   const fcc_operator_t* caller)
 {
 
   char hashtable[FCC_MAX_HASHTABLE_VARNAME];
@@ -481,45 +487,47 @@ consume_cross_join(FILE*fd,
 
   if(caller->m_id == join->m_cross_join.m_left) 
   {
-    str_builder_t str_builder = str_builder_create();
-    str_builder_append(&str_builder,"left_%s", hashtable);
+    fdb_str_builder_t str_builder;
+    fdb_str_builder_init(&str_builder);
+    fdb_str_builder_append(&str_builder,"left_%s", hashtable);
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
     fprintf(fd, 
-            "block_cluster_append(cluster,%s);\n", 
+            "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source);
 
     fprintf(fd, 
-            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
-    str_builder_destroy(&str_builder);
+    fdb_str_builder_release(&str_builder);
   }
   else 
   {
-    str_builder_t str_builder = str_builder_create();
-    str_builder_append(&str_builder,"right_%s", hashtable);
+    fdb_str_builder_t str_builder;
+    fdb_str_builder_init(&str_builder);
+    fdb_str_builder_append(&str_builder,"right_%s", hashtable);
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
     fprintf(fd, 
-            "block_cluster_append(cluster,%s);\n", 
+            "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source);
 
     fprintf(fd, 
-            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
-    str_builder_destroy(&str_builder);
+    fdb_str_builder_release(&str_builder);
   }
 }
 
@@ -540,17 +548,17 @@ consume_tag_filter(FILE*fd,
                    const fcc_operator_t* caller)
 {
 
-  char bittable_name[FCC_MAX_TAG_TABLE_VARNAME];
+  char fdb_bittable_name[FCC_MAX_TAG_TABLE_VARNAME];
   generate_bittable_name(tag_filter->m_tag_filter.m_tag,
-                         bittable_name,
+                         fdb_bittable_name,
                          FCC_MAX_TAG_TABLE_VARNAME);
   fprintf(fd,"\n");
 
   if(!tag_filter->m_tag_filter.m_on_column)
   {
     fprintf(fd,
-            "const bitmap_t* filter = %s->get_bitmap(%s->m_start);\n", 
-            bittable_name, 
+            "const fdb_bitmap_t* filter = fdb_bittable_get_bitmap(%s, %s->m_start);\n", 
+            fdb_bittable_name, 
             source);
 
     switch(tag_filter->m_tag_filter.m_op_type) 
@@ -561,14 +569,14 @@ consume_tag_filter(FILE*fd,
           fprintf(fd,
                   "if(filter != nullptr){\n");
           fprintf(fd,
-                  "bitmap_set_and(&%s->m_enabled, filter);\n",
+                  "fdb_bitmap_set_and(&%s->m_enabled, filter);\n",
                   source);
           fprintf(fd,
                   "}\n");
           fprintf(fd,
                   "else {\n");
           fprintf(fd,
-                  "bitmap_nullify(&%s->m_enabled);\n",
+                  "fdb_bitmap_nullify(&%s->m_enabled);\n",
                   source);
           fprintf(fd,
                   "}\n");
@@ -578,20 +586,22 @@ consume_tag_filter(FILE*fd,
         {
 
           fprintf(fd, 
-                  "bitmap_t negate = bitmap_create(FURIOUS_TABLE_BLOCK_SIZE, &task_allocator);\n");
+                  "fdb_bitmap_t negate;\n");
+          fprintf(fd, 
+                  "fdb_bitmap_init(&negate, FDB_TABLE_BLOCK_SIZE, &task_allocator.m_super);\n");
           fprintf(fd,
                   "if(filter != nullptr){\n");
           fprintf(fd, 
-                  "bitmap_set_bitmap(&negate, filter);\n");
+                  "fdb_bitmap_set_bitmap(&negate, filter);\n");
           fprintf(fd,
                   "}\n");
           fprintf(fd, 
-                  "bitmap_negate(&negate);\n");
+                  "fdb_bitmap_negate(&negate);\n");
           fprintf(fd,
-                  "bitmap_set_and(&%s->m_enabled, &negate);\n",
+                  "fdb_bitmap_set_and(&%s->m_enabled, &negate);\n",
                   source);
           fprintf(fd, 
-                  "bitmap_destroy(&negate, &task_allocator);\n");
+                  "fdb_bitmap_release(&negate, &task_allocator.m_super);\n");
           break;
         }
     }
@@ -612,7 +622,7 @@ consume_tag_filter(FILE*fd,
         {
           fprintf(fd,
                   "filter_bittable_exists(%s,%s,0);\n",
-                  bittable_name,
+                  fdb_bittable_name,
                   source);
           break;
         }
@@ -620,7 +630,7 @@ consume_tag_filter(FILE*fd,
         {
           fprintf(fd,
                   "filter_bittable_not_exists(%s,%s,0);\n",
-                  bittable_name,
+                  fdb_bittable_name,
                   source);
           break;
         }
@@ -641,12 +651,12 @@ consume_tag_filter(FILE*fd,
 
 void
 consume_component_filter(FILE*fd, 
-        const fcc_operator_t* component_filter,
-        const char* source,
-        const fcc_operator_t* caller)
+                         const fcc_operator_t* component_filter,
+                         const char* source,
+                         const fcc_operator_t* caller)
 {
   FCC_CONTEXT_REPORT_COMPILATION_ERROR(fcc_compilation_error_type_t::E_INVALID_COLUMN_TYPE,
-                                                     "Component filter not yet implemented");
+                                       "Component filter not yet implemented");
   // if ...
   fcc_subplan_t* subplan = component_filter->p_subplan;
   consume(fd,
@@ -664,7 +674,8 @@ consume_predicate_filter(FILE*fd,
   // if ...
   fprintf(fd,"\n");
   int param_index = 0;
-  for(uint32_t i = 0; i < predicate_filter->m_columns.size(); ++i)  
+  uint32_t ncols = predicate_filter->m_num_columns;
+  for(uint32_t i = 0; i < ncols; ++i)  
   {
     const fcc_column_t* column = &predicate_filter->m_columns[i];
     if(column->m_type == fcc_column_type_t::E_ID)
@@ -682,36 +693,36 @@ consume_predicate_filter(FILE*fd,
 
     switch(column->m_type)
     {
-     case fcc_column_type_t::E_COMPONENT:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s*,data_%d,64) = (%s*)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    case fcc_column_type_t::E_REFERENCE:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s**, data_%d, 64) = (%s**)(block_cluster_get_tblock(%s, %d)->p_data);\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    case fcc_column_type_t::E_GLOBAL:
-      fprintf(fd,
-              "FURIOUS_ALIGNED(%s*, data_%d, 64) = (%s*)(block_cluster_get_global(%s, %d));\n", 
-              tmp, 
-              param_index, 
-              tmp, 
-              source, 
-              param_index);
-      break;
-    default:
-      FURIOUS_ASSERT(false && "Should not reach this point");
-      break;
+      case fcc_column_type_t::E_COMPONENT:
+        fprintf(fd,
+                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      case fcc_column_type_t::E_REFERENCE:
+        fprintf(fd,
+                "FDB_ALIGNED(%s**, data_%d, 64) = (%s**)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      case fcc_column_type_t::E_GLOBAL:
+        fprintf(fd,
+                "FDB_ALIGNED(%s*, data_%d, 64) = (%s*)(fdb_bcluster_get_global(%s, %d));\n", 
+                tmp, 
+                param_index, 
+                tmp, 
+                source, 
+                param_index);
+        break;
+      default:
+        FDB_ASSERT(false && "Should not reach this point");
+        break;
     }
     param_index++;
   }
@@ -739,10 +750,10 @@ consume_predicate_filter(FILE*fd,
                          2048);
 
   fprintf(fd,
-          "for(uint32_t i = 0; i < FURIOUS_TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
+          "for(uint32_t i = 0; i < FDB_TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
           source);
   fprintf(fd,
-          "bitmap_set_bit(&%s->m_enabled, i, bitmap_is_set(&%s->m_enabled, i) && %s(",
+          "fdb_bitmap_set_bit(&%s->m_enabled, i, fdb_bitmap_is_set(&%s->m_enabled, i) && %s(",
           source,
           source,
           func_name);
@@ -764,11 +775,11 @@ consume_predicate_filter(FILE*fd,
       fprintf(fd,"data_0");
       break;
     default:
-      FURIOUS_ASSERT(false && "Should not reach this point");
+      FDB_ASSERT(false && "Should not reach this point");
       break;
   }
 
-  for(size_t i = 1; i < predicate_filter->m_columns.size(); ++i)
+  for(size_t i = 1; i < ncols; ++i)
   {
     const fcc_column_t* column = &predicate_filter->m_columns[i];
     switch(column->m_type)
@@ -786,7 +797,7 @@ consume_predicate_filter(FILE*fd,
         fprintf(fd,",data_%zu", i);
         break;
       default:
-        FURIOUS_ASSERT(false && "Should not reach this point");
+        FDB_ASSERT(false && "Should not reach this point");
         break;
     }
   }
@@ -805,9 +816,9 @@ consume_predicate_filter(FILE*fd,
 
 void
 consume_gather(FILE*fd, 
-        const fcc_operator_t* gather,
-        const char* source,
-        const fcc_operator_t* caller)
+               const fcc_operator_t* gather,
+               const char* source,
+               const fcc_operator_t* caller)
 {
   fcc_subplan_t* subplan = gather->p_subplan;
 
@@ -815,12 +826,11 @@ consume_gather(FILE*fd,
   {
     // FILLING UP TEMPORAL TABLES
     fprintf(fd,
-            "gather(%s,&hash_tables, chunk_size, stride",
-            source);
-
+            "fdb_table_t* temp_tables[] = {");
     fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
-    DynArray<fcc_column_t>& child_columns = child->m_columns;
-    for(uint32_t i = 0; i < child_columns.size(); ++i)
+    fcc_column_t* child_columns = child->m_columns;
+    uint32_t ncols = child->m_num_columns;
+    for(uint32_t i = 0; i < ncols; ++i)
     {
       fcc_column_t* column = &child_columns[i];
       char ctype[FCC_MAX_TYPE_NAME];
@@ -834,10 +844,15 @@ consume_gather(FILE*fd,
                                gather);
 
 
-      fprintf(fd,",&%s",
+      fprintf(fd,"%s, ",
               tablename);
     }
-    fprintf(fd,");\n");
+    fprintf(fd,"nullptr};\n");
+
+    fprintf(fd,
+            "gather(%s,hash_tables, chunk_size, stride, temp_tables, %d);\n",
+            source,
+            ncols);
   }
   else
   {
@@ -848,18 +863,18 @@ consume_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
 
     fprintf(fd, 
-            "block_cluster_append(cluster, %s);\n", 
+            "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -876,19 +891,19 @@ consume_cascading_gather(FILE*fd,
   if(caller->m_id == casc_gather->m_cascading_gather.m_ref_table) 
   {
     fprintf(fd,
-            "find_roots_and_blacklist(%s, next_frontier_%u, partial_blacklist_%u);\n", 
+            "find_roots_and_blacklist(%s, &next_frontier_%u, &partial_blacklist_%u);\n", 
             source,
             casc_gather->m_id,
             casc_gather->m_id);
 
     // FILLING UP TEMPORAL TABLES
     fprintf(fd,
-            "gather(%s,&hash_tables, chunk_size, stride",
-            source);
+            "fdb_table_t* temp_tables[] = {");
 
     fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
-    DynArray<fcc_column_t>& child_columns = child->m_columns;
-    for(uint32_t i = 0; i < child_columns.size(); ++i)
+    fcc_column_t* child_columns = child->m_columns;
+    uint32_t ncols = child->m_num_columns;
+    for(uint32_t i = 0; i < ncols; ++i)
     {
       fcc_column_t* column = &child_columns[i];
       char ctype[FCC_MAX_TYPE_NAME];
@@ -902,10 +917,15 @@ consume_cascading_gather(FILE*fd,
                                casc_gather);
 
 
-      fprintf(fd,",&%s",
+      fprintf(fd,"%s, ",
               tablename);
     }
-    fprintf(fd,");\n");
+    fprintf(fd,"nullptr};\n");
+
+    fprintf(fd,
+            "gather(%s, hash_tables, chunk_size, stride, temp_tables, %d);\n",
+            source,
+            ncols);
 
     char hashtable[FCC_MAX_HASHTABLE_VARNAME];
     generate_hashtable_name(casc_gather,
@@ -914,18 +934,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
 
     fprintf(fd, 
-            "block_cluster_append(cluster, %s);\n", 
+            "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "btree_insert(&ref_%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&ref_%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -938,18 +958,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "block_cluster_t* cluster = (block_cluster_t*)mem_alloc(&task_allocator, 64, sizeof(block_cluster_t), %s->m_start / FURIOUS_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "*cluster = block_cluster_create(&task_allocator);\n");
+            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
 
     fprintf(fd, 
-            "block_cluster_append(cluster, %s);\n", 
+            "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "btree_insert(&%s, %s->m_start / FURIOUS_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
 
@@ -957,4 +977,3 @@ consume_cascading_gather(FILE*fd,
   }
 }
 
-} /* furious */ 

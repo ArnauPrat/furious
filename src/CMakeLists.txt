@@ -3,75 +3,75 @@ include_directories(./)
 
 set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/memory/memory.h
-  ${CMAKE_SOURCE_DIR}/src/common/memory/memory.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/memory/memory.c
+  ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.c
   ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.h
+  ${CMAKE_SOURCE_DIR}/src/common/memory/pool_allocator.c
+  ${CMAKE_SOURCE_DIR}/src/common/memory/pool_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/common/memory/stack_allocator.c
+  ${CMAKE_SOURCE_DIR}/src/common/memory/stack_allocator.h
   ${CMAKE_SOURCE_DIR}/src/common/mutex.h
-  ${CMAKE_SOURCE_DIR}/src/common/mutex.cpp
-  ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
-  ${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
-  ${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
-  ${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
-  ${CMAKE_SOURCE_DIR}/src/common/bitmap.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/mutex.c
+  #${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
+  #${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
+  #${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
+  #${CMAKE_SOURCE_DIR}/src/common/dyn_array.inl
+  ${CMAKE_SOURCE_DIR}/src/common/bitmap.c
   ${CMAKE_SOURCE_DIR}/src/common/bitmap.h
   ${CMAKE_SOURCE_DIR}/src/common/btree.h
-  ${CMAKE_SOURCE_DIR}/src/common/btree.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/btree.c
   ${CMAKE_SOURCE_DIR}/src/common/common.h
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
-  ${CMAKE_SOURCE_DIR}/src/common/reference.h
-  ${CMAKE_SOURCE_DIR}/src/common/hashtable.cpp
+  #${CMAKE_SOURCE_DIR}/src/common/reference.h
+  ${CMAKE_SOURCE_DIR}/src/common/hashtable.c
   ${CMAKE_SOURCE_DIR}/src/common/hashtable.h
-  ${CMAKE_SOURCE_DIR}/src/common/str_builder.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/str_builder.c
   ${CMAKE_SOURCE_DIR}/src/common/str_builder.h
   ${CMAKE_SOURCE_DIR}/src/common/types.h
-  ${CMAKE_SOURCE_DIR}/src/common/utils.cpp
+  ${CMAKE_SOURCE_DIR}/src/common/utils.c
   ${CMAKE_SOURCE_DIR}/src/common/utils.h
   )
 
 set (RUNTIME_SRC
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/bit_table.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/bit_table.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/context.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/context.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/context.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/data_utils.inl
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/database.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/database.inl
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/entity.inl
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.cpp
+  #${CMAKE_SOURCE_DIR}/src/runtime/data/entity.c
+  #${CMAKE_SOURCE_DIR}/src/runtime/data/entity.h
+  #${CMAKE_SOURCE_DIR}/src/runtime/data/entity.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/macros.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/table.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.inl
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/reftable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/reftable.h
+  #${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.h
+  #${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.c
   ${CMAKE_SOURCE_DIR}/src/runtime/runtime.h
   #${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.h
   #${CMAKE_SOURCE_DIR}/src/runtime/system_wrapper.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/task/task.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/task/task.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/stack_allocator.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/stack_allocator.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/pool_allocator.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/memory/pool_allocator.cpp
-  ${CMAKE_SOURCE_DIR}/src/runtime/log/log.cpp
+  ${CMAKE_SOURCE_DIR}/src/runtime/task/task.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/log/log.c
   )
 
 
 add_library(furious SHARED
   furious.h
-  furious.cpp
+  furious.c
   ${COMMON_SRC}
   ${RUNTIME_SRC}
   )  

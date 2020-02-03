@@ -1,12 +1,18 @@
 
 #include "operator.h"
 #include "../driver.h"
-#include "../common/dyn_array.inl"
 
 #include <string.h>
 
-namespace furious 
+static void
+copy_columns(fcc_operator_t* dst, const fcc_operator_t* src)
 {
+  for (uint32_t i = 0; i < src->m_num_columns; ++i) 
+  {
+    FDB_ASSERT(dst->m_num_columns < FCC_MAX_OPERATOR_NUM_COLUMNS && "Maximum number of columns in operator exceeded");
+    dst->m_columns[dst->m_num_columns++] = src->m_columns[i];
+  }
+}
 
 
 static uint32_t
@@ -14,15 +20,15 @@ create_operator(fcc_subplan_t* subplan,
                 fcc_operator_type_t operator_type,
                 const char* name)
 {
-  subplan->m_nodes.append(fcc_operator_t());
-  uint32_t id = subplan->m_nodes.size()-1;
-  fcc_operator_t* op = &subplan->m_nodes[id];
+  fcc_operator_t* op = &subplan->m_nodes[subplan->m_num_nodes];
   op->p_subplan = subplan;
-  op->m_id = id;
+  op->m_id = subplan->m_num_nodes;
   op->m_type = operator_type;
-  op->m_parent = _FURIOUS_COMPILER_INVALID_ID;
-  FURIOUS_COPY_AND_CHECK_STR(op->m_name, name, _FURIOUS_COMPILER_MAX_OPERATOR_NAME);
-  return id;
+  op->m_parent = FCC_INVALID_ID;
+  op->m_num_columns = 0;
+  subplan->m_num_nodes++;
+  FDB_COPY_AND_CHECK_STR(op->m_name, name, FCC_MAX_OPERATOR_NAME);
+  return op->m_id;
 }
 
 
@@ -41,7 +47,8 @@ create_scan(fcc_subplan_t* subplan,
   column.m_type = fcc_column_type_t::E_COMPONENT;
   column.m_component_type = component;
   column.m_access_mode = access_mode;
-  op->m_columns.append(column);
+  op->m_columns[op->m_num_columns++] = column;
+  FDB_ASSERT(op->m_num_columns < FCC_MAX_OPERATOR_NUM_COLUMNS && "Maximum number of columns in operator exceeded");
   return id;
 }
 
@@ -57,9 +64,10 @@ create_scan(fcc_subplan_t* subplan,
   fcc_operator_t* op = &subplan->m_nodes[id];
   fcc_column_t column;
   column.m_type = fcc_column_type_t::E_ID;
-  FURIOUS_COPY_AND_CHECK_STR(column.m_ref_name, ref_name, FCC_MAX_REF_NAME);
+  FDB_COPY_AND_CHECK_STR(column.m_ref_name, ref_name, FCC_MAX_REF_NAME);
   column.m_access_mode = fcc_access_mode_t::E_READ;
-  op->m_columns.append(column);
+  op->m_columns[op->m_num_columns++] = column;
+  FDB_ASSERT(op->m_num_columns < FCC_MAX_OPERATOR_NUM_COLUMNS && "Maximum number of columns in operator exceeded");
   return id;
 }
 
@@ -77,7 +85,8 @@ create_fetch(fcc_subplan_t* subplan,
   column.m_access_mode = access_mode;
   column.m_component_type = global_type;
   column.m_type = fcc_column_type_t::E_GLOBAL;
-  op->m_columns.append(column);
+  op->m_columns[op->m_num_columns++] = column;
+  FDB_ASSERT(op->m_num_columns < FCC_MAX_OPERATOR_NUM_COLUMNS && "Maximum number of columns in operator exceeded");
   return id;
 }
 
@@ -94,8 +103,8 @@ create_join(fcc_subplan_t* subplan,
 
   subplan->m_nodes[left].m_parent = id;
   subplan->m_nodes[right].m_parent = id;
-  op->m_columns.append(subplan->m_nodes[left].m_columns);
-  op->m_columns.append(subplan->m_nodes[right].m_columns);
+  copy_columns(op, &subplan->m_nodes[left]);
+  copy_columns(op, &subplan->m_nodes[right]);
   op->m_join.m_left = left;
   op->m_join.m_right = right;
   return id;
@@ -114,7 +123,7 @@ create_leftfilter_join(fcc_subplan_t* subplan,
 
   subplan->m_nodes[left].m_parent = id;
   subplan->m_nodes[right].m_parent = id;
-  op->m_columns.append(subplan->m_nodes[left].m_columns);
+  copy_columns(op, &subplan->m_nodes[left]);
   op->m_leftfilter_join.m_left = left;
   op->m_leftfilter_join.m_right = right;
   return id;
@@ -133,8 +142,8 @@ create_cross_join(fcc_subplan_t* subplan,
 
   subplan->m_nodes[left].m_parent = id;
   subplan->m_nodes[right].m_parent = id;
-  op->m_columns.append(subplan->m_nodes[left].m_columns);
-  op->m_columns.append(subplan->m_nodes[right].m_columns);
+  copy_columns(op, &subplan->m_nodes[left]);
+  copy_columns(op, &subplan->m_nodes[right]);
   op->m_cross_join.m_left = left;
   op->m_cross_join.m_right = right;
   return id;
@@ -153,7 +162,7 @@ create_predicate_filter(fcc_subplan_t* subplan,
   subplan->m_nodes[child].m_parent = id;
   op->m_predicate_filter.m_child = child;
   op->m_predicate_filter.m_func_decl = filter_func;
-  op->m_columns.append(subplan->m_nodes[child].m_columns);
+  copy_columns(op, &subplan->m_nodes[child]);
   return id;
 }
 
@@ -168,12 +177,12 @@ create_tag_filter(fcc_subplan_t* subplan,
                                 fcc_operator_type_t::E_TAG_FILTER, 
                                 "TagFilter");
   fcc_operator_t* op = &subplan->m_nodes[id];
-  FURIOUS_COPY_AND_CHECK_STR(op->m_tag_filter.m_tag, tag, FCC_MAX_TAG_NAME);
+  FDB_COPY_AND_CHECK_STR(op->m_tag_filter.m_tag, tag, FCC_MAX_TAG_NAME);
   subplan->m_nodes[child].m_parent = id;
   op->m_tag_filter.m_child = child;
   op->m_tag_filter.m_op_type = op_type;
   op->m_tag_filter.m_on_column = on_column;
-  op->m_columns.append(subplan->m_nodes[child].m_columns);
+  copy_columns(op, &subplan->m_nodes[child]);
   return id;
 }
 
@@ -193,7 +202,7 @@ create_component_filter(fcc_subplan_t* subplan,
   op->m_component_filter.m_child = child;
   op->m_component_filter.m_op_type = op_type;
   op->m_component_filter.m_on_column = on_column;
-  op->m_columns.append(subplan->m_nodes[child].m_columns);
+  copy_columns(op, &subplan->m_nodes[child]);
   return id;
 }
 
@@ -207,11 +216,11 @@ create_foreach(fcc_subplan_t* subplan,
                                 "Foreach");
   fcc_operator_t* op = &subplan->m_nodes[id];
   op->m_foreach.p_system = system;
-  if(child != _FURIOUS_COMPILER_INVALID_ID)
+  if(child != FCC_INVALID_ID)
   {
     op->m_foreach.m_child = child;
     subplan->m_nodes[child].m_parent = id;
-    op->m_columns.append(subplan->m_nodes[child].m_columns);
+    copy_columns(op, &subplan->m_nodes[child]);
   }
   return id;
 }
@@ -229,8 +238,8 @@ create_gather(fcc_subplan_t* subplan,
   subplan->m_nodes[ref_table].m_parent = id;
   op->m_gather.m_child = child;
   op->m_gather.m_ref_table = ref_table;
-  op->m_columns.append(subplan->m_nodes[child].m_columns);
-  for(uint32_t i = 0; i < op->m_columns.size();++i)
+  copy_columns(op, &subplan->m_nodes[child]);
+  for(uint32_t i = 0; i < op->m_num_columns;++i)
   {
     op->m_columns[i].m_type = fcc_column_type_t::E_REFERENCE;
   }
@@ -250,8 +259,8 @@ create_cascading_gather(fcc_subplan_t* subplan,
   subplan->m_nodes[ref_table].m_parent = id;
   op->m_cascading_gather.m_child = child;
   op->m_cascading_gather.m_ref_table = ref_table;
-  op->m_columns.append(subplan->m_nodes[child].m_columns);
-  for(uint32_t i = 0; i < op->m_columns.size();++i)
+  copy_columns(op, &subplan->m_nodes[child]);
+  for(uint32_t i = 0; i < op->m_num_columns;++i)
   {
     op->m_columns[i].m_type = fcc_column_type_t::E_REFERENCE;
   }
@@ -272,7 +281,7 @@ apply_predicate_filters(fcc_subplan_t* subplan,
   uint32_t local_root = root;
 
   // Create predicate filters
-  for(uint32_t i = 0; i < entity_match->m_filter_func.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nfuncs; ++i)
   {
     local_root = create_predicate_filter(subplan,
                                          local_root, 
@@ -291,7 +300,7 @@ apply_filters(fcc_subplan_t* subplan,
   uint32_t local_root = root;
 
   // Create without Tag Filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_not_tags; ++i)
   {
     local_root = create_tag_filter(subplan,
                                    local_root, 
@@ -300,7 +309,7 @@ apply_filters(fcc_subplan_t* subplan,
   }
 
   // Create with tag filters
-  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_tags; ++i)
   {
     local_root = create_tag_filter(subplan,
                                    local_root, 
@@ -309,7 +318,7 @@ apply_filters(fcc_subplan_t* subplan,
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_not_components; ++i)
   {
     local_root = create_component_filter(subplan,
                                          local_root, 
@@ -318,7 +327,7 @@ apply_filters(fcc_subplan_t* subplan,
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_components; ++i)
   {
     local_root = create_component_filter(subplan,
                                          local_root, 
@@ -339,7 +348,7 @@ apply_filters_reference(fcc_subplan_t* subplan,
   uint32_t local_root = root;
 
   // Create without Tag Filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_tags.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_not_tags; ++i)
   {
     local_root = create_tag_filter(subplan,
                                    local_root, 
@@ -349,7 +358,7 @@ apply_filters_reference(fcc_subplan_t* subplan,
   }
 
   // Create with tag filters
-  for(uint32_t i = 0; i < entity_match->m_has_tags.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_tags; ++i)
   {
     local_root = create_tag_filter(subplan,
                                    local_root, 
@@ -359,7 +368,7 @@ apply_filters_reference(fcc_subplan_t* subplan,
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_not_components.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_not_components; ++i)
   {
     local_root = create_component_filter(subplan,
                                          local_root, 
@@ -369,7 +378,7 @@ apply_filters_reference(fcc_subplan_t* subplan,
   }
 
   // Create with components filters
-  for(uint32_t i = 0; i < entity_match->m_has_components.size(); ++i)
+  for(uint32_t i = 0; i < entity_match->m_nhas_components; ++i)
   {
     local_root = create_component_filter(subplan,
                                          local_root, 
@@ -385,49 +394,50 @@ subplan_init(const fcc_stmt_t* match,
              fcc_subplan_t* subplan)
 {
   *subplan = {0};
-  uint32_t root = _FURIOUS_COMPILER_INVALID_ID;
+  uint32_t root = FCC_INVALID_ID;
   subplan->m_requires_sync = false;
 
-  int32_t size = match->p_entity_matches.size();
-  for(int32_t i = size - 1; i >= 0; --i)
+  int32_t nematches = match->m_ematches.m_count;
+  fcc_entity_match_t** const  ematches = match->m_ematches.m_data;
+  for(int32_t i = nematches - 1; i >= 0; --i)
   {
-    fcc_entity_match_t* entity_match = match->p_entity_matches[i];
-    uint32_t num_components = entity_match->m_component_types.size();
-    uint32_t local_root = _FURIOUS_COMPILER_INVALID_ID;
+    fcc_entity_match_t* entity_match = ematches[i];
+    uint32_t num_components = entity_match->m_ncmatches;
+    uint32_t local_root = FCC_INVALID_ID;
     for(uint32_t j = 0; j < num_components; ++j)
     {
-      fcc_component_match_t* match_type = &entity_match->m_component_types[j];
+      fcc_component_match_t* match_type = &entity_match->m_cmatches[j];
 
       fcc_access_mode_t access_mode = match_type->m_is_read_only ? fcc_access_mode_t::E_READ : fcc_access_mode_t::E_READ_WRITE;
-      if(local_root == _FURIOUS_COMPILER_INVALID_ID)
+      if(local_root == FCC_INVALID_ID)
       {
         if(match_type->m_is_global)
         {
           local_root = create_fetch(subplan,
-                                    entity_match->m_component_types[j].m_type, 
+                                    entity_match->m_cmatches[j].m_type, 
                                     access_mode);
         }
         else
         {
           local_root = create_scan(subplan,
-                                   entity_match->m_component_types[j].m_type, 
+                                   entity_match->m_cmatches[j].m_type, 
                                    access_mode);
         }
       }
       else 
       {
-        uint32_t right = _FURIOUS_COMPILER_INVALID_ID;
+        uint32_t right = FCC_INVALID_ID;
         if(match_type->m_is_global)
         {
           right = create_fetch(subplan,
-                               entity_match->m_component_types[j].m_type, 
+                               entity_match->m_cmatches[j].m_type, 
                                access_mode);
 
         }
         else
         {
           right = create_scan(subplan,
-                              entity_match->m_component_types[j].m_type, 
+                              entity_match->m_cmatches[j].m_type, 
                               access_mode);
 
         }
@@ -449,7 +459,7 @@ subplan_init(const fcc_stmt_t* match,
       }
     }
 
-    if(local_root != _FURIOUS_COMPILER_INVALID_ID)
+    if(local_root != FCC_INVALID_ID)
     {
       local_root = apply_filters(subplan,
                                  match, 
@@ -457,7 +467,7 @@ subplan_init(const fcc_stmt_t* match,
                                  local_root);
     }
 
-    bool non_component_expand = local_root == _FURIOUS_COMPILER_INVALID_ID; 
+    bool non_component_expand = local_root == FCC_INVALID_ID; 
     if(entity_match->m_from_expand)
     {
       uint32_t ref_scan = create_scan(subplan,
@@ -468,11 +478,11 @@ subplan_init(const fcc_stmt_t* match,
         bool cascading = false;
         for(uint32_t j = 0; j < num_components; ++j)
         {
-          fcc_type_t expand_type = entity_match->m_component_types[j].m_type;
-          uint32_t num_match_components = match->p_entity_matches[match->p_entity_matches.size()-1]->m_component_types.size();
+          fcc_type_t expand_type = entity_match->m_cmatches[j].m_type;
+          uint32_t num_match_components = ematches[nematches-1]->m_ncmatches;
           for(uint32_t k = 0; k < num_match_components; ++k)
           {
-            fcc_type_t match_type = match->p_entity_matches[match->p_entity_matches.size()-1]->m_component_types[k].m_type;
+            fcc_type_t match_type = ematches[nematches-1]->m_cmatches[k].m_type;
 
             char expand_type_name[FCC_MAX_TYPE_NAME];
             fcc_type_name(expand_type, 
@@ -517,7 +527,7 @@ subplan_init(const fcc_stmt_t* match,
       }
     }
 
-    if(root == _FURIOUS_COMPILER_INVALID_ID)
+    if(root == FCC_INVALID_ID)
     {
       root = local_root;
     }
@@ -568,6 +578,4 @@ subplan_init(const fcc_stmt_t* match,
 void 
 subplan_release(fcc_subplan_t* subplan)
 {
-}
-
 }

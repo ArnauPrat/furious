@@ -3,67 +3,72 @@
 #include "furious.h"
 
 #include <gtest/gtest.h>
-#include <set>
-#include <vector>
-#include <iostream>
 
-namespace furious
-{
   
 
 TEST(FilterTagTest, FilterTagTest ) 
 {
-  database_t database = database_create();
-  database_start_webserver(&database, 
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
+  fdb_database_start_webserver(&database, 
                            "localhost", 
                            "8080");
-  furious::furious_init(&database);
+  furious_init(&database);
 
-  std::vector<furious::Entity> entities;
-  for(uint32_t i = 0; i < 1000; ++i)
+  fdb_table_t* pos_table = FDB_FIND_TABLE(&database, Position);
+  fdb_table_t* vel_table = FDB_FIND_TABLE(&database, Velocity);
+  fdb_bittable_t* aff_table = FDB_FIND_TAG_TABLE(&database, "affected");
+  fdb_bittable_t* naff_table = FDB_FIND_TAG_TABLE(&database, "not_affected");
+
+  entity_id_t NUM_ENTITIES = 1000;
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
   {
-    furious::Entity entity = FURIOUS_CREATE_ENTITY(&database);
-    FURIOUS_ADD_COMPONENT(entity, Position, 0.0f, 0.0f, 0.0f);
-    FURIOUS_ADD_COMPONENT(entity, Velocity, 1.0f, 1.0f, 1.0f);
-    if(entity.m_id % 2 == 0)
+    Position* pos = FDB_ADD_COMPONENT(pos_table, Position, i);
+    pos->m_x = 0.0f;
+    pos->m_y = 0.0f;
+    pos->m_z = 0.0f;
+
+    Velocity* vel = FDB_ADD_COMPONENT(vel_table, Velocity, i);
+    vel->m_x = 1.0f;
+    vel->m_y = 1.0f;
+    vel->m_z = 1.0f;
+
+    if(i % 2 == 0)
     {
-      entity.add_tag("affected");
+      FDB_ADD_TAG(aff_table, i);
     }
 
-    if(entity.m_id % 6 == 0)
+    if(i % 6 == 0)
     {
-      entity.add_tag("not_affected");
-    }
-
-    entities.push_back(entity);
-  }
-
-  furious::furious_frame(0.1f, &database, nullptr);
-
-  for(furious::Entity& entity : entities)
-  {
-    Position* position = FURIOUS_GET_COMPONENT(entity,Position);
-
-    if(entity.m_id % 2 == 0 && entity.m_id % 6 != 0)
-    {
-      ASSERT_EQ(position->m_x, 0.1f);
-      ASSERT_EQ(position->m_y, 0.1f);
-      ASSERT_EQ(position->m_z, 0.1f);
-    }
-
-    if(entity.m_id % 6 == 0 || entity.m_id % 2 != 0)
-    {
-      ASSERT_EQ(position->m_x , 0.0f);
-      ASSERT_EQ(position->m_y , 0.0f);
-      ASSERT_EQ(position->m_z , 0.0f);
+      FDB_ADD_TAG(naff_table, i);
     }
 
   }
-  furious::furious_release();
-  database_destroy(&database);
+
+  furious_frame(0.1f, &database, nullptr);
+
+  for(entity_id_t i = 0; i < NUM_ENTITIES; ++i)
+  {
+    Position* pos = FDB_GET_COMPONENT(pos_table,Position,i);
+
+    if(i % 2 == 0 && i % 6 != 0)
+    {
+      ASSERT_EQ(pos->m_x, 0.1f);
+      ASSERT_EQ(pos->m_y, 0.1f);
+      ASSERT_EQ(pos->m_z, 0.1f);
+    }
+
+    if(i % 6 == 0 || i % 2 != 0)
+    {
+      ASSERT_EQ(pos->m_x , 0.0f);
+      ASSERT_EQ(pos->m_y , 0.0f);
+      ASSERT_EQ(pos->m_z , 0.0f);
+    }
+
+  }
+  furious_release();
+  fdb_database_release(&database);
 }
-
-} /* furious */ 
 
 int main(int argc, char *argv[])
 {

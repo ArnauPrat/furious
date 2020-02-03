@@ -15,17 +15,13 @@
 #include "../../../common/common.h"
 #include "../../../common/str_builder.h"
 #include "../../driver.h"
+#include "../../dyn_array.h"
 
-#include "../common/dyn_array.inl"
-
-#include "string.h"
+#include <string.h>
 
 using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
-
-namespace furious
-{
 
 static cl::OptionCategory fccToolCategory("fcc options");
 static cl::opt<std::string> output_file("o", cl::cat(fccToolCategory));
@@ -226,29 +222,30 @@ fcc_decl_code(fcc_decl_t decl,
       FunctionDecl* func_decl = cast<FunctionDecl>((Decl*)decl);
       if(fcc_decl_is_member(decl))
       {
-        str_builder_t str_builder = str_builder_create();
+        fdb_str_builder_t str_builder;
+        fdb_str_builder_init(&str_builder);
 
-        str_builder_append(&str_builder, "auto predicate = [] (");
+        fdb_str_builder_append(&str_builder, "auto predicate = [] (");
         auto array = func_decl->parameters();
         char tmp[FCC_MAX_TYPE_NAME];
         get_type_name(array[0]->getType(), tmp, FCC_MAX_TYPE_NAME);
-        str_builder_append(&str_builder, "%s%s", tmp, array[0]->getNameAsString().c_str());
+        fdb_str_builder_append(&str_builder, "%s%s", tmp, array[0]->getNameAsString().c_str());
 
         for(size_t i = 1; i < array.size(); ++i)
         {
           get_type_name(array[i]->getType(), tmp, FCC_MAX_TYPE_NAME);
-          str_builder_append(&str_builder, ",%s%s", tmp, array[i]->getNameAsString().c_str());
+          fdb_str_builder_append(&str_builder, ",%s%s", tmp, array[i]->getNameAsString().c_str());
         }
         std::string function_body = get_code(func_decl->getASTContext().getSourceManager(),
                                              func_decl->getSourceRange());
         
-        str_builder_append(&str_builder, "%s;\n", function_body.c_str());
+        fdb_str_builder_append(&str_builder, "%s;\n", function_body.c_str());
         const uint32_t total_length = str_builder.m_pos;
         if(total_length < buffer_length)
         {
           strncpy(buffer, str_builder.p_buffer, buffer_length);
         }
-        str_builder_destroy(&str_builder);
+        fdb_str_builder_release(&str_builder);
         return total_length;
       } 
       else
@@ -291,7 +288,7 @@ fcc_decl_function_name(fcc_decl_t decl,
     {
       FunctionDecl* clang_decl = cast<FunctionDecl>((Decl*)decl);
       std::string name = clang_decl->getName();
-      FURIOUS_COPY_AND_CHECK_STR(buffer, name.c_str(), buffer_length);
+      FDB_COPY_AND_CHECK_STR(buffer, name.c_str(), buffer_length);
       return name.length();
     }
   }
@@ -311,24 +308,25 @@ fcc_decl_code_available(fcc_decl_t decl)
 }
 
 
-DynArray<Dependency> 
-fcc_type_dependencies(fcc_type_t type)
+void
+fcc_type_dependencies(fcc_type_t type, 
+                      fcc_depcy_array_t* deps)
 {
   fcc_decl_t decl;
   decl = nullptr;
   if(fcc_type_decl(type, &decl))
   {
-    return fcc_decl_dependencies(decl);
+    fcc_decl_dependencies(decl, deps);
   }
-  return DynArray<Dependency>();
 }
 
 
-DynArray<Dependency> 
-fcc_decl_dependencies(fcc_decl_t decl)
+void
+fcc_decl_dependencies(fcc_decl_t decl,
+                      fcc_depcy_array_t* deps)
 {
   Decl* clang_decl = (Decl*)decl;
-  return get_dependencies(clang_decl);
+  return get_dependencies(clang_decl, deps);
 }
 
 uint32_t
@@ -431,7 +429,7 @@ get_filename(const SourceManager& sm,
              uint32_t buffer_length)
 {
   std::string filename = sm.getFilename(location);
-  FURIOUS_COPY_AND_CHECK_STR(buffer, filename.c_str(), buffer_length);
+  FDB_COPY_AND_CHECK_STR(buffer, filename.c_str(), buffer_length);
   return filename.length();
 }
 
@@ -458,6 +456,3 @@ fcc_expr_code_location(fcc_expr_t expr,
   return filename_length;
 }
 
-
-  
-} /* furious */ 

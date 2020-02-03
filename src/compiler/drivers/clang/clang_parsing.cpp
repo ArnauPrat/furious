@@ -7,9 +7,7 @@
 #include "fcc_context.h"
 #include <string.h>
 
-
-namespace furious 
-{
+#include "../../dyn_array.h"
 
 void
 report_parsing_error(const SourceManager& sm,
@@ -132,8 +130,9 @@ process_match(ASTContext* ast_context,
                    location);
 #endif
 
-  const DynArray<fcc_entity_match_t*>& e_matches = stmt->p_entity_matches;
-  fcc_entity_match_t* entity_match = e_matches[e_matches.size()-1];
+  fcc_entity_match_t** e_matches = stmt->m_ematches.m_data;
+  uint32_t nematches = stmt->m_ematches.m_count;
+  fcc_entity_match_t* entity_match = e_matches[nematches-1];
 
   const FunctionDecl* function_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = function_decl->getTemplateSpecializationArgs();
@@ -144,13 +143,13 @@ process_match(ASTContext* ast_context,
   // set read the scope from the expand types and propagate to the match types
   // in the system
   uint32_t num_consumed = 0;
-  for(uint32_t i = 0; i < e_matches.size() - 1; ++i)
+  for(uint32_t i = 0; i < nematches - 1; ++i)
   {
-    num_consumed+=e_matches[i]->m_component_types.size();
+    num_consumed+=e_matches[i]->m_ncmatches;
   }
 
-  DynArray<fcc_component_match_t>& e_match_types = stmt->p_system->m_component_types;
-  uint32_t num_system_args = e_match_types.size();
+  fcc_component_match_t* e_match_types = stmt->p_system->m_cmatches;
+  uint32_t num_system_args = stmt->p_system->m_ncmatches;
   uint32_t begin = num_system_args - (num_consumed + tmplt_types.size());
   uint32_t end = num_system_args - num_consumed;
   for (size_t i = begin, j = 0; i < end; ++i, ++j) 
@@ -159,9 +158,7 @@ process_match(ASTContext* ast_context,
     bool read_only = e_match_types[i].m_is_read_only;
     bool global = is_global(ast_context, tmplt_types[j]);
     e_match_types[i].m_is_global = global;
-    entity_match->m_component_types.append({type,
-                                           read_only,
-                                           global});
+    fcc_entity_match_add_cmatch(entity_match, {type, read_only, global});
   }
   return true;
 }
@@ -184,8 +181,9 @@ process_expand(ASTContext* ast_context,
     return false;
   }
 
-  const DynArray<fcc_entity_match_t*>& e_matches = stmt->p_entity_matches;
-  fcc_entity_match_t* entity_match = e_matches[e_matches.size()-1];
+  fcc_entity_match_t** e_matches = stmt->m_ematches.m_data;
+  uint32_t nematches = stmt->m_ematches.m_count;
+  fcc_entity_match_t* entity_match = e_matches[nematches-1];
 
   const Expr* param_expr = call->getArg(0);
   get_string_literal(param_expr,
@@ -198,8 +196,9 @@ process_expand(ASTContext* ast_context,
                            stmt,
                            call);
 
-  fcc_entity_match_t * ematch = fcc_entity_match_create();
-  stmt->p_entity_matches.append(ematch);
+  fcc_entity_match_t* ematch = new fcc_entity_match_t();
+  *ematch = fcc_entity_match_init();
+  fcc_ematch_ptr_array_append(&stmt->m_ematches, &ematch);
   return res;
 }
 
@@ -219,8 +218,9 @@ process_foreach(ASTContext* ast_context,
   const FunctionDecl* func_decl = call->getDirectCallee();
 
   // Initialize entity_match
-  fcc_entity_match_t * ematch = fcc_entity_match_create();
-  stmt->p_entity_matches.append(ematch);
+  fcc_entity_match_t * ematch = new fcc_entity_match_t;
+  *ematch = fcc_entity_match_init();
+  fcc_ematch_ptr_array_append(&stmt->m_ematches, &ematch);
 
   // Extract Basic Components and System from function return type
   QualType ret_type = func_decl->getReturnType();
@@ -230,6 +230,7 @@ process_foreach(ASTContext* ast_context,
   DynArray<QualType> tmplt_types = get_tmplt_types(arg_list);
 
   fcc_system_t* system = new fcc_system_t();
+  *system = {};
   system->m_id = system_id;
   system->m_system_type = push_type(tmplt_types[0]);
   for (size_t i = 1; i < tmplt_types.size(); ++i) 
@@ -240,7 +241,7 @@ process_foreach(ASTContext* ast_context,
                             type);
     QualType* ret_type = push_type(type);
     fcc_type_t fcc_type = ret_type;
-    system->m_component_types.append({fcc_type, read_only, global});
+    fcc_system_add_cmatch(system, {fcc_type, read_only, global});
   }
 
   // Extract System constructor parameter expressions
@@ -250,7 +251,7 @@ process_foreach(ASTContext* ast_context,
     const Expr* arg_expr = call->getArg(i);
     fcc_expr_t expr;
     expr = (void*)push_expr(ast_context, arg_expr);
-    system->m_ctor_params.append(expr);
+    fcc_system_add_ctor_param(system, expr);
   }
   stmt->p_system = system;
   system_id++;
@@ -285,7 +286,7 @@ process_set_post_frame(ASTContext* ast_context,
     return false;
   }
 
-  stmt->m_place = fcc_match_place_t::E_POST_FRAME;
+  stmt->m_place = fcc_stmt_place_t::E_POST_FRAME;
   return true;
 }
 
@@ -337,12 +338,12 @@ process_filter(ASTContext* ast_context,
   const Expr* argument = call->getArg(0);
   const FunctionDecl* func_decl = nullptr;
   const LambdaExpr* lambda = nullptr;
-  fcc_entity_match_t* entity_match = stmt->p_entity_matches[stmt->p_entity_matches.size()-1];
+  fcc_entity_match_t* entity_match = stmt->m_ematches.m_data[stmt->m_ematches.m_count-1];
   if((lambda = find_first_dfs<LambdaExpr>(argument) ) != nullptr)
   {
     func_decl = lambda->getCallOperator();
     fcc_decl_t fcc_decl = (void*)func_decl;
-    entity_match->m_filter_func.append(fcc_decl);
+    fcc_entity_match_add_filter(entity_match, fcc_decl);
   } 
 
   const DeclRefExpr* decl_ref = nullptr;
@@ -354,7 +355,7 @@ process_filter(ASTContext* ast_context,
       func_decl = cast<FunctionDecl>(decl);
       //printf("found function decl: %ld\n", (long)func_decl);
       fcc_decl_t fcc_decl = (void*)func_decl;
-      entity_match->m_filter_func.append(fcc_decl);
+      fcc_entity_match_add_filter(entity_match, fcc_decl);
     } 
     else if(isa<VarDecl>(decl))
     {
@@ -382,8 +383,7 @@ process_has_tag(ASTContext* ast_context,
                    location);
 #endif
 
-  fcc_entity_match_t* entity_match = stmt->p_entity_matches[stmt->p_entity_matches.size()-1];
-
+  fcc_entity_match_t* entity_match = stmt->m_ematches.m_data[stmt->m_ematches.m_count-1];
   uint32_t num_args = call->getNumArgs();
   for(uint32_t i = 0; i < num_args; ++i)
   {
@@ -391,9 +391,7 @@ process_has_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      char* buffer = new char[FCC_MAX_TAG_NAME];
-      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), FCC_MAX_TAG_NAME);
-      entity_match->m_has_tags.append(buffer);
+      fcc_entity_match_add_has_tag(entity_match, literal->getString().str().c_str());
     } 
     else
     {
@@ -420,7 +418,7 @@ process_has_not_tag(ASTContext* ast_context,
                    "Found has not tag",
                    location);
 #endif
-  fcc_entity_match_t* entity_match = stmt->p_entity_matches[stmt->p_entity_matches.size()-1];
+  fcc_entity_match_t* entity_match = stmt->m_ematches.m_data[stmt->m_ematches.m_count-1];
   uint32_t num_args = call->getNumArgs();
   for(uint32_t i = 0; i < num_args; ++i)
   {
@@ -428,13 +426,10 @@ process_has_not_tag(ASTContext* ast_context,
     const clang::StringLiteral* literal = find_first_dfs<clang::StringLiteral>(arg_expr);
     if(literal != nullptr)
     {
-      char* buffer = new char[FCC_MAX_TAG_NAME];
-      FURIOUS_COPY_AND_CHECK_STR(buffer, literal->getString().str().c_str(), FCC_MAX_TAG_NAME);
-      entity_match->m_has_not_tags.append(buffer);
+      fcc_entity_match_add_has_not_tag(entity_match, literal->getString().str().c_str());
     } 
     else
     {
-
       const SourceManager& sm = ast_context->getSourceManager();
       SourceLocation location = call->getSourceRange().getBegin();
       report_parsing_error(sm,
@@ -458,14 +453,14 @@ process_has_component(ASTContext* ast_context,
                    "Found has component",
                    location);
 #endif
-  fcc_entity_match_t* entity_match = stmt->p_entity_matches[stmt->p_entity_matches.size()-1];
+  fcc_entity_match_t* entity_match = stmt->m_ematches.m_data[stmt->m_ematches.m_count-1];
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) 
   {
     const TemplateArgument& arg = arg_list->get(i); 
     fcc_type_t type = push_type(arg.getAsType());
-    entity_match->m_has_components.append(type);
+    fcc_entity_match_add_has_comp(entity_match, type);
   }
   return true;
 }
@@ -483,15 +478,13 @@ process_has_not_component(ASTContext* ast_context,
                    location);
 #endif
 
-  fcc_entity_match_t* entity_match = stmt->p_entity_matches[stmt->p_entity_matches.size()-1];
+  fcc_entity_match_t* entity_match = stmt->m_ematches.m_data[stmt->m_ematches.m_count-1];
   const FunctionDecl* func_decl = call->getDirectCallee();
   const TemplateArgumentList* arg_list = func_decl->getTemplateSpecializationArgs();
   for (uint32_t i = 0; i < arg_list->size(); ++i) {
     const TemplateArgument& arg = arg_list->get(i); 
     fcc_type_t type =  push_type(arg.getAsType());
-    entity_match->m_has_not_components.append(type);
+    fcc_entity_match_add_has_not_comp(entity_match, type);
   }
   return true;
 }
-
-} /* furious */ 

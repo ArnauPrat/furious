@@ -1,24 +1,23 @@
 
-#ifndef __FURIOUS_LOG_H_
-#define _FURIOUS_LOG_H_ value
+#ifndef _FDB_LOG_H_
+#define _FDB_LOG_H_ value
 
 #include "../../common/str_builder.h"
 
-namespace furious
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-enum log_level_t
+typedef enum fdb_log_level_t
 {
   E_INFO,
   E_WARNING,
   E_ERROR
-};
+} fdb_log_level_t;
 
+typedef void (*fdb_log_func_t) (fdb_log_level_t, const char*);  // hint with the block id of this allocation. -1 indicates no hint
 
-using log_func_t = void (*) (log_level_t, 
-                             const char*);  // hint with the block id of this allocation. -1 indicates no hint
-
-extern log_func_t m_log_function;
+extern fdb_log_func_t m_log_function;
 
 #define FURIOUS_LOG(level, msg, ...) \
   if(m_log_function) \
@@ -30,7 +29,10 @@ extern log_func_t m_log_function;
   }
   
 void
-set_log_function(log_func_t log_function);
+set_log_function(fdb_log_func_t log_function);
+
+#ifdef __cplusplus
+}
+#endif
   
-} /* furious */ 
 #endif /* ifndef _FURIOUS_LOG_H_ */

@@ -2,9 +2,8 @@
 #include "furious.h"
 #include <gtest/gtest.h>
 
-namespace furious {
 
-FURIOUS_BEGIN_COMPONENT(Component, KILOBYTES(4))
+FDB_BEGIN_COMPONENT(Component, KILOBYTES(4))
 
   uint32_t field1_;
   double field2_;
@@ -13,27 +12,27 @@ FURIOUS_BEGIN_COMPONENT(Component, KILOBYTES(4))
     field1_(field1),
     field2_(field2)
   {}
-FURIOUS_END_COMPONENT
+FDB_END_COMPONENT
 
 TEST(DatabaseTest, CreateAndRemoveTable) {
-  database_t database = database_create();
-  database_clear(&database);
-  FURIOUS_CREATE_TABLE(&database, Component);
-  FURIOUS_REMOVE_TABLE(&database, Component);
-  database_destroy(&database);
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
+  fdb_database_clear(&database);
+  FDB_CREATE_TABLE(&database, Component, NULL);
+  FDB_REMOVE_TABLE(&database, Component);
+  fdb_database_release(&database);
 }
 
 
 TEST(DatabaseTest, FindTable) {
-  database_t database = database_create();
-  database_clear(&database);
-  FURIOUS_CREATE_TABLE(&database, Component);
-  FURIOUS_FIND_TABLE(&database, Component);
-  FURIOUS_REMOVE_TABLE(&database, Component);
-  database_destroy(&database);
+  fdb_database_t database;
+  fdb_database_init(&database, nullptr);
+  fdb_database_clear(&database);
+  FDB_CREATE_TABLE(&database, Component, nullptr);
+  FDB_FIND_TABLE(&database, Component);
+  FDB_REMOVE_TABLE(&database, Component);
+  fdb_database_release(&database);
 }
-
-} /* furious */ 
 
 int main(int argc, char *argv[])
 {

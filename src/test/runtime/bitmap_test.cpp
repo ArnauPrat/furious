@@ -1,41 +1,41 @@
 
 #include "../../common/bitmap.h"
-#include "../../runtime/memory/stack_allocator.h"
+#include "../../common/memory/stack_allocator.h"
 
 #include <gtest/gtest.h>
 #include <set>
 
-namespace furious {
-
 TEST(BitmapTest, BitmapTest ) 
 {
   constexpr uint32_t BITMAP_SIZE = 304;
-  mem_allocator_t lallocator = stack_alloc_create(KILOBYTES(4));
-  bitmap_t bitmap =  bitmap_create(BITMAP_SIZE, &lallocator);
+  fdb_stack_alloc_t lallocator;
+  fdb_stack_alloc_init(&lallocator, KILOBYTES(4), NULL);
+  fdb_bitmap_t bitmap;
+  fdb_bitmap_init(&bitmap, BITMAP_SIZE, &lallocator.m_super);
   ASSERT_EQ(bitmap.m_num_set, 0);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
-    bitmap_set(&bitmap, i);
+    ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
+    fdb_bitmap_set(&bitmap, i);
   }
 
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-    ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
-    bitmap_unset(&bitmap, i);
-    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+    ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
+    fdb_bitmap_unset(&bitmap, i);
+    ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
   }
 
   ASSERT_EQ(bitmap.m_num_set, 0);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; i+=2)
   {
-    ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
-    bitmap_set(&bitmap, i);
-    ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+    ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
+    fdb_bitmap_set(&bitmap, i);
+    ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
   }
 
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
@@ -44,21 +44,21 @@ TEST(BitmapTest, BitmapTest )
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
-      bitmap_unset(&bitmap, i);
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
+      fdb_bitmap_unset(&bitmap, i);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
     }
     else
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
-      bitmap_set(&bitmap, i);
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
+      fdb_bitmap_set(&bitmap, i);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
     }
   }
 
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
-  bitmap_negate(&bitmap);
+  fdb_bitmap_negate(&bitmap);
 
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
@@ -66,49 +66,49 @@ TEST(BitmapTest, BitmapTest )
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
-      bitmap_unset(&bitmap, i);
-      ASSERT_EQ(bitmap_is_set(&bitmap,i), false);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
+      fdb_bitmap_unset(&bitmap, i);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap,i), false);
     }
     else
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
-      bitmap_set(&bitmap, i);
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
+      fdb_bitmap_set(&bitmap, i);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
     }
   }
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
-  bitmap_t bitmap2 = bitmap_create(BITMAP_SIZE, &lallocator);
-  bitmap_set_bitmap(&bitmap2, &bitmap);
+  fdb_bitmap_t bitmap2;
+  fdb_bitmap_init(&bitmap2, 
+                  BITMAP_SIZE, &lallocator.m_super);
+  fdb_bitmap_set_bitmap(&bitmap2, &bitmap);
 
-  bitmap_negate(&bitmap2);
-  bitmap_set_or(&bitmap, &bitmap2);
+  fdb_bitmap_negate(&bitmap2);
+  fdb_bitmap_set_or(&bitmap, &bitmap2);
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE);
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
   }
 
-  bitmap_set_and(&bitmap, &bitmap2);
+  fdb_bitmap_set_and(&bitmap, &bitmap2);
   ASSERT_EQ(bitmap.m_num_set, BITMAP_SIZE/2);
 
   for(uint32_t i = 0; i < BITMAP_SIZE; ++i)
   {
     if(i % 2 == 0)
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), true);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), true);
     }
     else
     {
-      ASSERT_EQ(bitmap_is_set(&bitmap, i), false);
+      ASSERT_EQ(fdb_bitmap_is_set(&bitmap, i), false);
     }
   }
-  bitmap_destroy(&bitmap, &lallocator);
-  bitmap_destroy(&bitmap2, &lallocator);
-  stack_alloc_destroy(&lallocator);
-}
-
+  fdb_bitmap_release(&bitmap, &lallocator.m_super);
+  fdb_bitmap_release(&bitmap2, &lallocator.m_super);
+  fdb_stack_alloc_release(&lallocator);
 }
 
 int main(int argc, char *argv[])

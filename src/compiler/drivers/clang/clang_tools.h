@@ -2,7 +2,6 @@
 #ifndef _FURIOUS_COMPILER_CLANG_TOOLS_H_
 #define _FURIOUS_COMPILER_CLANG_TOOLS_H_ value
 
-#include "../common/dyn_array.h"
 #include "fcc_context.h"
 #include "../../backend/codegen_tools.h"
 
@@ -18,9 +17,6 @@ namespace clang
 class ASTContext;
 class Decl;
 }
-
-namespace furious
-{
 
 /**
  * \brief Gets the access mode of the component represented by the given
@@ -119,8 +115,9 @@ get_code(const SourceManager &sm,
  *
  * @return Returns a dynamic array with the dependencies of a given declaration
  */
-DynArray<Dependency> 
-get_dependencies(const Decl* decl);
+void 
+get_dependencies(const Decl* decl, 
+                 fcc_depcy_array_t* deps);
 
 
 /**
@@ -178,8 +175,5 @@ get_qualified_type_name(const QualType& type,
 uint32_t
 get_uint32_literal(const Expr* expr);
   
-} /* furious
- */ 
-
 #endif
 

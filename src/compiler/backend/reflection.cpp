@@ -9,88 +9,70 @@
 #include <string.h>
 
 
-namespace furious
-{
 
-const char* ReflType_str[(uint32_t)ReflType::E_NUM_TYPES] = {
-  "ReflType::E_BOOL",
-  "ReflType::E_CHAR",
-  "ReflType::E_UINT8",
-  "ReflType::E_UINT16",
-  "ReflType::E_UINT32",
-  "ReflType::E_UINT64",
-  "ReflType::E_INT8",
-  "ReflType::E_INT16",
-  "ReflType::E_INT32",
-  "ReflType::E_INT64",
-  "ReflType::E_FLOAT",
-  "ReflType::E_DOUBLE",
-  "ReflType::E_CHAR_POINTER",
-  "ReflType::E_STD_STRING",
-  "ReflType::E_POINTER",
-  "ReflType::E_STRUCT",
-  "ReflType::E_UNION",
-  "ReflType::E_UNKNOWN",
+const char* fdb_mtype_str[(uint32_t)fdb_mtype_t::E_NUM_TYPES] = {
+  "fdb_mtype_t::E_BOOL",
+  "fdb_mtype_t::E_CHAR",
+  "fdb_mtype_t::E_UINT8",
+  "fdb_mtype_t::E_UINT16",
+  "fdb_mtype_t::E_UINT32",
+  "fdb_mtype_t::E_UINT64",
+  "fdb_mtype_t::E_INT8",
+  "fdb_mtype_t::E_INT16",
+  "fdb_mtype_t::E_INT32",
+  "fdb_mtype_t::E_INT64",
+  "fdb_mtype_t::E_FLOAT",
+  "fdb_mtype_t::E_DOUBLE",
+  "fdb_mtype_t::E_CHAR_POINTER",
+  "fdb_mtype_t::E_STD_STRING",
+  "fdb_mtype_t::E_POINTER",
+  "fdb_mtype_t::E_STRUCT",
+  "fdb_mtype_t::E_UNION",
+  "fdb_mtype_t::E_UNKNOWN",
 };
 
 
-uint32_t
+void
 generate_reflection_code(FILE* fd, 
-                         ReflData* refl_data, 
+                         fdb_mstruct_t* refl_data, 
                          const char* root, 
                          const char* path,
-                         char* buffer,
-                         uint32_t buffer_length)
+                         char* var_name)
 {
-  char tmp[FCC_MAX_TYPE_NAME];
-  FURIOUS_COPY_AND_CHECK_STR(tmp, refl_data->m_type_name, FCC_MAX_TYPE_NAME);
-  sanitize_name(tmp);
-
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "ref_data_");
-  str_builder_append(&str_builder, tmp);
-  const uint32_t ret_length = str_builder.m_pos;
-  FURIOUS_COPY_AND_CHECK_STR(buffer, str_builder.p_buffer, buffer_length);
-  str_builder_destroy(&str_builder);
-
-  fprintf(fd, "RefCountPtr<ReflData> %s(new ReflData());\n", buffer);
-  fprintf(fd, 
-          "strcpy(%s.get()->m_type_name,\"%s\");\n", 
-          buffer,
-          refl_data->m_type_name);
-  for(uint32_t i = 0; i < refl_data->m_fields.size(); ++i)
+  for(uint32_t i = 0; i < refl_data->m_nfields; ++i)
   {
-    ReflField* field = &refl_data->m_fields[i];
+    fdb_mfield_t* field = refl_data->p_fields[i];
     fprintf(fd,"{\n");
-    fprintf(fd, "ReflField field;\n");
-    fprintf(fd, "strcpy(field.m_name,\"%s\");\n", field->m_name);
-    fprintf(fd, "field.m_type = %s;\n", ReflType_str[(uint32_t)field->m_type]);
-    fprintf(fd, "field.m_anonymous = %s;\n", field->m_anonymous ? "true" : "false");
-    str_builder_t str_builder = str_builder_create();
+    fprintf(fd, "char field_name[FCC_MAX_FIELD_NAME];\n");
+    fprintf(fd, "strcpy(field_name,\"%s\");\n", field->m_name);
+    fprintf(fd, "fdb_mtype_t type = %s;\n", fdb_mtype_str[(uint32_t)field->m_type]);
+    fprintf(fd, "bool is_anon = %s;\n", field->m_anonymous ? "true" : "false");
+    fdb_str_builder_t str_builder;
+    fdb_str_builder_init(&str_builder);
     if(field->m_anonymous)
     {
-      fprintf(fd, "field.m_offset = 0;\n");
+      fprintf(fd, "uint32_t offset = 0;\n");
       if(strcmp(path,"")==0) // is first level
       {
-        str_builder_append(&str_builder, "%s", "");
+        fdb_str_builder_append(&str_builder, "%s", "");
       }
       else
       {
-        str_builder_append(&str_builder, "%s", path);
+        fdb_str_builder_append(&str_builder, "%s", path);
       }
     }
     else
     {
       if(strcmp(path,"")==0) // is first level
       {
-        str_builder_append(&str_builder,  "%s", field->m_name);
-        fprintf(fd, "field.m_offset = offsetof(%s, %s);\n", root, str_builder.p_buffer);
+        fdb_str_builder_append(&str_builder,  "%s", field->m_name);
+        fprintf(fd, "uint32_t offset = offsetof(%s, %s);\n", root, str_builder.p_buffer);
       }
       else
       {
-        str_builder_append(&str_builder, "%s.%s", path, field->m_name);
+        fdb_str_builder_append(&str_builder, "%s.%s", path, field->m_name);
 
-        fprintf(fd, "field.m_offset = offsetof(%s, %s) - offsetof(%s, %s);\n", 
+        fprintf(fd, "uint32_t offset = offsetof(%s, %s) - offsetof(%s, %s);\n", 
                 root, 
                 str_builder.p_buffer,
                 root, 
@@ -98,39 +80,61 @@ generate_reflection_code(FILE* fd,
       }
     }
 
-    if(field->m_type == ReflType::E_STRUCT || field->m_type == ReflType::E_UNION)
+    if(field->m_type == fdb_mtype_t::E_STRUCT || field->m_type == fdb_mtype_t::E_UNION)
     {
-      char field_name[FCC_MAX_FIELD_NAME];
+      char tmp[FCC_MAX_TYPE_NAME];
+      FDB_COPY_AND_CHECK_STR(tmp, field->m_name, FCC_MAX_TYPE_NAME);
+      sanitize_name(tmp);
+      fdb_str_builder_t field_builder;
+      fdb_str_builder_init(&field_builder);
+      fdb_str_builder_append(&field_builder, "ref_data_");
+      fdb_str_builder_append(&field_builder, tmp);
+      fprintf(fd, "fdb_mstruct_t* %s = fdb_mregistry_init_mfield(reg, %s, field_name, type, offset, is_anon);\n", field_builder.p_buffer, var_name);
+      fprintf(fd,"{\n");
       generate_reflection_code(fd, 
-                               field->p_strct_type.get(), 
+                               field->p_strct_type, 
                                root, 
                                str_builder.p_buffer,
-                               field_name,
-                               FCC_MAX_FIELD_NAME);
-      fprintf(fd, "field.p_strct_type = %s;\n", field_name);
+                               field_builder.p_buffer);
+      fdb_str_builder_release(&field_builder);
+      fprintf(fd,"}\n");
     }
-    fprintf(fd, "%s.get()->m_fields.append(field);\n", buffer);
+    else
+    {
+      fprintf(fd, "fdb_mregistry_init_mfield(reg, %s, field_name, type, offset, is_anon);\n", var_name);
+    }
     fprintf(fd,"}\n");
-    str_builder_destroy(&str_builder);
+    fdb_str_builder_release(&str_builder);
   }
-  return ret_length;
 }
 
 void
 generate_reflection_code(FILE* fd, fcc_decl_t decl)
 {
   fprintf(fd,"{\n");
-  ReflData refl_data = get_reflection_data(decl);
-  char var_name[FCC_MAX_FIELD_NAME];
-  generate_reflection_code(fd, 
-                           &refl_data, 
-                           refl_data.m_type_name, 
-                           "", 
-                           var_name, 
-                           FCC_MAX_FIELD_NAME);
-  fprintf(fd, "FURIOUS_ADD_REFL_DATA(database, %s, %s);\n", refl_data.m_type_name, var_name);
-  fprintf(fd,"}\n");
-}
+  fprintf(fd, "fdb_mregistry_t* reg = fdb_database_get_mregistry(database);\n");
+  fdb_mregistry_t reg;
+  fdb_mregistry_init(&reg, NULL);
+  fdb_mstruct_t* mstruct = get_reflection_data(decl, &reg);
 
-} /* furious */ 
+  char tmp[FCC_MAX_TYPE_NAME];
+  FDB_COPY_AND_CHECK_STR(tmp, mstruct->m_type_name, FCC_MAX_TYPE_NAME);
+  sanitize_name(tmp);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "ref_data_");
+  fdb_str_builder_append(&str_builder, tmp);
+  fprintf(fd, "fdb_mstruct_t* %s = fdb_mregistry_init_mstruct(reg, \"%s\", %d );\n", 
+          str_builder.p_buffer,
+          mstruct->m_type_name, 
+          mstruct->m_is_union);
+  generate_reflection_code(fd, 
+                           mstruct, 
+                           mstruct->m_type_name, 
+                           "", 
+                           str_builder.p_buffer);
+  fdb_str_builder_release(&str_builder);
+  fprintf(fd,"}\n");
+  fdb_mregistry_release(&reg);
+}
 

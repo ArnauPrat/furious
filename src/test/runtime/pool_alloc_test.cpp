@@ -1,12 +1,10 @@
 
 #include "furious.h"
+#include "../../compiler/dyn_array.h"
 
 #include <gtest/gtest.h>
 
-namespace furious 
-{
-
-TEST(pool_alloc_test, only_allocs) 
+TEST(fdb_pool_alloc_test, only_allocs) 
 {
 
   constexpr uint32_t num_alignments = 10;
@@ -30,18 +28,21 @@ TEST(pool_alloc_test, only_allocs)
     {
       for (uint32_t k = 0; k < num_blocks; ++k) 
       {
-        mem_allocator_t alloc = pool_alloc_create(alignments[i],
-                                                  block_sizes[k],
-                                                  chunk_sizes[j]);
+        fdb_pool_alloc_t alloc;
+        fdb_pool_alloc_init(&alloc, 
+                            alignments[i],
+                            block_sizes[k],
+                            chunk_sizes[j], 
+                            nullptr);
         // NOTE(Arnau) This number cannot exceed 256
         constexpr uint32_t num_allocations = 256;
         DynArray<char*> allocations;
         for(uint32_t q = 0; q < num_allocations; ++q)
         {
-          void* ptr = mem_alloc(&alloc, 
-                                alignments[i], 
-                                block_sizes[k],
-                                FURIOUS_NO_HINT);
+          void* ptr = fdb_pool_alloc_alloc(&alloc, 
+                                           alignments[i], 
+                                           block_sizes[k],
+                                           FDB_NO_HINT);
           memset(ptr, q, block_sizes[k]);
           ASSERT_EQ((uint64_t)ptr % alignments[i], 0);
           allocations.append((char*)ptr);
@@ -65,14 +66,14 @@ TEST(pool_alloc_test, only_allocs)
           }
         }
 
-        pool_alloc_destroy(&alloc);
+        fdb_pool_alloc_release(&alloc);
       }
     }
   }
 
 }
 
-TEST(pool_alloc_test, allocs_and_frees_test) 
+TEST(fdb_pool_alloc_test, allocs_and_frees_test) 
 {
 
   constexpr uint32_t num_alignments = 10;
@@ -96,30 +97,31 @@ TEST(pool_alloc_test, allocs_and_frees_test)
     {
       for (uint32_t k = 0; k < num_blocks; ++k) 
       {
-        mem_allocator_t alloc = pool_alloc_create(alignments[i],
-                                                   block_sizes[k],
-                                                   chunk_sizes[j]);
+        fdb_pool_alloc_t alloc;
+        fdb_pool_alloc_init(&alloc, 
+                            alignments[i],
+                            block_sizes[k],
+                            chunk_sizes[j], 
+                            nullptr);
         constexpr uint32_t num_allocations = 1024;
         for(uint32_t q = 0; q < num_allocations; ++q)
         {
-          void* ptr = mem_alloc(&alloc, 
-                                alignments[i], 
-                                block_sizes[k],
-                                FURIOUS_NO_HINT);
+          void* ptr = fdb_pool_alloc_alloc(&alloc, 
+                                           alignments[i], 
+                                           block_sizes[k],
+                                           FDB_NO_HINT);
           memset(ptr, 0, block_sizes[k]);
           ASSERT_EQ((uint64_t)ptr % alignments[i], 0);
           if(q % 3 == 0)
           {
-            mem_free(&alloc, ptr);
+            fdb_pool_alloc_free(&alloc, ptr);
           }
         }
 
-        pool_alloc_destroy(&alloc);
+        fdb_pool_alloc_release(&alloc);
       }
     }
   }
-
-}
 
 }
 

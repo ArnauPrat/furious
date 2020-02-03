@@ -5,10 +5,6 @@
 #include "drivers/clang/clang_tools.h"
 #include "../common/str_builder.h"
 #include "operator.h"
-#include "../common/dyn_array.inl"
-
-namespace furious
-{
 
 static constexpr uint32_t buffer_length = 2048;
 static char buffer[buffer_length];
@@ -56,21 +52,27 @@ fcc_subplan_printer_incr_level(fcc_subplan_printer_t* printer,
 {
   if(sibling)
   {
-    printer->m_offsets.append(' ');
-    printer->m_offsets.append('|');
+    char c = ' '; 
+    char_array_append(&printer->m_offsets, &c);
+    char b = '|';
+    char_array_append(&printer->m_offsets, &b);
   } 
   else 
   {
-    printer->m_offsets.append(' ');
-    printer->m_offsets.append(' ');
+    char b = ' ';
+    char_array_append(&printer->m_offsets, &b);
+    char_array_append(&printer->m_offsets, &b);
   }
 }
 
 static void
 fcc_subplan_printer_decr_level(fcc_subplan_printer_t* printer)
 {
-  printer->m_offsets.pop();
-  printer->m_offsets.pop();
+  if(printer->m_offsets.m_count)
+    printer->m_offsets.m_count--;
+
+  if(printer->m_offsets.m_count)
+    printer->m_offsets.m_count--;
 }
 
 static void
@@ -78,22 +80,22 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
                           const char* str)
 {
   for(int32_t i = 0;
-      i < (int32_t)printer->m_offsets.size();
+      i < (int32_t)printer->m_offsets.m_count;
       ++i) 
   {
-    str_builder_append(&printer->m_str_builder,
+    fdb_str_builder_append(&printer->m_str_builder,
                        "%c", 
-                       printer->m_offsets[i]);
+                       printer->m_offsets.m_data[i]);
   }
   if(printer->m_c_src_string)
   {
-  str_builder_append(&printer->m_str_builder, 
+  fdb_str_builder_append(&printer->m_str_builder, 
                      "- %s\\n\\\n", 
                      str);
   }
   else
   {
-  str_builder_append(&printer->m_str_builder, 
+  fdb_str_builder_append(&printer->m_str_builder, 
                      "- %s\n", 
                      str);
   }
@@ -108,38 +110,40 @@ to_string(const fcc_system_t* info)
                 buffer,
                 buffer_length);
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, 
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, 
                      "%s (", 
                      buffer);
 
-  const DynArray<fcc_expr_t>& ctor_params = info->m_ctor_params;
-  if(ctor_params.size() > 0)
+  const fcc_expr_t* ctor_params = info->m_ctor_params;
+  uint32_t nctorp = info->m_nctor_params;
+  if(nctorp > 0)
   {
-    fcc_expr_code(info->m_ctor_params[0],
+    fcc_expr_code(ctor_params[0],
                   buffer,
                   buffer_length);
 
-    str_builder_append(&str_builder, 
+    fdb_str_builder_append(&str_builder, 
                          "%s", 
                          buffer);
 
-    for (int32_t i = 1; i < (int32_t)ctor_params.size(); ++i) 
+    for (int32_t i = 1; i < (int32_t)nctorp; ++i) 
     {
 
-      fcc_expr_code(info->m_ctor_params[i],
+      fcc_expr_code(ctor_params[i],
                     buffer,
                     buffer_length);
 
-      str_builder_append(&str_builder,
+      fdb_str_builder_append(&str_builder,
                          ", %s", 
                          buffer); 
     }
 
   }
-  str_builder_append(&str_builder,")");
+  fdb_str_builder_append(&str_builder,")");
   std::string ret (str_builder.p_buffer);
-  str_builder_destroy(&str_builder);
+  fdb_str_builder_release(&str_builder);
   return ret;
 }
 
@@ -519,20 +523,24 @@ fcc_subplan_printer_init(fcc_subplan_printer_t* printer,
                          bool c_src_string, 
                          bool add_comments)
 {
+  memset(printer, 0, sizeof(fcc_subplan_printer_t));
+  printer->m_offsets = char_array_init();
   printer->m_indents = 0;
   if(add_comments)
   {
-    printer->m_offsets.append('/');
-    printer->m_offsets.append('/');
+    char b = '/'; 
+    char_array_append(&printer->m_offsets, &b);
+    char_array_append(&printer->m_offsets, &b);
   }
   printer->m_c_src_string = c_src_string;
-  printer->m_str_builder = str_builder_create();
+  fdb_str_builder_init(&printer->m_str_builder);
 }
 
 void
 fcc_subplan_printer_release(fcc_subplan_printer_t* printer)
 {
-  str_builder_destroy(&printer->m_str_builder);
+  char_array_release(&printer->m_offsets);
+  fdb_str_builder_release(&printer->m_str_builder);
 }
 
 void
@@ -542,5 +550,3 @@ fcc_subplan_printer_print(fcc_subplan_printer_t* printer,
   fcc_subplan_printer_print(printer, &plan->m_nodes[plan->m_root]);
 }
 
-
-} 

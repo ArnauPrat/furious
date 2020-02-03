@@ -1,51 +1,45 @@
 
 
-#ifndef _FURIOUS_DATABASE_H_
-#define _FURIOUS_DATABASE_H_
+#ifndef _FDB_DATABASE_H_
+#define _FDB_DATABASE_H_
 
-#include "reflection.h"
-#include "table.h"
-#include "bit_table.h"
 #include "macros.h"
-#include "table_view.h"
 #include "../../common/platform.h"
 #include "../../common/btree.h"
 #include "../../common/mutex.h"
+#include "../../common/memory/stack_allocator.h"
+#include "../../common/memory/pool_allocator.h"
+#include "reflection.h"
+#include "webserver/webserver.h"
 
 #include <assert.h>
 
-template<typename T>
-void destructor(void *ptr) 
-{
-  static_cast<T*>(ptr)->~T();
-}
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-template<typename T, void (*Func)(T*)>
-void destructor_manual(void *ptr) 
-{
-  Func((T*)ptr);
-}
+typedef struct fdb_bittable_t fdb_bittable_t;
+typedef struct fdb_table_t fdb_table_t;
+typedef struct fdb_reftable_t fdb_reftable_t;
+typedef struct fdb_mdata_t fdb_mdata_t;
 
-
-namespace furious 
+typedef struct fdb_table_info_t 
 {
-
-struct WebServer;
-struct TableInfo
-{
-  char        m_name[FURIOUS_MAX_TABLE_NAME];
+  char        m_name[FDB_MAX_TABLE_NAME];
   uint32_t    m_size;
-};
+} fdb_table_info_t;
+
+typedef void (*frs_dstr_t)(void*) ;
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-struct GlobalInfo
+typedef struct fdb_global_info_t 
 {
-  FURIOUS_ALIGNED(void*, p_global, 64);
+  FDB_ALIGNED(void*, p_global, 64);
   void (*m_destructor)(void *ptr);
-};
+} fdb_global_info_t;
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
@@ -55,159 +49,115 @@ struct GlobalInfo
 /**
  * \brief Stores all the tables and globals
  */
-struct database_t 
+typedef struct fdb_database_t 
 {
-  btree_t                       m_tags;               //< btree with the bittable holding the entities with tags 
-  btree_t                       m_tables;             //< btree with the component tables 
-  btree_t                       m_references;         //< btree with the reference tables 
-  btree_t                       m_temp_tables;        //< btree with the temporal tables 
-  btree_t                       m_globals;            //< btree with the globals 
-  btree_t                       m_refl_data;          //< btree with the reflection data 
-  entity_id_t                   m_next_entity_id;     //< The next entity id to assign
-  WebServer*                    p_webserver;          //< The database web server
-  mutex_t                       m_mutex;              //< The mutex to exclusive access to the database
+  fdb_btree_t                   m_tags;               //< btree with the bittable holding the entities with tags 
+  fdb_btree_t                   m_tables;             //< btree with the component tables 
+  fdb_btree_t                   m_references;         //< btree with the reference tables 
+  fdb_btree_t                   m_globals;            //< btree with the globals 
+  fdb_webserver_t               m_webserver;          //< The db web server
+  fdb_mregistry_t               m_mregistry;          //< The metadata registry
+  fdb_mutex_t                   m_mutex;              //< The mutex to exclusive access to the db
 
-  mem_allocator_t               m_page_allocator;     //< Allocator used to allocate pages for the rest of allocators
-  mem_allocator_t               m_table_allocator;    //< Allocator for tables, temporal tables and reference tables
-  mem_allocator_t               m_bittable_allocator; //< Allocator for bittables
-  mem_allocator_t               m_btree_allocator;    //< Allocator for database's btree nodes
-  mem_allocator_t               m_global_allocator;   //< Allocator for globals
-};
+  fdb_mem_allocator_t*          p_page_allocator;     //< Allocator used to allocate pages for the rest of allocators
+  fdb_pool_alloc_t              m_table_allocator;    //< Allocator for tables, temporal tables and reference tables
+  fdb_pool_alloc_t              m_bittable_allocator; //< Allocator for bittables
+  fdb_stack_alloc_t             m_global_allocator;   //< Allocator for globals
+} fdb_database_t;
 
 
 /**
- * \brief Creates a furious database
+ * \brief Creates a furious db
  *
- * \return The created database
- */
-database_t
-database_create(mem_allocator_t* allocator = nullptr);
-
-/**
- * \brief Destroys a database
- *
- * \param database The database to destroy
+ * \return The created db
  */
 void
-database_destroy(database_t* database);
+fdb_database_init(fdb_database_t* db, 
+                  fdb_mem_allocator_t* allocator);
 
 /**
- * \brief Adds a table to the database 
+ * \brief Destroys a db
  *
- * \tparam T The component to store in the created table
- * \tparam (*fp)(T*) The destructor to use when deleting the elements of the
- * table
- * \param database The database to create the table to
- *
- * \return Returns a view to the table
+ * \param db The db to destroy
  */
-template <typename T, void (*fp)(T*)>
-TableView<T>
-database_create_table(database_t* database);
+void
+fdb_database_release(fdb_database_t* db);
 
 /**
- * \brief Adds a table to the database 
+ * \brief Creates a table in the db
  *
- * \tparam T The component to store in the created table
- * \param database The database to create the table to
+ * \param db The db to create the table into
+ * \param name The name of the table
+ * \param csize The component size of the table
+ * \param dstr The destructor for the components
  *
- * \return Returns a view to the table
+ * \return Returns a pointer to the table. nullptr if the table already exists 
  */
-template <typename T>
-TableView<T>
-database_create_table(database_t* database);
-
-
-/**
- * \brief Finds a table in the database
- *
- * \tparam T The component of the table to find
- * \param database The database to find the table from
- *
- * \return Returns a view to the table
- */
-template <typename T>
-TableView<T> 
-database_find_table(database_t* database);
-
-/**
- * \brief Finds the table for the specified component or adds it to the
- * database if it does not exist
- *
- * \tparam T The component type
- * \param database The database to find the table from
- *
- * \return A TableView of the table
- */
-template <typename T>
-TableView<T> 
-database_find_or_create_table(database_t* database);
-
-/**
- * \brief Finds the table for the specified component or adds it to the
- * database if it does not exist
- *
- * \tparam T The component type
- * \param database The database to find the table from
- *
- * \return A TableView of the table
- */
-template <typename T, void (*fp)(T*)>
-TableView<T> 
-database_find_or_create_table(database_t* database);
+fdb_table_t*
+fdb_database_create_table(fdb_database_t* db,
+                          const char* name,
+                          size_t csize, 
+                          frs_dstr_t dstr);
 
 
 /**
- * \brief Tests whether a Table exists or not
+ * \brief Finds a table in the db
  *
- * \tparam TComponent The component stored in the table
- * \param database The database to find the table from
+ * \param db The db to find the table from
+ * \param name The name of the db to get
  *
- * \return Returns True if the table exists. False otherwise
+ * \return Returns a pointer to the table. nullptr if the table cannot be found
  */
-template <typename T>
-bool 
-database_exists_table(database_t* database);
+fdb_table_t* 
+fdb_database_find_table(fdb_database_t* db, 
+                        const char* name);
 
+/**
+ * \brief Finds the table for the given name or creates if it does not exist
+ *
+ * \param db The db to find the table from
+ * \param name The name of the table
+ * \param csize The component size of the table
+ * \param dstr The destructor for the components
+ *
+ * \return A pointer to the created table 
+ */
+fdb_table_t*
+fdb_database_find_or_create_table(fdb_database_t* db,
+                                  const char* name,
+                                  size_t csize, 
+                                  frs_dstr_t dstr);
 /**
  * \brief Removes a table
  *
  * \tparam TComponent The component stored in the table
- * \param database The database to find the table from
+ * \param db The db to find the table from
  *
  */
-template <typename T>
 void
-database_remove_table(database_t* database);
+fdb_database_remove_table(fdb_database_t* db, 
+                          const char* name);
 
 /**
- * \brief Clears and removes all the tables from the database
+ * \brief Clears and removes all the tables from the db
  *
  * \tparam TComponent The component stored in the table
- * \param database The database to find the table from
+ * \param db The db to find the table from
  *
  */
 void 
-database_clear(database_t* database);
+fdb_database_clear(fdb_database_t* db);
 
 /**
  * \brief Clears all the rows of a given element 
  *
  * \param id The id of the element to remove
- * \param database The database to find the table from
+ * \param db The db to find the table from
  *
  */
 void
-database_clear_entity(database_t* database, 
-                      entity_id_t id);
-
-/**
- * \brief Gets the next free entity id
- *
- * \return Returns the next free entity id
- */
-entity_id_t 
-database_get_next_entity_id(database_t* database);
+fdb_database_clear_entity(fdb_database_t* db, 
+                          entity_id_t id);
 
 /**
  * \brief Tags an entity with the given tag
@@ -216,9 +166,9 @@ database_get_next_entity_id(database_t* database);
  * \param tag The tag to tag the entity with
  */
 void 
-database_tag_entity(database_t* database, 
-                    entity_id_t entity_id, 
-                    const char* tag);
+fdb_database_tag_entity(fdb_database_t* db, 
+                        entity_id_t entity_id, 
+                        const char* tag);
 
 /**
  * \brief Untags an entity from a given tag
@@ -227,9 +177,9 @@ database_tag_entity(database_t* database,
  * \param tag The tag to remove from the entity
  */
 void 
-database_untag_entity(database_t* database, 
-                      entity_id_t entity_id, 
-                      const char* tag);
+fdb_database_untag_entity(fdb_database_t* db, 
+                          entity_id_t entity_id, 
+                          const char* tag);
 
 /**
  * \brief Gets a bitset with the entities with a given tag
@@ -238,9 +188,9 @@ database_untag_entity(database_t* database,
  * 
  * \return Returns a bitset with the entities of the tag
  */
-BitTable*
-database_get_tagged_entities(database_t* database, 
-                             const char* tag);
+fdb_bittable_t*
+fdb_database_get_tagged_entities(fdb_database_t* db, 
+                                 const char* tag);
 
 /**
  * \brief Finds or Creates a reference table
@@ -249,9 +199,9 @@ database_get_tagged_entities(database_t* database,
  *
  * \return Returns a TableView of the reference table
  */
-TableView<uint32_t>
-database_find_or_create_ref_table(database_t* database, 
-                                  const char* ref_name);
+fdb_reftable_t*
+fdb_database_find_or_create_reftable(fdb_database_t* db, 
+                                     const char* ref_name);
 
 /**
  * \brief  Finds a ref  table
@@ -260,9 +210,9 @@ database_find_or_create_ref_table(database_t* database,
  *
  * \return Returns a table view of the reference table
  */
-TableView<uint32_t>
-database_find_ref_table(database_t* database, 
-                        const char* ref_name);
+fdb_reftable_t*
+fdb_database_find_reftable(fdb_database_t* db, 
+                           const char* ref_name);
 
 /**
  * \brief Creates a ref  table
@@ -271,62 +221,39 @@ database_find_ref_table(database_t* database,
  *
  * \return Returns a table view of the reference table
  */
-TableView<uint32_t>
-database_create_ref_table(database_t* database, 
-                          const char* ref_name);
+fdb_reftable_t*
+fdb_database_create_reftable(fdb_database_t* db, 
+                             const char* ref_name);
+
 
 /**
- * \brief Adds a reference between two entities
- *
- * \param type The type of the reference
- * \param tail The origin entity of the reference
- * \param head The destination entity of the reference
+ * \brief Starts a webserver to listen to the given address and port
  */
-void 
-database_add_reference(database_t* database, 
-                       const char* type, 
-                       entity_id_t tail, 
-                       entity_id_t head);
-
-/**
- * \brief Removes a reference between two entities
- *
- * \param type The type of the reference
- * \param tail The origin entity of the reference
- */
-void 
-database_remove_reference(database_t* database, 
-                          const char* type, 
-                          entity_id_t tail);
-
-  /**
-   * \brief Starts a webserver to listen to the given address and port
-   */
 void
-database_start_webserver(database_t* database, 
-                         const char* address, 
-                         const char* port);
+fdb_database_start_webserver(fdb_database_t* db, 
+                             const char* address, 
+                             const char* port);
 
 /**
  * \brief Stops the web server
  */
 void
-database_stop_webserver(database_t* database);
+fdb_database_stop_webserver(fdb_database_t* db);
 
 /**
- * \brief locks the database for insertions and removal of tables
+ * \brief locks the db for insertions and removal of tables
  */
 void
-database_lock(database_t* database);
+fdb_database_lock(fdb_database_t* db);
 
 /**
- * \brief unlocks the database for insertions and removal of tables
+ * \brief unlocks the db for insertions and removal of tables
  */
 void
-database_release(database_t* database);
+fdb_database_unlock(fdb_database_t* db);
 
 /**
- * \brief Gets the table metadata of the different tables in the Database  
+ * \brief Gets the table metadata of the different tables in the db  
  *
  * \param data A pointer to TableInfo array 
  * \param capacity The capacity of the TableInfo array
@@ -334,175 +261,105 @@ database_release(database_t* database);
  * \return Returns the number of entries set in the array
  */
 size_t 
-database_metadata(database_t* database, 
-                  TableInfo* data, 
-                  uint32_t capacity);
+fdb_database_metadata(fdb_database_t* db, 
+                      fdb_table_info_t* data, 
+                      uint32_t capacity);
 
 /**
- * \brief Returns the number of tables in the database
+ * \brief Returns the number of tables in the db
  *
  * \return 
  */
 size_t
-database_num_tables(database_t* database);
-
-
-/**
- * \brief Creates a temporal table for the given component type
- *
- * \tparam T The type of the components stored in the table
- *
- * \return A TableView of the temporal table
- */
-template <typename T>
-TableView<T>
-database_create_temp_table(database_t* database, 
-                           const char* table_name);
+fdb_database_num_tables(fdb_database_t* db);
 
 /**
- * \brief Creates a temporal table for the given component type (withput locking the database). Meant to
- * be used only in fcc generated code.
+ * \brief Creates a global
  *
- * \tparam T The type of the components stored in the table
+ * \param db The db to create the global to
+ * \param name The name of the global
+ * \param gsize The size in bytes of the global
  *
- * \return A TableView of the temporal table
+ * \return Returns a pointer to the created global. Returns nullptr if it 
+ * cannot be created
  */
-template <typename T>
-TableView<T>
-database_create_temp_table_no_lock(database_t* database, 
-                                   const char* table_name);
-
-/**
- * \brief Destroys the given temporal table
- *
- * \tparam T The type of the componnets stored in the table
- * \param view The view to the temporal table to destroy
- */
-template <typename T>
-void
-database_remove_temp_table(database_t* database, 
-                           TableView<T> view);
-
-/**
- * \brief Destroys the given temporal table (withput locking the database). Meant to
- * be used only in fcc generated code.
- *
- * \tparam T The type of the componnets stored in the table
- * \param view The view to the temporal table to destroy
- */
-template <typename T>
-void
-database_remove_temp_table_no_lock(database_t* database,
-                                   TableView<T> view);
-
-/**
- * \brief Remove all temporal tables
- */
-void
-database_remove_temp_tables(database_t* database);
-
-/**
- * \brief Removes all temporal tables (without locking the database). Meant to
- * be used only in fcc generated code.
- */
-void
-database_remove_temp_tables_no_lock(database_t* database);
-
-/**
- * \brief Creates a new global
- *
- * \tparam T The global to create
- *
- * \return Returns a pointer to the newly created global or nullptr if already
- * exists
- */
-template <typename T,typename...Args>
-T*
-database_create_global(database_t* database, 
-                       Args...args);
+void*
+fdb_database_create_global(fdb_database_t* db, 
+                           const char* name,
+                           size_t gsize,
+                           frs_dstr_t dstr);
 
 
 /**
  * \brief Removes an existing global
  *
+ * \param db The db to remove the global from
+ * \param name The name of the global to remove
+ *
  * \tparam T The global to remove 
  */
-template <typename T>
 void 
-database_remove_global(database_t* database);
+fdb_database_remove_global(fdb_database_t* db, 
+                           const char* name);
 
 /**
  * \brief Gets the global of a given type
  *
- * \tparam T The type of the global
+ * \param db The db to find the global into
+ * \param name The name of the global 
  *
- * \return A pointer to the global
+ * \return A pointer to the global. Returns nullptr if the global could not be
+ * found
  */
-template <typename T>
-T* 
-database_find_global(database_t* database);
+void*
+fdb_database_find_global(fdb_database_t* db, 
+                         const char* name);
 
 /**
  * \brief Gets the global of a given type. Non-locking version meant to be
  * used by the code generated by the compiler
  *
- * \tparam T The type of the global
+ * \param db The db to find the global into
+ * \param name The name of the global 
  *
- * \return A pointer to the global
+ * \return A pointer to the global. Returns nullptr if the global could not be
+ * found
  */
-template <typename T>
-T* 
-database_find_global_no_lock(database_t* database);
+void*
+fdb_database_find_global_no_lock(fdb_database_t* db, 
+                                 const char* name);
 
 /**
  * \brief Finds or creates a new global
  *
- * \tparam T The type of the global to create
+ * \param db The db to create or find the global into 
  *
- * \return 
+ * \return Returns a pointer to the global.
  */
-template <typename T,typename...Args>
-T* 
-database_find_or_create_global(database_t* database, 
-                               Args...args);
-
-/**
- * \brief Tests whether a global exists or not
- *
- * \return Returns True if the global exists. False otherwise
- */
-template <typename T>
-bool 
-database_exists_global(database_t* database);
+void*
+fdb_database_find_or_create_global(fdb_database_t* db,
+                                   const char* name, 
+                                   size_t gsize, 
+                                   frs_dstr_t dstr);
 
 
 /**
- * \brief Adds reflection data for a given table or global 
+ * \brief Gets the metadata registry of the db
  *
- * \param refl_strct The reflection data to add
- */
-template <typename T>
-void
-database_add_refl_data(database_t* database, 
-                       RefCountPtr<ReflData> refl_strct);
-
-
-/**
- * \brief Gets the reflection data associated to a given table 
+ * \param db The db to get the registry from
  *
- * \tparam T
+ * \return Returns the metadata registry
  */
-template <typename T>
-const ReflData* 
-database_get_refl_data(database_t* database);
+fdb_mregistry_t*
+fdb_database_get_mregistry(fdb_database_t* db);
+
 
 uint32_t
 get_table_id(const char* table_name);
 
+#ifdef __cplusplus
 }
-
 #endif
 
-#include "database.inl"
 
-
+#endif

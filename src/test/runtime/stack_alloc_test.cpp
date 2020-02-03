@@ -3,12 +3,11 @@
 
 #include <gtest/gtest.h>
 
-namespace furious 
-{
 
-TEST(stack_alloc_test, stack_alloc_test) 
+TEST(fdb_stack_alloc_test, fdb_stack_alloc_test) 
 {
-  mem_allocator_t alloc = stack_alloc_create(KILOBYTES(4));
+  fdb_stack_alloc_t alloc;
+  fdb_stack_alloc_init(&alloc, KILOBYTES(4), nullptr);
 
   constexpr uint32_t num_alignments = 10;
   uint32_t alignments[num_alignments] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
@@ -26,7 +25,7 @@ TEST(stack_alloc_test, stack_alloc_test)
 
   for(uint32_t i = 0; i < num_allocations; ++i)
   {
-    allocation_addrs[i] = mem_alloc(&alloc, 
+    allocation_addrs[i] = fdb_stack_alloc_alloc(&alloc, 
                                     allocation_alignments[i], 
                                     allocation_sizes[i],
                                     -1);
@@ -43,12 +42,10 @@ TEST(stack_alloc_test, stack_alloc_test)
     }
     uint32_t modulo = ((uint64_t)allocation_addrs[i]) % allocation_alignments[i];
     ASSERT_EQ(modulo, 0);
-    mem_free(&alloc, allocation_addrs[i]);
+    fdb_stack_alloc_free(&alloc, allocation_addrs[i]);
   }
 
-  stack_alloc_destroy(&alloc);
-}
-
+  fdb_stack_alloc_release(&alloc);
 }
 
 int main(int argc, char *argv[])

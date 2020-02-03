@@ -2,13 +2,13 @@
 #include "lang/lang.h"
 #include "global_test_header.h"
 
-BEGIN_FURIOUS_SCRIPT
+BEGIN_FDB_SCRIPT
 
 struct UpdatePosition
 {
   UpdatePosition() {}
 
-  void run(furious::Context* context,
+  void run(fdb_context_t* context,
            uint32_t id,
            const GlobalComponent* global,
            Position* position
@@ -21,7 +21,7 @@ struct UpdatePosition
 
 };
 
-furious::match<furious::Global<GlobalComponent>, Position>().foreach<UpdatePosition>();
+match<Global<GlobalComponent>, Position>().foreach<UpdatePosition>();
 
 
-END_FURIOUS_SCRIPT
+END_FDB_SCRIPT

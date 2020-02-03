@@ -11,9 +11,6 @@
 
 #include <stdlib.h>
 
-namespace furious 
-{
-
 void
 produce(FILE* fd, 
         const fcc_operator_t* fcc_operator,
@@ -125,7 +122,8 @@ produce_foreach(FILE* fd,
 {
 
   bool all_globals = true;
-  for(uint32_t i = 0; i < foreach->m_columns.size(); ++i)
+  uint32_t ncols = foreach->m_num_columns;
+  for(uint32_t i = 0; i < ncols; ++i)
   {
     if(foreach->m_columns[i].m_type != fcc_column_type_t::E_GLOBAL)
     {
@@ -218,33 +216,71 @@ produce_scan(FILE* fd,
 
   if(parallel_stream)
   {
-    fprintf(fd,
-            "auto %s = %s.iterator(chunk_size, offset, stride);\n",
-            itername,
-            tablename);
+    if(column[0].m_type == fcc_column_type_t::E_ID)
+    {
+      fprintf(fd,
+              "fdb_table_iter_t %s;\n",
+              itername);
+      fprintf(fd,
+              "fdb_table_iter_init(&%s, &%s->m_table, chunk_size, offset, stride);\n",
+              itername,
+              tablename);
+
+    }
+    else
+    {
+
+      fprintf(fd,
+              "fdb_table_iter_t %s;\n",
+              itername);
+      fprintf(fd,
+              "fdb_table_iter_init(&%s, %s, chunk_size, offset, stride);\n",
+              itername,
+              tablename);
+
+    }
   }
   else
   {
-    fprintf(fd,
-            "auto %s = %s.iterator(1, 0, 1);\n",
-            itername,
-            tablename);
+    if(column[0].m_type == fcc_column_type_t::E_ID)
+    {
+      fprintf(fd,
+              "fdb_table_iter_t %s;\n",
+              itername);
+      fprintf(fd,
+              "fdb_table_iter_init(&%s, &%s->m_table, 1, 0, 1);\n",
+              itername,
+              tablename);
+    }
+    else
+    {
+      fprintf(fd,
+              "fdb_table_iter_t %s;\n",
+              itername);
+      fprintf(fd,
+              "fdb_table_iter_init(&%s, %s, 1, 0, 1);\n",
+              itername,
+              tablename);
+    }
   }
 
   fprintf(fd,
-          "while(%s.has_next())\n\
+          "while(fdb_table_iter_has_next(&%s))\n\
           {\n\
-          block_cluster_t %s = block_cluster_create(&task_allocator);\n",
+          fdb_bcluster_t %s;\n\
+          fdb_bcluster_init(&%s, &task_allocator.m_super);\n",
           itername,
+          blockname, 
           blockname);
   fprintf(fd, 
-          "block_cluster_append(&%s,%s.next().get_raw());\n",
+          "fdb_bcluster_append_block(&%s,fdb_table_iter_next(&%s));\n",
           blockname,
           itername
          );
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, 
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, 
                      "(&%s)", 
                      blockname);
 
@@ -254,14 +290,18 @@ produce_scan(FILE* fd,
           str_builder.p_buffer,
           scan);
 
-  str_builder_destroy(&str_builder);
+  fdb_str_builder_release(&str_builder);
 
   fprintf(fd, 
-          "block_cluster_destroy(&%s, &task_allocator);\n",
+          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n",
           blockname);
 
   fprintf(fd,
           "}\n\n");
+
+    fprintf(fd,
+            "fdb_table_iter_release(&%s);\n",
+            itername);
 }
 
 void
@@ -276,7 +316,11 @@ produce_join(FILE* fd,
 
 
   fprintf(fd,
-          "btree_t %s = btree_create(&task_allocator);\n", 
+          "fdb_btree_t %s;\n", 
+          hashtable);
+
+  fprintf(fd,
+          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = join->p_subplan;
@@ -288,25 +332,28 @@ produce_join(FILE* fd,
 
 
   fprintf(fd,
-          "btree_iter_t iter_%s = btree_iter_create(&%s);\n",
+          "fdb_btree_iter_t iter_%s;\n",
+          hashtable);
+  fprintf(fd,
+          "fdb_btree_iter_init(&iter_%s, &%s);\n",
           hashtable,
           hashtable);
 
   fprintf(fd, 
-          "while(btree_iter_has_next(&iter_%s))\n{\n",
+          "while(fdb_btree_iter_has_next(&iter_%s))\n{\n",
           hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&iter_%s).p_value;\n", 
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&iter_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd,
-          "btree_destroy(&%s);\n", 
+          "fdb_btree_release(&%s);\n", 
           hashtable);
 }
 
@@ -322,7 +369,11 @@ produce_leftfilter_join(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,
-          "btree_t %s = btree_create(&task_allocator);\n", 
+          "fdb_btree_t %s;\n", 
+          hashtable);
+
+  fprintf(fd,
+          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = left_filter_join->p_subplan;
@@ -330,23 +381,26 @@ produce_leftfilter_join(FILE* fd,
   produce(fd,&subplan->m_nodes[left_filter_join->m_leftfilter_join.m_right], parallel_stream);
 
   fprintf(fd,
-          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
+          "fdb_btree_iter_t it_%s;\n", 
+          hashtable);
+  fprintf(fd,
+          "fdb_btree_iter_init(&it_%s, &%s);\n", 
           hashtable,
           hashtable);
 
   fprintf(fd,
-          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"btree_iter_destroy(&it_%s);\n", hashtable);
-  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_iter_release(&it_%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_release(&%s);\n", hashtable);
 }
 
 void
@@ -361,51 +415,72 @@ produce_cross_join(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
 
-  str_builder_t str_builder_left = str_builder_create();
-  str_builder_append(&str_builder_left, "left_%s", hashtable);
+  fdb_str_builder_t  fdb_str_builder_left;
+  fdb_str_builder_init(&fdb_str_builder_left);
+  fdb_str_builder_append(&fdb_str_builder_left, "left_%s", hashtable);
   fprintf(fd,
-          "btree_t %s = btree_create(&task_allocator);\n", 
-          str_builder_left.p_buffer);
+          "fdb_btree_t %s;\n", 
+          fdb_str_builder_left.p_buffer);
+
+  fprintf(fd,
+          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          fdb_str_builder_left.p_buffer);
 
   fcc_subplan_t* subplan = cross_join->p_subplan;
   produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_left], parallel_stream);
 
-  str_builder_t str_builder_right = str_builder_create();
-  str_builder_append(&str_builder_right, "right_%s", hashtable);
+  fdb_str_builder_t fdb_str_builder_right;
+  fdb_str_builder_init(&fdb_str_builder_right);
+  fdb_str_builder_append(&fdb_str_builder_right, "right_%s", hashtable);
   fprintf(fd,
-          "btree_t %s = btree_create(&task_allocator);\n", 
-          str_builder_right.p_buffer);
+          "fdb_btree_t %s;\n", 
+          fdb_str_builder_right.p_buffer);
+
+  fprintf(fd,
+          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          fdb_str_builder_right.p_buffer);
+
   produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right], parallel_stream);
 
-  fprintf(fd, "btree_iter_t left_iter_hashtable_%d = btree_iter_create(&%s);\n", 
-          cross_join->m_id, 
-          str_builder_left.p_buffer);
+  fprintf(fd, 
+          "fdb_btree_iter_t left_iter_hashtable_%d;\n", 
+          cross_join->m_id);
 
-  fprintf(fd, "while(btree_iter_has_next(&left_iter_hashtable_%d))\n{\n", cross_join->m_id);
+  fprintf(fd, 
+          "fdb_btree_iter_init(&left_iter_hashtable_%d, &%s);\n", 
+          cross_join->m_id, 
+          fdb_str_builder_left.p_buffer);
+
+  fprintf(fd, "while(fdb_btree_iter_has_next(&left_iter_hashtable_%d))\n{\n", cross_join->m_id);
 
   char cluster[FCC_MAX_CLUSTER_VARNAME];
   generate_cluster_name(cross_join, 
                         cluster, 
                         FCC_MAX_CLUSTER_VARNAME);
 
-  str_builder_t str_builder_cluster_left = str_builder_create();
-  str_builder_append(&str_builder_cluster_left,"left_%s", cluster);
+  fdb_str_builder_t fdb_str_builder_cluster_left;
+  fdb_str_builder_init(&fdb_str_builder_cluster_left);
+  fdb_str_builder_append(&fdb_str_builder_cluster_left,"left_%s", cluster);
   fprintf(fd,
-          "block_cluster_t* %s = (block_cluster_t*)btree_iter_next(&left_iter_hashtable_%d).p_value;\n", 
-          str_builder_cluster_left.p_buffer,
+          "fdb_bcluster_t* %s = (fdb_bcluster_t*)fdb_btree_iter_next(&left_iter_hashtable_%d).p_value;\n", 
+          fdb_str_builder_cluster_left.p_buffer,
           cross_join->m_id);
 
-  fprintf(fd, "btree_iter_t right_iter_hashtable_%d = btree_iter_create(&%s);\n", 
+  fprintf(fd, "fdb_btree_iter_t right_iter_hashtable_%d;\n", 
+          cross_join->m_id);
+
+  fprintf(fd, "fdb_btree_iter_init(&right_iter_hashtable_%d, &%s);\n", 
           cross_join->m_id,
-          str_builder_right.p_buffer);
+          fdb_str_builder_right.p_buffer);
 
-  fprintf(fd, "while(btree_iter_has_next(&right_iter_hashtable_%d))\n{\n", cross_join->m_id);
+  fprintf(fd, "while(fdb_btree_iter_has_next(&right_iter_hashtable_%d))\n{\n", cross_join->m_id);
 
-  str_builder_t str_builder_cluster_right = str_builder_create();
-  str_builder_append(&str_builder_cluster_right,"right_%s", cluster);
+  fdb_str_builder_t  fdb_str_builder_cluster_right;
+  fdb_str_builder_init(&fdb_str_builder_cluster_right);
+  fdb_str_builder_append(&fdb_str_builder_cluster_right,"right_%s", cluster);
   fprintf(fd,
-          "block_cluster_t* %s = (block_cluster_t*)btree_iter_next(&right_iter_hashtable_%d).p_value;\n", 
-          str_builder_cluster_right.p_buffer,
+          "fdb_bcluster_t* %s = (fdb_bcluster_t*)fdb_btree_iter_next(&right_iter_hashtable_%d).p_value;\n", 
+          fdb_str_builder_cluster_right.p_buffer,
           cross_join->m_id);
 
 
@@ -416,84 +491,98 @@ produce_cross_join(FILE* fd,
 
 
   fprintf(fd,
-          "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
+          "fdb_bcluster_t %s;\n", 
           joined_cluster);
 
   fprintf(fd,
-          "block_cluster_append(&%s,%s);\n", 
-          joined_cluster,
-          str_builder_cluster_left.p_buffer);
+          "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+          joined_cluster);
 
   fprintf(fd,
-          "block_cluster_append(&%s, %s);\n", 
+          "fdb_bcluster_append_cluster(&%s,%s);\n", 
           joined_cluster,
-          str_builder_cluster_right.p_buffer);
+          fdb_str_builder_cluster_left.p_buffer);
 
-  str_builder_t str_builder_joined_cluster = str_builder_create();
-  str_builder_append(&str_builder_joined_cluster,"(&%s)", joined_cluster);
+  fprintf(fd,
+          "fdb_bcluster_append_cluster(&%s, %s);\n", 
+          joined_cluster,
+          fdb_str_builder_cluster_right.p_buffer);
+
+  fdb_str_builder_t fdb_str_builder_joined_cluster;
+  fdb_str_builder_init(&fdb_str_builder_joined_cluster);
+  fdb_str_builder_append(&fdb_str_builder_joined_cluster,"(&%s)", joined_cluster);
   consume(fd,
           &subplan->m_nodes[cross_join->m_parent],
-          str_builder_joined_cluster.p_buffer,
+          fdb_str_builder_joined_cluster.p_buffer,
           cross_join);
 
   fprintf(fd,
-          "block_cluster_destroy(&%s, &task_allocator);\n", 
+          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
           joined_cluster);
 
   fprintf(fd, 
           "}\n"); 
-  fprintf(fd,"btree_iter_destroy(&right_iter_hashtable_%d);\n", 
+  fprintf(fd,"fdb_btree_iter_release(&right_iter_hashtable_%d);\n", 
           cross_join->m_id);
   fprintf(fd, 
           "}\n"); 
 
   fprintf(fd,
-          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
-          str_builder_left.p_buffer,
-          str_builder_left.p_buffer);
+          "fdb_btree_iter_t it_%s;\n", 
+          fdb_str_builder_left.p_buffer);
+
   fprintf(fd,
-          "while(btree_iter_has_next(&it_%s))\n{\n", str_builder_left.p_buffer);
+          "fdb_btree_iter_init(&it_%s, &%s);\n", 
+          fdb_str_builder_left.p_buffer,
+          fdb_str_builder_left.p_buffer);
+
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
-          str_builder_left.p_buffer);
+          "while(fdb_btree_iter_has_next(&it_%s))\n{\n", fdb_str_builder_left.p_buffer);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          fdb_str_builder_left.p_buffer);
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+  fprintf(fd,
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
 
-  fprintf(fd,"btree_iter_destroy(&it_%s);\n", 
-          str_builder_left.p_buffer);
-  fprintf(fd,"btree_iter_destroy(&left_iter_hashtable_%d);\n", 
+  fprintf(fd,"fdb_btree_iter_release(&it_%s);\n", 
+          fdb_str_builder_left.p_buffer);
+  fprintf(fd,"fdb_btree_iter_release(&left_iter_hashtable_%d);\n", 
           cross_join->m_id);
-  fprintf(fd,"btree_destroy(&%s);\n", str_builder_left.p_buffer);
+  fprintf(fd,"fdb_btree_release(&%s);\n", fdb_str_builder_left.p_buffer);
 
   fprintf(fd,
-          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
-          str_builder_right.p_buffer,
-          str_builder_right.p_buffer);
+          "fdb_btree_iter_t it_%s;\n", 
+          fdb_str_builder_right.p_buffer);
 
   fprintf(fd,
-          "while(btree_iter_has_next(&it_%s))\n{\n", str_builder_right.p_buffer);
+          "fdb_btree_iter_init(&it_%s, &%s);\n", 
+          fdb_str_builder_right.p_buffer,
+          fdb_str_builder_right.p_buffer);
+
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
-          str_builder_right.p_buffer);
+          "while(fdb_btree_iter_has_next(&it_%s))\n{\n", fdb_str_builder_right.p_buffer);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          fdb_str_builder_right.p_buffer);
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+  fprintf(fd,
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"btree_iter_destroy(&it_%s);\n", 
-          str_builder_right.p_buffer);
-  fprintf(fd,"btree_destroy(&%s);\n", str_builder_right.p_buffer);
+  fprintf(fd,"fdb_btree_iter_release(&it_%s);\n", 
+          fdb_str_builder_right.p_buffer);
+  fprintf(fd,"fdb_btree_release(&%s);\n", fdb_str_builder_right.p_buffer);
 
-  str_builder_destroy(&str_builder_joined_cluster);
-  str_builder_destroy(&str_builder_cluster_left);
-  str_builder_destroy(&str_builder_cluster_right);
-  str_builder_destroy(&str_builder_left);
-  str_builder_destroy(&str_builder_right);
+  fdb_str_builder_release(&fdb_str_builder_joined_cluster);
+  fdb_str_builder_release(&fdb_str_builder_cluster_left);
+  fdb_str_builder_release(&fdb_str_builder_cluster_right);
+  fdb_str_builder_release(&fdb_str_builder_left);
+  fdb_str_builder_release(&fdb_str_builder_right);
 }
 
 void
@@ -522,7 +611,7 @@ produce_fetch(FILE* fd,
                         FCC_MAX_CLUSTER_VARNAME);
 
   fprintf(fd, 
-          "%s* %s = FURIOUS_FIND_GLOBAL_NO_LOCK(database, %s);\n", 
+          "%s* %s = FDB_FIND_GLOBAL_NO_LOCK(database, %s);\n", 
           globaltype,
           globalname,
           globaltype);
@@ -532,26 +621,31 @@ produce_fetch(FILE* fd,
           globalname);
 
   fprintf(fd, 
-          "block_cluster_t %s = block_cluster_create(&task_allocator);\n", 
+          "fdb_bcluster_t %s;\n", 
           clustername); 
 
   fprintf(fd, 
-          "block_cluster_append_global(&%s, %s);\n", 
+          "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+          clustername); 
+
+  fprintf(fd, 
+          "fdb_bcluster_append_global(&%s, %s);\n", 
           clustername,
           globalname); 
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "(&%s)", clustername);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "(&%s)", clustername);
   fcc_subplan_t* subplan = fetch->p_subplan;
   consume(fd,
           &subplan->m_nodes[fetch->m_parent],
           str_builder.p_buffer,
           fetch);
 
-  str_builder_destroy(&str_builder);
+  fdb_str_builder_release(&str_builder);
 
   fprintf(fd, 
-          "block_cluster_destroy(&%s, &task_allocator);\n", 
+          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
           clustername); 
 
   fprintf(fd, 
@@ -616,7 +710,8 @@ produce_gather(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"btree_t %s = btree_create(&task_allocator);\n", hashtable);
+  fprintf(fd,"fdb_btree_t %s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&%s, &task_allocator.m_super);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -626,7 +721,7 @@ produce_gather(FILE* fd,
           gather->p_subplan->m_id,
           gather->m_id);
   fprintf(fd,
-          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
+          "fdb_htregistry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
           gather->p_subplan->m_id, 
           gather->m_id,
           hashtable);
@@ -635,8 +730,9 @@ produce_gather(FILE* fd,
   produce(fd, child, parallel_stream);
 
   // CREATING TEMPORAL TABLES 
-  DynArray<fcc_column_t>& child_columns = child->m_columns;
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  fcc_column_t* child_columns = child->m_columns;
+  uint32_t ncolumns = child->m_num_columns;
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
 
@@ -675,14 +771,13 @@ produce_gather(FILE* fd,
             gather->p_subplan->m_id,
             gather->m_id);
 
-    fprintf(fd,"TableView<%s*> %s = FURIOUS_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d);\n", 
-            ctype,
+    fprintf(fd,"fdb_table_t* %s = FDB_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d, nullptr);\n", 
             temptablename,
             ctype,
             gather->p_subplan->m_id,
             gather->m_id);
 
-    fprintf(fd,"%s.clear();\n", 
+    fprintf(fd,"fdb_table_clear(%s);\n", 
             temptablename);
   }
 
@@ -692,12 +787,12 @@ produce_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(btree_t*)> hash_tables;\n");
+          "FDB_RESTRICT(fdb_btree_t*) hash_tables[stride];\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -710,11 +805,11 @@ produce_gather(FILE* fd,
           gather->p_subplan->m_id,
           gather->m_id);
   fprintf(fd,
-          "btree_t* ht = (btree_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_btree_t* ht = (fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           gather->p_subplan->m_id, 
           gather->m_id);
   fprintf(fd, 
-          "hash_tables.append(ht);\n");
+          "hash_tables[i] = ht;\n");
   fprintf(fd, 
           "}\n");
 
@@ -723,7 +818,7 @@ produce_gather(FILE* fd,
   produce(fd, ref_table, parallel_stream);
 
   // DEFININT ITERATORS TO TEMPORAL TABLES
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[FCC_MAX_TYPE_NAME];
@@ -745,13 +840,19 @@ produce_gather(FILE* fd,
 
     if(parallel_stream)
     {
-      fprintf(fd, "auto %s = %s.iterator(chunk_size, offset, stride);\n", 
+      fprintf(fd, "fdb_table_iter_t %s;\n", 
+              itername);
+
+      fprintf(fd, "fdb_table_iter_init(&%s, %s, chunk_size, offset, stride);\n", 
               itername, 
               tablename);
     }
     else
     {
-      fprintf(fd, "auto %s = %s.iterator(1, 0, 1);\n", 
+      fprintf(fd, "fdb_table_iter_t %s;\n", 
+              itername);
+
+      fprintf(fd, "fdb_table_iter_init(&%s, %s, 1, 0, 1);\n", 
               itername, 
               tablename);
     }
@@ -777,16 +878,17 @@ produce_gather(FILE* fd,
                            FCC_MAX_ITER_VARNAME);
 
   // ITERATE OVER TEMPORAL TABLES AND PRODUCE CLUSTERS FOR CALLER OPERATORS
-  fprintf(fd, "while(%s.has_next())\n{\n", itername);
+  fprintf(fd, "while(fdb_table_iter_has_next(&%s))\n{\n", itername);
 
   char clustername[FCC_MAX_CLUSTER_VARNAME];
   generate_cluster_name(gather,
                         clustername,
                         FCC_MAX_CLUSTER_VARNAME);
 
-  fprintf(fd, "block_cluster_t %s = block_cluster_create(&task_allocator);\n", clustername);
+  fprintf(fd, "fdb_bcluster_t %s;\n", clustername);
+  fprintf(fd, "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", clustername);
 
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
 
@@ -806,22 +908,27 @@ produce_gather(FILE* fd,
                              itername,
                              FCC_MAX_ITER_VARNAME);
 
-    fprintf(fd, "block_cluster_append(&%s, %s.next().get_raw());\n", 
+    fprintf(fd, "fdb_bcluster_append_block(&%s, fdb_table_iter_next(&%s));\n", 
             clustername, 
             itername);
   }
 
-  str_builder_t str_builder = str_builder_create();
-  str_builder_append(&str_builder, "(&%s)", clustername);
+  fdb_str_builder_t str_builder;
+  fdb_str_builder_init(&str_builder);
+  fdb_str_builder_append(&str_builder, "(&%s)", clustername);
   consume(fd,
           &subplan->m_nodes[gather->m_parent],
           str_builder.p_buffer,
           gather);
-  str_builder_destroy(&str_builder);
+  fdb_str_builder_release(&str_builder);
 
-  fprintf(fd, "block_cluster_destroy(&%s, &task_allocator);\n", clustername);
+  fprintf(fd, "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", clustername);
 
   fprintf(fd,"}\n\n");
+  fprintf(fd, 
+          "fdb_table_iter_release(&%s);\n", 
+          itername);
+  
 
   // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
   fprintf(fd,
@@ -829,31 +936,35 @@ produce_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state,  last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd,
-          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
+          "fdb_btree_iter_t it_%s;\n", 
+          hashtable);
+
+  fprintf(fd,
+          "fdb_btree_iter_init(&it_%s, &%s);\n", 
           hashtable, 
           hashtable);
 
 
   fprintf(fd,
-          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
   fprintf(fd,
-          "btree_iter_destroy(&it_%s);\n", 
+          "fdb_btree_iter_release(&it_%s);\n", 
           hashtable);
-  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_release(&%s);\n", hashtable);
 
 }
 
@@ -862,7 +973,7 @@ produce_cascading_gather(FILE* fd,
                          const fcc_operator_t* casc_gather, 
                          bool parallel_stream)
 {
-  fprintf(fd, "FURIOUS_PERMA_ASSERT(stride == 1 || (stride > 1 && barrier != nullptr));\n");
+  fprintf(fd, "FDB_PERMA_ASSERT(stride == 1 || (stride > 1 && barrier != nullptr));\n");
   fprintf(fd,
           "int32_t last_barrier = 0;");
 
@@ -882,7 +993,8 @@ produce_cascading_gather(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"btree_t %s = btree_create(&task_allocator);\n", hashtable);
+  fprintf(fd,"fdb_btree_t %s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&%s, &task_allocator.m_super);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -892,7 +1004,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
+          "fdb_htregistry_insert(&ht_registry, tmp_buffer_%d_%d, &%s);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id,
           hashtable);
@@ -905,26 +1017,36 @@ produce_cascading_gather(FILE* fd,
 
   // DECLARE BITTABLES FOR CASCADING
   fprintf(fd,
-          "BitTable* current_frontier_%u = new BitTable(&task_allocator);\n", 
+          "fdb_bittable_t current_frontier_%u;\n", 
+          casc_gather->m_id);
+  fprintf(fd,
+          "fdb_bittable_init(&current_frontier_%u, &task_allocator.m_super);\n", 
           casc_gather->m_id);
 
   fprintf(fd,
-          "BitTable* next_frontier_%u = new BitTable(&task_allocator);\n", 
+          "fdb_bittable_t next_frontier_%u;\n", 
+          casc_gather->m_id);
+  fprintf(fd,
+          "fdb_bittable_init(&next_frontier_%u, &task_allocator.m_super);\n", 
           casc_gather->m_id);
 
   fprintf(fd,
-          "BitTable* partial_blacklist_%u= new BitTable(&task_allocator);\n", 
+          "fdb_bittable_t partial_blacklist_%u;\n", 
+          casc_gather->m_id);
+  fprintf(fd,
+          "fdb_bittable_init(&partial_blacklist_%u, &task_allocator.m_super);\n", 
           casc_gather->m_id);
 
-  DynArray<fcc_column_t>& child_columns = child->m_columns;
-  char** temp_table_names = new char*[child_columns.size()];
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  fcc_column_t* child_columns = child->m_columns;
+  uint32_t ncolumns = child->m_num_columns;
+  char** temp_table_names = new char*[ncolumns];
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     temp_table_names[i] = new char[FCC_MAX_TABLE_VARNAME];
   }
 
-  // CREATE TEMPORAL TABLES
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  // init TEMPORAL TABLES
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
 
@@ -956,7 +1078,7 @@ produce_cascading_gather(FILE* fd,
 
   }
 
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[FCC_MAX_TYPE_NAME];
@@ -971,14 +1093,13 @@ produce_cascading_gather(FILE* fd,
             casc_gather->p_subplan->m_id,
             casc_gather->m_id);
 
-    fprintf(fd,"TableView<%s*> %s = FURIOUS_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d);\n", 
-            ctype,
+    fprintf(fd,"fdb_table_t* %s = FDB_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d, nullptr);\n", 
             temp_table_names[i],
             ctype,
             casc_gather->p_subplan->m_id,
             casc_gather->m_id);
 
-    fprintf(fd,"%s.clear();\n", 
+    fprintf(fd,"fdb_table_clear(%s);\n", 
             temp_table_names[i]);
   }
 
@@ -988,12 +1109,12 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(btree_t*)> hash_tables;\n");
+          "FDB_RESTRICT(fdb_btree_t*) hash_tables[stride];\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -1006,16 +1127,17 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "btree_t* ht = (btree_t*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_btree_t* ht = (fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
   fprintf(fd, 
-          "hash_tables.append(ht);\n");
+          "hash_tables[i] = ht;\n");
   fprintf(fd, 
           "}\n");
 
   // DECLARE HASH TABLE
-  fprintf(fd,"btree_t ref_%s = btree_create(&task_allocator);\n", hashtable);
+  fprintf(fd,"fdb_btree_t ref_%s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&ref_%s, &task_allocator.m_super);\n", hashtable);
 
   // PRODUCING REFERENCE TABLE
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
@@ -1028,7 +1150,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, partial_blacklist_%u);\n",
+          "fdb_htregistry_insert(&ht_registry, tmp_buffer_%d_%d, &partial_blacklist_%u);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id,
           casc_gather->m_id);
@@ -1040,7 +1162,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "ht_registry_insert(&ht_registry, tmp_buffer_%d_%d, next_frontier_%u);\n",
+          "fdb_htregistry_insert(&ht_registry, tmp_buffer_%d_%d, &next_frontier_%u);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id,
           casc_gather->m_id);
@@ -1051,18 +1173,18 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   // BROADCASTING NEXT FRONTIERS TO CURRENT FRONTIER
   
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(BitTable*)> blacklists_%u;\n",
+          "FDB_RESTRICT(fdb_bittable_t*) blacklists_%u[stride];\n",
           casc_gather->m_id);
 
   fprintf(fd, 
-          "DynArray<FURIOUS_RESTRICT(BitTable*)> next_frontiers_%u;\n",
+          "FDB_RESTRICT(fdb_bittable_t*) next_frontiers_%u[stride];\n",
           casc_gather->m_id);
   fprintf(fd,
           "for(uint32_t i = 0; i < stride; ++i)\n{\n");
@@ -1075,12 +1197,12 @@ produce_cascading_gather(FILE* fd,
 
   
   fprintf(fd,
-          "BitTable* other_blacklist = (BitTable*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_bittable_t* other_blacklist = (fdb_bittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
 
   fprintf(fd,
-          "blacklists_%u.append(other_blacklist);\n", 
+          "blacklists_%u[i] = other_blacklist;\n", 
           casc_gather->m_id);
 
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"next_frontier_%d_%d_%%d_%%d_%%d\", chunk_size, i, stride);\n", 
@@ -1091,12 +1213,12 @@ produce_cascading_gather(FILE* fd,
 
   
   fprintf(fd,
-          "BitTable* other_frontier = (BitTable*)ht_registry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_bittable_t* other_frontier = (fdb_bittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
 
   fprintf(fd,
-          "next_frontiers_%u.append(other_frontier);\n", 
+          "next_frontiers_%u[i] = other_frontier;\n", 
           casc_gather->m_id);
 
   fprintf(fd,
@@ -1107,16 +1229,16 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd,
-          "frontiers_union(&next_frontiers_%u, current_frontier_%u);\n", 
+          "frontiers_union(next_frontiers_%u, stride, &current_frontier_%u);\n", 
           casc_gather->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "filter_blacklists(&blacklists_%u, current_frontier_%u);\n", 
+          "filter_blacklists(blacklists_%u, stride, &current_frontier_%u);\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
@@ -1125,18 +1247,18 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
 
 
   fprintf(fd,
-          "while(current_frontier_%u->size() > 0)\n{\n", 
+          "while(fdb_bittable_size(&current_frontier_%u) > 0)\n{\n", 
           casc_gather->m_id);
 
   fprintf(fd,
-          "next_frontier_%u->clear();\n",
+          "fdb_bittable_clear(&next_frontier_%u);\n",
           casc_gather->m_id);
   
 
@@ -1160,50 +1282,61 @@ produce_cascading_gather(FILE* fd,
                            itername,
                            FCC_MAX_ITER_VARNAME);
 
-  fprintf(fd, "btree_iter_t iter_ref_hashtable_%d = btree_iter_create(&ref_%s);\n", 
+  fprintf(fd, "fdb_btree_iter_t iter_ref_hashtable_%d;\n", 
+          casc_gather->m_id);
+
+  fprintf(fd, "fdb_btree_iter_init(&iter_ref_hashtable_%d,  &ref_%s);\n", 
           casc_gather->m_id, 
           hashtable);
 
-  fprintf(fd, "while(btree_iter_has_next(&iter_ref_hashtable_%d))\n{\n", casc_gather->m_id);
+  fprintf(fd, "while(fdb_btree_iter_has_next(&iter_ref_hashtable_%d))\n{\n", casc_gather->m_id);
 
   char clustername[FCC_MAX_CLUSTER_VARNAME];
   generate_cluster_name(casc_gather,
                         clustername,
                         FCC_MAX_CLUSTER_VARNAME);
 
-  fprintf(fd, "block_cluster_t %s = block_cluster_create(&task_allocator);\n", clustername);
+  fprintf(fd, "fdb_bcluster_t %s;\n", clustername);
+  fprintf(fd, "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", clustername);
+
+    fprintf(fd,
+            "fdb_table_t* temp_tables[] = {");
+    for(uint32_t i = 0; i < ncolumns; ++i)
+    {
+      fprintf(fd, 
+              "%s,", 
+              temp_table_names[i]);
+    }
+      fprintf(fd, 
+              "nullptr};\n");
   fprintf(fd, 
-          "build_block_cluster_from_refs((block_cluster_t*)btree_iter_next(&iter_ref_hashtable_%d).p_value,"
-          "current_frontier_%u,"
-          "next_frontier_%u,"
-          "&%s",
+          "build_fdb_bcluster_from_refs((fdb_bcluster_t*)fdb_btree_iter_next(&iter_ref_hashtable_%d).p_value,"
+          "&current_frontier_%u,"
+          "&next_frontier_%u,"
+          "&%s," 
+          "temp_tables," 
+          "%d);\n",
           casc_gather->m_id, 
           casc_gather->m_id,
           casc_gather->m_id,
-          clustername);
+          clustername, 
+          ncolumns);
 
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
-  {
-    fprintf(fd, 
-            ",&%s", 
-            temp_table_names[i]);
-  }
-  fprintf(fd, 
-         ");\n");
 
-  str_builder_t str_builder_cluster = str_builder_create();
-  str_builder_append(&str_builder_cluster, "(&%s)", clustername);
+  fdb_str_builder_t fdb_str_builder_cluster;
+  fdb_str_builder_init(&fdb_str_builder_cluster);
+  fdb_str_builder_append(&fdb_str_builder_cluster, "(&%s)", clustername);
   consume(fd,
           &subplan->m_nodes[casc_gather->m_parent],
-          str_builder_cluster.p_buffer,
+          fdb_str_builder_cluster.p_buffer,
           casc_gather);
-  str_builder_destroy(&str_builder_cluster);
+  fdb_str_builder_release(&fdb_str_builder_cluster);
 
-  fprintf(fd, "block_cluster_destroy(&%s, &task_allocator);\n", 
+  fprintf(fd, "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
           clustername);
   fprintf(fd,"}\n");
 
-  fprintf(fd, "btree_iter_destroy(&iter_ref_hashtable_%d);\n", 
+  fprintf(fd, "fdb_btree_iter_release(&iter_ref_hashtable_%d);\n", 
           casc_gather->m_id);
 
   fprintf(fd,
@@ -1211,15 +1344,15 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
   fprintf(fd,
-          "current_frontier_%u->clear();\n",
+          "fdb_bittable_clear(&current_frontier_%u);\n",
           casc_gather->m_id);
   fprintf(fd,
-          "frontiers_union(&next_frontiers_%u, current_frontier_%u);\n", 
+          "frontiers_union(next_frontiers_%u, stride, &current_frontier_%u);\n", 
           casc_gather->m_id,
           casc_gather->m_id);
 
@@ -1228,7 +1361,7 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "last_barrier += stride;\n");
   fprintf(fd,
-          "barrier->wait(last_barrier);\n");
+          "barrier->p_wait(barrier->p_state, last_barrier);\n");
   fprintf(fd,
           "}\n");
 
@@ -1237,54 +1370,60 @@ produce_cascading_gather(FILE* fd,
           "}\n\n");
 
   fprintf(fd,
-          "btree_iter_t it_%s = btree_iter_create(&%s);\n", 
+          "fdb_btree_iter_t it_%s;\n", 
+          hashtable);
+  fprintf(fd,
+          "fdb_btree_iter_init(&it_%s, &%s);\n", 
           hashtable, 
           hashtable);
 
   fprintf(fd,
-          "while(btree_iter_has_next(&it_%s))\n{\n", hashtable);
+          "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_%s).p_value;\n", 
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"btree_iter_destroy(&it_%s);\n", hashtable);
-  fprintf(fd,"btree_destroy(&%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_iter_release(&it_%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_release(&%s);\n", hashtable);
 
   fprintf(fd,
-          "btree_iter_t it_ref_%s = btree_iter_create(&ref_%s);\n", 
+          "fdb_btree_iter_t it_ref_%s;\n", 
+          hashtable);
+  fprintf(fd,
+          "fdb_btree_iter_init(&it_ref_%s, &ref_%s);\n", 
           hashtable, 
           hashtable);
 
   fprintf(fd,
-          "while(btree_iter_has_next(&it_ref_%s))\n{\n", hashtable);
+          "while(fdb_btree_iter_has_next(&it_ref_%s))\n{\n", hashtable);
   fprintf(fd,
-          "block_cluster_t* next = (block_cluster_t*)btree_iter_next(&it_ref_%s).p_value;\n", 
+          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_ref_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "block_cluster_destroy(next, &task_allocator);\n");
+          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
   fprintf(fd,
-          "mem_free(&task_allocator,next);\n");
+          "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
           "}\n");
-  fprintf(fd,"btree_iter_destroy(&it_ref_%s);\n", hashtable);
-  fprintf(fd,"btree_destroy(&ref_%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_iter_release(&it_ref_%s);\n", hashtable);
+  fprintf(fd,"fdb_btree_release(&ref_%s);\n", hashtable);
 
-  fprintf(fd,"delete current_frontier_%u;\n", 
+  fprintf(fd,"fdb_bittable_release(&current_frontier_%u);\n", 
           casc_gather->m_id);
 
-  fprintf(fd,"delete next_frontier_%u;\n", 
+  fprintf(fd,"fdb_bittable_release(&next_frontier_%u);\n", 
           casc_gather->m_id);
 
-  fprintf(fd,"delete partial_blacklist_%u;\n", 
+  fprintf(fd,"fdb_bittable_release(&partial_blacklist_%u);\n", 
           casc_gather->m_id);
 
   // CLEARING TEMPORAL TABLES
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
     char ctype[FCC_MAX_TYPE_NAME];
@@ -1299,16 +1438,14 @@ produce_cascading_gather(FILE* fd,
                              FCC_MAX_TABLE_VARNAME,
                              casc_gather);
 
-    fprintf(fd,"%s.clear();\n", 
+    fprintf(fd,"fdb_table_clear(%s);\n", 
             tablename);
   }
 
-  for(uint32_t i = 0; i < child_columns.size(); ++i)
+  for(uint32_t i = 0; i < ncolumns; ++i)
   {
     delete [] temp_table_names[i];
   }
   delete [] temp_table_names;
 
-}
-
-} /* furious */ 
+}  

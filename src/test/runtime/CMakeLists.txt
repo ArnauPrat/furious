@@ -25,6 +25,7 @@ endfunction(create_test)
 
 SET(TESTS 
   pool_alloc_test
+  page_alloc_test
   stack_alloc_test
   blockcluster_test
   hashtable_test

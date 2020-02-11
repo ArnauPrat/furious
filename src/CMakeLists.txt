@@ -8,6 +8,8 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/memory/numa_alloc.h
   ${CMAKE_SOURCE_DIR}/src/common/memory/pool_allocator.c
   ${CMAKE_SOURCE_DIR}/src/common/memory/pool_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/common/memory/page_allocator.c
+  ${CMAKE_SOURCE_DIR}/src/common/memory/page_allocator.h
   ${CMAKE_SOURCE_DIR}/src/common/memory/stack_allocator.c
   ${CMAKE_SOURCE_DIR}/src/common/memory/stack_allocator.h
   ${CMAKE_SOURCE_DIR}/src/common/mutex.h
@@ -99,9 +101,9 @@ add_subdirectory(./test/runtime)
 add_subdirectory(./test/compiler)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-add_executable( lang_test 
-  lang_test.cpp
-  )
+add_executable(lang_test 
+               lang_test.cpp
+              )
 
 SET(FURIOUS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
@@ -109,25 +111,7 @@ install (TARGETS furious
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib)
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ 
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/common ${CMAKE_SOURCE_DIR}/src/runtime
         DESTINATION include/furious
         FILES_MATCHING PATTERN "*.h"
        )
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ 
-        DESTINATION include/furious
-        FILES_MATCHING PATTERN "*.inl"
-       )
-
-     #set(TIDY_SRC
-     #    ${RUNTIME_SRC}
-     #    ${COMMON_SRC}
-     #    )
-     #
-     #list(FILTER TIDY_SRC EXCLUDE REGEX ".inl$")
-     #
-     #add_custom_target(
-     #  tidy-runtime
-     #  COMMAND clang-tidy ${TIDY_SRC} -checks=llvm-* -fix -- -std=c++17 -I ${CLANG_INCLUDES_DIR} -I ${CMAKE_SOURCE_DIR}/src -x c++
-     #  COMMENT "running clang tidy on RUNTIME"
-     #  )

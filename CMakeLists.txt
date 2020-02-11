@@ -29,11 +29,31 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(DEFAULT_DEFINES ${DEFAULT_DEFINES} " -D_FILE_OFFSET_BITS=64") 
+
+IF(FDB_ENABLE_ASSERTS)
+  set(DEFAULT_DEFINES ${DEFAULT_DEFINES} -DFDB_ENABLE_ASSERTS) 
+ENDIF(FDB_ENABLE_ASSERTS)
+
 add_definitions(${DEFAULT_DEFINES})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -fno-rtti -fno-exceptions -fstrict-aliasing -Wstrict-aliasing")
+set(CMAKE_CXX_FLAGS 
+  "${CMAKE_CXX_FLAGS} \
+  -std=c++11 \
+  -Wall \
+  -fno-rtti \
+  -fno-exceptions \
+  -fstrict-aliasing \
+  -Wstrict-aliasing")
+
+set(CMAKE_C_FLAGS 
+  "${CMAKE_C_FLAGS} \
+  -std=c99 \
+  -Wall \
+  -fstrict-aliasing")
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -pg -ggdb")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -pg -ggdb")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g -pg -DNDEBUG -ftree-vectorize -ftree-vectorizer-verbose=7 -fopt-info-vec-all -fno-devirtualize ")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb")
 
 IF( UNIX )
@@ -55,6 +75,7 @@ enable_testing()
 message(STATUS "BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "LIBCLANG: ${LIBCLANG_VERSION_STRING}")
 message(STATUS "LIBCLANG INCLUDES DIR: ${CLANG_INCLUDES_DIR}")
+message(STATUS "DEFINES: ${DEFAULT_DEFINES}")
 
 add_subdirectory(src)
 

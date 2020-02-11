@@ -388,8 +388,6 @@ void*
 fdb_table_create_component(fdb_table_t* table, 
                       entity_id_t id) 
 {
-  assert(id != FDB_INVALID_ID);
-
   fdb_decoded_id_t decoded_id = decode_id(id);
   fdb_table_block_t* block = (fdb_table_block_t*)fdb_btree_get(&table->m_blocks, decoded_id.m_block_id);
   if (block == NULL) 

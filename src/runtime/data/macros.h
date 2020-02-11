@@ -104,7 +104,8 @@ struct Component \
 ////////////////////////////////////////////////
 
 #define FDB_ADD_COMPONENT(table, component, entity) \
-  ((component*)fdb_table_create_component(table, entity))
+  ((component*)fdb_table_create_component(table, entity));\
+  FDB_ASSERT(strcmp(#component, table->m_name)==0 && "Trying to create a component from the wrong table");
 
 #define FDB_REMOVE_COMPONENT(table, entity) \
   fdb_table_destroy_component(table, entity)

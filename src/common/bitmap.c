@@ -70,8 +70,8 @@ fdb_bitmap_init(fdb_bitmap_t* bitmap,
                 uint32_t max_bits, 
                 fdb_mem_allocator_t* allocator)
 {
-  FDB_ASSERT(allocator != nullptr && "Allocator cannot be null");
-  FDB_ASSERT((allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr) &&
+  FDB_ASSERT(allocator != NULL && "Allocator cannot be null");
+  FDB_ASSERT((allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL) &&
                  "Provided allocator is ill-formed.")
 
   bitmap->m_max_bits = max_bits;
@@ -92,8 +92,8 @@ fdb_bitmap_init(fdb_bitmap_t* bitmap,
 void
 fdb_bitmap_release(fdb_bitmap_t* bitmap, fdb_mem_allocator_t* allocator)
 {
-  FDB_ASSERT(allocator != nullptr && "Allocator cannot be null");
-  FDB_ASSERT((allocator->p_mem_alloc != nullptr && allocator->p_mem_free != nullptr) &&
+  FDB_ASSERT(allocator != NULL && "Allocator cannot be null");
+  FDB_ASSERT((allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL) &&
                  "Provided allocator is ill-formed.")
   mem_free(allocator, bitmap->p_data);
 }

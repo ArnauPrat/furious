@@ -97,4 +97,15 @@
 #define FCC_MAX_HAS_NOT_TAGS                      FCC_MAX_HAS_TAGS
 #define FCC_MAX_FILTER_FUNC                       8 
 
+/**
+ * \brief Returns the index (starting from 1) of the least significant bit of the given
+ * number
+ *
+ * \param x The number to get the index for 
+ *
+ * \return The index of the least significant bit
+ */
+uint32_t
+fdb_os_pow2_bit(uint64_t x);
+
 #endif

@@ -17,7 +17,7 @@ TEST(BTreeTest, fdb_btree_create)
 {
   fdb_stack_alloc_t lallocator;
   fdb_stack_alloc_init(&lallocator, 
-                       KILOBYTES(4), 
+                       KILOBYTES(64), 
                        nullptr);
 
   fdb_btree_t btree;
@@ -407,7 +407,7 @@ TEST(BTreeTest, fdb_btree_remove_shift_leaf)
 TEST(BTreeTest, BTIteratorTest) 
 {
   fdb_stack_alloc_t lallocator;
-  fdb_stack_alloc_init(&lallocator, KILOBYTES(4), nullptr);
+  fdb_stack_alloc_init(&lallocator, KILOBYTES(64), nullptr);
   fdb_btree_t btree;
   fdb_btree_init(&btree, &lallocator.m_super);
 
@@ -466,7 +466,7 @@ TEST(BTreeTest, BTIteratorTest)
 TEST(BTreeTest, BTreeSteps) 
 {
   fdb_stack_alloc_t lallocator;
-  fdb_stack_alloc_init(&lallocator, KILOBYTES(4), nullptr);
+  fdb_stack_alloc_init(&lallocator, KILOBYTES(64), nullptr);
   fdb_btree_t btree;
   fdb_btree_init(&btree, &lallocator.m_super);
   constexpr uint32_t MAX_ELEMENTS = 1000;

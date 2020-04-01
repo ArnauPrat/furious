@@ -1,7 +1,5 @@
 
 #include "mutex.h"
-#include <pthread.h>
-
 
 void
 fdb_mutex_init(fdb_mutex_t* mutex)

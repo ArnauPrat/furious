@@ -24,6 +24,7 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/btree.c
   ${CMAKE_SOURCE_DIR}/src/common/common.h
   ${CMAKE_SOURCE_DIR}/src/common/platform.h
+  ${CMAKE_SOURCE_DIR}/src/common/platform.c
   #${CMAKE_SOURCE_DIR}/src/common/reference.h
   ${CMAKE_SOURCE_DIR}/src/common/hashtable.c
   ${CMAKE_SOURCE_DIR}/src/common/hashtable.h

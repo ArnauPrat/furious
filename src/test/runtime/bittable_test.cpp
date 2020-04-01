@@ -8,7 +8,7 @@ TEST(BitTableTest, BitTableWorks)
 
   fdb_stack_alloc_t lallocator;
   fdb_stack_alloc_init(&lallocator, 
-                       KILOBYTES(4), nullptr);
+                       KILOBYTES(64), nullptr);
   fdb_bittable_t bt;
   fdb_bittable_init(&bt, &lallocator.m_super);
   constexpr uint32_t num_elements = 32000;

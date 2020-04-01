@@ -19,6 +19,7 @@ fdb_pool_alloc_alloc_wrapper(void* palloc,
                               size, 
                               hint);
 }
+
 void
 fdb_pool_alloc_free_wrapper(void* palloc, 
                             void* ptr)
@@ -26,9 +27,6 @@ fdb_pool_alloc_free_wrapper(void* palloc,
   fdb_pool_alloc_t* tpalloc = (fdb_pool_alloc_t*)palloc;
   fdb_pool_alloc_free(tpalloc, ptr);
 }
-
-void
-fdb_pool_alloc_flush(fdb_pool_alloc_t* palloc);
 
 /**
  * \brief inits a pool allocator
@@ -82,11 +80,6 @@ fdb_pool_alloc_release(fdb_pool_alloc_t* palloc)
   fdb_pool_alloc_flush(palloc);
 }
 
-/**
- * \brief Flushes all data allocated with the pool alocator
- *
- * \param fdb_pool_alloc The allocator to flush
- */
 void
 fdb_pool_alloc_flush(fdb_pool_alloc_t* fdb_pool_alloc)
 {

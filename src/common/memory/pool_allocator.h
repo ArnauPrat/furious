@@ -65,6 +65,9 @@ void
 fdb_pool_alloc_free(fdb_pool_alloc_t* palloc, 
                     void* ptr);
 
+void
+fdb_pool_alloc_flush(fdb_pool_alloc_t* fdb_pool_alloc);
+
 #ifdef __cplusplus
 }
 #endif

@@ -12,20 +12,22 @@
 extern "C" {
 #endif
 
-typedef struct fdb_stack_alloc_header_t
+typedef struct fdb_stack_alloc_fheader_t
 {
-  void*                             p_data;
-  uint32_t                          m_next_free;
-  struct fdb_stack_alloc_header_t*  p_next_header;
-} fdb_stack_alloc_header_t;
+  void* p_next_page;
+  void* p_previous_page;
+  uint32_t m_next_free;
+} fdb_stack_alloc_fheader_t;
 
 typedef struct fdb_stack_alloc_t
 {
-  fdb_stack_alloc_header_t*  p_first_chunk;
-  fdb_stack_alloc_header_t*  p_last_chunk;
   uint32_t                   m_page_size;
+  uint64_t                   m_page_mask;
   fdb_mem_allocator_t*       p_allocator;
-  fdb_pool_alloc_t           m_header_allocator;
+  void*                      p_next_page;
+  uint32_t                   m_next_offset;
+  void*                      p_last_frame;
+  uint32_t                   m_max_frame_offset; 
   fdb_mem_allocator_t        m_super;
 } fdb_stack_alloc_t;
 
@@ -57,6 +59,17 @@ fdb_stack_alloc_alloc(fdb_stack_alloc_t* state,
 void
 fdb_stack_alloc_free(fdb_stack_alloc_t* state, 
                      void* ptr);
+
+/**
+ * \brief Frees the last allocation performed by the stack allocator
+ *
+ * \param state The stack allocator
+ * \param ptr The ptr to the data to be freed. This is used for error checking
+ *  purposes
+ */
+void
+fdb_stack_alloc_pop(fdb_stack_alloc_t* state, 
+                    void* ptr);
 
 #ifdef __cplusplus
 }

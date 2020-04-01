@@ -18,9 +18,9 @@ TEST(fdb_stack_alloc_test, fdb_stack_alloc_test)
   srand(time(NULL));
   for (uint32_t i = 0; i < num_allocations; ++i) 
   {
-    allocation_sizes[i] = (uint32_t)(rand() % KILOBYTES(4)) + 1;
-    allocation_addrs[i] = nullptr;
     allocation_alignments[i] = (uint32_t)alignments[(uint32_t)rand() % num_alignments];
+    allocation_sizes[i] = (uint32_t)(rand() % (KILOBYTES(4) - sizeof(void*) - (allocation_alignments[i] < FDB_MIN_ALIGNMENT ? FDB_MIN_ALIGNMENT : allocation_alignments[i]))) + 1;
+    allocation_addrs[i] = nullptr;
   }
 
   for(uint32_t i = 0; i < num_allocations; ++i)
@@ -47,6 +47,33 @@ TEST(fdb_stack_alloc_test, fdb_stack_alloc_test)
 
   fdb_stack_alloc_release(&alloc);
 }
+
+TEST(fdb_stack_alloc_test, fdb_stack_alloc_test_pop) 
+{
+  fdb_stack_alloc_t alloc;
+  fdb_stack_alloc_init(&alloc, KILOBYTES(4), nullptr);
+
+  uint32_t alignment = 32;
+  uint32_t alloc_size = 32;
+  uint32_t num_allocs = 1024;
+  void** allocations = new void*[num_allocs];
+  for(uint32_t i = 0; i < num_allocs; ++i)
+  {
+    allocations[i] = fdb_stack_alloc_alloc(&alloc, 
+                                        alignment, 
+                                        alloc_size, 
+                                        FDB_NO_HINT);
+  }
+
+  for(uint32_t i = 0; i < num_allocs; ++i)
+  {
+    fdb_stack_alloc_pop(&alloc, 
+                        allocations[num_allocs-1-i]);
+  }
+  delete [] allocations;
+  fdb_stack_alloc_release(&alloc);
+}
+
 
 int main(int argc, char *argv[])
 {

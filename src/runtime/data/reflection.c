@@ -61,13 +61,13 @@ fdb_mregistry_init_mstruct(fdb_mregistry_t* reg,
   memset(mstruct, 0, sizeof(fdb_mstruct_t));
   FDB_COPY_AND_CHECK_STR(mstruct->m_type_name, name, FDB_MAX_TABLE_NAME);
   mstruct->m_is_union = is_union;
+  mstruct->m_nfields = 0;
   uint32_t hashvalue = hash(name);
   fdb_btree_insert_t insert = fdb_btree_insert(&reg->m_metadata, hashvalue, mstruct);
   if(!insert.m_inserted)
   {
     fdb_mstruct_t* old = (fdb_mstruct_t*)(*insert.p_place);
     *insert.p_place = mstruct;
-    //fdb_mstruct_release(old);
     fdb_pool_alloc_free(&reg->m_mstruct_allocator, old);
   }
   return mstruct;
@@ -96,7 +96,9 @@ fdb_mregistry_init_mfield(fdb_mregistry_t* reg,
                                                                 64, 
                                                                 sizeof(fdb_mstruct_t), 
                                                                 FDB_NO_HINT);
+    memset(mfield->p_strct_type, 0, sizeof(fdb_mstruct_t));
   }
+  FDB_PERMA_ASSERT(mstruct->m_nfields < FDB_MAX_COMPONENT_FIELDS && "Maximum number of fields per component reached");
   mstruct->p_fields[mstruct->m_nfields++] = mfield;
   return mfield->p_strct_type;
 }

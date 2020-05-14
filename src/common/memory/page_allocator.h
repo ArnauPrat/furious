@@ -4,6 +4,7 @@
 #define _FDB_PAGE_ALLOC_H_
 
 #include "memory.h"
+#include "../mutex.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,6 +21,8 @@ typedef struct fdb_page_alloc_t
   uint32_t            m_ssize;
   uint32_t            m_lsize;
   fdb_mem_allocator_t m_super;
+  fdb_mem_stats_t     m_stats;
+  fdb_mutex_t         m_mutex;
 } fdb_page_alloc_t;
 
 /**
@@ -69,6 +72,9 @@ fdb_page_alloc_alloc(fdb_page_alloc_t* palloc,
 void
 fdb_page_alloc_free(fdb_page_alloc_t* palloc, 
                     void* ptr);
+
+fdb_mem_stats_t
+fdb_page_alloc_stats(fdb_page_alloc_t* palloc);
 
 #ifdef __cplusplus
 }

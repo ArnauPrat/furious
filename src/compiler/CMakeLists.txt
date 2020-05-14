@@ -141,15 +141,7 @@ set(LLVM_LINK_COMPONENTS support)
 link_directories(${LIBCLANG_LIBDIR})
 target_link_libraries(fcc 
   ${LIBCLANG_LIBRARIES}
-  clang 
-  clangAST 
-  clangASTMatchers
-  clangSerialization
-  clangFrontend
-  clangTooling
-  clangRewrite
-  clangBasic
-  clangLex
+  clang-cpp
   LLVM
   )
 

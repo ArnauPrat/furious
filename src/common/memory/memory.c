@@ -26,6 +26,12 @@ mem_free(fdb_mem_allocator_t* mem_allocator,
                                    ptr);
 }
 
+fdb_mem_stats_t 
+mem_stats(fdb_mem_allocator_t* mem_allocator)
+{
+  return mem_allocator->p_mem_stats(mem_allocator->p_mem_state);
+}
+
 fdb_mem_allocator_t*
 fdb_get_global_mem_allocator()
 {

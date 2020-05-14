@@ -31,12 +31,20 @@ fdb_stack_alloc_alloc_wrapper(void* state,
                                hint);
 
 }
+
 void
 fdb_stack_alloc_free_wrapper(void* state, 
                              void* ptr)
 {
   fdb_stack_alloc_t* salloc = (fdb_stack_alloc_t*)state;
   fdb_stack_alloc_free(salloc, ptr);
+}
+
+fdb_mem_stats_t
+fdb_stack_alloc_stats_wrapper(void* state)
+{
+  fdb_stack_alloc_t* salloc = (fdb_stack_alloc_t*)state;
+  return fdb_stack_alloc_stats(salloc);
 }
 
 
@@ -59,6 +67,7 @@ fdb_stack_alloc_init(fdb_stack_alloc_t* salloc,
                   (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
                  "Provided allocator is ill-formed.")
 
+  memset(salloc, 0, sizeof(fdb_stack_alloc_t));
   if(allocator != NULL)
   {
     salloc->p_allocator = allocator; 
@@ -77,12 +86,15 @@ fdb_stack_alloc_init(fdb_stack_alloc_t* salloc,
   salloc->m_super.p_mem_state = salloc; 
   salloc->m_super.p_mem_alloc = fdb_stack_alloc_alloc_wrapper; 
   salloc->m_super.p_mem_free = fdb_stack_alloc_free_wrapper;
+  salloc->m_super.p_mem_stats = fdb_stack_alloc_stats_wrapper;
+  fdb_mutex_init(&salloc->m_mutex);
 }
 
 void
 fdb_stack_alloc_release(fdb_stack_alloc_t* salloc)
 {
   fdb_stack_alloc_flush(salloc);
+  fdb_mutex_release(&salloc->m_mutex);
 }
 
 /**
@@ -93,6 +105,7 @@ fdb_stack_alloc_release(fdb_stack_alloc_t* salloc)
 void
 fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
 {
+  fdb_mutex_lock(&salloc->m_mutex);
   fdb_stack_alloc_fheader_t* fheader = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   if(fheader != NULL)
   {
@@ -160,6 +173,10 @@ fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
   salloc->m_next_offset = 0;
   salloc->p_next_page = NULL;
   salloc->p_last_frame = NULL;
+  salloc->m_stats.m_allocated = 0;
+  salloc->m_stats.m_used = 0;
+  salloc->m_stats.m_lost = 0;
+  fdb_mutex_unlock(&salloc->m_mutex);
 }
 
 /**
@@ -179,9 +196,20 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
                             uint32_t hint)
 {
   FDB_ASSERT((size <= salloc->m_page_size) && "Requested allocation is too large for the given page size");
+  FDB_ASSERT(salloc->m_page_size >= alignment && "Alignment cannot be larger than the page alignment");
   int32_t min_alignment = alignment > FDB_MIN_ALIGNMENT ? alignment : FDB_MIN_ALIGNMENT;
 
-  if(salloc->p_next_page == NULL)
+  fdb_mutex_lock(&salloc->m_mutex);
+
+  uint32_t modulo = ((uint64_t)salloc->p_next_page + salloc->m_next_offset) & (min_alignment-1);
+  uint32_t slack = 0;
+  if(modulo != 0)
+  {
+    slack = (min_alignment - modulo);
+  }
+
+  if(((salloc->m_next_offset + slack + size) >= salloc->m_page_size) || 
+     salloc->p_next_page == NULL)
   {
     salloc->p_next_page = mem_alloc(salloc->p_allocator, 
                           salloc->m_page_size, 
@@ -189,33 +217,13 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
                           FDB_NO_HINT);
     FDB_ASSERT(((uint64_t)salloc->p_next_page & ~(salloc->m_page_mask)) == 0);
     salloc->m_next_offset = 0;
-  }
-  else
-  {
-    uint32_t modulo = ((uint64_t)salloc->p_next_page + salloc->m_next_offset) & (min_alignment-1);
-    if(modulo != 0)
-    {
-      salloc->m_next_offset += (min_alignment - modulo);
-    }
-
-    if(salloc->m_next_offset + size >= salloc->m_page_size)
-    {
-      salloc->p_next_page = mem_alloc(salloc->p_allocator, 
-                            salloc->m_page_size, 
-                            salloc->m_page_size, 
-                            FDB_NO_HINT);
-      FDB_ASSERT(((uint64_t)salloc->p_next_page & ~(salloc->m_page_mask)) == 0);
-      salloc->m_next_offset = 0;
-    }
+    salloc->m_stats.m_allocated += salloc->m_page_size;
+    salloc->m_stats.m_used += 1; // we use the used field to count for the number of allocated pages for data (not for frames)
+    slack = 0; // we do not need to recompute the slack given that page addresses are aligned to page size
   }
 
-  uint32_t modulo = ((uint64_t)salloc->p_next_page + salloc->m_next_offset) & (min_alignment-1);
-  if(modulo != 0)
-  {
-    salloc->m_next_offset += (min_alignment - modulo);
-  }
 
-  FDB_ASSERT(((salloc->m_next_offset + size) <= salloc->m_page_size) && "This stack allocator cannot serve the requested memory");
+  FDB_ASSERT(((salloc->m_next_offset +slack + size) <= salloc->m_page_size) && "This stack allocator cannot serve the requested memory");
 
   fdb_stack_alloc_fheader_t* last_frame = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   if(last_frame == NULL || last_frame->m_next_free == salloc->m_max_frame_offset)
@@ -232,15 +240,22 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
       last_frame->p_next_page = new_frame;
     }
     salloc->p_last_frame = new_frame;
+
+    salloc->m_stats.m_allocated += salloc->m_page_size;
   }
 
-  void* ret_addr = (char*)salloc->p_next_page + salloc->m_next_offset;
+  void* current_base = (char*)salloc->p_next_page + salloc->m_next_offset;
   fdb_stack_alloc_fheader_t* fheader = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   char* frame_data = salloc->p_last_frame + sizeof(fdb_stack_alloc_fheader_t);
-  memcpy(frame_data + fheader->m_next_free, &ret_addr, sizeof(void*));
+  memcpy(frame_data + fheader->m_next_free, &current_base, sizeof(void*));
   fheader->m_next_free += sizeof(void*);
 
-  salloc->m_next_offset += size;
+  void* ret_addr = (char*)salloc->p_next_page + salloc->m_next_offset + slack;
+
+  salloc->m_next_offset += slack + size;
+  salloc->m_stats.m_used += slack + size;
+
+  FDB_ASSERT(salloc->m_next_offset <= salloc->m_page_size && "Offset cannot exceed page size");
 
   if(salloc->m_next_offset == salloc->m_page_size)
   {
@@ -250,9 +265,13 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
                                     FDB_NO_HINT);
     FDB_ASSERT(((uint64_t)salloc->p_next_page & ~(salloc->m_page_mask)) == 0);
     salloc->m_next_offset = 0;
+
+    salloc->m_stats.m_allocated+=salloc->m_page_size;
   }
+
   FDB_ASSERT(((uint64_t)ret_addr & ~(salloc->m_page_mask)) < salloc->m_page_size);
   FDB_ASSERT(((uint64_t)ret_addr % alignment) == 0 && "Wrong alignment of returned address");
+  fdb_mutex_unlock(&salloc->m_mutex);
   return ret_addr;
 }
 
@@ -275,6 +294,7 @@ void
 fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc, 
                     void* ptr)
 {
+  fdb_mutex_lock(&salloc->m_mutex);
   fdb_stack_alloc_fheader_t* fheader = salloc->p_last_frame;
   if(fheader->m_next_free == 0)
   {
@@ -283,6 +303,7 @@ fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc,
     mem_free(salloc->p_allocator, tmp);
     salloc->p_last_frame = fheader;
     fheader->p_next_page = NULL;
+    salloc->m_stats.m_allocated -= salloc->m_page_size;
   }
 
   FDB_ASSERT(fheader != NULL && "Cannot pop from an empty stack allocator");
@@ -297,9 +318,25 @@ fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc,
   if(salloc->p_next_page != page_addr)
   {
     mem_free(salloc->p_allocator, salloc->p_next_page);
+    salloc->m_stats.m_allocated -= salloc->m_page_size;
+    salloc->m_stats.m_used -= 1; // We decremenet one page. We use this field to compute the number of allocated pages (not frames)
+  }
+  else
+  {
+    salloc->m_stats.m_used -= salloc->m_next_offset - page_offset;
   }
   salloc->p_next_page = page_addr;
   salloc->m_next_offset = page_offset;
+  salloc->m_stats.m_used -= salloc->m_page_size;
+  fdb_mutex_unlock(&salloc->m_mutex);
 }
 
-
+fdb_mem_stats_t
+fdb_stack_alloc_stats(fdb_stack_alloc_t* salloc)
+{
+  fdb_mutex_lock(&salloc->m_mutex);
+  fdb_mem_stats_t stats = salloc->m_stats;
+  stats.m_used = salloc->m_stats.m_used*salloc->m_page_size + salloc->m_next_offset; // We compute the actual used space
+  fdb_mutex_unlock(&salloc->m_mutex);
+  return stats;
+}

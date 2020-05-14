@@ -6,6 +6,7 @@
 
 #include "../../common/types.h"
 #include "memory.h"
+#include "../mutex.h"
 #include "pool_allocator.h"
 
 #ifdef __cplusplus
@@ -29,6 +30,8 @@ typedef struct fdb_stack_alloc_t
   void*                      p_last_frame;
   uint32_t                   m_max_frame_offset; 
   fdb_mem_allocator_t        m_super;
+  fdb_mem_stats_t            m_stats;
+  fdb_mutex_t                m_mutex;
 } fdb_stack_alloc_t;
 
 /**
@@ -70,6 +73,9 @@ fdb_stack_alloc_free(fdb_stack_alloc_t* state,
 void
 fdb_stack_alloc_pop(fdb_stack_alloc_t* state, 
                     void* ptr);
+
+fdb_mem_stats_t
+fdb_stack_alloc_stats(fdb_stack_alloc_t* palloc);
 
 #ifdef __cplusplus
 }

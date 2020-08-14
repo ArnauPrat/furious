@@ -30,7 +30,6 @@
 
 /// RUNTIME
 
-
 #define FDB_MIN_ALIGNMENT                     16
 
 #define FDB_BTREE_ALIGNMENT                   64 
@@ -66,6 +65,8 @@
 
 #define FDB_MAX_WEBSERVER_PORT_SIZE           64
 #define FDB_MAX_WEBSERVER_ADDRESS_SIZE        64
+
+#define FDB_TX_GC_PAGE_SIZE                   KILOBYTES(4)
 /// FCC_COMPILER 
 
 #define FCC_INVALID_ID                            FDB_INVALID_ID

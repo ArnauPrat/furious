@@ -54,7 +54,7 @@ TEST(fdb_stack_alloc_test, fdb_stack_alloc_test_pop)
   fdb_stack_alloc_init(&alloc, KILOBYTES(4), nullptr);
 
   uint32_t alignment = 32;
-  uint32_t alloc_size = 32;
+  uint32_t alloc_size = 48;
   uint32_t num_allocs = 1024;
   void** allocations = new void*[num_allocs];
   for(uint32_t i = 0; i < num_allocs; ++i)

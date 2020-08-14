@@ -244,13 +244,12 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
     salloc->m_stats.m_allocated += salloc->m_page_size;
   }
 
-  void* current_base = (char*)salloc->p_next_page + salloc->m_next_offset;
+  void* ret_addr = (char*)salloc->p_next_page + salloc->m_next_offset + slack;
   fdb_stack_alloc_fheader_t* fheader = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   char* frame_data = salloc->p_last_frame + sizeof(fdb_stack_alloc_fheader_t);
-  memcpy(frame_data + fheader->m_next_free, &current_base, sizeof(void*));
+  memcpy(frame_data + fheader->m_next_free, &ret_addr, sizeof(void*));
   fheader->m_next_free += sizeof(void*);
 
-  void* ret_addr = (char*)salloc->p_next_page + salloc->m_next_offset + slack;
 
   salloc->m_next_offset += slack + size;
   salloc->m_stats.m_used += slack + size;

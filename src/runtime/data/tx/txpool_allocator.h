@@ -17,9 +17,12 @@ extern "C" {
 
   typedef struct fdb_txpool_alloc_ref_t
   {
-    uint64_t                  m_ts;
-    void*                     p_data;
-    struct fdb_txpool_ref_t*  p_next_ref;
+    uint64_t                        m_ts;
+    void*                           p_data;
+    struct fdb_txpool_alloc_ref_t*  p_zombie; 
+    uint64_t                        m_zts;
+    struct fdb_txpool_alloc_ref_t*  p_next_ref;
+    bool                            m_freed;
   } fdb_txpool_alloc_ref_t;
 
 
@@ -27,6 +30,9 @@ extern "C" {
   {
     fdb_pool_alloc_t        m_palloc;
     uint64_t                m_data_offset; //< The offset from the start of each block where data starts 
+    uint32_t                m_alignment;
+    uint32_t                m_payload_size;
+    uint32_t                m_block_size;  
     fdb_mutex_t             m_mutex;
   } fdb_txpool_alloc_t;
 
@@ -97,10 +103,11 @@ extern "C" {
    * \return Returns the pointer of the reference
    */
   void*
-  fdb_txpool_ptr(fdb_txpool_alloc_t* palloc, 
+  fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc, 
                  fdb_tx_t* tx, 
                  fdb_txthread_ctx_t* txtctx,
-                 fdb_txpool_alloc_ref_t* ref);
+                 fdb_txpool_alloc_ref_t* ref, 
+                 bool write);
 
   /**
    * \brief Flushes the txpool allocator
@@ -111,6 +118,25 @@ extern "C" {
    */
   void
   fdb_txpool_alloc_flush(fdb_txpool_alloc_t* palloc);
+
+
+  /**
+   * \brief Garbage collects a reference previously freed
+   *
+   * \param palloc The txpool the reference belongs to
+   * \param ref The reference to garbage collect
+   * \param tv The transaction version that freed this reference
+   * \param orv The version of the oldest running transaction
+   *
+   * \return True if the reference was effectively freed
+   */
+  bool
+  fdb_txpool_alloc_gc_free(fdb_txpool_alloc_t* palloc, 
+                           fdb_txpool_alloc_ref_t* ref, 
+                           uint64_t tv, 
+                           uint64_t orv);
+
+
 
 #ifdef __cplusplus
 }

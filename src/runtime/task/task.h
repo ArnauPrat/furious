@@ -1,12 +1,10 @@
 
 
 
-#ifndef _FURIOUS_TASK_H_
-#define _FURIOUS_TASK_H_
+#ifndef _FDB_TASK_H_
+#define _FDB_TASK_H_
 
 #include "../../common/platform.h"
-
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

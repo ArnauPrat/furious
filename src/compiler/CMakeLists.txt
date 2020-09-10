@@ -143,6 +143,7 @@ target_link_libraries(fcc
   ${LIBCLANG_LIBRARIES}
   clang-cpp
   LLVM
+  pthread
   )
 
 

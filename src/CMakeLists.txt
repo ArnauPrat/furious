@@ -33,9 +33,15 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/types.h
   ${CMAKE_SOURCE_DIR}/src/common/utils.c
   ${CMAKE_SOURCE_DIR}/src/common/utils.h
+  ${CMAKE_SOURCE_DIR}/src/common/thread.h
+  ${CMAKE_SOURCE_DIR}/src/common/thread.c
   )
 
 set (RUNTIME_SRC
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txpool_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txpool_allocator.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/tx.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/tx.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.c
@@ -79,7 +85,10 @@ add_library(furious SHARED
   ${RUNTIME_SRC}
   )  
 
-set_property(TARGET furious PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(furious
+  pthread)
+
+#set_property(TARGET furious PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(furious 
   PROPERTIES

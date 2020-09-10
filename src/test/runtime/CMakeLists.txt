@@ -38,6 +38,7 @@ SET(TESTS
   tags_test
   refs_test
   dyn_array_test
+  txpool_alloc_test
   )
 
 foreach( TEST ${TESTS} )

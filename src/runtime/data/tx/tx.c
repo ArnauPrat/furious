@@ -1,22 +1,120 @@
 
 
-
 #include "tx.h"
+#include "../../../common/mutex.h"
+#include "txpool_allocator.h"
+#include <stdbool.h>
+
+static fdb_tx_t*         p_first = NULL;
+static fdb_tx_t*         p_last = NULL;
+static fdb_mutex_t       m_mutex;
+static uint64_t          m_next_id = 1;
+static uint64_t          m_last_write_committed_id = 0;
+static fdb_mutex_t       m_write_running;
+
+void
+fdb_tx_init()
+{
+  fdb_mutex_init(&m_mutex);
+  fdb_mutex_init(&m_write_running);
+}
+
+void
+fdb_tx_release()
+{
+  fdb_mutex_release(&m_write_running);
+  fdb_mutex_release(&m_mutex);
+}
+
+void
+fdb_tx_begin(fdb_tx_t* tx, fdb_txtype_t txtype)
+{
+  if(txtype == E_READ_WRITE)
+  {
+    fdb_mutex_lock(&m_write_running);
+  }
+
+  fdb_mutex_lock(&m_mutex);
+  *tx = (fdb_tx_t){.m_id = m_next_id++, 
+                   .m_txversion = m_last_write_committed_id,
+                   .m_tx_type = txtype, 
+                   .p_next = NULL, 
+                   .p_prev = NULL};
+
+  if(tx->m_tx_type == E_READ_WRITE)
+  {
+    tx->m_txversion = tx->m_id;
+  }
+
+  if(p_first == NULL)
+  {
+    tx->m_ortxversion = m_last_write_committed_id;
+    FDB_ASSERT(p_last == NULL);
+    p_first = tx;
+    p_last = tx;
+  }
+  else
+  {
+    tx->m_ortxversion = p_first->m_txversion;
+    p_last->p_next = tx;
+    tx->p_prev = p_last;
+    p_last = tx;
+  }
+  fdb_mutex_unlock(&m_mutex);
+
+}
+
+void
+fdb_tx_commit(fdb_tx_t* tx)
+{
+  fdb_mutex_lock(&m_mutex);
+  if(tx->p_prev != NULL)
+  {
+    tx->p_prev->p_next = tx->p_next;
+  }
+  if(tx->p_next != NULL)
+  {
+    tx->p_next->p_prev = tx->p_prev;
+  }
+
+  if(tx->m_tx_type == E_READ_WRITE &&
+     tx->m_id > m_last_write_committed_id)
+  {
+    m_last_write_committed_id = tx->m_id;
+  }
+
+  if(p_first == tx)
+  {
+    p_first = tx->p_next;
+  }
+
+  if(p_last == tx)
+  {
+    p_last = tx->p_prev;
+  }
+
+  tx->p_next = NULL;
+  tx->p_prev = NULL;
+
+  fdb_mutex_unlock(&m_mutex);
+
+  if(tx->m_tx_type == E_READ_WRITE)
+  {
+    fdb_mutex_unlock(&m_write_running);
+  }
+}
+
 
 void
 fdb_txthread_ctx_init(fdb_txthread_ctx_t* txtctx, 
-                      uint32_t tid, 
-                      uint32_t nthreads, 
                       fdb_mem_allocator_t* allocator)
 {
-  *txtctx = (fdb_txthread_ctx_t){.m_tid = tid, 
-                                 .m_nthreads = nthreads, 
-                                 .p_first = NULL};
+  *txtctx = (fdb_txthread_ctx_t){.p_first = NULL};
   fdb_pool_alloc_init(&txtctx->m_palloc, 
                       FDB_MIN_ALIGNMENT, 
-                      sizeof(fdb_tx_garbage_t), 
+                      sizeof(fdb_txgarbage_t), 
                       FDB_TX_GC_PAGE_SIZE,
-                      allocator);
+                      allocator); 
 }
 
 void
@@ -27,8 +125,71 @@ fdb_txthread_ctx_release(fdb_txthread_ctx_t* txctx)
 }
 
 void
-fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txctx, 
+fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                            struct fdb_txpool_alloc_t* palloc, 
-                           struct fdb_txpool_alloc_ref_t* ref)
+                           struct fdb_txpool_alloc_ref_t* ref, 
+                           uint64_t  ts)
 {
+
+  fdb_txgarbage_t* entry  = (fdb_txgarbage_t*)fdb_pool_alloc_alloc(&txtctx->m_palloc,
+                                                                     FDB_MIN_ALIGNMENT, 
+                                                                     sizeof(fdb_txgarbage_t), 
+                                                                     FDB_NO_HINT);
+  *entry = (fdb_txgarbage_t){0};
+  if(txtctx->p_first != NULL)
+  {
+    txtctx->p_first->p_prev = entry;
+    entry->p_next = txtctx->p_first;
+  }
+  txtctx->p_first = entry;
+  entry->p_palloc = palloc;
+  entry->p_ref = ref;
+  entry->m_ts = ts;
+}
+
+bool
+fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx)
+{
+  bool all_freed = true;
+  fdb_mutex_lock(&m_mutex);
+  uint64_t oldest_running_version = m_last_write_committed_id;
+  if(p_first != NULL)
+  {
+    oldest_running_version = p_first->m_txversion;
+  }
+  fdb_mutex_unlock(&m_mutex);
+  fdb_txgarbage_t* next_garbage = txtctx->p_first;
+  while(next_garbage != NULL)
+  {
+    if(fdb_txpool_alloc_gc_free(next_garbage->p_palloc, 
+                                next_garbage->p_ref, 
+                                next_garbage->m_ts, 
+                                oldest_running_version))
+    {
+      if(next_garbage == txtctx->p_first)
+      {
+        txtctx->p_first = next_garbage->p_next;
+      }
+
+      if(next_garbage->p_prev)
+      {
+        next_garbage->p_prev->p_next = next_garbage->p_next;
+      }
+
+      if(next_garbage->p_next)
+      {
+        next_garbage->p_next->p_prev = next_garbage->p_prev;
+      }
+
+      fdb_txgarbage_t* gb = next_garbage;
+      next_garbage = next_garbage->p_next;
+      fdb_pool_alloc_free(&txtctx->m_palloc, gb);
+    }
+    else
+    {
+      all_freed = false;
+      next_garbage = next_garbage->p_next;
+    }
+  }
+  return all_freed;
 }

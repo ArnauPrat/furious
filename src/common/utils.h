@@ -1,7 +1,7 @@
 
 
-#ifndef _FURIOUS_UTILS_H_
-#define _FURIOUS_UTILS_H_ value
+#ifndef _FDB_UTILS_H_
+#define _FDB_UTILS_H_ 
 
 #include "types.h"
 

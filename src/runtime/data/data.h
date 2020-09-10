@@ -8,3 +8,5 @@
 #include "data_utils.h"
 #include "reflection.h"
 #include "ht_registry.h"
+#include "tx/tx.h"
+#include "tx/txpool_allocator.h"

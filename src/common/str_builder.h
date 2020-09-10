@@ -1,7 +1,7 @@
 
 
-#ifndef _FURIOUS_STR_BUILDER_H_
-#define _FURIOUS_STR_BUILDER_H_
+#ifndef _FDB_STR_BUILDER_H_
+#define _FDB_STR_BUILDER_H_
 
 #include "types.h"
 

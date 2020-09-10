@@ -4,6 +4,7 @@
 
 #include "../../../common/platform.h"
 #include "../../../common/memory/pool_allocator.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,6 +12,8 @@ extern "C" {
 
   struct fdb_txpool_alloc_t;
   struct fdb_txpool_alloc_ref_t;
+
+#define FDB_TX_INVALID_ID (uint64_t)0LL
 
   typedef enum fdb_txtype_t
   {
@@ -20,27 +23,41 @@ extern "C" {
 
   typedef struct fdb_tx_t
   {
-    uint64_t      m_id;         ///< The id of the transaction 
-    fdb_txtype_t  m_tx_type;    ///< The transaction type
+    uint64_t          m_id;         ///< The id of the transaction 
+    uint64_t          m_txversion;       ///< The maximum version timestamp
+    uint64_t          m_ortxversion;       ///< The ts of the oldest running ts. Used for GC during executiong of READ_WRITE tx's. 
+    fdb_txtype_t      m_tx_type;    ///< The transaction type
+    struct fdb_tx_t*  p_next;
+    struct fdb_tx_t*  p_prev;
   } fdb_tx_t;
 
-  typedef struct fdb_tx_garbage_t
+  typedef struct fdb_txgarbage_t
   {
-    struct fdb_txpool_alloc_t* p_palloc;  ///< The txpool where this garbage item belongs to
-    struct fdb_txpool_ref_t*   p_ref;     ///< The reference to the garbage item
-    struct fdb_txgarbage_t*   p_next;     ///< The next garbage entry in the linkect list
-    struct fdb_txgarbage_t*   p_prev;     ///< The previous garbage entry in th elinked list
-  } fdb_tx_garbage_t;
+    struct fdb_txpool_alloc_t*        p_palloc;   ///< The txpool where this garbage item belongs to
+    struct fdb_txpool_alloc_ref_t*    p_ref;      ///< The reference to the garbage item
+    struct fdb_txgarbage_t*           p_next;     ///< The next garbage entry in the linkect list
+    struct fdb_txgarbage_t*           p_prev;     ///< The previous garbage entry in th elinked list
+    uint64_t                          m_ts;       ///< The ts of the transaction that deleted this entry
+  } fdb_txgarbage_t;
 
 
   typedef struct fdb_txthread_ctx_t
   {
-    uint32_t            m_tid;          ///< the thread id
-    uint32_t            m_nthreads;     ///< the number of threads (siblings) that will be used to execute transactions
     fdb_pool_alloc_t    m_palloc;       ///< the pool allocator used to allocate garbage objects
-    fdb_tx_garbage_t*   p_first;        ///< the first garbage object in the linked list 
+    fdb_txgarbage_t*    p_first;        ///< the first garbage object in the linked list 
   } fdb_txthread_ctx_t;
 
+  /**
+   * \brief Initializes the transactional subsytem
+   */
+  void
+  fdb_tx_init();
+
+  /**
+   * \brief Releases the transactional subsystem
+   */
+  void
+  fdb_tx_release();
 
   /**
    * \brief Initializes a transaction. From this point, the transaction has
@@ -66,13 +83,10 @@ extern "C" {
    * \brief Initializes the txthread context
    *
    * \param txtctx The txthread context to initialize
-   * \param tid The thread id (0 to nthreads-1)
-   * \param nthreads The total number of threads
+   * \param allocator Pointer to the memory allocator to use within the context
    */
   void
   fdb_txthread_ctx_init(fdb_txthread_ctx_t* txtctx, 
-                        uint32_t tid, 
-                        uint32_t nthreads, 
                         fdb_mem_allocator_t* allocator);
 
   /**
@@ -93,16 +107,20 @@ extern "C" {
   void
   fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                              struct fdb_txpool_alloc_t* palloc, 
-                             struct fdb_txpool_alloc_ref_t* ref);
+                             struct fdb_txpool_alloc_ref_t* ref, 
+                             uint64_t ts);
 
   /**
    * \brief Executes the garbage collection process on this txthread ctx.
    *
    * \param txtctx The txthread context to run the garbage collection process
    * for
+   *
+   * \param True if all items were garbage collected. False otherwise
    */
-  void
+  bool 
   fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx);
+
 
 #ifdef __cplusplus
 }

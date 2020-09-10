@@ -9,5 +9,6 @@
 #include "memory/pool_allocator.h"
 #include "memory/stack_allocator.h"
 #include "hashtable.h"
+#include "thread.h"
 
 #endif

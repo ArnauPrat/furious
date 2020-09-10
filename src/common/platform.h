@@ -9,6 +9,24 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#ifdef FDB_COMPILER_GCC
+#define FDB_COMPILER_DEFINED
+#endif
+
+#ifdef FDB_OS_LINUX
+#define FDB_OS_DEFINED
+#ifndef _GNU_SOURCE
+  #define _GNU_SOURCE
+#endif
+#endif
+
+#ifndef FDB_COMPILER_DEFINED
+#error compiler not defined
+#endif
+
+#ifndef FDB_OS_DEFINED
+#error os not defined
+#endif
 
 #ifdef FDB_ENABLE_ASSERTS
 #define FDB_ASSERT(_cond) if(!(_cond)) abort();
@@ -108,5 +126,11 @@
  */
 uint32_t
 fdb_os_pow2_bit(uint64_t x);
+
+/**
+ * \brief Memory barrier. Prevents loads/stores to cross this instruction
+ */
+void
+fdb_mem_barrier();
 
 #endif

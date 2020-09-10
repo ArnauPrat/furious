@@ -1,6 +1,4 @@
 
-
-
 #ifndef _FDB_HASHTABLE_H_
 #define _FDB_HASHTABLE_H_ 
 

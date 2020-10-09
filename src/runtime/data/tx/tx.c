@@ -17,11 +17,23 @@ fdb_tx_init()
 {
   fdb_mutex_init(&m_mutex);
   fdb_mutex_init(&m_write_running);
+  m_next_id = 1;
+  m_last_write_committed_id = 0;
+  FDB_ASSERT(!p_first)
+  FDB_ASSERT(!p_last)
+  p_first = NULL;
+  p_last = NULL;
 }
 
 void
 fdb_tx_release()
 {
+  FDB_ASSERT(!p_first)
+  FDB_ASSERT(!p_last)
+  m_next_id = 1;
+  m_last_write_committed_id = 0;
+  p_first = NULL;
+  p_last = NULL;
   fdb_mutex_release(&m_write_running);
   fdb_mutex_release(&m_mutex);
 }
@@ -61,7 +73,6 @@ fdb_tx_begin(fdb_tx_t* tx, fdb_txtype_t txtype)
     p_last = tx;
   }
   fdb_mutex_unlock(&m_mutex);
-
 }
 
 void

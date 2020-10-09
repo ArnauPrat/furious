@@ -17,11 +17,11 @@ extern "C" {
 
   typedef struct fdb_txpool_alloc_ref_t
   {
-    uint64_t                        m_ts;
-    void*                           p_data;
-    struct fdb_txpool_alloc_ref_t*  p_zombie; 
-    uint64_t                        m_zts;
-    struct fdb_txpool_alloc_ref_t*  p_next_ref;
+    uint64_t                                    m_ts;
+    void*                                       p_data;
+    struct fdb_txpool_alloc_ref_t*  volatile    p_zombie; 
+    uint64_t                                    m_zts;
+    struct fdb_txpool_alloc_ref_t * volatile    p_next_ref;
     bool                            m_freed;
   } fdb_txpool_alloc_ref_t;
 

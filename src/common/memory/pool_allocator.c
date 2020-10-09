@@ -135,9 +135,10 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 
 #ifdef FDB_ENABLE_ASSERTS
   uint32_t min_alignment = alignment > FDB_MIN_ALIGNMENT ? alignment : FDB_MIN_ALIGNMENT;
-#endif
   FDB_ASSERT(palloc->m_alignment == min_alignment && "Requested alignment mismatches the pool allocator alignment");
   FDB_ASSERT(palloc->m_block_size == size && "Requested size mismatches the pool allocator size");
+#endif
+
   void* ret = NULL;
   if(palloc->p_first_free != NULL)
   {
@@ -153,6 +154,9 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
                                         palloc->m_alignment, 
                                         palloc->m_page_size, 
                                         hint);
+
+      printf("pool allocator new chunk: %lu\n", (uint64_t)palloc->p_first_chunk);
+
       fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_first_chunk;
       hdr->p_next = NULL;
       palloc->m_next_free = palloc->m_grow_offset;
@@ -164,15 +168,19 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 
     if(palloc->m_next_free + palloc->m_block_size <= palloc->m_page_size)
     {
+      printf("Allocation at %lu offset %lu\n", (uint64_t)palloc->p_last_chunk, palloc->m_next_free);
       ret = &(((char*)palloc->p_last_chunk)[palloc->m_next_free]);
       palloc->m_next_free += palloc->m_grow_offset; 
     }
     else
     {
+      printf("Chunk cannot accomodate allocation: %lu %lu\n", palloc->m_next_free, palloc->m_block_size);
       void* new_chunk = mem_alloc(palloc->p_allocator, 
                                   palloc->m_alignment, 
                                   palloc->m_page_size, 
                                   hint);
+
+      printf("pool allocator new chunk: %lu\n", (uint64_t)new_chunk);
 
       fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_last_chunk;
       hdr->p_next = new_chunk;

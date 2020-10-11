@@ -1,5 +1,7 @@
 
 include_directories(./)
+include_directories(${LIBCLANG_INCLUDES_DIR})
+include_directories(${LLVM_INCLUDES_DIR})
 include(${CMAKE_SOURCE_DIR}/cmake/modules/templates.cmake)
 
 ## GENERATING CONST CHAR ARRAY FROM TEMPLATES
@@ -128,6 +130,12 @@ set(RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/reflection.h
   )
 
+
+set(LLVM_LINK_COMPONENTS support)
+
+link_directories(${LIBCLANG_LIBS_DIR})
+link_directories(${LLVM_LIBRARY_DIRS})
+
 add_executable( fcc 
   ${AUTOGEN_SRC}
   ${COMMON_SRC}
@@ -136,12 +144,8 @@ add_executable( fcc
   ${RUNTIME_SRC}
   )
 
-set(LLVM_LINK_COMPONENTS support)
-
-link_directories(${LIBCLANG_LIBDIR})
 target_link_libraries(fcc 
-  ${LIBCLANG_LIBRARIES}
-  clang-cpp
+  ${LIBCLANG_LIBS}
   LLVM
   pthread
   )

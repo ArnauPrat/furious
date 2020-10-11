@@ -15,7 +15,7 @@ function(create_test NAME)
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp -i
                     "furious.h"
                     ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp --
-                    -fstrict-aliasing -std=c++17 -I ${CLANG_INCLUDES_DIR} -I
+                    -fstrict-aliasing -std=c++17 -I ${LIBCLANG_INCLUDES_DIR} -I
                     ${CMAKE_SOURCE_DIR}/src ${FURIOUS_DEFAULT_DEFINES}
                     COMMAND clang-format --style='{BasedOnStyle: LLVM, ColumnLimit: 120}' -i 
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp

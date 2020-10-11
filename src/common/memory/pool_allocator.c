@@ -53,7 +53,6 @@ fdb_pool_alloc_init(fdb_pool_alloc_t* palloc,
   FDB_ASSERT(((allocator == NULL) ||
               (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
              "Provided allocator is ill-formed.")
-
   memset(palloc, 0, sizeof(fdb_pool_alloc_t));
   if(allocator != NULL)
   {
@@ -142,6 +141,7 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
   void* ret = NULL;
   if(palloc->p_first_free != NULL)
   {
+  fdb_mem_barrier();
     ret = palloc->p_first_free;
     fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_first_free;
     palloc->p_first_free = hdr->p_next;
@@ -155,7 +155,7 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
                                         palloc->m_page_size, 
                                         hint);
 
-      printf("pool allocator new chunk: %lu\n", (uint64_t)palloc->p_first_chunk);
+      //printf("pool allocator first chunk: %lu\n", (uint64_t)palloc->p_first_chunk);
 
       fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_first_chunk;
       hdr->p_next = NULL;
@@ -168,19 +168,21 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 
     if(palloc->m_next_free + palloc->m_block_size <= palloc->m_page_size)
     {
-      printf("Allocation at %lu offset %lu\n", (uint64_t)palloc->p_last_chunk, palloc->m_next_free);
+      //printf("Allocation at %lu offset %lu\n", (uint64_t)palloc->p_last_chunk, palloc->m_next_free);
       ret = &(((char*)palloc->p_last_chunk)[palloc->m_next_free]);
       palloc->m_next_free += palloc->m_grow_offset; 
+      //printf("Returned address %lu\n", (uint64_t)ret);
+
     }
     else
     {
-      printf("Chunk cannot accomodate allocation: %lu %lu\n", palloc->m_next_free, palloc->m_block_size);
+      //printf("Chunk cannot accomodate allocation: %lu %lu\n", palloc->m_next_free, palloc->m_block_size);
       void* new_chunk = mem_alloc(palloc->p_allocator, 
                                   palloc->m_alignment, 
                                   palloc->m_page_size, 
                                   hint);
 
-      printf("pool allocator new chunk: %lu\n", (uint64_t)new_chunk);
+      //printf("pool allocator new chunk: %lu\n", (uint64_t)new_chunk);
 
       fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_last_chunk;
       hdr->p_next = new_chunk;
@@ -196,6 +198,8 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
       palloc->m_stats.m_lost += palloc->m_lost_bytes;
     }
   }
+  fdb_mem_barrier();
+  //printf("NEXT FREE %lu LAST CHUNK %lu \n", palloc->m_next_free, (uint64_t)palloc->p_last_chunk);
   fdb_mutex_unlock(&palloc->m_mutex);
   return ret;
 }

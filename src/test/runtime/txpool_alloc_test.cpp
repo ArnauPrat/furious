@@ -2,7 +2,7 @@
 #include "furious.h"
 #include <gtest/gtest.h>
 
-/*
+
 TEST(TXAllocTest,SimpleTest) 
 {
   uint32_t block_size = 128; //bytes
@@ -173,14 +173,14 @@ TEST(TXAllocTest,SimpleTest)
   fdb_txpool_alloc_release(&txpool_alloc);
   fdb_tx_release();
 }
-*/
+
 
 typedef struct thread_data_t
 {
   fdb_txthread_ctx_t        m_context;
   fdb_tx_t                  m_tx;
   fdb_txtype_t              m_txtype;
-  fdb_txpool_alloc_t        p_alloc;
+  fdb_txpool_alloc_t*       p_alloc;
   fdb_txpool_alloc_ref_t**  p_refs;
   uint32_t                  m_nrefs;
   uint32_t                  m_nelems;
@@ -199,7 +199,7 @@ void thread_func(void* arg)
       fdb_tx_begin(&tdata->m_tx, tdata->m_txtype);
       for(uint32_t i = 0; i < tdata->m_nrefs; ++i)
       {
-        void* ptr = fdb_txpool_alloc_ptr(&tdata->p_alloc, 
+        void* ptr = fdb_txpool_alloc_ptr(tdata->p_alloc, 
                                          &tdata->m_tx, 
                                          &tdata->m_context, 
                                          tdata->p_refs[i], 
@@ -223,7 +223,7 @@ void thread_func(void* arg)
       fdb_tx_begin(&tdata->m_tx, tdata->m_txtype);
       for(uint32_t i = 0; i < tdata->m_nrefs; ++i)
       {
-        void* ptr = fdb_txpool_alloc_ptr(&tdata->p_alloc, 
+        void* ptr = fdb_txpool_alloc_ptr(tdata->p_alloc, 
                                          &tdata->m_tx, 
                                          &tdata->m_context, 
                                          tdata->p_refs[i], 
@@ -293,7 +293,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   for(uint32_t i = 0; i < num_readers; ++i)
   {
     thread_data_t* data = &reader_data[i];
-    data->p_alloc = txpool_alloc;
+    data->p_alloc = &txpool_alloc;
     data->m_nelems = nelems;
     data->p_refs = refs;
     data->m_nrefs = num_refs;
@@ -305,12 +305,12 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   }
 
   
-  uint32_t num_writers = 4;
+  uint32_t num_writers = 16;
   thread_data_t writer_data[num_writers];
   for(uint32_t i = 0; i < num_writers; ++i)
   {
     thread_data_t* data = &writer_data[i];
-    data->p_alloc = txpool_alloc;
+    data->p_alloc = &txpool_alloc;
     data->m_nelems = nelems;
     data->p_refs = refs;
     data->m_nrefs = num_refs;
@@ -361,7 +361,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
     fdb_txthread_ctx_release(&writer_data[i].m_context);
   }
 
-  /*
+  
   // Testing that all old data have been properly freed
   fdb_tx_begin(&tx_init, 
                E_READ_WRITE);
@@ -376,6 +376,13 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
                          false);
     ASSERT_EQ((uint64_t)refs[i]->p_next_ref, NULL);
   }
+  fdb_tx_commit(&tx_init);
+
+  // We need to run a writting transaction in order to be able to remove zombies
+  // safely, since there is a latency of one transaction between zombie creation
+  // and removal
+  fdb_tx_begin(&tx_init, 
+               E_READ_WRITE);
   fdb_tx_commit(&tx_init);
 
 
@@ -399,7 +406,6 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   }
   fdb_tx_commit(&tx_init);
 
-  */
   ASSERT_TRUE(fdb_txthread_ctx_gc(&context_init));
   fdb_txthread_ctx_release(&context_init);
 

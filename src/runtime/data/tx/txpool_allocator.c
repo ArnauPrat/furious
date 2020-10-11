@@ -262,23 +262,22 @@ _fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc,
                      fdb_tx_t* tx)
 {
   // Trying to remove existing zombies
-  /*fdb_txpool_alloc_ref_t* zombie_parent = base_ref;
-    fdb_txpool_alloc_ref_t* next_zombie = base_ref->p_zombie;
-    while(next_zombie != NULL)
-    {
+  fdb_txpool_alloc_ref_t* zombie_parent = base_ref;
+  fdb_txpool_alloc_ref_t* next_zombie = base_ref->p_zombie;
+  while(next_zombie != NULL)
+  {
     if(next_zombie->m_zts < tx->m_ortxversion)
     {
-    zombie_parent->p_zombie = next_zombie->p_zombie;
-    fdb_pool_alloc_free(&palloc->m_palloc, next_zombie);
-    next_zombie = zombie_parent->p_zombie;
+      zombie_parent->p_zombie = next_zombie->p_zombie;
+      fdb_pool_alloc_free(&palloc->m_palloc, next_zombie);
+      next_zombie = zombie_parent->p_zombie;
     }
     else
     {
-    zombie_parent = next_zombie;
-    next_zombie = next_zombie->p_zombie;
+      zombie_parent = next_zombie;
+      next_zombie = next_zombie->p_zombie;
     }
-    }
-    */
+  }
 
   // Look for versions that can be safely removed. These are thos whose 
   // ts is smaller than the older version whose ts is larger than the
@@ -296,24 +295,23 @@ _fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc,
 
 
   // Now we can safely remove the older versions than next
-  /*if(next_candidate != NULL)
-    {
+  if(next_candidate != NULL)
+  {
     fdb_txpool_alloc_ref_t* tmp = next_candidate->p_next_ref;
     next_candidate->p_next_ref = NULL;
     fdb_mem_barrier(); // to make sure that next_ref pointer is set to NULL before any modification to the version
     next_candidate = tmp;
     while(next_candidate != NULL)
     {
-    tmp = next_candidate->p_next_ref;
-    fdb_pool_alloc_free(&palloc->m_palloc, next_candidate);
-    next_candidate = tmp;
+      tmp = next_candidate->p_next_ref;
+      fdb_pool_alloc_free(&palloc->m_palloc, next_candidate);
+      next_candidate = tmp;
     }
-    }*/
+  }
 
 
 
   // Check if there is a single and committed extra version
-  /*
      fdb_txpool_alloc_ref_t* youngest_version = base_ref->p_next_ref;
      if(youngest_version != NULL &&
      youngest_version->p_next_ref == NULL &&
@@ -327,8 +325,6 @@ _fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc,
      youngest_version->m_zts = tx->m_id;
      base_ref->p_zombie = youngest_version;
      }
-     */
-
 }
 
 bool

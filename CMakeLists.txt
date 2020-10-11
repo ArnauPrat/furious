@@ -12,15 +12,32 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/;${CMAKE_MODULE_PATH}")
 
 ## Checking for required packages
 
-find_package(LibClang REQUIRED)
+find_package(LLVM REQUIRED CONFIG)
+set(LIBCLANG_INCLUDES_DIR "${LLVM_INCLUDE_DIR}")
+set(LLVM_INCLUDES_DIR "${LLVM_INCLUDE_DIR}")
+set(LIBCLANG_LIBS_DIR "${LLVM_LIBRARY_DIRS}")
+#set(LIBCLANG_LIBS 
+#  clang 
+#  clangTooling 
+#  clangAST
+#  clangCodeGen
+#  omp)
+set(LIBCLANG_LIBS 
+  "${LIBCLANG_LIBS_DIR}/libclang.so"
+  "${LIBCLANG_LIBS_DIR}/libclang-cpp.so.10")
+# Find the libraries that correspond to the LLVM components
+# that we wish to use
+llvm_map_components_to_libnames(LLVM_LIBS )
 
-if(NOT LIBCLANG_FOUND)
-  message(FATAL_ERROR "LibClang could not be found")
-endif()
+#find_package(LibClang REQUIRED)
+#if(NOT LIBCLANG_FOUND)
+#  message(FATAL_ERROR "LibClang could not be found")
+#endif()
 
-set(CLANG_INCLUDES_DIR "${LIBCLANG_LIBDIR}/clang/${LIBCLANG_VERSION_STRING}/include")
-#
-#if(NOT CLANG_INCLUDES_DIR)
+
+#set(LIBCLANG_INCLUDES_DIR "${LIBCLANG_LIBDIR}/clang/${LIBCLANG_VERSION_STRING}/include")
+
+#if(NOT LIBCLANG_INCLUDE_DIR)
 #  message(FATAL_ERROR "Need to define folder with clang includes")
 #endif()
 
@@ -77,9 +94,13 @@ set(FURIOUS_OUTPUT_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/furious")
 enable_testing()
 
 message(STATUS "BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-message(STATUS "LIBCLANG: ${LIBCLANG_VERSION_STRING}")
-message(STATUS "LIBCLANG INCLUDES DIR: ${CLANG_INCLUDES_DIR}")
-message(STATUS "LIBCLANG LIBRARIES: ${LIBCLANG_LIBRARIES}")
+message(STATUS "LLVM VERSION: ${LLVM_VERSION_MAJOR}")
+message(STATUS "LLVM INCLUDE DIRS: ${LLVM_INCLUDES_DIR}")
+message(STATUS "LLVM LIBS DIR: ${LLVM_LIBRARY_DIRS}")
+message(STATUS "LLVM LIBS: ${LLVM_LIBS}")
+message(STATUS "LIBCLANG INCLUDE DIR: ${LIBCLANG_INCLUDES_DIR}")
+message(STATUS "LIBCLANG LIBS: ${LIBCLANG_LIBS}")
+message(STATUS "LIBCLANG LIBS DIR: ${LIBCLANG_LIBS_DIR}")
 message(STATUS "DEFINES: ${FURIOUS_DEFAULT_DEFINES}")
 
 add_subdirectory(src)

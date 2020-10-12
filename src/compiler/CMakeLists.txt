@@ -4,6 +4,11 @@ include_directories(${LIBCLANG_INCLUDES_DIR})
 include_directories(${LLVM_INCLUDES_DIR})
 include(${CMAKE_SOURCE_DIR}/cmake/modules/templates.cmake)
 
+set(FURIOUS_DEFAULT_DEFINES 
+  ${FURIOUS_DEFAULT_DEFINES}
+  ${LLVM_DEFINITIONS})
+
+
 ## GENERATING CONST CHAR ARRAY FROM TEMPLATES
 GENERATE_ARRAY( 
   "cchar_ptr" 

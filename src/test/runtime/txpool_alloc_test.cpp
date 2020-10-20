@@ -21,27 +21,34 @@ TEST(TXAllocTest,SimpleTest)
   fdb_txthread_ctx_init(&thread_ctx, 
                         NULL);
 
+  uint32_t num_allocations = 1024;
+  fdb_txpool_alloc_ref_t  refs[num_allocations];
+  for(uint32_t i = 0; i < num_allocations; ++i)
+  {
+    fdb_txpool_alloc_ref_init(&txpool_alloc, 
+                              &refs[i]);
+  }
+
   // 1ST
   // Single write transaction
   fdb_tx_t tx_write;
   fdb_tx_begin(&tx_write, E_READ_WRITE);
 
 
-  uint32_t num_allocations = 1024;
-  fdb_txpool_alloc_ref_t* refs[num_allocations];
   for(uint32_t i = 0; i < num_allocations; ++i)
   {
-    refs[i] = fdb_txpool_alloc_alloc(&txpool_alloc, 
-                                     &tx_write, 
-                                     &thread_ctx, 
-                                     alignment, 
-                                     block_size, 
-                                     FDB_NO_HINT);
+    fdb_txpool_alloc_alloc(&txpool_alloc, 
+                           &tx_write, 
+                           &thread_ctx, 
+                           alignment, 
+                           block_size, 
+                           FDB_NO_HINT, 
+                           &refs[i]);
 
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_write, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      true);
     ASSERT_NE((uint64_t)ptr, NULL);
 
@@ -59,10 +66,11 @@ TEST(TXAllocTest,SimpleTest)
   for(uint32_t i = 0; i < num_allocations; ++i)
   {
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
-                                     &tx_read, 
-                                     &thread_ctx,
-                                     refs[i], 
-                                     false);
+                         &tx_read, 
+                         &thread_ctx,
+                         &refs[i], 
+                         false);
+
     ASSERT_EQ((uint64_t)ptr, NULL);
   }
 
@@ -75,7 +83,7 @@ TEST(TXAllocTest,SimpleTest)
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_read, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      false);
     ASSERT_EQ((uint64_t)ptr, NULL);
   }
@@ -92,7 +100,7 @@ TEST(TXAllocTest,SimpleTest)
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_read, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      false);
     ASSERT_NE((uint64_t)ptr, NULL);
 
@@ -110,7 +118,7 @@ TEST(TXAllocTest,SimpleTest)
     fdb_txpool_alloc_free(&txpool_alloc,  
                           &tx_write, 
                           &thread_ctx,
-                          refs[i]);
+                          &refs[i]);
     
   }
 
@@ -121,7 +129,7 @@ TEST(TXAllocTest,SimpleTest)
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_write, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      false);
     ASSERT_EQ((uint64_t)ptr, NULL);
   }
@@ -135,7 +143,7 @@ TEST(TXAllocTest,SimpleTest)
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_read, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      false);
     ASSERT_NE((uint64_t)ptr, NULL);
 
@@ -148,14 +156,14 @@ TEST(TXAllocTest,SimpleTest)
 
   // Call to gc should not GC the freed blocks because there is still a read
   // transaction running on that freed versions
-  ASSERT_FALSE(fdb_txthread_ctx_gc(&thread_ctx));
+  ASSERT_FALSE(fdb_txthread_ctx_gc(&thread_ctx, false));
 
   for(uint32_t i = 0; i < num_allocations; ++i)
   {
     void* ptr = fdb_txpool_alloc_ptr(&txpool_alloc,  
                                      &tx_read, 
                                      &thread_ctx,
-                                     refs[i], 
+                                     &refs[i], 
                                      false);
     ASSERT_NE((uint64_t)ptr, NULL);
 
@@ -167,7 +175,12 @@ TEST(TXAllocTest,SimpleTest)
   fdb_tx_commit(&tx_read);
 
   // At this point, freed blocks should be garbage collected
-  ASSERT_TRUE(fdb_txthread_ctx_gc(&thread_ctx));
+  ASSERT_TRUE(fdb_txthread_ctx_gc(&thread_ctx, true));
+  for(uint32_t i = 0; i < num_allocations; ++i)
+  {
+    fdb_txpool_alloc_ref_release(&txpool_alloc, 
+                              &refs[i]);
+  }
   fdb_txthread_ctx_release(&thread_ctx);
 
   fdb_txpool_alloc_release(&txpool_alloc);
@@ -181,7 +194,7 @@ typedef struct thread_data_t
   fdb_tx_t                  m_tx;
   fdb_txtype_t              m_txtype;
   fdb_txpool_alloc_t*       p_alloc;
-  fdb_txpool_alloc_ref_t**  p_refs;
+  fdb_txpool_alloc_ref_t*   m_refs;
   uint32_t                  m_nrefs;
   uint32_t                  m_nelems;
   uint32_t                  m_niters;;
@@ -202,7 +215,7 @@ void thread_func(void* arg)
         void* ptr = fdb_txpool_alloc_ptr(tdata->p_alloc, 
                                          &tdata->m_tx, 
                                          &tdata->m_context, 
-                                         tdata->p_refs[i], 
+                                         &tdata->m_refs[i], 
                                          false);
         ASSERT_TRUE((uint64_t)ptr % tdata->m_alignment == 0);
         uint64_t* elements = (uint64_t*) ptr;
@@ -226,7 +239,7 @@ void thread_func(void* arg)
         void* ptr = fdb_txpool_alloc_ptr(tdata->p_alloc, 
                                          &tdata->m_tx, 
                                          &tdata->m_context, 
-                                         tdata->p_refs[i], 
+                                         &tdata->m_refs[i], 
                                          true);
         ASSERT_TRUE((uint64_t)ptr % tdata->m_alignment == 0);
 
@@ -258,7 +271,11 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
                         NULL);
 
   uint32_t num_refs = 8;
-  fdb_txpool_alloc_ref_t** refs = new fdb_txpool_alloc_ref_t*[num_refs];
+  fdb_txpool_alloc_ref_t* refs = new fdb_txpool_alloc_ref_t[num_refs];
+  for(uint32_t i = 0; i < num_refs; ++i)
+  {
+    fdb_txpool_alloc_ref_init(&txpool_alloc, &refs[i]);
+  }
 
 
 
@@ -268,17 +285,18 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   fdb_tx_begin(&tx_init, E_READ_WRITE);
   for(uint32_t i = 0; i < num_refs; ++i)
   {
-    refs[i]= fdb_txpool_alloc_alloc(&txpool_alloc, 
+    fdb_txpool_alloc_alloc(&txpool_alloc, 
                                     &tx_init, 
                                     &context_init, 
                                     alignment, 
                                     block_size, 
-                                    FDB_NO_HINT);
+                                    FDB_NO_HINT, 
+                                    &refs[i]);
 
     uint64_t* elements = (uint64_t*) fdb_txpool_alloc_ptr(&txpool_alloc, 
                                                           &tx_init, 
                                                           &context_init, 
-                                                          refs[i], 
+                                                          &refs[i], 
                                                           true);
     for(uint32_t j = 0; j < nelems; ++j)
     {
@@ -295,7 +313,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
     thread_data_t* data = &reader_data[i];
     data->p_alloc = &txpool_alloc;
     data->m_nelems = nelems;
-    data->p_refs = refs;
+    data->m_refs = refs;
     data->m_nrefs = num_refs;
     data->m_txtype = E_READ_ONLY;
     data->m_niters = niters;
@@ -312,7 +330,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
     thread_data_t* data = &writer_data[i];
     data->p_alloc = &txpool_alloc;
     data->m_nelems = nelems;
-    data->p_refs = refs;
+    data->m_refs = refs;
     data->m_nrefs = num_refs;
     data->m_txtype = E_READ_WRITE;
     data->m_niters = niters;
@@ -344,9 +362,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   for(uint32_t i = 0; i < num_readers; ++i)
   {
     fdb_thread_join(&reader_threads[i]);
-    while(!fdb_txthread_ctx_gc(&reader_data[i].m_context))
-    {
-    }
+    fdb_txthread_ctx_gc(&reader_data[i].m_context, true);
 
     fdb_txthread_ctx_release(&reader_data[i].m_context);
   }
@@ -354,10 +370,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   for(uint32_t i = 0; i < num_writers; ++i)
   {
     fdb_thread_join(&writer_threads[i]);
-    while(!fdb_txthread_ctx_gc(&writer_data[i].m_context))
-    {
-    }
-
+    fdb_txthread_ctx_gc(&writer_data[i].m_context, true);
     fdb_txthread_ctx_release(&writer_data[i].m_context);
   }
 
@@ -372,9 +385,8 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
     fdb_txpool_alloc_ptr(&txpool_alloc, 
                          &tx_init, 
                          &context_init, 
-                         refs[i], 
+                         &refs[i], 
                          false);
-    ASSERT_EQ((uint64_t)refs[i]->p_next_ref, NULL);
   }
   fdb_tx_commit(&tx_init);
 
@@ -394,19 +406,23 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
     fdb_txpool_alloc_ptr(&txpool_alloc, 
                          &tx_init, 
                          &context_init, 
-                         refs[i], 
+                         &refs[i], 
                          false);
-    ASSERT_EQ((uint64_t)refs[i]->p_next_ref, NULL);
-    ASSERT_EQ((uint64_t)refs[i]->p_zombie, NULL);
 
     fdb_txpool_alloc_free(&txpool_alloc, 
                           &tx_init, 
                           &context_init, 
-                          refs[i]);
+                          &refs[i]);
   }
   fdb_tx_commit(&tx_init);
 
-  ASSERT_TRUE(fdb_txthread_ctx_gc(&context_init));
+  ASSERT_TRUE(fdb_txthread_ctx_gc(&context_init, true));
+
+  for(uint32_t i = 0; i < num_refs; ++i)
+  {
+    fdb_txpool_alloc_ref_release(&txpool_alloc, &refs[i]);
+  }
+
   fdb_txthread_ctx_release(&context_init);
 
   delete [] refs;

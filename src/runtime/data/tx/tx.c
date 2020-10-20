@@ -138,14 +138,13 @@ fdb_txthread_ctx_release(fdb_txthread_ctx_t* txctx)
 void
 fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                            struct fdb_txpool_alloc_t* palloc, 
-                           struct fdb_txpool_alloc_ref_t* ref, 
-                           uint64_t  ts)
+                           struct fdb_txpool_alloc_ref_t* ref)
 {
 
   fdb_txgarbage_t* entry  = (fdb_txgarbage_t*)fdb_pool_alloc_alloc(&txtctx->m_palloc,
-                                                                     FDB_MIN_ALIGNMENT, 
-                                                                     sizeof(fdb_txgarbage_t), 
-                                                                     FDB_NO_HINT);
+                                                                   FDB_MIN_ALIGNMENT, 
+                                                                   sizeof(fdb_txgarbage_t), 
+                                                                   FDB_NO_HINT);
   *entry = (fdb_txgarbage_t){0};
   if(txtctx->p_first != NULL)
   {
@@ -155,11 +154,10 @@ fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx,
   txtctx->p_first = entry;
   entry->p_palloc = palloc;
   entry->p_ref = ref;
-  entry->m_ts = ts;
 }
 
 bool
-fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx)
+fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx, bool force)
 {
   bool all_freed = true;
   fdb_mutex_lock(&m_mutex);
@@ -169,13 +167,19 @@ fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx)
     oldest_running_version = p_first->m_txversion;
   }
   fdb_mutex_unlock(&m_mutex);
+
+  if(force)
+  {
+    fdb_mutex_lock(&m_mutex);
+  }
   fdb_txgarbage_t* next_garbage = txtctx->p_first;
   while(next_garbage != NULL)
   {
-    if(fdb_txpool_alloc_gc_free(next_garbage->p_palloc, 
-                                next_garbage->p_ref, 
-                                next_garbage->m_ts, 
-                                oldest_running_version))
+    if(fdb_txpool_alloc_gc(next_garbage->p_palloc, 
+                           txtctx,
+                           oldest_running_version, 
+                           next_garbage->p_ref, 
+                           force))
     {
       if(next_garbage == txtctx->p_first)
       {
@@ -202,5 +206,23 @@ fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx)
       next_garbage = next_garbage->p_next;
     }
   }
+
+  if(force)
+  {
+    fdb_mutex_unlock(&m_mutex);
+  }
+
   return all_freed;
+}
+
+void
+fdb_tx_lock()
+{
+  fdb_mutex_lock(&m_mutex);
+}
+
+void
+fdb_tx_unlock()
+{
+  fdb_mutex_unlock(&m_mutex);
 }

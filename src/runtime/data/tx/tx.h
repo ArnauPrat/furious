@@ -37,7 +37,7 @@ extern "C" {
     struct fdb_txpool_alloc_ref_t*    p_ref;      ///< The reference to the garbage item
     struct fdb_txgarbage_t*           p_next;     ///< The next garbage entry in the linkect list
     struct fdb_txgarbage_t*           p_prev;     ///< The previous garbage entry in th elinked list
-    uint64_t                          m_ts;       ///< The ts of the transaction that deleted this entry
+    bool                              m_release;  ///< Whether to fully release the reference or just GC it
   } fdb_txgarbage_t;
 
 
@@ -78,6 +78,18 @@ extern "C" {
   void 
   fdb_tx_commit(fdb_tx_t* tx); 
 
+  /**
+   * \brief Locks the tx manager so no transactions can beging
+   */
+  void
+  fdb_tx_lock();
+
+  /**
+   * \brief UnLocks the tx manager 
+   */
+  void
+  fdb_tx_unlock();
+
 
   /**
    * \brief Initializes the txthread context
@@ -103,23 +115,27 @@ extern "C" {
    * \param txctx The txthread context to add the reference to
    * \param palloc The txpool alloc the reference belongs to
    * \param ref The reference to add
+   * \param ts The timestamp of the transaction that marked this block as
+   * deleted
+   * \param release True if we want to fully release the reference.
    */
   void
   fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                              struct fdb_txpool_alloc_t* palloc, 
-                             struct fdb_txpool_alloc_ref_t* ref, 
-                             uint64_t ts);
+                             struct fdb_txpool_alloc_ref_t* ref);
 
   /**
    * \brief Executes the garbage collection process on this txthread ctx.
    *
    * \param txtctx The txthread context to run the garbage collection process
    * for
+   * \param force Locks the tx manager and forces the garbage collection process.  
    *
-   * \param True if all items were garbage collected. False otherwise
+   * \return True if all items were garbage collected. False otherwise
    */
   bool 
-  fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx);
+  fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx, 
+                      bool force);
 
 
 #ifdef __cplusplus

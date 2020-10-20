@@ -14,26 +14,21 @@
 extern "C" {
 #endif
 
+  struct fdb_txpool_alloc_block_t;
 
   typedef struct fdb_txpool_alloc_ref_t
   {
-    uint64_t                                    m_ts;
-    void*                                       p_data;
-    struct fdb_txpool_alloc_ref_t*  volatile    p_zombie; 
-    uint64_t                                    m_zts;
-    struct fdb_txpool_alloc_ref_t * volatile    p_next_ref;
-    bool                            m_freed;
+    struct fdb_txpool_alloc_block_t* volatile p_main;
+    struct fdb_txpool_alloc_block_t* volatile p_next_version;
   } fdb_txpool_alloc_ref_t;
 
 
   typedef struct fdb_txpool_alloc_t
   {
-    fdb_pool_alloc_t        m_palloc;
-    uint64_t                m_data_offset; //< The offset from the start of each block where data starts 
-    uint32_t                m_alignment;
-    uint32_t                m_payload_size;
-    uint32_t                m_block_size;  
-    fdb_mutex_t             m_mutex;
+    fdb_pool_alloc_t        m_data_palloc;      //< The normal pool allocator used to allocate blocks
+    fdb_pool_alloc_t        m_block_palloc;      //< The normal pool allocator used to allocate blocks
+    uint32_t                m_data_size;//< The payload size. This is the size of the data requested by the user (plus alignment overhead)
+    uint32_t                m_data_alignment;
   } fdb_txpool_alloc_t;
 
   /**
@@ -62,6 +57,38 @@ extern "C" {
   void
   fdb_txpool_alloc_release(fdb_txpool_alloc_t* allocator);
 
+
+  /**
+   * \brief Initializes a txpool alloc reference. 
+   *
+   * \param palloc The txpool alloc the reference belongs to
+   * \param ref The reference to initialize
+   */
+  void
+  fdb_txpool_alloc_ref_init(fdb_txpool_alloc_t* palloc, 
+                           fdb_txpool_alloc_ref_t* ref);
+
+  /**
+   * \brief Releases a txpool alloc reference
+   *
+   * \param palloc The txpool alloc the reference belongs to
+   * \param ref The reference to release 
+   */
+  void
+  fdb_txpool_alloc_ref_release(fdb_txpool_alloc_t* palloc, 
+                               fdb_txpool_alloc_ref_t* ref);
+
+  /**
+   * \brief Initializes a txpool alloc reference
+   *
+   * \param palloc The txpool alloc the reference belongs to
+   * \param ref The reference to initialize
+   */
+  void
+  fdb_txpoo_alloc_ref_init(fdb_txpool_alloc_t* palloc, 
+                           fdb_txpool_alloc_ref_t* ref);
+
+
   /**
    * \brief  Allocates a block from the txpool.  
    *
@@ -73,19 +100,21 @@ extern "C" {
    *
    * \return 
    */
-  fdb_txpool_alloc_ref_t* 
+  void 
   fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc, 
                          fdb_tx_t* tx,
                          fdb_txthread_ctx_t* txtctx,
                          uint32_t alignment, 
                          uint32_t size,
-                         uint32_t hint);
+                         uint32_t hint, 
+                         fdb_txpool_alloc_ref_t* ref);
   /**
-   * \brief Releases a block from the tx pool
+   * \brief Nullifies a reference and frees the old blocks 
    *
-   * \param palloc
-   * \param tx
-   * \param ptr
+   * \param palloc The txpool allocator the reference belongs to
+   * \param tx The transaction that frees and nullifies the reference
+   * \param txtctx The thread context
+   * \param ref The reference to nullify
    */
   void
   fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc, 
@@ -104,10 +133,10 @@ extern "C" {
    */
   void*
   fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc, 
-                 fdb_tx_t* tx, 
-                 fdb_txthread_ctx_t* txtctx,
-                 fdb_txpool_alloc_ref_t* ref, 
-                 bool write);
+                       fdb_tx_t* tx, 
+                       fdb_txthread_ctx_t* txtctx,
+                       fdb_txpool_alloc_ref_t* ref, 
+                       bool write);
 
   /**
    * \brief Flushes the txpool allocator
@@ -119,22 +148,22 @@ extern "C" {
   void
   fdb_txpool_alloc_flush(fdb_txpool_alloc_t* palloc);
 
-
   /**
-   * \brief Garbage collects a reference previously freed
+   * \brief Garbage collects the stale blocks of a given reference of a tx pool
    *
-   * \param palloc The txpool the reference belongs to
+   * \param palloc The txpool of the reference to garbage collect
+   * \param txtctx The thread context executing the transaction  
+   * \param orv The oldest running transaction version
    * \param ref The reference to garbage collect
-   * \param tv The transaction version that freed this reference
-   * \param orv The version of the oldest running transaction
+   * \param force Forces the GC process assuming there are no running txs 
    *
-   * \return True if the reference was effectively freed
+   * \return True if this reference is completely GCed
    */
-  bool
-  fdb_txpool_alloc_gc_free(fdb_txpool_alloc_t* palloc, 
-                           fdb_txpool_alloc_ref_t* ref, 
-                           uint64_t tv, 
-                           uint64_t orv);
+  bool fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc, 
+                            fdb_txthread_ctx_t* txtctx,
+                            uint64_t orv,
+                            fdb_txpool_alloc_ref_t* ref, 
+                            bool force);
 
 
 

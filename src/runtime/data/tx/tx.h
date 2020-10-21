@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
   struct fdb_txpool_alloc_t;
-  struct fdb_txpool_alloc_ref_t;
+  struct fdb_txpool_alloc_block_t;
 
 #define FDB_TX_INVALID_ID (uint64_t)0LL
 
@@ -34,7 +34,7 @@ extern "C" {
   typedef struct fdb_txgarbage_t
   {
     struct fdb_txpool_alloc_t*        p_palloc;   ///< The txpool where this garbage item belongs to
-    struct fdb_txpool_alloc_ref_t*    p_ref;      ///< The reference to the garbage item
+    struct fdb_txpool_alloc_block_t*  p_block;    ///< The block to the garbage
     struct fdb_txgarbage_t*           p_next;     ///< The next garbage entry in the linkect list
     struct fdb_txgarbage_t*           p_prev;     ///< The previous garbage entry in th elinked list
     bool                              m_release;  ///< Whether to fully release the reference or just GC it
@@ -122,7 +122,7 @@ extern "C" {
   void
   fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                              struct fdb_txpool_alloc_t* palloc, 
-                             struct fdb_txpool_alloc_ref_t* ref);
+                             struct fdb_txpool_alloc_block_t* ref);
 
   /**
    * \brief Executes the garbage collection process on this txthread ctx.

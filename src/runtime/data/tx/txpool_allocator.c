@@ -9,7 +9,6 @@ typedef struct fdb_txpool_alloc_block_t
   uint64_t                                    m_ts;
   void*                                       p_data;
   struct fdb_txpool_alloc_block_t* volatile   p_next_version;
-  bool                                        m_freed;
 } fdb_txpool_alloc_block_t;
 
 
@@ -57,40 +56,19 @@ fdb_txpool_alloc_flush(fdb_txpool_alloc_t* palloc)
 }
 
 void
-fdb_txpool_alloc_ref_init(fdb_txpool_alloc_t* palloc, 
-                          fdb_txpool_alloc_ref_t* ref)
-{
-  *ref = (fdb_txpool_alloc_ref_t){};
-  ref->p_main = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
-                                     FDB_MIN_ALIGNMENT, 
-                                     sizeof(fdb_txpool_alloc_block_t), 
-                                     FDB_NO_HINT);
-  *ref->p_main = (fdb_txpool_alloc_block_t){};
-  ref->p_main->m_freed = true;
-}
-
-void
-fdb_txpool_alloc_ref_release(fdb_txpool_alloc_t* palloc, 
+fdb_txpool_alloc_ref_nullify(fdb_txpool_alloc_t* palloc, 
                              fdb_txpool_alloc_ref_t* ref)
 {
-  fdb_txpool_alloc_block_t* next = ref->p_next_version;
-  while(next != NULL)
-  {
-    if(next->p_data != NULL)
-    {
-      fdb_pool_alloc_free(&palloc->m_data_palloc, next->p_data);
-    }
-    fdb_txpool_alloc_block_t* tmp = next->p_next_version;
-    fdb_pool_alloc_free(&palloc->m_block_palloc, next);
-    next = tmp;
-  }
-
-  if(ref->p_main->p_data != NULL)
-  {
-    fdb_pool_alloc_free(&palloc->m_data_palloc, ref->p_main->p_data);
-  }
-  fdb_pool_alloc_free(&palloc->m_block_palloc, ref->p_main);
+  *ref = (fdb_txpool_alloc_ref_t){};
 }
+
+bool
+fdb_txpool_alloc_ref_isnull(fdb_txpool_alloc_t* palloc, 
+                            fdb_txpool_alloc_ref_t* ref)
+{
+  return ref->p_main == NULL;
+}
+
 
 /**
  * @brief Allocates a memory block in a numa node
@@ -114,8 +92,13 @@ void fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc,
   FDB_ASSERT(tx->m_tx_type == E_READ_WRITE && "Read transactions cannot allocate from a transactional pool");
   FDB_ASSERT(size == palloc->m_data_size);
   FDB_ASSERT(alignment == palloc->m_data_alignment);
-  FDB_ASSERT(((ref->p_next_version != NULL && ref->p_next_version->m_freed) ||
-              (ref->p_next_version == NULL && ref->p_main->m_freed)) && "Alloc can only be called on freed or just-initialized references");
+  FDB_ASSERT(ref->p_main == NULL && "Alloc can only be called on a nullified reference");
+
+  ref->p_main = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
+                                     FDB_MIN_ALIGNMENT, 
+                                     sizeof(fdb_txpool_alloc_block_t), 
+                                     FDB_NO_HINT);
+  *ref->p_main = (fdb_txpool_alloc_block_t){};
 
 
   fdb_txpool_alloc_block_t* new_block = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
@@ -127,13 +110,10 @@ void fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc,
                                            palloc->m_data_alignment, 
                                            palloc->m_data_size, 
                                            hint);
-  new_block->p_next_version = ref->p_next_version;
-  new_block->p_next_version=NULL;
-
+  new_block->p_next_version = ref->p_main->p_next_version;
   new_block->m_ts = tx->m_txversion;
-  new_block->m_freed = false;
   fdb_mem_barrier();
-  ref->p_next_version = new_block; 
+  ref->p_main->p_next_version = new_block; 
 }
 
 
@@ -149,28 +129,29 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
                            fdb_txpool_alloc_ref_t* ref )
 {
 
-  FDB_ASSERT(ref->p_main != NULL && "Detected double free");
+  FDB_ASSERT(ref->p_main != NULL && "Cannot free a nullified reference");
+  FDB_ASSERT(ref->p_main->p_data != NULL && "Detected double free");
   FDB_ASSERT(tx->m_tx_type == E_READ_WRITE && "A read-only tx cannot free a block");
 
   fdb_txpool_alloc_gc(palloc, 
                       txtctx,
                       tx->m_ortxversion,
-                      ref, 
+                      ref->p_main, 
                       false);
 
-  fdb_txpool_alloc_block_t* candidate_version = ref->p_next_version;
-  while(candidate_version != NULL && 
-        candidate_version->m_ts > tx->m_txversion)
-  {
+  fdb_txpool_alloc_block_t* candidate_version = ref->p_main->p_next_version;
+  /*while(candidate_version != NULL && 
+    candidate_version->m_ts > tx->m_txversion)
+    {
     candidate_version = candidate_version->p_next_version;
-  }
+    }*/
 
   if(candidate_version == NULL)
   {
     candidate_version = ref->p_main;
   }
 
-  FDB_ASSERT((candidate_version->m_ts <= tx->m_txversion && !candidate_version->m_freed) && "Detected double free");
+  FDB_ASSERT((candidate_version->m_ts <= tx->m_txversion && candidate_version->p_data != NULL) && "Detected double free");
 
 
   if(candidate_version->m_ts <= tx->m_ortxversion)
@@ -190,18 +171,20 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
     }
 
     new_block->m_ts = tx->m_txversion;
-    new_block->m_freed = true;
     fdb_mem_barrier();
-    ref->p_next_version = new_block; 
+    ref->p_main->p_next_version = new_block; 
   }
   else
   {
-    candidate_version->m_freed = true;
+    FDB_ASSERT(candidate_version->m_ts == tx->m_txversion);
+    fdb_pool_alloc_free(&palloc->m_data_palloc, 
+                        candidate_version->p_data);
+    candidate_version->p_data = NULL;
   }
 
   fdb_txthread_ctx_add_entry(txtctx, 
                              palloc, 
-                             ref);
+                             ref->p_main);
 }
 
 
@@ -213,10 +196,7 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
                      bool write)
 {
 
-  if(ref->p_main == NULL)
-  {
-    return NULL;
-  }
+  FDB_ASSERT(ref->p_main != NULL && "Cannot dereference a nullified reference");
 
   if(tx->m_tx_type == E_READ_WRITE)
   {
@@ -224,13 +204,13 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
     fdb_txpool_alloc_gc(palloc, 
                         txtctx,
                         tx->m_ortxversion,
-                        ref, 
+                        ref->p_main, 
                         false);
   }
 
 
   void* ret = NULL;
-  fdb_txpool_alloc_block_t* candidate_version = ref->p_next_version;
+  fdb_txpool_alloc_block_t* candidate_version = ref->p_main->p_next_version;
   while(candidate_version != NULL && 
         candidate_version->m_ts > tx->m_txversion)
   {
@@ -246,9 +226,9 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
   }
 
   if(candidate_version->m_ts > tx->m_txversion ||
-     candidate_version->m_freed) // This tx cannot still see this verstion 
+     candidate_version->p_data == NULL) // This tx cannot still see this verstion 
   {
-    return NULL;
+    FDB_ASSERT(false && "This transaction should not dereference this reference");
   }
 
   switch(tx->m_tx_type)
@@ -262,7 +242,7 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
       {
         if(write && candidate_version->m_ts < tx->m_txversion)
         {
-          FDB_ASSERT((candidate_version == ref->p_main || candidate_version == ref->p_next_version) && "Invariant violation. Write transactions should always get most recent version");
+          FDB_ASSERT((candidate_version == ref->p_main || candidate_version == ref->p_main->p_next_version) && "Invariant violation. Write transactions should always get most recent version");
 
           fdb_txpool_alloc_block_t* new_block = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
                                                                      FDB_MIN_ALIGNMENT, 
@@ -282,7 +262,7 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
             new_block->p_next_version = candidate_version;
           }
           fdb_mem_barrier(); // to make sure that the pointer in new_ref and other values are set before the pointer of base_ref is set
-          ref->p_next_version = new_block; 
+          ref->p_main->p_next_version = new_block; 
           fdb_mem_barrier(); // to make sure that the pointer in new_ref and other values are set before the pointer of base_ref is set
           ret = new_block->p_data;
         }
@@ -300,36 +280,34 @@ bool
 fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc, 
                     fdb_txthread_ctx_t* txtctx,
                     uint64_t orv,
-                    fdb_txpool_alloc_ref_t* ref, 
+                    fdb_txpool_alloc_block_t* root, 
                     bool force)
 {
 
-  if((ref->p_main->p_next_version != NULL) && (ref->p_main->m_ts < orv || force)) 
+  bool gced = false;
+  if(force && root != NULL)
   {
-    fdb_pool_alloc_free(&palloc->m_data_palloc, ref->p_main->p_next_version->p_data);
-    fdb_pool_alloc_free(&palloc->m_block_palloc, ref->p_main->p_next_version);
-    ref->p_main->p_next_version = NULL;
-  }
-
-  if(force && ref->p_next_version != NULL)
-  {
-    fdb_txpool_alloc_block_t* next_block = ref->p_next_version->p_next_version;
+    fdb_txpool_alloc_block_t* next_block = root;
     while(next_block != NULL)
     {
       fdb_txpool_alloc_block_t* tmp = next_block->p_next_version;
-      fdb_pool_alloc_free(&palloc->m_data_palloc, next_block->p_data);
+      if(next_block->p_data != NULL)
+      {
+        fdb_pool_alloc_free(&palloc->m_data_palloc, next_block->p_data);
+      }
       fdb_pool_alloc_free(&palloc->m_block_palloc, next_block);
       next_block = tmp;
     }
+    gced = true;
   }
   else
   {
-    // Look for versions that can be safely removed. These are thos whose 
+    // Look for versions that can be safely removed. These are those whose 
     // ts is smaller than the older version whose ts is larger than the
     // safepoint, which is the id of the youngest committed transaction such
     // that there is not an older transaction still running.
     // Find the youngest version with ts older or equal than safepoint
-    fdb_txpool_alloc_block_t* next_candidate = ref->p_next_version;
+    fdb_txpool_alloc_block_t* next_candidate = root->p_next_version;
     while(next_candidate != NULL && 
           next_candidate->m_ts > orv)
     {
@@ -349,55 +327,52 @@ fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc,
       while(next_candidate != NULL)
       {
         tmp = next_candidate->p_next_version;
-        fdb_pool_alloc_free(&palloc->m_data_palloc, next_candidate->p_data);
+        if(next_candidate->p_data != NULL)
+        {
+          fdb_pool_alloc_free(&palloc->m_data_palloc, next_candidate->p_data);
+        }
         fdb_pool_alloc_free(&palloc->m_block_palloc, next_candidate);
         next_candidate = tmp;
       }
     }
+
+    // Check if there is a single and committed extra version
+    fdb_txpool_alloc_block_t* youngest_version = root->p_next_version;
+    if(youngest_version != NULL &&
+       youngest_version->p_next_version == NULL &&
+       youngest_version->m_ts <= orv)
+    {
+      if(youngest_version->p_data != NULL)
+      {
+        if(root->p_data == NULL)
+        {
+          root->p_data = fdb_pool_alloc_alloc(&palloc->m_data_palloc, 
+                                              palloc->m_data_alignment, 
+                                              palloc->m_data_size, 
+                                              FDB_NO_HINT);
+        }
+        memcpy(root->p_data, youngest_version->p_data, palloc->m_data_size);
+      }
+      else
+      {
+        fdb_pool_alloc_free(&palloc->m_data_palloc, root->p_data);
+        root->p_data = NULL;
+      }
+      root->m_ts = youngest_version->m_ts;
+      root->p_next_version = NULL;
+      fdb_txthread_ctx_add_entry(txtctx, palloc, youngest_version);
+      fdb_mem_barrier(); // to make sure that base_ref next_ref pointer is set to NULL before any modification to the version
+    }
+
+    if(root->p_data == NULL &&          // freed block
+       root->p_next_version == NULL &&  // no more recent versions, so it is a root block from a reference that was freed
+       root->m_ts < orv)                // version is older than oldest running, can be safely freed since no more recent transaction should access it
+    {
+      fdb_pool_alloc_free(&palloc->m_block_palloc, root);
+      gced = true;
+    }
+
   }
 
-  // Check if there is a single and committed extra version
-  fdb_txpool_alloc_block_t* youngest_version = ref->p_next_version;
-  if(youngest_version != NULL &&
-     youngest_version->p_next_version == NULL &&
-     youngest_version->m_ts <= orv &&
-     ref->p_main->p_next_version == NULL)
-  {
-    if(youngest_version->p_data != NULL)
-    {
-      if(ref->p_main->p_data == NULL)
-      {
-        ref->p_main->p_data = fdb_pool_alloc_alloc(&palloc->m_data_palloc, 
-                                                   palloc->m_data_alignment, 
-                                                   palloc->m_data_size, 
-                                                   FDB_NO_HINT);
-      }
-      memcpy(ref->p_main->p_data, youngest_version->p_data, palloc->m_data_size);
-    }
-    else
-    {
-      FDB_ASSERT(youngest_version->m_freed);
-      fdb_pool_alloc_free(&palloc->m_data_palloc, ref->p_main->p_data);
-      ref->p_main->p_data = NULL;
-    }
-    ref->p_main->m_ts = youngest_version->m_ts;
-    ref->p_next_version = NULL;
-    ref->p_main->m_freed = youngest_version->m_freed;
-    if(force)
-    {
-      if(!youngest_version->m_freed)
-      {
-        fdb_pool_alloc_free(&palloc->m_data_palloc, youngest_version->p_data);
-      }
-      fdb_pool_alloc_free(&palloc->m_block_palloc, youngest_version);
-    }
-    else
-    {
-      ref->p_main->p_next_version = youngest_version;
-    }
-    fdb_mem_barrier(); // to make sure that base_ref next_ref pointer is set to NULL before any modification to the version
-  }
-
-  return ref->p_next_version == NULL && ref->p_main->p_next_version == NULL;
-
+  return gced;
 }

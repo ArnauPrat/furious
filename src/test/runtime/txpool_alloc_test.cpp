@@ -25,7 +25,7 @@ TEST(TXAllocTest,SimpleTest)
   fdb_txpool_alloc_ref_t  refs[num_allocations];
   for(uint32_t i = 0; i < num_allocations; ++i)
   {
-    fdb_txpool_alloc_ref_init(&txpool_alloc, 
+    fdb_txpool_alloc_ref_nullify(&txpool_alloc, 
                               &refs[i]);
   }
 
@@ -176,11 +176,6 @@ TEST(TXAllocTest,SimpleTest)
 
   // At this point, freed blocks should be garbage collected
   ASSERT_TRUE(fdb_txthread_ctx_gc(&thread_ctx, true));
-  for(uint32_t i = 0; i < num_allocations; ++i)
-  {
-    fdb_txpool_alloc_ref_release(&txpool_alloc, 
-                              &refs[i]);
-  }
   fdb_txthread_ctx_release(&thread_ctx);
 
   fdb_txpool_alloc_release(&txpool_alloc);
@@ -274,7 +269,7 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   fdb_txpool_alloc_ref_t* refs = new fdb_txpool_alloc_ref_t[num_refs];
   for(uint32_t i = 0; i < num_refs; ++i)
   {
-    fdb_txpool_alloc_ref_init(&txpool_alloc, &refs[i]);
+    fdb_txpool_alloc_ref_nullify(&txpool_alloc, &refs[i]);
   }
 
 
@@ -417,11 +412,6 @@ TEST(TXAllocTest,ConcurrentMultipleReadMultipleWrite)
   fdb_tx_commit(&tx_init);
 
   ASSERT_TRUE(fdb_txthread_ctx_gc(&context_init, true));
-
-  for(uint32_t i = 0; i < num_refs; ++i)
-  {
-    fdb_txpool_alloc_ref_release(&txpool_alloc, &refs[i]);
-  }
 
   fdb_txthread_ctx_release(&context_init);
 

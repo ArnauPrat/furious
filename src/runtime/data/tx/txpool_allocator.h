@@ -19,7 +19,6 @@ extern "C" {
   typedef struct fdb_txpool_alloc_ref_t
   {
     struct fdb_txpool_alloc_block_t* volatile p_main;
-    struct fdb_txpool_alloc_block_t* volatile p_next_version;
   } fdb_txpool_alloc_ref_t;
 
 
@@ -59,34 +58,25 @@ extern "C" {
 
 
   /**
-   * \brief Initializes a txpool alloc reference. 
+   * \brief Initializes a txpool alloc reference as a null reference 
    *
    * \param palloc The txpool alloc the reference belongs to
    * \param ref The reference to initialize
    */
   void
-  fdb_txpool_alloc_ref_init(fdb_txpool_alloc_t* palloc, 
-                           fdb_txpool_alloc_ref_t* ref);
-
-  /**
-   * \brief Releases a txpool alloc reference
-   *
-   * \param palloc The txpool alloc the reference belongs to
-   * \param ref The reference to release 
-   */
-  void
-  fdb_txpool_alloc_ref_release(fdb_txpool_alloc_t* palloc, 
+  fdb_txpool_alloc_ref_nullify(fdb_txpool_alloc_t* palloc, 
                                fdb_txpool_alloc_ref_t* ref);
 
+
   /**
-   * \brief Initializes a txpool alloc reference
+   * \brief Checks if a reference is null 
    *
    * \param palloc The txpool alloc the reference belongs to
    * \param ref The reference to initialize
    */
-  void
-  fdb_txpoo_alloc_ref_init(fdb_txpool_alloc_t* palloc, 
-                           fdb_txpool_alloc_ref_t* ref);
+  bool
+  fdb_txpool_alloc_ref_isnull(fdb_txpool_alloc_t* palloc, 
+                             fdb_txpool_alloc_ref_t* ref);
 
 
   /**
@@ -154,7 +144,7 @@ extern "C" {
    * \param palloc The txpool of the reference to garbage collect
    * \param txtctx The thread context executing the transaction  
    * \param orv The oldest running transaction version
-   * \param ref The reference to garbage collect
+   * \param root The root block to garbage collect
    * \param force Forces the GC process assuming there are no running txs 
    *
    * \return True if this reference is completely GCed
@@ -162,7 +152,7 @@ extern "C" {
   bool fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc, 
                             fdb_txthread_ctx_t* txtctx,
                             uint64_t orv,
-                            fdb_txpool_alloc_ref_t* ref, 
+                            struct fdb_txpool_alloc_block_t* root, 
                             bool force);
 
 

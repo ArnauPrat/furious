@@ -138,7 +138,7 @@ fdb_txthread_ctx_release(fdb_txthread_ctx_t* txctx)
 void
 fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
                            struct fdb_txpool_alloc_t* palloc, 
-                           struct fdb_txpool_alloc_ref_t* ref)
+                           struct fdb_txpool_alloc_block_t* block)
 {
 
   fdb_txgarbage_t* entry  = (fdb_txgarbage_t*)fdb_pool_alloc_alloc(&txtctx->m_palloc,
@@ -153,7 +153,7 @@ fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx,
   }
   txtctx->p_first = entry;
   entry->p_palloc = palloc;
-  entry->p_ref = ref;
+  entry->p_block = block;
 }
 
 bool
@@ -178,7 +178,7 @@ fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx, bool force)
     if(fdb_txpool_alloc_gc(next_garbage->p_palloc, 
                            txtctx,
                            oldest_running_version, 
-                           next_garbage->p_ref, 
+                           next_garbage->p_block, 
                            force))
     {
       if(next_garbage == txtctx->p_first)

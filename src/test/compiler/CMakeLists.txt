@@ -9,14 +9,20 @@ include_directories(${FURIOUS_INCLUDE_DIR})
 
 function(create_test NAME)
 
+  SET(CXX_INCLUDES_DIRS "")
+  foreach(INC ${CXX_HEADERS_DIRS})
+    SET(CXX_INCLUDES_DIRS "-I${INC}" " " ${CXX_INCLUDES_DIRS})
+  endforeach()
+  #string(REGEX REPLACE "\\" "" CXX_INCLUDES_DIRS "${CXX_INCLUDES_DIRS}")
+
+  MESSAGE(STATUS ${CXX_INCLUDES_DIRS})
   add_custom_command(
 										OUTPUT ${NAME}_furious.cpp
                     COMMAND fcc -o
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp -i
                     "furious.h"
                     ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}_script.cpp --
-                    -fstrict-aliasing -std=c++17 -I ${LIBCLANG_INCLUDES_DIR} -I
-                    ${CMAKE_SOURCE_DIR}/src ${FURIOUS_DEFAULT_DEFINES}
+                    -fstrict-aliasing -std=c++17 ${CXX_INCLUDES_DIRS} -I${CMAKE_SOURCE_DIR}/src ${FURIOUS_DEFAULT_DEFINES}
                     COMMAND clang-format --style='{BasedOnStyle: LLVM, ColumnLimit: 120}' -i 
                     ${CMAKE_CURRENT_BINARY_DIR}/${NAME}_furious.cpp
                     DEPENDS fcc furious ${NAME}_script.cpp ${NAME}_header.h

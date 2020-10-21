@@ -90,6 +90,11 @@ set(FURIOUS_OUTPUT_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/furious")
 
 enable_testing()
 
+if(NOT CXX_HEADERS_DIRS)
+  message(FATAL_ERROR "CXX_HEADERS_DIRS is empty. Please set it to the list of
+  paths where c++ headers are found")
+endif()
+
 message(STATUS "BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "LLVM VERSION: ${LLVM_VERSION_MAJOR}")
 message(STATUS "LLVM INCLUDE DIRS: ${LLVM_INCLUDES_DIR}")
@@ -100,6 +105,7 @@ message(STATUS "LIBCLANG INCLUDE DIR: ${LIBCLANG_INCLUDES_DIR}")
 message(STATUS "LIBCLANG LIBS: ${LIBCLANG_LIBS}")
 message(STATUS "LIBCLANG LIBS DIR: ${LIBCLANG_LIBS_DIR}")
 message(STATUS "DEFINES: ${FURIOUS_DEFAULT_DEFINES}")
+message(STATUS "CXX_HEADERS_DIRS: ${CXX_HEADERS_DIRS}")
 
 add_subdirectory(src)
 

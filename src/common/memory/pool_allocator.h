@@ -12,12 +12,12 @@
 extern "C" {
 #endif
 
-typedef struct fdb_pool_alloc_header_t
+struct fdb_pool_alloc_header_t
 {
   void*   p_next;
-} fdb_pool_alloc_header_t;
+};
 
-typedef struct fdb_pool_alloc_t
+struct fdb_pool_alloc_t
 {
   void*                   p_first_chunk; //< Pointer to the first memory chunk/page
   void*                   p_last_chunk;  //< Pointer to the last memory chunk/page
@@ -28,11 +28,11 @@ typedef struct fdb_pool_alloc_t
   uint64_t                m_next_free;   //< The next free offset of the last chunk
   uint64_t                m_grow_offset; //< The amount of offset to grow next_free after each allocation
   uint64_t                m_lost_bytes;  //< The amount of lost bytes per page due to growoffset unalignment plus header
-  fdb_mem_allocator_t*    p_allocator;   //< The parent memory allocator
-  fdb_mem_allocator_t     m_super;
-  fdb_mem_stats_t         m_stats;
-  fdb_mutex_t             m_mutex;
-} fdb_pool_alloc_t;
+  struct fdb_mem_allocator_t*    p_allocator;   //< The parent memory allocator
+  struct fdb_mem_allocator_t     m_super;
+  struct fdb_mem_stats_t         m_stats;
+  struct fdb_mutex_t             m_mutex;
+};
 
 /**
  * \brief inits a pool allocator
@@ -45,11 +45,11 @@ typedef struct fdb_pool_alloc_t
  * \return  Returns the memory allocator
  */
 void
-fdb_pool_alloc_init(fdb_pool_alloc_t* palloc, 
+fdb_pool_alloc_init(struct fdb_pool_alloc_t* palloc, 
                     uint32_t alignment, 
                     uint32_t block_size, 
                     uint32_t page_size, 
-                    fdb_mem_allocator_t* allocator);
+                    struct fdb_mem_allocator_t* allocator);
 
 
 /**
@@ -58,22 +58,22 @@ fdb_pool_alloc_init(fdb_pool_alloc_t* palloc,
  * \param fdb_pool_alloc The pool allocator to release
  */
 void
-fdb_pool_alloc_release(fdb_pool_alloc_t* allocator);
+fdb_pool_alloc_release(struct fdb_pool_alloc_t* allocator);
 
 void* 
-fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc, 
+fdb_pool_alloc_alloc(struct fdb_pool_alloc_t* palloc, 
                      uint32_t alignment, 
                      uint32_t size,
                      uint32_t hint);
 void
-fdb_pool_alloc_free(fdb_pool_alloc_t* palloc, 
+fdb_pool_alloc_free(struct fdb_pool_alloc_t* palloc, 
                     void* ptr);
 
 void
-fdb_pool_alloc_flush(fdb_pool_alloc_t* palloc);
+fdb_pool_alloc_flush(struct fdb_pool_alloc_t* palloc);
 
-fdb_mem_stats_t
-fdb_pool_alloc_stats(fdb_pool_alloc_t* palloc);
+struct fdb_mem_stats_t
+fdb_pool_alloc_stats(struct fdb_pool_alloc_t* palloc);
 
 #ifdef __cplusplus
 }

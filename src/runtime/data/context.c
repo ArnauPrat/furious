@@ -4,7 +4,7 @@
 #include "context.h"
 
 void
-fdb_context_init(fdb_context_t* ctx,
+fdb_context_init(struct fdb_context_t* ctx,
                  float dt, 
                  struct fdb_database_t* database, 
                  void* user_data,
@@ -18,4 +18,9 @@ fdb_context_init(fdb_context_t* ctx,
   ctx->m_thread_id = thread_id;
   ctx->m_num_threads = num_threads;
   ctx->p_database = database;
+}
+
+void
+fdb_context_release(struct fdb_context_t* ctx)
+{
 }

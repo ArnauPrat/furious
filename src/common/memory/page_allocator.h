@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef struct fdb_page_alloc_t
+struct fdb_page_alloc_t
 {
   void*               p_data;
   void*               p_stop;
@@ -20,10 +20,10 @@ typedef struct fdb_page_alloc_t
   uint64_t            m_sregion;
   uint32_t            m_ssize;
   uint32_t            m_lsize;
-  fdb_mem_allocator_t m_super;
-  fdb_mem_stats_t     m_stats;
-  fdb_mutex_t         m_mutex;
-} fdb_page_alloc_t;
+  struct  fdb_mem_allocator_t m_super;
+  struct  fdb_mem_stats_t     m_stats;
+  struct fdb_mutex_t         m_mutex;
+};
 
 /**
  * \brief Initializes a page allocator
@@ -34,7 +34,7 @@ typedef struct fdb_page_alloc_t
  * \param slarge The size of the large pages to allocate
  */
 void
-fdb_page_alloc_init(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_init(struct fdb_page_alloc_t* palloc, 
                     uint64_t sregion,
                     uint32_t ssmall, 
                     uint32_t slarge);
@@ -45,7 +45,7 @@ fdb_page_alloc_init(fdb_page_alloc_t* palloc,
  * \param palloc The page allocator to release
  */
 void
-fdb_page_alloc_release(fdb_page_alloc_t* palloc);
+fdb_page_alloc_release(struct fdb_page_alloc_t* palloc);
 
 /**
  * \brief Allocates a block of memory using the page allocator. This block
@@ -58,7 +58,7 @@ fdb_page_alloc_release(fdb_page_alloc_t* palloc);
  * \param hint The hint passed to the allocator (ignored)
  */
 void*
-fdb_page_alloc_alloc(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_alloc(struct fdb_page_alloc_t* palloc, 
                      uint32_t alignment, 
                      uint32_t size,
                      uint32_t hint);
@@ -70,11 +70,11 @@ fdb_page_alloc_alloc(fdb_page_alloc_t* palloc,
  * \param ptr The pointer to the memory block to free
  */
 void
-fdb_page_alloc_free(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_free(struct fdb_page_alloc_t* palloc, 
                     void* ptr);
 
-fdb_mem_stats_t
-fdb_page_alloc_stats(fdb_page_alloc_t* palloc);
+struct fdb_mem_stats_t
+fdb_page_alloc_stats(struct fdb_page_alloc_t* palloc);
 
 #ifdef __cplusplus
 }

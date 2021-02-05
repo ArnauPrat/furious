@@ -14,6 +14,8 @@ set (COMMON_SRC
   ${CMAKE_SOURCE_DIR}/src/common/memory/stack_allocator.h
   ${CMAKE_SOURCE_DIR}/src/common/mutex.h
   ${CMAKE_SOURCE_DIR}/src/common/mutex.c
+  ${CMAKE_SOURCE_DIR}/src/common/atomic_counter.h
+  ${CMAKE_SOURCE_DIR}/src/common/atomic_counter.c
   #${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.h
   #${CMAKE_SOURCE_DIR}/src/common/refcount_ptr.inl
   #${CMAKE_SOURCE_DIR}/src/common/dyn_array.h
@@ -38,12 +40,26 @@ set (COMMON_SRC
   )
 
 set (RUNTIME_SRC
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tmpbittable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tmpbittable.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tmptable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tmptable.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txtable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txtable.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbittable.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbittable.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbitmap.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbitmap.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbitmap_utils.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbitmap_utils.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbtree.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/txbtree.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txpool_allocator.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txpool_allocator.c
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txheap_allocator.h
+  ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/txheap_allocator.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/tx.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/tx/tx.c
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.c
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/bittable.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/block_cluster.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/context.c
@@ -61,10 +77,6 @@ set (RUNTIME_SRC
   ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.c
   ${CMAKE_SOURCE_DIR}/src/runtime/data/ht_registry.h
   ${CMAKE_SOURCE_DIR}/src/runtime/data/macros.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.c
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/table.h
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/reftable.c
-  ${CMAKE_SOURCE_DIR}/src/runtime/data/reftable.h
   #${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.h
   #${CMAKE_SOURCE_DIR}/src/runtime/data/table_view.inl
   ${CMAKE_SOURCE_DIR}/src/runtime/data/webserver/webserver.h

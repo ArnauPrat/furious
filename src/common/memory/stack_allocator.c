@@ -9,7 +9,7 @@
 #define FDB_STACK_ALLOC_MIN_ALLOC 4096
 
 static void
-fdb_stack_alloc_page_addr_decode(fdb_stack_alloc_t* salloc, 
+fdb_stack_alloc_page_addr_decode(struct fdb_stack_alloc_t* salloc, 
                                void* addr, 
                                char** base, 
                                uint32_t* offset)
@@ -24,7 +24,7 @@ fdb_stack_alloc_alloc_wrapper(void* state,
                       uint32_t size,
                       uint32_t hint)
 {
-  fdb_stack_alloc_t* salloc = (fdb_stack_alloc_t*)state;
+  struct fdb_stack_alloc_t* salloc = (struct fdb_stack_alloc_t*)state;
   return fdb_stack_alloc_alloc(salloc, 
                                alignment, 
                                size, 
@@ -36,20 +36,20 @@ void
 fdb_stack_alloc_free_wrapper(void* state, 
                              void* ptr)
 {
-  fdb_stack_alloc_t* salloc = (fdb_stack_alloc_t*)state;
+  struct fdb_stack_alloc_t* salloc = (struct fdb_stack_alloc_t*)state;
   fdb_stack_alloc_free(salloc, ptr);
 }
 
-fdb_mem_stats_t
+struct fdb_mem_stats_t
 fdb_stack_alloc_stats_wrapper(void* state)
 {
-  fdb_stack_alloc_t* salloc = (fdb_stack_alloc_t*)state;
+  struct fdb_stack_alloc_t* salloc = (struct fdb_stack_alloc_t*)state;
   return fdb_stack_alloc_stats(salloc);
 }
 
 
 void
-fdb_stack_alloc_flush(fdb_stack_alloc_t* fdb_stack_alloc);
+fdb_stack_alloc_flush(struct fdb_stack_alloc_t* fdb_stack_alloc);
 
 /**
  * \brief inits a stack allocator
@@ -59,15 +59,15 @@ fdb_stack_alloc_flush(fdb_stack_alloc_t* fdb_stack_alloc);
  * \return Returns a new stack allocator
  */
 void
-fdb_stack_alloc_init(fdb_stack_alloc_t* salloc, 
+fdb_stack_alloc_init(struct fdb_stack_alloc_t* salloc, 
                      uint32_t page_size, 
-                     fdb_mem_allocator_t* allocator)
+                     struct fdb_mem_allocator_t* allocator)
 {
   FDB_ASSERT(((allocator == NULL) ||
                   (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
                  "Provided allocator is ill-formed.")
 
-  memset(salloc, 0, sizeof(fdb_stack_alloc_t));
+  memset(salloc, 0, sizeof(struct fdb_stack_alloc_t));
   if(allocator != NULL)
   {
     salloc->p_allocator = allocator; 
@@ -82,7 +82,7 @@ fdb_stack_alloc_init(fdb_stack_alloc_t* salloc,
   salloc->p_next_page = NULL;
   salloc->m_next_offset = 0; 
   salloc->p_last_frame = NULL;
-  salloc->m_max_frame_offset = sizeof(void*) * (salloc->m_page_size - sizeof(fdb_stack_alloc_fheader_t)) / sizeof(void*);
+  salloc->m_max_frame_offset = sizeof(void*) * (salloc->m_page_size - sizeof(struct fdb_stack_alloc_fheader_t)) / sizeof(void*);
   salloc->m_super.p_mem_state = salloc; 
   salloc->m_super.p_mem_alloc = fdb_stack_alloc_alloc_wrapper; 
   salloc->m_super.p_mem_free = fdb_stack_alloc_free_wrapper;
@@ -91,7 +91,7 @@ fdb_stack_alloc_init(fdb_stack_alloc_t* salloc,
 }
 
 void
-fdb_stack_alloc_release(fdb_stack_alloc_t* salloc)
+fdb_stack_alloc_release(struct fdb_stack_alloc_t* salloc)
 {
   fdb_stack_alloc_flush(salloc);
   fdb_mutex_release(&salloc->m_mutex);
@@ -103,10 +103,10 @@ fdb_stack_alloc_release(fdb_stack_alloc_t* salloc)
  * \param fdb_stack_alloc The allocator to flush
  */
 void
-fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
+fdb_stack_alloc_flush(struct fdb_stack_alloc_t* salloc)
 {
   fdb_mutex_lock(&salloc->m_mutex);
-  fdb_stack_alloc_fheader_t* fheader = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
+  struct fdb_stack_alloc_fheader_t* fheader = (struct fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   if(fheader != NULL)
   {
     if(fheader->m_next_free == 0)
@@ -115,7 +115,7 @@ fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
     }
     if(fheader != NULL)
     {
-      char* frame_data = (char*)fheader + sizeof(fdb_stack_alloc_fheader_t);
+      char* frame_data = (char*)fheader + sizeof(struct fdb_stack_alloc_fheader_t);
       uint32_t next_offset = fheader->m_next_free - sizeof(void*);
       char* next_alloc;
       memcpy(&next_alloc, frame_data + next_offset, sizeof(void*));
@@ -145,10 +145,10 @@ fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
         next_offset-=sizeof(void*);
         if(next_offset == 0)
         {
-          fheader = (fdb_stack_alloc_fheader_t*)fheader->p_previous_page;
+          fheader = (struct fdb_stack_alloc_fheader_t*)fheader->p_previous_page;
           if(fheader != NULL)
           {
-            frame_data = (char*)fheader + sizeof(fdb_stack_alloc_fheader_t);
+            frame_data = (char*)fheader + sizeof(struct fdb_stack_alloc_fheader_t);
             next_offset = fheader->m_next_free - sizeof(void*);
             memcpy(&next_alloc, frame_data + next_offset, sizeof(void*));
           }
@@ -190,7 +190,7 @@ fdb_stack_alloc_flush(fdb_stack_alloc_t* salloc)
  *
  * @return 
  */
-void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc, 
+void* fdb_stack_alloc_alloc(struct fdb_stack_alloc_t* salloc, 
                             uint32_t alignment, 
                             uint32_t size,
                             uint32_t hint)
@@ -225,14 +225,14 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
 
   FDB_ASSERT(((salloc->m_next_offset +slack + size) <= salloc->m_page_size) && "This stack allocator cannot serve the requested memory");
 
-  fdb_stack_alloc_fheader_t* last_frame = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
+  struct fdb_stack_alloc_fheader_t* last_frame = (struct fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
   if(last_frame == NULL || last_frame->m_next_free == salloc->m_max_frame_offset)
   {
     void* new_frame = mem_alloc(salloc->p_allocator, 
                                 salloc->m_page_size, 
                                 salloc->m_page_size, 
                                 FDB_NO_HINT);
-    fdb_stack_alloc_fheader_t* header = (fdb_stack_alloc_fheader_t*)new_frame;
+    struct fdb_stack_alloc_fheader_t* header = (struct fdb_stack_alloc_fheader_t*)new_frame;
     header->p_previous_page = last_frame;
     header->m_next_free = 0;
     if(last_frame != NULL)
@@ -245,8 +245,8 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
   }
 
   void* ret_addr = (char*)salloc->p_next_page + salloc->m_next_offset + slack;
-  fdb_stack_alloc_fheader_t* fheader = (fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
-  char* frame_data = salloc->p_last_frame + sizeof(fdb_stack_alloc_fheader_t);
+  struct fdb_stack_alloc_fheader_t* fheader = (struct fdb_stack_alloc_fheader_t*)salloc->p_last_frame;
+  char* frame_data = salloc->p_last_frame + sizeof(struct fdb_stack_alloc_fheader_t);
   memcpy(frame_data + fheader->m_next_free, &ret_addr, sizeof(void*));
   fheader->m_next_free += sizeof(void*);
 
@@ -282,7 +282,7 @@ void* fdb_stack_alloc_alloc(fdb_stack_alloc_t* salloc,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void fdb_stack_alloc_free(fdb_stack_alloc_t* salloc, 
+void fdb_stack_alloc_free(struct fdb_stack_alloc_t* salloc, 
                           void* ptr )
 {
   // Arnau: Intentionally left blank. The stack allocator is freed using the
@@ -290,11 +290,11 @@ void fdb_stack_alloc_free(fdb_stack_alloc_t* salloc,
 }
 
 void
-fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc, 
+fdb_stack_alloc_pop(struct fdb_stack_alloc_t* salloc, 
                     void* ptr)
 {
   fdb_mutex_lock(&salloc->m_mutex);
-  fdb_stack_alloc_fheader_t* fheader = salloc->p_last_frame;
+  struct fdb_stack_alloc_fheader_t* fheader = salloc->p_last_frame;
   if(fheader->m_next_free == 0)
   {
     void* tmp = fheader;
@@ -306,7 +306,7 @@ fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc,
   }
 
   FDB_ASSERT(fheader != NULL && "Cannot pop from an empty stack allocator");
-  char* frame_data = (char*)fheader + sizeof(fdb_stack_alloc_fheader_t);
+  char* frame_data = (char*)fheader + sizeof(struct fdb_stack_alloc_fheader_t);
   void* pop_addr;
   memcpy(&pop_addr, frame_data + fheader->m_next_free - sizeof(void*), sizeof(void*));
   fheader->m_next_free -= sizeof(void*);
@@ -330,11 +330,11 @@ fdb_stack_alloc_pop(fdb_stack_alloc_t* salloc,
   fdb_mutex_unlock(&salloc->m_mutex);
 }
 
-fdb_mem_stats_t
-fdb_stack_alloc_stats(fdb_stack_alloc_t* salloc)
+struct fdb_mem_stats_t
+fdb_stack_alloc_stats(struct fdb_stack_alloc_t* salloc)
 {
   fdb_mutex_lock(&salloc->m_mutex);
-  fdb_mem_stats_t stats = salloc->m_stats;
+  struct fdb_mem_stats_t stats = salloc->m_stats;
   stats.m_used = salloc->m_stats.m_used*salloc->m_page_size + salloc->m_next_offset; // We compute the actual used space
   fdb_mutex_unlock(&salloc->m_mutex);
   return stats;

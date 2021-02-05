@@ -14,7 +14,7 @@ fdb_pool_alloc_alloc_wrapper(void* palloc,
                              uint32_t size,
                              uint32_t hint)
 {
-  fdb_pool_alloc_t* tpalloc = (fdb_pool_alloc_t*)palloc;
+  struct fdb_pool_alloc_t* tpalloc = (struct fdb_pool_alloc_t*)palloc;
   return fdb_pool_alloc_alloc(tpalloc, 
                               alignment, 
                               size, 
@@ -25,14 +25,14 @@ void
 fdb_pool_alloc_free_wrapper(void* palloc, 
                             void* ptr)
 {
-  fdb_pool_alloc_t* tpalloc = (fdb_pool_alloc_t*)palloc;
+  struct fdb_pool_alloc_t* tpalloc = (struct fdb_pool_alloc_t*)palloc;
   fdb_pool_alloc_free(tpalloc, ptr);
 }
 
-fdb_mem_stats_t
+struct fdb_mem_stats_t
 fdb_pool_alloc_stats_wrapper(void* palloc)
 {
-  fdb_pool_alloc_t* tpalloc = (fdb_pool_alloc_t*)palloc;
+  struct fdb_pool_alloc_t* tpalloc = (struct fdb_pool_alloc_t*)palloc;
   return fdb_pool_alloc_stats(tpalloc);
 }
 
@@ -44,16 +44,16 @@ fdb_pool_alloc_stats_wrapper(void* palloc)
  * \return Returns a new pool allocator
  */
 void
-fdb_pool_alloc_init(fdb_pool_alloc_t* palloc, 
+fdb_pool_alloc_init(struct fdb_pool_alloc_t* palloc, 
                     uint32_t alignment, 
                     uint32_t block_size, 
                     uint32_t page_size,
-                    fdb_mem_allocator_t* allocator)
+                    struct fdb_mem_allocator_t* allocator)
 {
   FDB_ASSERT(((allocator == NULL) ||
               (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
              "Provided allocator is ill-formed.")
-  memset(palloc, 0, sizeof(fdb_pool_alloc_t));
+  memset(palloc, 0, sizeof(struct fdb_pool_alloc_t));
   if(allocator != NULL)
   {
     palloc->p_allocator = allocator; 
@@ -65,14 +65,14 @@ fdb_pool_alloc_init(fdb_pool_alloc_t* palloc,
   palloc->p_first_free = NULL;
   int32_t min_alignment = alignment > FDB_MIN_ALIGNMENT ? alignment : FDB_MIN_ALIGNMENT;
   palloc->m_alignment = min_alignment;
-  palloc->m_block_size = sizeof(fdb_pool_alloc_header_t*) > block_size ? sizeof(fdb_pool_alloc_header_t) : block_size;
+  palloc->m_block_size = sizeof(struct fdb_pool_alloc_header_t*) > block_size ? sizeof(struct fdb_pool_alloc_header_t) : block_size;
   palloc->m_page_size = page_size;
   palloc->m_next_free = 0;
   palloc->p_first_chunk = NULL;
   palloc->p_last_chunk = NULL;
-  uint64_t min_growth = sizeof(fdb_pool_alloc_header_t) <= palloc->m_block_size ? 
+  uint64_t min_growth = sizeof(struct fdb_pool_alloc_header_t) <= palloc->m_block_size ? 
   palloc->m_block_size : 
-  sizeof(fdb_pool_alloc_header_t);
+  sizeof(struct fdb_pool_alloc_header_t);
 
   palloc->m_grow_offset = ((min_growth + palloc->m_alignment - 1) / palloc->m_alignment)  * palloc->m_alignment;
   // We compute the part at the end of a page that is unusable due to the
@@ -89,20 +89,20 @@ fdb_pool_alloc_init(fdb_pool_alloc_t* palloc,
 }
 
 void
-fdb_pool_alloc_release(fdb_pool_alloc_t* palloc)
+fdb_pool_alloc_release(struct fdb_pool_alloc_t* palloc)
 {
   fdb_pool_alloc_flush(palloc);
   fdb_mutex_release(&palloc->m_mutex);
 }
 
 void
-fdb_pool_alloc_flush(fdb_pool_alloc_t* fdb_pool_alloc)
+fdb_pool_alloc_flush(struct fdb_pool_alloc_t* fdb_pool_alloc)
 {
   fdb_mutex_lock(&fdb_pool_alloc->m_mutex);
   void* next = fdb_pool_alloc->p_first_chunk;
   while(next != NULL)
   {
-    fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)next;
+    struct fdb_pool_alloc_header_t* hdr = (struct fdb_pool_alloc_header_t*)next;
     void* to_release = next;
     next = hdr->p_next;
     mem_free(fdb_pool_alloc->p_allocator, to_release);
@@ -124,7 +124,7 @@ fdb_pool_alloc_flush(fdb_pool_alloc_t* fdb_pool_alloc)
  *
  * @return 
  */
-void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc, 
+void* fdb_pool_alloc_alloc(struct fdb_pool_alloc_t* palloc, 
                            uint32_t alignment, 
                            uint32_t size,
                            uint32_t hint)
@@ -135,7 +135,7 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 #ifdef FDB_ENABLE_ASSERTS
   uint32_t min_alignment = alignment > FDB_MIN_ALIGNMENT ? alignment : FDB_MIN_ALIGNMENT;
   FDB_ASSERT(palloc->m_alignment == min_alignment && "Requested alignment mismatches the pool allocator alignment");
-  FDB_ASSERT(palloc->m_block_size == size && "Requested size mismatches the pool allocator size");
+  FDB_ASSERT(palloc->m_block_size == (sizeof(struct fdb_pool_alloc_header_t*) > size ? sizeof(struct fdb_pool_alloc_header_t) : size) && "Requested size mismatches the pool allocator size");
 #endif
 
   void* ret = NULL;
@@ -143,7 +143,7 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
   {
   fdb_mem_barrier();
     ret = palloc->p_first_free;
-    fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_first_free;
+    struct fdb_pool_alloc_header_t* hdr = (struct fdb_pool_alloc_header_t*)palloc->p_first_free;
     palloc->p_first_free = hdr->p_next;
   }
   else
@@ -157,7 +157,7 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 
       //printf("pool allocator first chunk: %lu\n", (uint64_t)palloc->p_first_chunk);
 
-      fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_first_chunk;
+      struct fdb_pool_alloc_header_t* hdr = (struct fdb_pool_alloc_header_t*)palloc->p_first_chunk;
       hdr->p_next = NULL;
       palloc->m_next_free = palloc->m_grow_offset;
       palloc->p_last_chunk = palloc->p_first_chunk;
@@ -184,10 +184,10 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
 
       //printf("pool allocator new chunk: %lu\n", (uint64_t)new_chunk);
 
-      fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)palloc->p_last_chunk;
+      struct fdb_pool_alloc_header_t* hdr = (struct fdb_pool_alloc_header_t*)palloc->p_last_chunk;
       hdr->p_next = new_chunk;
       palloc->p_last_chunk = new_chunk;
-      hdr = (fdb_pool_alloc_header_t*)palloc->p_last_chunk;
+      hdr = (struct fdb_pool_alloc_header_t*)palloc->p_last_chunk;
       hdr->p_next = NULL;
       palloc->m_next_free = palloc->m_grow_offset;                 // we increase one grow offset for the header
       ret = &(((char*)palloc->p_last_chunk)[palloc->m_next_free]);
@@ -211,22 +211,22 @@ void* fdb_pool_alloc_alloc(fdb_pool_alloc_t* palloc,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void fdb_pool_alloc_free(fdb_pool_alloc_t* palloc, 
+void fdb_pool_alloc_free(struct fdb_pool_alloc_t* palloc, 
                          void* ptr )
 {
   fdb_mutex_lock(&palloc->m_mutex);
-  fdb_pool_alloc_header_t* hdr = (fdb_pool_alloc_header_t*)ptr;
+  struct fdb_pool_alloc_header_t* hdr = (struct fdb_pool_alloc_header_t*)ptr;
   hdr->p_next = palloc->p_first_free;
   palloc->p_first_free = ptr;
   palloc->m_stats.m_used -= palloc->m_grow_offset;
   fdb_mutex_unlock(&palloc->m_mutex);
 }
 
-fdb_mem_stats_t
-fdb_pool_alloc_stats(fdb_pool_alloc_t* palloc)
+struct fdb_mem_stats_t
+fdb_pool_alloc_stats(struct fdb_pool_alloc_t* palloc)
 {
   fdb_mutex_lock(&palloc->m_mutex);
-  fdb_mem_stats_t stats =  palloc->m_stats;
+  struct fdb_mem_stats_t stats =  palloc->m_stats;
   fdb_mutex_unlock(&palloc->m_mutex);
   return stats;
 }

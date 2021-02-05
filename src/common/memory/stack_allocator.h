@@ -13,26 +13,26 @@
 extern "C" {
 #endif
 
-typedef struct fdb_stack_alloc_fheader_t
+struct fdb_stack_alloc_fheader_t
 {
   void* p_next_page;
   void* p_previous_page;
   uint32_t m_next_free;
-} fdb_stack_alloc_fheader_t;
+};
 
-typedef struct fdb_stack_alloc_t
+struct fdb_stack_alloc_t
 {
   uint32_t                   m_page_size;
   uint64_t                   m_page_mask;
-  fdb_mem_allocator_t*       p_allocator;
+  struct fdb_mem_allocator_t*       p_allocator;
   void*                      p_next_page;
   uint32_t                   m_next_offset;
   void*                      p_last_frame;
   uint32_t                   m_max_frame_offset; 
-  fdb_mem_allocator_t        m_super;
-  fdb_mem_stats_t            m_stats;
-  fdb_mutex_t                m_mutex;
-} fdb_stack_alloc_t;
+  struct fdb_mem_allocator_t        m_super;
+  struct fdb_mem_stats_t            m_stats;
+  struct fdb_mutex_t                m_mutex;
+};
 
 /**
  * \brief inits a stack allocator
@@ -42,9 +42,9 @@ typedef struct fdb_stack_alloc_t
  * \return Returns a new stack allocator
  */
 void
-fdb_stack_alloc_init(fdb_stack_alloc_t* salloc, 
+fdb_stack_alloc_init(struct fdb_stack_alloc_t* salloc, 
                      uint32_t page_size, 
-                     fdb_mem_allocator_t* allocator);
+                     struct fdb_mem_allocator_t* allocator);
 
 /**
  * \brief releases a stack allocator
@@ -52,15 +52,15 @@ fdb_stack_alloc_init(fdb_stack_alloc_t* salloc,
  * \param fdb_stack_alloc The stack allocator to release
  */
 void
-fdb_stack_alloc_release(fdb_stack_alloc_t* allocator);
+fdb_stack_alloc_release(struct fdb_stack_alloc_t* allocator);
 
 void* 
-fdb_stack_alloc_alloc(fdb_stack_alloc_t* state, 
+fdb_stack_alloc_alloc(struct fdb_stack_alloc_t* state, 
                       uint32_t alignment, 
                       uint32_t size,
                       uint32_t hint);
 void
-fdb_stack_alloc_free(fdb_stack_alloc_t* state, 
+fdb_stack_alloc_free(struct fdb_stack_alloc_t* state, 
                      void* ptr);
 
 /**
@@ -71,11 +71,11 @@ fdb_stack_alloc_free(fdb_stack_alloc_t* state,
  *  purposes
  */
 void
-fdb_stack_alloc_pop(fdb_stack_alloc_t* state, 
+fdb_stack_alloc_pop(struct fdb_stack_alloc_t* state, 
                     void* ptr);
 
-fdb_mem_stats_t
-fdb_stack_alloc_stats(fdb_stack_alloc_t* palloc);
+struct fdb_mem_stats_t
+fdb_stack_alloc_stats(struct fdb_stack_alloc_t* palloc);
 
 #ifdef __cplusplus
 }

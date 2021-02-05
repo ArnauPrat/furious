@@ -11,7 +11,7 @@
 
 
 void
-fdb_str_builder_init(fdb_str_builder_t* str_builder)
+fdb_str_builder_init(struct fdb_str_builder_t* str_builder)
 {
   str_builder->m_capacity = 2048;
   str_builder->p_buffer = (char*) mem_alloc(fdb_get_global_mem_allocator(), 
@@ -23,7 +23,7 @@ fdb_str_builder_init(fdb_str_builder_t* str_builder)
   str_builder->p_buffer[str_builder->m_pos] = 0;
 }
 
-void fdb_str_builder_release(fdb_str_builder_t* str_builder)
+void fdb_str_builder_release(struct fdb_str_builder_t* str_builder)
 {
   if(str_builder->p_buffer != NULL)
   {
@@ -34,7 +34,7 @@ void fdb_str_builder_release(fdb_str_builder_t* str_builder)
 }
 
 void
-fdb_str_builder_append(fdb_str_builder_t* str_builder,
+fdb_str_builder_append(struct fdb_str_builder_t* str_builder,
                    const char* str, 
                    ...) 
 {
@@ -68,7 +68,7 @@ fdb_str_builder_append(fdb_str_builder_t* str_builder,
 }
 
 void
-fdb_str_builder_clear(fdb_str_builder_t* str_builder)
+fdb_str_builder_clear(struct fdb_str_builder_t* str_builder)
 {
   str_builder->m_pos = 0;
 }

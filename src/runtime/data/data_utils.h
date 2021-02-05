@@ -4,14 +4,55 @@
 #define _FDB_DATA_UTILS_H_
 
 #include "../../common/btree.h"
-#include "table.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct fdb_bcluster_t fdb_bcluster_t;
-typedef struct fdb_bittable_t fdb_bittable_t;
+struct fdb_bcluster_t;
+struct fdb_tmpbittable_t;
+struct fdb_tmptable_t;
+struct fdb_txtable_t;
+struct fdb_tx_t;
+struct fdb_txthread_ctx_t;
+
+
+/**
+ * \brief Adds a reference to a reference table. The table must be of type
+ * entity_id_t
+ *
+ * \param table The table to add the reference to
+ * \param tx The transaction 
+ * \param txtctx The transaction thread context
+ * \param entity_a The first entity id
+ * \param entity_b The second entity id
+ */
+void
+fdb_txtable_add_reference(struct fdb_txtable_t* table, 
+                          struct fdb_tx_t* tx, 
+                          struct fdb_txthread_ctx_t* txtctx, 
+                          entity_id_t entity_a,
+                          entity_id_t entity_b);
+
+/**
+ * \brief Checks if a reference exists in a reference table. The table must be of type
+ * entity_id_t
+ *
+ * \param table The table to add the reference to
+ * \param tx The transaction 
+ * \param txtctx The transaction thread context
+ * \param entity_a The first entity id
+ * \param entity_b The second entity id
+ *
+ * \param returns true if the reference exists
+ */
+bool
+fdb_txtable_exists_reference(struct fdb_txtable_t* table, 
+                          struct fdb_tx_t* tx, 
+                          struct fdb_txthread_ctx_t* txtctx, 
+                          entity_id_t entity_a,
+                          entity_id_t entity_b);
+
 
 /**
  * \brief Copies the ptr to the given component to the table at the given
@@ -23,12 +64,14 @@ typedef struct fdb_bittable_t fdb_bittable_t;
  * \param component The component to be copied
  */
 void
-copy_component_ptr(uint32_t chunk_size, 
+copy_component_ptr(struct fdb_tx_t* tx, 
+                   struct fdb_txthread_ctx_t* txtctx,
+                   uint32_t chunk_size, 
                    uint32_t stride,
                    entity_id_t source,
                    entity_id_t target,
-                   FDB_RESTRICT(fdb_btree_t*)* hash_tables, 
-                   FDB_RESTRICT(fdb_table_t*)* tables,
+                   FDB_RESTRICT(struct fdb_btree_t*)* hash_tables, 
+                   FDB_RESTRICT(struct fdb_tmptable_t*)* tables,
                    uint32_t num_tables);
 
 
@@ -41,9 +84,9 @@ copy_component_ptr(uint32_t chunk_size,
  * \param blacklist The bittable to plalce the roots to
  */
 void
-find_roots_and_blacklist(fdb_bcluster_t* block_cluster, 
-                         FDB_RESTRICT(fdb_bittable_t*) roots,
-                         FDB_RESTRICT(fdb_bittable_t*) blacklist);
+find_roots_and_blacklist(struct fdb_bcluster_t* block_cluster, 
+                         FDB_RESTRICT(struct fdb_tmpbittable_t*) roots,
+                         FDB_RESTRICT(struct fdb_tmpbittable_t*) blacklist);
 
 /**
  * \brief Filters the contents of a frontier by the partial black lists in the
@@ -53,9 +96,9 @@ find_roots_and_blacklist(fdb_bcluster_t* block_cluster,
  * \param current_frontier The current frontier
  */
 void
-filter_blacklists(FDB_RESTRICT(fdb_bittable_t*) partial_lists[],
+filter_blacklists(FDB_RESTRICT(struct fdb_tmpbittable_t*) partial_lists[],
                   uint32_t cpartial_lists,
-                  FDB_RESTRICT(fdb_bittable_t*) current_frontier);
+                  FDB_RESTRICT(struct fdb_tmpbittable_t*) current_frontier);
 
 /**
  * \brief Performs the union of a set of frontiers into a destinaion one
@@ -64,9 +107,9 @@ filter_blacklists(FDB_RESTRICT(fdb_bittable_t*) partial_lists[],
  * \param current_frontier The destination frontier
  */
 void
-frontiers_union(FDB_RESTRICT(fdb_bittable_t*) next_frontiers[],
+frontiers_union(FDB_RESTRICT(struct fdb_tmpbittable_t*) next_frontiers[],
                 uint32_t num_frontiers,
-                FDB_RESTRICT(fdb_bittable_t*) current_frontier);
+                FDB_RESTRICT(struct fdb_tmpbittable_t*) current_frontier);
 
 
 /**
@@ -83,11 +126,13 @@ frontiers_union(FDB_RESTRICT(fdb_bittable_t*) next_frontiers[],
  * \param table_view The temporal tables to store the references to the components
  */
 void
-gather(fdb_bcluster_t* cluster,
-       FDB_RESTRICT(fdb_btree_t*) hash_tables[],
+gather(struct fdb_tx_t* tx, 
+       struct fdb_txthread_ctx_t* txtctx, 
+       struct fdb_bcluster_t* cluster,
+       FDB_RESTRICT(struct fdb_btree_t*) hash_tables[],
        uint32_t   chunk_size, 
        uint32_t   stride,
-       FDB_RESTRICT(fdb_table_t*)*  tables, 
+       FDB_RESTRICT(struct fdb_tmptable_t*)*  tables, 
        uint32_t   num_tables);
 
 /**
@@ -99,15 +144,16 @@ gather(fdb_bcluster_t* cluster,
  * \param current_frontier The current frontier
  * \param next_frontier The next frontier
  * \param cluster The cluster to append to blocks to
- * \param ...table_views The tables to fetch the blocks from
+ * \param tables The tables to get the block from
+ * \param num_tables The number of tables 
  */
 void
-build_fdb_bcluster_from_refs(FDB_RESTRICT(fdb_bcluster_t*) ref_cluster,  
-                              FDB_RESTRICT(const fdb_bittable_t*) current_frontier,
-                              FDB_RESTRICT(fdb_bittable_t*) next_frontier,
-                              FDB_RESTRICT(fdb_bcluster_t*) cluster, 
-                              FDB_RESTRICT(fdb_table_t*)*  tables, 
-                              uint32_t   num_tables);
+build_bcluster_from_refs(FDB_RESTRICT(struct fdb_bcluster_t*) ref_cluster,  
+                         FDB_RESTRICT(struct fdb_tmpbittable_t*) current_frontier,
+                         FDB_RESTRICT(struct fdb_tmpbittable_t*) next_frontier,
+                         FDB_RESTRICT(struct fdb_bcluster_t*) cluster, 
+                         FDB_RESTRICT(struct fdb_tmptable_t*)*  tables, 
+                         uint32_t   num_tables);
 
 /**
  * \brief This operation assumes that the "column" column in the block cluster
@@ -120,9 +166,9 @@ build_fdb_bcluster_from_refs(FDB_RESTRICT(fdb_bcluster_t*) ref_cluster,
  * \param column The column of the block cluster
  */
 void
-filter_bittable_exists(const fdb_bittable_t* bittable, 
-                       fdb_bcluster_t* block_cluster,
-                       uint32_t column);
+filter_tmpbittable_exists(struct fdb_tmpbittable_t* bittable, 
+                          struct fdb_bcluster_t* block_cluster,
+                          uint32_t column);
 
 /**
  * \brief This operation assumes that the "column" column in the block cluster
@@ -135,9 +181,9 @@ filter_bittable_exists(const fdb_bittable_t* bittable,
  * \param column The column of the block cluster
  */
 void
-filter_bittable_not_exists(const fdb_bittable_t* bittable, 
-                           fdb_bcluster_t* block_cluster,
-                           uint32_t column);
+filter_tmpbittable_not_exists(struct fdb_tmpbittable_t* bittable, 
+                              struct fdb_bcluster_t* block_cluster,
+                              uint32_t column);
 #ifdef __cplusplus
 }
 #endif

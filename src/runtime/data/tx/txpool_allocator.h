@@ -14,69 +14,40 @@
 extern "C" {
 #endif
 
+  struct fdb_txpool_alloc_t;
   struct fdb_txpool_alloc_block_t;
 
-  typedef struct fdb_txpool_alloc_ref_t
+  struct fdb_txpool_alloc_ref_t
   {
     struct fdb_txpool_alloc_block_t* volatile p_main;
-  } fdb_txpool_alloc_ref_t;
-
-
-  typedef struct fdb_txpool_alloc_t
-  {
-    fdb_pool_alloc_t        m_data_palloc;      //< The normal pool allocator used to allocate blocks
-    fdb_pool_alloc_t        m_block_palloc;      //< The normal pool allocator used to allocate blocks
-    uint32_t                m_data_size;//< The payload size. This is the size of the data requested by the user (plus alignment overhead)
-    uint32_t                m_data_alignment;
-  } fdb_txpool_alloc_t;
+  };
 
   /**
-   * \brief inits a pool allocator
+   * \brief Creates and initializes a txpool allocator
    *
    * \param alignment The alignment of the allocations
    * \param block_size The size of the allocations
    * \param page_size The size of the batches to preallocate
    * \param allocator The parent allocator to use by this allocator
    *
-   * \return  Returns the memory allocator
+   *
+   * \return The created and initialized txpool allocator
    */
-  void
-  fdb_txpool_alloc_init(fdb_txpool_alloc_t* palloc, 
-                        uint32_t alignment, 
-                        uint32_t block_size, 
-                        uint32_t page_size, 
-                        fdb_mem_allocator_t* allocator);
-
+  struct fdb_txpool_alloc_t* 
+  fdb_txpool_alloc_create(uint32_t alignment, 
+                          uint32_t block_size, 
+                          uint32_t page_size, 
+                          struct fdb_mem_allocator_t* allocator);
 
   /**
-   * \brief releases a pool allocator
+   * \brief Deinitializes and destroys a txpool allocator
    *
-   * \param fdb_txpool_alloc The pool allocator to release
+   * \param fdb_txpool_alloc_t The txpool allocator to deinitialize and destroy
    */
   void
-  fdb_txpool_alloc_release(fdb_txpool_alloc_t* allocator);
-
-
-  /**
-   * \brief Initializes a txpool alloc reference as a null reference 
-   *
-   * \param palloc The txpool alloc the reference belongs to
-   * \param ref The reference to initialize
-   */
-  void
-  fdb_txpool_alloc_ref_nullify(fdb_txpool_alloc_t* palloc, 
-                               fdb_txpool_alloc_ref_t* ref);
-
-
-  /**
-   * \brief Checks if a reference is null 
-   *
-   * \param palloc The txpool alloc the reference belongs to
-   * \param ref The reference to initialize
-   */
-  bool
-  fdb_txpool_alloc_ref_isnull(fdb_txpool_alloc_t* palloc, 
-                             fdb_txpool_alloc_ref_t* ref);
+fdb_txpool_alloc_destroy(struct fdb_txpool_alloc_t* allocator, 
+                         struct fdb_tx_t* tx, 
+                         struct fdb_txthread_ctx_t* txtctx);
 
 
   /**
@@ -90,14 +61,13 @@ extern "C" {
    *
    * \return 
    */
-  void 
-  fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc, 
-                         fdb_tx_t* tx,
-                         fdb_txthread_ctx_t* txtctx,
+  struct fdb_txpool_alloc_ref_t
+  fdb_txpool_alloc_alloc(struct fdb_txpool_alloc_t* palloc, 
+                         struct fdb_tx_t* tx,
+                         struct fdb_txthread_ctx_t* txtctx,
                          uint32_t alignment, 
                          uint32_t size,
-                         uint32_t hint, 
-                         fdb_txpool_alloc_ref_t* ref);
+                         uint32_t hint);
   /**
    * \brief Nullifies a reference and frees the old blocks 
    *
@@ -107,10 +77,10 @@ extern "C" {
    * \param ref The reference to nullify
    */
   void
-  fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc, 
-                        fdb_tx_t* tx, 
-                        fdb_txthread_ctx_t* txtctx,
-                        fdb_txpool_alloc_ref_t* ref);
+  fdb_txpool_alloc_free(struct fdb_txpool_alloc_t* palloc, 
+                        struct fdb_tx_t* tx, 
+                        struct fdb_txthread_ctx_t* txtctx,
+                        struct fdb_txpool_alloc_ref_t ref);
 
   /**
    * \brief Gets the pointer of a txpool reference
@@ -122,10 +92,10 @@ extern "C" {
    * \return Returns the pointer of the reference
    */
   void*
-  fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc, 
-                       fdb_tx_t* tx, 
-                       fdb_txthread_ctx_t* txtctx,
-                       fdb_txpool_alloc_ref_t* ref, 
+  fdb_txpool_alloc_ptr(struct fdb_txpool_alloc_t* palloc, 
+                       struct fdb_tx_t* tx, 
+                       struct fdb_txthread_ctx_t* txtctx,
+                       struct fdb_txpool_alloc_ref_t ref, 
                        bool write);
 
   /**
@@ -136,7 +106,7 @@ extern "C" {
    * \param txtctx The thread context
    */
   void
-  fdb_txpool_alloc_flush(fdb_txpool_alloc_t* palloc);
+  fdb_txpool_alloc_flush(struct fdb_txpool_alloc_t* palloc);
 
   /**
    * \brief Garbage collects the stale blocks of a given reference of a tx pool
@@ -149,9 +119,9 @@ extern "C" {
    *
    * \return True if this reference is completely GCed
    */
-  bool fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc, 
-                            fdb_txthread_ctx_t* txtctx,
-                            uint64_t orv,
+  bool fdb_txpool_alloc_gc(struct fdb_txpool_alloc_t* palloc, 
+                           struct fdb_txthread_ctx_t* txtctx,
+                           uint64_t orv,
                             struct fdb_txpool_alloc_block_t* root, 
                             bool force);
 

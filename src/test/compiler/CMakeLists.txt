@@ -15,7 +15,7 @@ function(create_test NAME)
   endforeach()
   #string(REGEX REPLACE "\\" "" CXX_INCLUDES_DIRS "${CXX_INCLUDES_DIRS}")
 
-  MESSAGE(STATUS ${CXX_INCLUDES_DIRS})
+  #MESSAGE(STATUS ${CXX_INCLUDES_DIRS})
   add_custom_command(
 										OUTPUT ${NAME}_furious.cpp
                     COMMAND fcc -o
@@ -44,14 +44,14 @@ function(create_test NAME)
 endfunction(create_test)
 
 SET(TESTS 
-    basic_test
-    filter_tag_test
-    filter_func_test
-    filter_lambda_test
-    dependency_test
-    expand_test
-    global_test
-    reflection_test
+     basic_test
+#    filter_tag_test
+#    filter_func_test
+#    filter_lambda_test
+#    dependency_test
+#    expand_test
+#    global_test
+#    reflection_test
   )
 
 foreach( TEST ${TESTS} )

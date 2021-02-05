@@ -16,7 +16,7 @@ fdb_page_alloc_alloc_wrapper(void* palloc,
                              uint32_t size,
                              uint32_t hint)
 {
-  fdb_page_alloc_t* tpalloc = (fdb_page_alloc_t*)palloc;
+  struct fdb_page_alloc_t* tpalloc = (struct fdb_page_alloc_t*)palloc;
   return fdb_page_alloc_alloc(tpalloc, 
                               alignment, 
                               size, 
@@ -26,25 +26,25 @@ void
 fdb_page_alloc_free_wrapper(void* palloc, 
                             void* ptr)
 {
-  fdb_page_alloc_t* tpalloc = (fdb_page_alloc_t*)palloc;
+  struct fdb_page_alloc_t* tpalloc = (struct fdb_page_alloc_t*)palloc;
   fdb_page_alloc_free(tpalloc, ptr);
 }
 
-fdb_mem_stats_t
+struct fdb_mem_stats_t
 fdb_page_alloc_stats_wrapper(void* palloc)
 {
-  fdb_page_alloc_t* tpalloc = (fdb_page_alloc_t*)palloc;
+  struct fdb_page_alloc_t* tpalloc = (struct fdb_page_alloc_t*)palloc;
   return fdb_page_alloc_stats(tpalloc);
 }
 
 void
-fdb_page_alloc_init(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_init(struct fdb_page_alloc_t* palloc, 
                     uint64_t sregion, 
                     uint32_t ssmall, 
                     uint32_t slarge)
 {
-  memset(palloc, 0, sizeof(fdb_page_alloc_t));
-  fdb_mem_allocator_t* gallocator = fdb_get_global_mem_allocator();
+  memset(palloc, 0, sizeof(struct fdb_page_alloc_t));
+  struct fdb_mem_allocator_t* gallocator = fdb_get_global_mem_allocator();
   palloc->m_sregion = sregion;
   palloc->m_ssize = ssmall;
   palloc->m_lsize = slarge;
@@ -72,16 +72,16 @@ fdb_page_alloc_init(fdb_page_alloc_t* palloc,
 }
 
 void
-fdb_page_alloc_release(fdb_page_alloc_t* palloc)
+fdb_page_alloc_release(struct fdb_page_alloc_t* palloc)
 {
   fdb_mutex_release(&palloc->m_mutex);
-  fdb_mem_allocator_t* gallocator = fdb_get_global_mem_allocator();
+  struct fdb_mem_allocator_t* gallocator = fdb_get_global_mem_allocator();
   mem_free(gallocator, palloc->p_data);
-  memset(palloc, 0, sizeof(fdb_page_alloc_t));
+  memset(palloc, 0, sizeof(struct fdb_page_alloc_t));
 }
 
 void*
-fdb_page_alloc_alloc(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_alloc(struct fdb_page_alloc_t* palloc, 
                      uint32_t alignment, 
                      uint32_t size,
                      uint32_t hint)
@@ -133,7 +133,7 @@ fdb_page_alloc_alloc(fdb_page_alloc_t* palloc,
 
 
 void
-fdb_page_alloc_free(fdb_page_alloc_t* palloc, 
+fdb_page_alloc_free(struct fdb_page_alloc_t* palloc, 
                     void* ptr)
 {
   fdb_mutex_lock(&palloc->m_mutex);
@@ -158,11 +158,11 @@ fdb_page_alloc_free(fdb_page_alloc_t* palloc,
   fdb_mutex_unlock(&palloc->m_mutex);
 }
 
-fdb_mem_stats_t
-fdb_page_alloc_stats(fdb_page_alloc_t* palloc)
+struct fdb_mem_stats_t
+fdb_page_alloc_stats(struct fdb_page_alloc_t* palloc)
 {
   fdb_mutex_lock(&palloc->m_mutex);
-  fdb_mem_stats_t stats = palloc->m_stats;
+  struct fdb_mem_stats_t stats = palloc->m_stats;
   fdb_mutex_unlock(&palloc->m_mutex);
   return stats;
 }

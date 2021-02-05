@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-typedef enum fdb_mtype_t 
+enum fdb_mtype_t 
 {
   E_BOOL,
   E_CHAR,
@@ -33,33 +33,33 @@ typedef enum fdb_mtype_t
   E_UNION,
   E_UNKNOWN,
   E_NUM_TYPES,
-} fdb_mtype_t;
+};
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-typedef struct fdb_mstruct_t 
+struct fdb_mstruct_t 
 {
   char                  m_type_name[FDB_MAX_TABLE_NAME];
   struct fdb_mfield_t*  p_fields[FDB_MAX_COMPONENT_FIELDS];
   uint32_t              m_nfields;
   bool                  m_is_union;
-} fdb_mstruct_t;
+};
 
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-typedef struct fdb_mfield_t
+struct fdb_mfield_t
 {
   char                        m_name[FCC_MAX_FIELD_NAME];
-  fdb_mtype_t                 m_type;
+  enum fdb_mtype_t                 m_type;
   size_t                      m_offset;
   bool                        m_anonymous;
-  fdb_mstruct_t*              p_strct_type;
-} fdb_mfield_t;
+  struct fdb_mstruct_t*              p_strct_type;
+};
 
 
 ////////////////////////////////////////////////
@@ -67,12 +67,13 @@ typedef struct fdb_mfield_t
 ////////////////////////////////////////////////
 
 
-typedef struct fdb_mregistry_t
+struct fdb_mregistry_t
 {
-  fdb_btree_t       m_metadata;          //< btree with the mstruct mapping 
-  fdb_pool_alloc_t  m_mstruct_allocator;
-  fdb_pool_alloc_t  m_mfield_allocator;
-} fdb_mregistry_t;
+  struct fdb_btree_factory_t m_btree_factory;
+  struct fdb_btree_t       m_metadata;          //< btree with the mstruct mapping 
+  struct fdb_pool_alloc_t  m_mstruct_allocator;
+  struct fdb_pool_alloc_t  m_mfield_allocator;
+};
 
 /**
  * \brief inits a reflection data mregistry
@@ -82,8 +83,8 @@ typedef struct fdb_mregistry_t
  * \return Returns the newly allocated mregistry
  */
 void
-fdb_mregistry_init(fdb_mregistry_t* reg, 
-                   fdb_mem_allocator_t* allocator);
+fdb_mregistry_init(struct fdb_mregistry_t* reg, 
+                   struct fdb_mem_allocator_t* allocator);
 
 /**
  * \brief Releases the reflection data mregistry
@@ -91,7 +92,7 @@ fdb_mregistry_init(fdb_mregistry_t* reg,
  * \param reg The mregistry to destroy
  */
 void
-fdb_mregistry_release(fdb_mregistry_t* reg);
+fdb_mregistry_release(struct fdb_mregistry_t* reg);
 
 
 /**
@@ -103,8 +104,8 @@ fdb_mregistry_release(fdb_mregistry_t* reg);
  *
  * \return The newly initd mstruct
  */
-fdb_mstruct_t*
-fdb_mregistry_init_mstruct(fdb_mregistry_t* reg, 
+struct fdb_mstruct_t*
+fdb_mregistry_init_mstruct(struct fdb_mregistry_t* reg, 
                            const char* name, 
                            bool is_union);
 
@@ -122,11 +123,11 @@ fdb_mregistry_init_mstruct(fdb_mregistry_t* reg,
  * \return If rtype == E_STRUCT or E_UNION-> then a pointer to the mstruct for that struct.
  * Otherwise, nullptr
  */
-fdb_mstruct_t*
-fdb_mregistry_init_mfield(fdb_mregistry_t* reg, 
-                          fdb_mstruct_t* mstruct, 
+struct fdb_mstruct_t*
+fdb_mregistry_init_mfield(struct fdb_mregistry_t* reg, 
+                          struct fdb_mstruct_t* mstruct, 
                           const char* name, 
-                          fdb_mtype_t type, 
+                          enum fdb_mtype_t type, 
                           size_t offset, 
                           bool is_anon);
 
@@ -138,8 +139,8 @@ fdb_mregistry_init_mfield(fdb_mregistry_t* reg,
  *
  * \return The mstruct or nullptr if it does not exist
  */
-fdb_mstruct_t*
-fdb_mregistry_get_mstruct(fdb_mregistry_t* reg, 
+struct fdb_mstruct_t*
+fdb_mregistry_get_mstruct(struct fdb_mregistry_t* reg, 
                           const char* name);
 
 #ifdef __cplusplus

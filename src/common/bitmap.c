@@ -4,7 +4,7 @@
 #include <string.h>
 
 void
-fdb_bitmap_refresh_num_set(fdb_bitmap_t* bitmap);
+fdb_bitmap_refresh_num_set(struct fdb_bitmap_t* bitmap);
 
 // Lookup table used to efficiently implement refresh_num_set operation
 uint8_t count_bits_lookup[16] = {
@@ -59,6 +59,41 @@ read_bit(const uint8_t* data, uint32_t bit)
   return (*data & mask);
 }
 
+/**
+ * \brief Initializes a bitmap factory
+ *
+ * \param factory The factory to initialize
+ * \param max_bits The maximum number of bits of the factory
+ * \param allocator The memory allocator to use for this factory
+ */
+void
+fdb_bitmap_factory_init(struct fdb_bitmap_factory_t* factory, 
+                   uint32_t max_bits, 
+                   struct fdb_mem_allocator_t* allocator)
+{
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(max_bits);
+  *factory = (struct fdb_bitmap_factory_t){};
+  factory->m_max_bits = max_bits;
+  factory->m_data_size = nchunks*sizeof(uint8_t);
+  fdb_pool_alloc_init(&factory->m_allocator, 
+                      FDB_BITMAP_ALIGNMENT, 
+                      sizeof(uint8_t)*nchunks, 
+                      FDB_BITMAP_PAGE_SIZE, 
+                      allocator);
+}
+
+
+/**
+ * \brief Releases a bitmap factory
+ *
+ * \param factory The bitmap factory to release
+ */
+void
+fdb_bitmap_factory_release(struct fdb_bitmap_factory_t* factory)
+{
+  fdb_pool_alloc_release(&factory->m_allocator);
+}
+
 
 /**
  * \brief Initializes a bitmap
@@ -66,22 +101,18 @@ read_bit(const uint8_t* data, uint32_t bit)
  * \return  The initd bitmap
  */
 void
-fdb_bitmap_init(fdb_bitmap_t* bitmap, 
-                uint32_t max_bits, 
-                fdb_mem_allocator_t* allocator)
+fdb_bitmap_init(struct fdb_bitmap_t* bitmap, 
+                struct fdb_bitmap_factory_t* bitmap_factory)
 {
-  FDB_ASSERT(allocator != NULL && "Allocator cannot be null");
-  FDB_ASSERT((allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL) &&
-                 "Provided allocator is ill-formed.")
 
-  bitmap->m_max_bits = max_bits;
+  *bitmap = (struct fdb_bitmap_t){};
+  bitmap->p_factory = bitmap_factory;
   bitmap->m_num_set = 0;
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->m_max_bits);
-  bitmap->p_data = (uint8_t*)mem_alloc(allocator, 
-                                      FDB_BITMAP_ALIGNMENT, 
-                                      sizeof(uint8_t)*nchunks, 
-                                      -1);
-  memset(bitmap->p_data, 0, sizeof(uint8_t)*nchunks);
+  bitmap->p_data = (uint8_t*)fdb_pool_alloc_alloc(&bitmap->p_factory->m_allocator, 
+                                                  FDB_BITMAP_ALIGNMENT, 
+                                                  bitmap->p_factory->m_data_size,
+                                                  -1);
+  memset(bitmap->p_data, 0, bitmap->p_factory->m_data_size);
 }
 
 /**
@@ -90,12 +121,10 @@ fdb_bitmap_init(fdb_bitmap_t* bitmap,
  * \param bitmap
  */
 void
-fdb_bitmap_release(fdb_bitmap_t* bitmap, fdb_mem_allocator_t* allocator)
+fdb_bitmap_release(struct fdb_bitmap_t* bitmap)
 {
-  FDB_ASSERT(allocator != NULL && "Allocator cannot be null");
-  FDB_ASSERT((allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL) &&
-                 "Provided allocator is ill-formed.")
-  mem_free(allocator, bitmap->p_data);
+  fdb_pool_alloc_free(&bitmap->p_factory->m_allocator, 
+                      bitmap->p_data);
 }
 
 /**
@@ -105,10 +134,10 @@ fdb_bitmap_release(fdb_bitmap_t* bitmap, fdb_mem_allocator_t* allocator)
  * \param element The element to set
  */
 void
-fdb_bitmap_set(fdb_bitmap_t* bitmap, 
+fdb_bitmap_set(struct fdb_bitmap_t* bitmap, 
            uint32_t element)
 {
-  FDB_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
+  FDB_ASSERT(element < bitmap->p_factory->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   bool res = set_bit_true(&bitmap->p_data[chunk], offset);
@@ -122,10 +151,10 @@ fdb_bitmap_set(fdb_bitmap_t* bitmap,
  * \param element The ith element to set
  */
 void
-fdb_bitmap_unset(fdb_bitmap_t* bitmap, 
+fdb_bitmap_unset(struct fdb_bitmap_t* bitmap, 
              uint32_t element)
 {
-  FDB_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
+  FDB_ASSERT(element < bitmap->p_factory->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   bool res = set_bit_false(&bitmap->p_data[chunk], offset);
@@ -140,11 +169,11 @@ fdb_bitmap_unset(fdb_bitmap_t* bitmap,
  * \param value The value to set the bit to
  */
 void
-fdb_bitmap_set_bit(fdb_bitmap_t* bitmap, 
+fdb_bitmap_set_bit(struct fdb_bitmap_t* bitmap, 
                uint32_t element, 
                bool value)
 {
-  FDB_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
+  FDB_ASSERT(element < bitmap->p_factory->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   if(value)
@@ -168,10 +197,10 @@ fdb_bitmap_set_bit(fdb_bitmap_t* bitmap,
  * \return True if the element is set to 1
  */
 bool
-fdb_bitmap_is_set(const fdb_bitmap_t* bitmap, 
+fdb_bitmap_is_set(const struct fdb_bitmap_t* bitmap, 
               uint32_t element)
 {
-  FDB_ASSERT(element < bitmap->m_max_bits && "Bit out of range");
+  FDB_ASSERT(element < bitmap->p_factory->m_max_bits && "Bit out of range");
   uint32_t chunk = element / 8;
   uint32_t offset = element % 8;
   return read_bit(&bitmap->p_data[chunk], offset);
@@ -184,11 +213,11 @@ fdb_bitmap_is_set(const fdb_bitmap_t* bitmap,
  * \param src_bitmap The bitmap to set the bits from
  */
 void
-fdb_bitmap_set_bitmap(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap, 
-                  FDB_RESTRICT(const fdb_bitmap_t*) src_bitmap)
+fdb_bitmap_set_bitmap(FDB_RESTRICT(struct fdb_bitmap_t*) dst_bitmap, 
+                      FDB_RESTRICT(const struct fdb_bitmap_t*) src_bitmap)
 {
-  FDB_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->m_max_bits);
+  FDB_ASSERT(dst_bitmap->p_factory->m_max_bits == src_bitmap->p_factory->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->p_factory->m_max_bits);
   dst_bitmap->m_num_set = src_bitmap->m_num_set;
   FDB_ALIGNED(FDB_RESTRICT(void*), dst_data, FDB_BITMAP_ALIGNMENT) = dst_bitmap->p_data;
   FDB_ALIGNED(FDB_RESTRICT(void*), src_data, FDB_BITMAP_ALIGNMENT) = src_bitmap->p_data;
@@ -202,11 +231,11 @@ fdb_bitmap_set_bitmap(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap,
  * \param src_bitmap The bitmap to set the bits from
  */
 void
-fdb_bitmap_set_and(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap, 
-               FDB_RESTRICT(const fdb_bitmap_t*) src_bitmap)
+fdb_bitmap_set_and(FDB_RESTRICT(struct fdb_bitmap_t*) dst_bitmap, 
+               FDB_RESTRICT(const struct fdb_bitmap_t*) src_bitmap)
 {
-  FDB_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->m_max_bits);
+  FDB_ASSERT(dst_bitmap->p_factory->m_max_bits == src_bitmap->p_factory->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->p_factory->m_max_bits);
   FDB_ALIGNED(FDB_RESTRICT(uint8_t*), dst_data, FDB_BITMAP_ALIGNMENT) = dst_bitmap->p_data;
   FDB_ALIGNED(FDB_RESTRICT(uint8_t*), src_data, FDB_BITMAP_ALIGNMENT) = src_bitmap->p_data;
   for(uint32_t i = 0; i < nchunks; ++i)
@@ -223,11 +252,11 @@ fdb_bitmap_set_and(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap,
  * \param src_bitmap The bitmap to set the bits from
  */
 void
-fdb_bitmap_set_or(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap, 
-              FDB_RESTRICT(const fdb_bitmap_t*) src_bitmap)
+fdb_bitmap_set_or(FDB_RESTRICT(struct fdb_bitmap_t*) dst_bitmap, 
+              FDB_RESTRICT(const struct fdb_bitmap_t*) src_bitmap)
 {
-  FDB_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->m_max_bits);
+  FDB_ASSERT(dst_bitmap->p_factory->m_max_bits == src_bitmap->p_factory->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->p_factory->m_max_bits);
   for(uint32_t i = 0; i < nchunks; ++i)
   {
     dst_bitmap->p_data[i] = dst_bitmap->p_data[i] | src_bitmap->p_data[i];
@@ -244,11 +273,11 @@ fdb_bitmap_set_or(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap,
  * \param src_bitmap The bitmap to set the bits from
  */
 void
-fdb_bitmap_set_diff(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap, 
-                FDB_RESTRICT(const fdb_bitmap_t*) src_bitmap)
+fdb_bitmap_set_diff(FDB_RESTRICT(struct fdb_bitmap_t*) dst_bitmap, 
+                FDB_RESTRICT(const struct fdb_bitmap_t*) src_bitmap)
 {
-  FDB_ASSERT(dst_bitmap->m_max_bits == src_bitmap->m_max_bits && "Incompatible bitmaps");
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->m_max_bits);
+  FDB_ASSERT(dst_bitmap->p_factory->m_max_bits == src_bitmap->p_factory->m_max_bits && "Incompatible bitmaps");
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(dst_bitmap->p_factory->m_max_bits);
   for(uint32_t i = 0; i < nchunks; ++i)
   {
     dst_bitmap->p_data[i] = dst_bitmap->p_data[i] & (dst_bitmap->p_data[i] ^ src_bitmap->p_data[i]);
@@ -262,9 +291,9 @@ fdb_bitmap_set_diff(FDB_RESTRICT(fdb_bitmap_t*) dst_bitmap,
  * \param bitmap The bitmap to set the bits to 
  */
 void
-fdb_bitmap_negate(fdb_bitmap_t* bitmap)
+fdb_bitmap_negate(struct fdb_bitmap_t* bitmap)
 {
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->m_max_bits);
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->p_factory->m_max_bits);
   for(uint32_t i = 0; i < nchunks; ++i)
   {
     bitmap->p_data[i] = ~bitmap->p_data[i];
@@ -278,18 +307,18 @@ fdb_bitmap_negate(fdb_bitmap_t* bitmap)
  * \param bitmap The bitmap to nullify
  */
 void
-fdb_bitmap_nullify(fdb_bitmap_t* bitmap)
+fdb_bitmap_nullify(struct fdb_bitmap_t* bitmap)
 {
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->m_max_bits);
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->p_factory->m_max_bits);
   bitmap->m_num_set = 0;
   memset(bitmap->p_data, 0, sizeof(uint8_t)*nchunks);
 }
 
 void
-fdb_bitmap_refresh_num_set(fdb_bitmap_t* bitmap)
+fdb_bitmap_refresh_num_set(struct fdb_bitmap_t* bitmap)
 {
   bitmap->m_num_set = 0;
-  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->m_max_bits);
+  uint32_t nchunks = FDB_BITMAP_NUM_CHUNKS(bitmap->p_factory->m_max_bits);
   for(uint32_t i = 0; i < nchunks; ++i)
   {
     uint8_t left = bitmap->p_data[i] >> 4;

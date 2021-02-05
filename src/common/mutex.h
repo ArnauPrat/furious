@@ -10,10 +10,10 @@ extern "C" {
 #endif
 
 
-typedef struct fdb_mutex_t
+struct fdb_mutex_t
 {
   pthread_mutex_t m_mutex;
-} fdb_mutex_t;
+};
   
 
 /**
@@ -22,7 +22,7 @@ typedef struct fdb_mutex_t
  * \return The newly initd mutex
  */
 void
-fdb_mutex_init(fdb_mutex_t* mutex);
+fdb_mutex_init(struct fdb_mutex_t* mutex);
 
 /**
  * \brief Destroys a mutex
@@ -30,7 +30,7 @@ fdb_mutex_init(fdb_mutex_t* mutex);
  * \param mutex The mutex to destroy
  */
 void
-fdb_mutex_release(fdb_mutex_t* mutex);
+fdb_mutex_release(struct fdb_mutex_t* mutex);
 
 /**
  * \brief Locks a mutex
@@ -38,7 +38,7 @@ fdb_mutex_release(fdb_mutex_t* mutex);
  * \param mutex The mutex to lock
  */
 void
-fdb_mutex_lock(fdb_mutex_t*  mutex);
+fdb_mutex_lock(struct fdb_mutex_t*  mutex);
 
 /**
  * \brief Unlocks a mutex
@@ -46,7 +46,7 @@ fdb_mutex_lock(fdb_mutex_t*  mutex);
  * \param mutex The mutex to unlock
  */
 void
-fdb_mutex_unlock(fdb_mutex_t* mutex);
+fdb_mutex_unlock(struct fdb_mutex_t* mutex);
 
 #ifdef __cplusplus
 }

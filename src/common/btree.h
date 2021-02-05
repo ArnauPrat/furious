@@ -26,13 +26,13 @@ extern "C" {
 #define FDB_BTREE_LEAF_MIN_ARITY (FDB_BTREE_LEAF_MAX_ARITY+2-1)/2
 
 
-typedef enum fdb_btree_node_type_t
+enum fdb_btree_node_type_t
 {
   E_INTERNAL = 0,
   E_LEAF     = 1,
-}  fdb_btree_node_type_t;
+};
 
-typedef struct fdb_btree_node_t 
+struct fdb_btree_node_t 
 {
   union 
   {
@@ -52,39 +52,44 @@ typedef struct fdb_btree_node_t
     } m_leaf;                                                 // total 118 bytes
 
   };
+  enum fdb_btree_node_type_t    m_type;                      // 1 byte
+};
 
-  fdb_btree_node_type_t    m_type;                      // 1 byte
-} fdb_btree_node_t;
-
-typedef struct fdb_btree_t 
+struct fdb_btree_factory_t
 {
-  fdb_btree_node_t*       p_root;                 // The root of the tree
-  uint32_t                m_size;                 // The size of the betree
-  fdb_pool_alloc_t        m_node_allocator;       // The pool allocator of the nodes
-} fdb_btree_t;
+  struct fdb_pool_alloc_t        m_node_allocator;       // The pool allocator of the nodes
+};
+
+struct fdb_btree_t 
+{
+  struct fdb_btree_factory_t*    p_factory;
+  struct fdb_btree_node_t*       p_root;                 // The root of the tree
+  uint32_t                       m_size;                 // The size of the betree
+};
 
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-typedef struct fdb_btree_insert_t 
+struct fdb_btree_insert_t 
 {
   bool    m_inserted;
   void**  p_place;
-} fdb_btree_insert_t;
+};
 
-typedef struct fdb_btree_entry_t
+struct fdb_btree_entry_t
 {
   uint32_t    m_key;
   void*       p_value;
-} fdb_btree_entry_t;
+};
 
-typedef struct fdb_btree_iter_t 
+struct fdb_btree_iter_t 
 {
-  const fdb_btree_t*  p_root;
-  fdb_btree_node_t*   p_leaf;
-  uint32_t            m_index;
-} fdb_btree_iter_t;
+  const struct fdb_btree_t*   p_root;
+  struct fdb_btree_node_t*    p_leaf;
+  uint32_t                    m_index;
+};
+
 
 /**
  * \brief inits a btree iterator
@@ -94,8 +99,8 @@ typedef struct fdb_btree_iter_t
  * \return Returns a newly initd btree iterator
  */
 void
-fdb_btree_iter_init(fdb_btree_iter_t* iter, 
-                    const fdb_btree_t* btree);
+fdb_btree_iter_init(struct fdb_btree_iter_t* iter, 
+                    const struct fdb_btree_t* btree);
 
 /**
  * \brief Destroys a btree iterator
@@ -103,7 +108,7 @@ fdb_btree_iter_init(fdb_btree_iter_t* iter,
  * \param iter The btree iterator to destroy
  */
 void
-fdb_btree_iter_release(fdb_btree_iter_t* iter);
+fdb_btree_iter_release(struct fdb_btree_iter_t* iter);
 
 /**
  * \brief Checks if there are more items to iterate
@@ -113,7 +118,7 @@ fdb_btree_iter_release(fdb_btree_iter_t* iter);
  * \return True if there are more items to iterate. False otherwise
  */
 bool
-fdb_btree_iter_has_next(fdb_btree_iter_t* iter);
+fdb_btree_iter_has_next(struct fdb_btree_iter_t* iter);
 
 /**
  * \brief Returns the next item to iterate
@@ -122,8 +127,27 @@ fdb_btree_iter_has_next(fdb_btree_iter_t* iter);
  *
  * \return Returns a pointer to the next item
  */
-fdb_btree_entry_t
-fdb_btree_iter_next(fdb_btree_iter_t* iter);
+struct fdb_btree_entry_t
+fdb_btree_iter_next(struct fdb_btree_iter_t* iter);
+
+
+/**
+ * \brief Initializes a btree factory
+ *
+ * \param fdb_btree_factory_t The factory to initialize
+ * \param allocator The allocator to use within the factory
+ */
+void
+fdb_btree_factory_init(struct fdb_btree_factory_t* factory, 
+                       struct fdb_mem_allocator_t* allocator);
+
+/**
+ * \brief Releases a btree factory
+ *
+ * \param factory The factory to release
+ */
+void
+fdb_btree_factory_release(struct fdb_btree_factory_t* factory);
 
 /**
  * \brief Initializes a btree 
@@ -133,8 +157,8 @@ fdb_btree_iter_next(fdb_btree_iter_t* iter);
  * \return Returns an instance of a btree root
  */
 void
-fdb_btree_init(fdb_btree_t* btree, 
-               fdb_mem_allocator_t* allocator);
+fdb_btree_init(struct fdb_btree_t* btree, 
+               struct fdb_btree_factory_t* factory);
 
 /**
  * \brief Releases a btree 
@@ -142,7 +166,7 @@ fdb_btree_init(fdb_btree_t* btree,
  * \param root The root instance to destroy
  */
 void
-fdb_btree_release(fdb_btree_t* root);
+fdb_btree_release(struct fdb_btree_t* root);
 
 /**
  * \brief inits a new instance of an internal node 
@@ -151,8 +175,8 @@ fdb_btree_release(fdb_btree_t* root);
  *
  * \return A pointer to the newly initd fdb_btree_node_t
  */
-fdb_btree_node_t* 
-fdb_btree_create_internal(fdb_btree_t* btree);
+struct fdb_btree_node_t* 
+fdb_btree_create_internal(struct fdb_btree_t* btree);
 
 /**
  * \brief inits a new instance of a leaf  node 
@@ -161,8 +185,8 @@ fdb_btree_create_internal(fdb_btree_t* btree);
  *
  * \return A pointer to the newly initd fdb_btree_node_t
  */
-fdb_btree_node_t*
-fdb_btree_create_leaf(fdb_btree_t* btree);
+struct fdb_btree_node_t*
+fdb_btree_create_leaf(struct fdb_btree_t* btree);
 
 /**
  * \brief Removes a given fdb_btree_node_t 
@@ -172,8 +196,8 @@ fdb_btree_create_leaf(fdb_btree_t* btree);
  * \param node The pointer to the node to remove
  */
 void 
-fdb_btree_destroy_node(fdb_btree_t* btree, 
-                       fdb_btree_node_t* node);
+fdb_btree_destroy_node(struct fdb_btree_t* btree, 
+                       struct fdb_btree_node_t* node);
 
 /**
  * \brief Given an internal node and a key, finds the index for the child where
@@ -185,7 +209,7 @@ fdb_btree_destroy_node(fdb_btree_t* btree,
  * \return Returns the index of the position where the key should lay. 
  */
 uint32_t 
-fdb_btree_next_internal(const fdb_btree_node_t* node, 
+fdb_btree_next_internal(const struct fdb_btree_node_t* node, 
                         uint32_t key);
 
 /**
@@ -198,7 +222,7 @@ fdb_btree_next_internal(const fdb_btree_node_t* node,
  * \return Returns the index of the position where the key should lay. 
  */
 uint32_t 
-fdb_btree_next_leaf(const fdb_btree_node_t* node, 
+fdb_btree_next_leaf(const struct fdb_btree_node_t* node, 
                     uint32_t key);
 
 /**
@@ -212,7 +236,7 @@ fdb_btree_next_leaf(const fdb_btree_node_t* node,
  * nullptr if the element does not exist
  */
 void* 
-fdb_btree_get_node(const fdb_btree_node_t* node, 
+fdb_btree_get_node(const struct fdb_btree_node_t* node, 
                    uint32_t ekey);
 
 /**
@@ -225,7 +249,7 @@ fdb_btree_get_node(const fdb_btree_node_t* node,
  * Returns nullptr if the element does not exist
  */
 void* 
-fdb_btree_get(const fdb_btree_t* root, 
+fdb_btree_get(const struct fdb_btree_t* root, 
               uint32_t ekey);
 
 /**
@@ -238,9 +262,9 @@ fdb_btree_get(const fdb_btree_t* root,
  *
  * \return Returns a pointer to the sibling of the split node 
  */
-fdb_btree_node_t* 
-fdb_btree_split_internal(fdb_btree_t* btree, 
-                         fdb_btree_node_t* node, 
+struct fdb_btree_node_t* 
+fdb_btree_split_internal(struct fdb_btree_t* btree, 
+                         struct fdb_btree_node_t* node, 
                          uint32_t* sibling_key);
 
 /**
@@ -253,9 +277,9 @@ fdb_btree_split_internal(fdb_btree_t* btree,
  *
  * \return Returns a pointer to the sibling of the split node 
  */
-fdb_btree_node_t* 
-fdb_btree_split_leaf(fdb_btree_t* btree, 
-                     fdb_btree_node_t* node, 
+struct fdb_btree_node_t* 
+fdb_btree_split_leaf(struct fdb_btree_t* btree, 
+                     struct fdb_btree_node_t* node, 
                      uint32_t* sibling_key);
 
 /**
@@ -268,9 +292,9 @@ fdb_btree_split_leaf(fdb_btree_t* btree,
  * \param key The key of the child to add
  */
 void 
-fdb_btree_shift_insert_internal(fdb_btree_node_t* node, 
+fdb_btree_shift_insert_internal(struct fdb_btree_node_t* node, 
                                 uint32_t idx, 
-                                fdb_btree_node_t* child, 
+                                struct fdb_btree_node_t* child, 
                                 uint32_t key);
 
 /**
@@ -285,8 +309,8 @@ fdb_btree_shift_insert_internal(fdb_btree_node_t* node,
  * \return Returns a pointer to the reserved memory for the inserted element 
  */
 void 
-fdb_btree_shift_insert_leaf(fdb_btree_t* root,
-                            fdb_btree_node_t* node, 
+fdb_btree_shift_insert_leaf(struct fdb_btree_t* root,
+                            struct fdb_btree_node_t* node, 
                             uint32_t idx, 
                             uint32_t key);
 
@@ -301,9 +325,9 @@ fdb_btree_shift_insert_leaf(fdb_btree_t* root,
  *
  * \return Returns a fdb_btree_insert_t structure.
  */
-fdb_btree_insert_t 
-fdb_btree_insert_node(fdb_btree_t* root,
-                      fdb_btree_node_t* node, 
+struct fdb_btree_insert_t 
+fdb_btree_insert_node(struct fdb_btree_t* root,
+                      struct fdb_btree_node_t* node, 
                       uint32_t key,
                       void* ptr);
 
@@ -320,8 +344,8 @@ fdb_btree_insert_node(fdb_btree_t* root,
  *
  * \return Returns a fdb_btree_insert_t structure.
  */
-fdb_btree_insert_t 
-fdb_btree_insert(fdb_btree_t* node, 
+struct fdb_btree_insert_t 
+fdb_btree_insert(struct fdb_btree_t* node, 
                  uint32_t key,
                  void* ptr);
 
@@ -335,8 +359,8 @@ fdb_btree_insert(fdb_btree_t* node,
  *
  */
 void 
-fdb_btree_remove_shift_internal(fdb_btree_t* btree, 
-                                fdb_btree_node_t* node, 
+fdb_btree_remove_shift_internal(struct fdb_btree_t* btree, 
+                                struct fdb_btree_node_t* node, 
                                 uint32_t idx);
 
 /**
@@ -349,7 +373,7 @@ fdb_btree_remove_shift_internal(fdb_btree_t* btree,
  * \return Returns a pointer to the removed element. 
  */
 void* 
-fdb_btree_remove_shift_leaf(fdb_btree_node_t* node, 
+fdb_btree_remove_shift_leaf(struct fdb_btree_node_t* node, 
                             uint32_t idx);
 
 /**
@@ -360,8 +384,8 @@ fdb_btree_remove_shift_leaf(fdb_btree_node_t* node,
  * \param idx2 the index of the second node to merge
  */
 void 
-fdb_btree_merge_internal(fdb_btree_t* btree, 
-                         fdb_btree_node_t* node, 
+fdb_btree_merge_internal(struct fdb_btree_t* btree, 
+                         struct fdb_btree_node_t* node, 
                          uint32_t idx1, 
                          uint32_t idx2);
 
@@ -373,8 +397,8 @@ fdb_btree_merge_internal(fdb_btree_t* btree,
  * \param idx2 The index of the second node to merge
  */
 void 
-fdb_btree_merge_leaf(fdb_btree_t* btree, 
-                     FDB_RESTRICT(fdb_btree_node_t*) node, 
+fdb_btree_merge_leaf(struct fdb_btree_t* btree, 
+                     FDB_RESTRICT(struct fdb_btree_node_t*) node, 
                      uint32_t idx1, 
                      uint32_t idx2);
 
@@ -392,8 +416,8 @@ fdb_btree_merge_leaf(fdb_btree_t* btree,
  * nullptr if this does not exist
  */
 void*
-fdb_btree_remove_node(fdb_btree_t* btree, 
-                      fdb_btree_node_t* node, 
+fdb_btree_remove_node(struct fdb_btree_t* btree, 
+                      struct fdb_btree_node_t* node, 
                       uint32_t key, 
                       bool* min_changed, 
                       uint32_t* new_min);
@@ -410,7 +434,7 @@ fdb_btree_remove_node(fdb_btree_t* btree,
  * nullptr if this does not exist
  */
 void* 
-fdb_btree_remove(fdb_btree_t* root,
+fdb_btree_remove(struct fdb_btree_t* root,
                  uint32_t key);
 
 
@@ -420,7 +444,7 @@ fdb_btree_remove(fdb_btree_t* root,
  * \param btree The btree to clear
  */
 void
-fdb_btree_clear(fdb_btree_t* btree);
+fdb_btree_clear(struct fdb_btree_t* btree);
 
 #ifdef __cplusplus
 }

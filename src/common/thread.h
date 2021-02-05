@@ -20,22 +20,22 @@ extern "C"
 
 typedef void (*fdb_thread_task_function_t)(void* arg);
 
-typedef struct fdb_thread_task_t
+struct fdb_thread_task_t
 {
 
   fdb_thread_task_function_t p_fp;
 
   void* p_args;
 
-} fdb_thread_task_t;
+};
 
 
-typedef struct fdb_thread_t
+struct fdb_thread_t
 {
 #ifdef FDB_OS_LINUX
   pthread_t m_pthread;
 #endif
-} fdb_thread_t;
+};
 
 
 /**
@@ -45,8 +45,8 @@ typedef struct fdb_thread_t
  * \param task  The task to run with the thread
  */
 void
-fdb_thread_start(fdb_thread_t* thread, 
-                 fdb_thread_task_t* task);
+fdb_thread_start(struct fdb_thread_t* thread, 
+                 struct fdb_thread_task_t* task);
 
 /**
  * \brief Joins a thread
@@ -54,7 +54,7 @@ fdb_thread_start(fdb_thread_t* thread,
  * \param thread The thread to join
  */
 void
-fdb_thread_join(fdb_thread_t* thread);
+fdb_thread_join(struct fdb_thread_t* thread);
 
 /**
  * \brief Kills a thread
@@ -62,7 +62,7 @@ fdb_thread_join(fdb_thread_t* thread);
  * \param thread The thread to kill
  */
 void
-fdb_thread_kill(fdb_thread_t* thread);
+fdb_thread_kill(struct fdb_thread_t* thread);
 
 /**
  * \brief Sets the affinity for the given thread
@@ -71,7 +71,7 @@ fdb_thread_kill(fdb_thread_t* thread);
  * \param cpuid The id of the cpu to set the affinity to
  */
 bool
-fdb_thread_set_affinity(fdb_thread_t* thread, 
+fdb_thread_set_affinity(struct fdb_thread_t* thread, 
                        uint32_t cpuid);
 
 /**

@@ -24,42 +24,42 @@ typedef void* (*fdb_alloc_t) (void*,      // ptr to state
 typedef void (*fdb_free_t) (void*,       // ptr to state
                             void*);      // ptr to free
 
-typedef struct fdb_mem_stats_t
+struct fdb_mem_stats_t
 {
   uint64_t m_allocated;
   uint64_t m_lost;
   uint64_t m_used;
-} fdb_mem_stats_t;
+};
 
-typedef fdb_mem_stats_t (*fdb_stats_t) (void*);    // ptr to state
+typedef struct fdb_mem_stats_t (*fdb_stats_t) (void*);    // ptr to state
 
-typedef struct fdb_mem_allocator_t
+struct fdb_mem_allocator_t
 {
   void*           p_mem_state;
   fdb_alloc_t     p_mem_alloc;
   fdb_free_t      p_mem_free;
   fdb_stats_t     p_mem_stats;
-} fdb_mem_allocator_t;
+};
 
 void* 
-mem_alloc(fdb_mem_allocator_t* mem_allocator, 
+mem_alloc(struct fdb_mem_allocator_t* mem_allocator, 
           uint32_t alignment, 
           uint32_t size, 
           uint32_t hint);
 
 void 
-mem_free(fdb_mem_allocator_t* mem_allocator, 
+mem_free(struct fdb_mem_allocator_t* mem_allocator, 
          void* ptr);
 
-fdb_mem_stats_t 
-mem_stats(fdb_mem_allocator_t* mem_allocator);
+struct fdb_mem_stats_t 
+mem_stats(struct fdb_mem_allocator_t* mem_allocator);
 
 /**
  * \brief gets the global mem  allocator
  *
  * \return A pointer to the global mem allocator
  */
-fdb_mem_allocator_t*
+struct fdb_mem_allocator_t*
 fdb_get_global_mem_allocator();
 
 /**

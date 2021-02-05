@@ -13,20 +13,20 @@
 extern "C" {
 #endif
 
-typedef enum fdb_bittable_op_t
+enum fdb_bittable_op_t
 {
   E_AND,
   E_OR,
   E_DIFF
-} fdb_bittable_op_t;
+};
 
-typedef struct fdb_bittable_t 
+struct fdb_bittable_t 
 {
-  fdb_btree_t           m_bitmaps;
+  struct fdb_btree_t           m_bitmaps;
   uint32_t              m_size;
-  fdb_pool_alloc_t      m_bitmap_allocator;
-  fdb_pool_alloc_t      m_bitmap_data_allocator;
-} fdb_bittable_t;
+  struct fdb_pool_alloc_t      m_bitmap_allocator;
+  struct fdb_pool_alloc_t      m_bitmap_data_allocator;
+};
 
 /**
  * \brief inits a bittable
@@ -37,8 +37,8 @@ typedef struct fdb_bittable_t
  */
 
 void
-fdb_bittable_init(fdb_bittable_t* bt, 
-                  fdb_mem_allocator_t* allocator);
+fdb_bittable_init(struct fdb_bittable_t* bt, 
+                  struct fdb_mem_allocator_t* allocator);
 
 
 /**
@@ -47,7 +47,7 @@ fdb_bittable_init(fdb_bittable_t* bt,
  * \param bittable
  */
 void
-fdb_bittable_release(fdb_bittable_t* bittable);
+fdb_bittable_release(struct fdb_bittable_t* bittable);
 
 /**
  * \brief Tests if an element exists in the bit table
@@ -58,8 +58,8 @@ fdb_bittable_release(fdb_bittable_t* bittable);
  * \return Returns true if the element exists. false otherwise.
  */
 bool
-fdb_bittable_exists(const fdb_bittable_t* bittable, 
-                entity_id_t id);
+fdb_bittable_exists(const struct fdb_bittable_t* bittable, 
+                    entity_id_t id);
 
 /**
  * \brief Adds an element to the bit table 
@@ -68,7 +68,7 @@ fdb_bittable_exists(const fdb_bittable_t* bittable,
  * \param id The id of the entity to add
  */
 void
-fdb_bittable_add(fdb_bittable_t* bittable, 
+fdb_bittable_add(struct fdb_bittable_t* bittable, 
              entity_id_t id);
 
 /**
@@ -78,7 +78,7 @@ fdb_bittable_add(fdb_bittable_t* bittable,
  * \param id The id of the entity to remove
  */
 void
-fdb_bittable_remove(fdb_bittable_t* bittable, entity_id_t id);
+fdb_bittable_remove(struct fdb_bittable_t* bittable, entity_id_t id);
 
 /**
  * \brief Gets the bitmap of the bit table for a specific entity id.
@@ -89,8 +89,8 @@ fdb_bittable_remove(fdb_bittable_t* bittable, entity_id_t id);
  * \return Returns a pointer to the bitmap. Returns nullptr if the bitmap does
  * not exist.
  */
-const fdb_bitmap_t* 
-fdb_bittable_get_bitmap(const fdb_bittable_t* bittable,
+const struct fdb_bitmap_t* 
+fdb_bittable_get_bitmap(const struct fdb_bittable_t* bittable,
                     entity_id_t id) ;
 
 /**
@@ -101,19 +101,19 @@ fdb_bittable_get_bitmap(const fdb_bittable_t* bittable,
  * \return  The size of the bit table
  */
 uint32_t
-fdb_bittable_size(const fdb_bittable_t* bittable);
+fdb_bittable_size(const struct fdb_bittable_t* bittable);
 
 /**
  * \brief Clears the bittable
  */
 void
-fdb_bittable_clear(fdb_bittable_t* bittable);
+fdb_bittable_clear(struct fdb_bittable_t* bittable);
 
 void
-fdb_bittable_union(FDB_RESTRICT(fdb_bittable_t*) first, FDB_RESTRICT(const fdb_bittable_t*) second);
+fdb_bittable_union(FDB_RESTRICT(struct fdb_bittable_t*) first, FDB_RESTRICT(const struct fdb_bittable_t*) second);
 
 void
-fdb_bittable_difference(FDB_RESTRICT(fdb_bittable_t*) first, FDB_RESTRICT(const fdb_bittable_t*) second);
+fdb_bittable_difference(FDB_RESTRICT(struct fdb_bittable_t*) first, FDB_RESTRICT(const struct fdb_bittable_t*) second);
 
 #ifdef __cplusplus
 }

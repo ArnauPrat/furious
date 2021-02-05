@@ -1,45 +1,68 @@
 
 #include "block_cluster.h"
 #include "../../common/platform.h"
-#include "table.h"
+#include "txtable.h"
+#include "tmptable.h"
 #include "../../common/bitmap.h"
+#include "txbitmap_utils.h"
 #include "string.h"
 
 
 #define FDB_INVALID_BLOCK_START 0xffffffff
 
 void
-fdb_bcluster_init(fdb_bcluster_t* bc, fdb_mem_allocator_t* allocator) 
+fdb_bcluster_factory_init(struct fdb_bcluster_factory_t* bcluster_factory, 
+                          struct fdb_mem_allocator_t* allocator)
 {
   FDB_ASSERT(((allocator == NULL) ||
               (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
              "Provided allocator is ill-formed.")
+  *bcluster_factory = (struct fdb_bcluster_factory_t){};
+  fdb_bitmap_factory_init(&bcluster_factory->m_cbitmap_factory, 
+                          FDB_TXTABLE_BLOCK_SIZE,
+                          allocator);
+
+  fdb_bitmap_factory_init(&bcluster_factory->m_glbitmap_factory, 
+                          FDB_MAX_CLUSTER_SIZE,
+                          allocator);
+}
+
+void
+fdb_bcluster_factory_release(struct fdb_bcluster_factory_t* bcluster_factory)
+{
+  fdb_bitmap_factory_release(&bcluster_factory->m_cbitmap_factory);
+  fdb_bitmap_factory_release(&bcluster_factory->m_glbitmap_factory);
+}
+
+void
+fdb_bcluster_init(struct fdb_bcluster_t* bc, 
+                  struct fdb_bcluster_factory_t* factory) 
+{
+  *bc = (struct fdb_bcluster_t){};
+  bc->p_factory= factory;
   bc->m_num_columns = 0;
   bc->m_start = FDB_INVALID_BLOCK_START;
-  fdb_bitmap_init(&bc->m_enabled, 
-                  FDB_TABLE_BLOCK_SIZE, 
-                  allocator != NULL ? allocator : fdb_get_global_mem_allocator());
-  fdb_bitmap_init(&bc->m_global, 
-                  FDB_MAX_CLUSTER_SIZE, 
-                  allocator != NULL ? allocator : fdb_get_global_mem_allocator());
+  fdb_bitmap_init(&bc->m_enabled,
+                  &bc->p_factory->m_cbitmap_factory);
+  fdb_bitmap_init(&bc->m_global,
+                  &bc->p_factory->m_glbitmap_factory);
+  memset(&bc->m_sizes,0, sizeof(uint32_t)*FDB_MAX_CLUSTER_SIZE);
   memset(&bc->p_blocks,0, sizeof(void*)*FDB_MAX_CLUSTER_SIZE);
 }
 
 void
-fdb_bcluster_release(fdb_bcluster_t* bc, 
-                     fdb_mem_allocator_t* allocator)
+fdb_bcluster_release(struct fdb_bcluster_t* bc)
 {
-  FDB_ASSERT(((allocator == NULL) ||
-              (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
-             "Provided allocator is ill-formed.")
-
-  fdb_bitmap_release(&bc->m_enabled, allocator != NULL ? allocator : fdb_get_global_mem_allocator());
-  fdb_bitmap_release(&bc->m_global, allocator != NULL ? allocator : fdb_get_global_mem_allocator());
+  fdb_bitmap_release(&bc->m_enabled);
+  fdb_bitmap_release(&bc->m_global);
 }
 
 void 
-fdb_bcluster_append_block(fdb_bcluster_t* bc,
-                          fdb_table_block_t* block)
+fdb_bcluster_append_txtable_block(struct fdb_bcluster_t* bc,
+                                  struct fdb_txtable_block_t* block, 
+                                  struct fdb_tx_t* tx, 
+                                  struct fdb_txthread_ctx_t* txtctx, 
+                                  bool write)
 {
   FDB_ASSERT(bc->m_num_columns < FDB_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
   FDB_ASSERT((bc->m_start == FDB_INVALID_BLOCK_START || bc->m_start == block->m_start ) && "Unaligned block cluster");
@@ -47,16 +70,49 @@ fdb_bcluster_append_block(fdb_bcluster_t* bc,
   if(bc->m_start == FDB_INVALID_BLOCK_START)
   {
     bc->m_start = block->m_start;
-    fdb_bitmap_set_bitmap(&bc->m_enabled, &block->m_enabled);
+    fdb_bitmap_set_txbitmap(&bc->m_enabled, 
+                            &block->m_enabled, 
+                            tx, 
+                            txtctx);
   }
 
-  bc->p_blocks[bc->m_num_columns] = block;
+  void* data = fdb_txpool_alloc_ptr(block->p_table->p_data_allocator, 
+                                    tx, 
+                                    txtctx, 
+                                    block->m_data, 
+                                    write);
+  bc->m_sizes[bc->m_num_columns] = block->m_esize;
+  bc->p_blocks[bc->m_num_columns] = data;
   bc->m_num_columns++;
-  fdb_bitmap_set_and(&bc->m_enabled, &block->m_enabled);
+  fdb_bitmap_set_txbitmap_and(&bc->m_enabled, 
+                              &block->m_enabled, 
+                              tx, 
+                              txtctx);
 }
 
 void 
-fdb_bcluster_append_global(fdb_bcluster_t* bc, 
+fdb_bcluster_append_tmptable_block(struct fdb_bcluster_t* bc,
+                                   struct fdb_tmptable_block_t* block)
+{
+  FDB_ASSERT(bc->m_num_columns < FDB_MAX_CLUSTER_SIZE && "Cannot append block to full cluster");
+  FDB_ASSERT((bc->m_start == FDB_INVALID_BLOCK_START || bc->m_start == block->m_start ) && "Unaligned block cluster");
+
+  if(bc->m_start == FDB_INVALID_BLOCK_START)
+  {
+    bc->m_start = block->m_start;
+    fdb_bitmap_set_bitmap(&bc->m_enabled, 
+                            &block->m_enabled);
+  }
+
+  bc->m_sizes[bc->m_num_columns] = block->m_esize;
+  bc->p_blocks[bc->m_num_columns] = block->p_data;
+  bc->m_num_columns++;
+  fdb_bitmap_set_and(&bc->m_enabled, 
+                     &block->m_enabled);
+}
+
+void 
+fdb_bcluster_append_global(struct fdb_bcluster_t* bc, 
                            void* global)
 {
   fdb_bitmap_set(&bc->m_global, bc->m_num_columns);
@@ -65,8 +121,8 @@ fdb_bcluster_append_global(fdb_bcluster_t* bc,
 }
 
 void 
-fdb_bcluster_append_cluster(FDB_RESTRICT(fdb_bcluster_t*) bc, 
-                            FDB_RESTRICT(const fdb_bcluster_t*) other)
+fdb_bcluster_append_cluster(FDB_RESTRICT(struct fdb_bcluster_t*) bc, 
+                            FDB_RESTRICT(const struct fdb_bcluster_t*) other)
 {
   FDB_ASSERT(((bc->m_start == other->m_start) || 
               (bc->m_start == FDB_INVALID_BLOCK_START || other->m_start == FDB_INVALID_BLOCK_START) )&&
@@ -98,30 +154,14 @@ fdb_bcluster_append_cluster(FDB_RESTRICT(fdb_bcluster_t*) bc,
 }
 
 void 
-fdb_bcluster_filter(FDB_RESTRICT(fdb_bcluster_t*) bc, 
-                    FDB_RESTRICT(const fdb_bcluster_t*) other)
+fdb_bcluster_filter(FDB_RESTRICT(struct fdb_bcluster_t*) bc, 
+                    FDB_RESTRICT(const struct fdb_bcluster_t*) other)
 {
   fdb_bitmap_set_and(&bc->m_enabled, &other->m_enabled);
 }
 
-fdb_table_block_t* 
-fdb_bcluster_get_tblock(fdb_bcluster_t* bc, 
-                        uint32_t index)
-{
-  FDB_ASSERT(!fdb_bitmap_is_set(&bc->m_global, index) && "Trying to get fdb_table_block_t which is a global from a BlockCluster");
-  return (fdb_table_block_t*)bc->p_blocks[index];
-}
-
-void* 
-fdb_bcluster_get_global(fdb_bcluster_t* bc, 
-                        uint32_t index)
-{
-  FDB_ASSERT(fdb_bitmap_is_set(&bc->m_global, index) && "Trying to get global which is a fdb_table_block_t from a BlockCluster");
-  return bc->p_blocks[index];
-}
-
 bool
-fdb_bcluster_has_elements(fdb_bcluster_t* bc)
+fdb_bcluster_has_elements(struct fdb_bcluster_t* bc)
 {
   return (bc->m_enabled.m_num_set > 0) ||
   fdb_bitmap_is_set(&bc->m_global, 0);

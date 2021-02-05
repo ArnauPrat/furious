@@ -5,7 +5,7 @@
 #include <sched.h>
 void* pthread_handler(void* arg)
 {
-  fdb_thread_task_t* task = (fdb_thread_task_t*) arg;
+  struct fdb_thread_task_t* task = (struct fdb_thread_task_t*) arg;
   task->p_fp(task->p_args);
   return NULL;
 }
@@ -20,8 +20,8 @@ void* pthread_handler(void* arg)
  * \param task  The task to run with the thread
  */
 void
-fdb_thread_start(fdb_thread_t* thread, 
-                fdb_thread_task_t* task)
+fdb_thread_start(struct fdb_thread_t* thread, 
+                struct fdb_thread_task_t* task)
 {
 #ifdef FDB_OS_LINUX
   pthread_create(&thread->m_pthread, 
@@ -37,7 +37,7 @@ fdb_thread_start(fdb_thread_t* thread,
  * \param thread The thread to join
  */
 void
-fdb_thread_join(fdb_thread_t* thread)
+fdb_thread_join(struct fdb_thread_t* thread)
 {
 #ifdef FDB_OS_LINUX
   void* ptr;
@@ -51,7 +51,7 @@ fdb_thread_join(fdb_thread_t* thread)
  * \param thread The thread to kill
  */
 void
-fdb_thread_kill(fdb_thread_t* thread)
+fdb_thread_kill(struct fdb_thread_t* thread)
 {
 #ifdef FDB_OS_LINUX
   pthread_cancel(thread->m_pthread);
@@ -59,7 +59,7 @@ fdb_thread_kill(fdb_thread_t* thread)
 }
 
 bool
-fdb_thread_set_affinity(fdb_thread_t* thread, 
+fdb_thread_set_affinity(struct fdb_thread_t* thread, 
                        uint32_t cpuid)
 {
 #ifdef FDB_OS_LINUX

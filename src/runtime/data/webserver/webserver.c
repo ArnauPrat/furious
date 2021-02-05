@@ -4,6 +4,7 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include "../database.h"
+#include "../tx/tx.h"
 #include "webserver.h"
 #include "../../../common/memory/numa_alloc.h"
 
@@ -20,13 +21,13 @@
 #include <unistd.h>
 
 bool
-generate_json_from_infos(fdb_webserver_t* webserver, uint32_t num_infos)
+generate_json_from_infos(struct fdb_webserver_t* webserver, uint32_t num_infos)
 {
   return true;
 }
 
 void
-generate_json(fdb_webserver_t* webserver)
+generate_json(struct fdb_webserver_t* webserver)
 {
   uint32_t num_tables = fdb_database_num_tables(webserver->p_database);
   if(num_tables > webserver->m_table_infos_capacity)
@@ -36,14 +37,22 @@ generate_json(fdb_webserver_t* webserver)
     {
       fdb_numa_free(NULL,webserver->m_table_infos);
     }
-    webserver->m_table_infos = (fdb_table_info_t*)fdb_numa_alloc(NULL, 
-                                                                 64, 
-                                                                 sizeof(fdb_table_info_t)*webserver->m_table_infos_capacity, 
-                                                                 FDB_NO_HINT);
+    webserver->m_table_infos = (struct fdb_table_info_t*)fdb_numa_alloc(NULL, 
+                                                                        64, 
+                                                                        sizeof(struct fdb_table_info_t)*webserver->m_table_infos_capacity, 
+                                                                        FDB_NO_HINT);
   }
+
+  struct fdb_tx_t tx;
+  fdb_tx_begin(&tx, E_READ_ONLY);
+  struct fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, NULL);
   uint32_t num_infos = fdb_database_metadata(webserver->p_database, 
-                                         webserver->m_table_infos, 
-                                         webserver->m_table_infos_capacity);
+                                             &tx, 
+                                             txtctx,
+                                             webserver->m_table_infos, 
+                                             webserver->m_table_infos_capacity);
+
+  fdb_tx_commit(&tx);
   // generate json here
   char headers[] = "HTTP/1.1 200 OK\r\nServer: CPi\r\nContent-type: application/json\r\n\r\n";
   
@@ -51,6 +60,7 @@ generate_json(fdb_webserver_t* webserver)
   fdb_str_builder_append(&webserver->m_builder,
                      "%s { \"tables\" : [", 
                      headers);
+
 
   uint32_t i = 0;
   for(; i < num_infos; ++i)
@@ -72,7 +82,7 @@ generate_json(fdb_webserver_t* webserver)
 void*
 server_thread_handler(void* param)
 {
-  fdb_webserver_t* webserver = (fdb_webserver_t*)param;
+  struct fdb_webserver_t* webserver = (struct fdb_webserver_t*)param;
 
   struct addrinfo hints, *server;
   memset(&hints, 0, sizeof hints);
@@ -128,9 +138,9 @@ server_thread_handler(void* param)
 
 
 void
-fdb_webserver_init(fdb_webserver_t* ws)
+fdb_webserver_init(struct fdb_webserver_t* ws)
 {
-  memset(ws, 0, sizeof(fdb_webserver_t));
+  memset(ws, 0, sizeof(struct fdb_webserver_t));
   ws->p_database = NULL;
   ws->m_table_infos_capacity = 0;
   ws->m_table_infos = NULL;
@@ -139,15 +149,15 @@ fdb_webserver_init(fdb_webserver_t* ws)
 }
 
 void
-fdb_webserver_release(fdb_webserver_t* ws)
+fdb_webserver_release(struct fdb_webserver_t* ws)
 {
   fdb_webserver_stop(ws); 
   fdb_str_builder_release(&ws->m_builder);
 }
 
 void
-fdb_webserver_start(fdb_webserver_t* ws, 
-                    fdb_database_t* db,
+fdb_webserver_start(struct fdb_webserver_t* ws, 
+                    struct fdb_database_t* db,
                     const char* address,
                     const char* port)
 {
@@ -163,7 +173,7 @@ fdb_webserver_start(fdb_webserver_t* ws,
 }
 
 void
-fdb_webserver_stop(fdb_webserver_t* ws)
+fdb_webserver_stop(struct fdb_webserver_t* ws)
 {
   if(ws->m_running == true)
   {

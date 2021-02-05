@@ -29,7 +29,8 @@ int32_t fdb_numa_nodes();
  *
  * @return 
  */
-void* fdb_numa_alloc(void* state, 
+void* 
+fdb_numa_alloc(void* state, 
                      uint32_t alignment, 
                      uint32_t size,
                      uint32_t hint);
@@ -41,7 +42,8 @@ void* fdb_numa_alloc(void* state,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void fdb_numa_free( void* state, 
+void 
+fdb_numa_free( void* state, 
                     void* ptr );
 
 #ifdef __cplusplus

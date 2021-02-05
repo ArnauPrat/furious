@@ -6,9 +6,9 @@
 
 
 void
-fdb_hashtable_init(fdb_hashtable_t* table, 
+fdb_hashtable_init(struct fdb_hashtable_t* table, 
                    uint32_t capacity,
-                   fdb_mem_allocator_t* allocator)
+                   struct fdb_mem_allocator_t* allocator)
 {
 
   FDB_ASSERT(((allocator == NULL) ||
@@ -25,24 +25,24 @@ fdb_hashtable_init(fdb_hashtable_t* table,
   }
   table->m_capacity = capacity;
   table->m_num_elements = 0;
-  table->m_entries = (fdb_hashtable_node_t*)mem_alloc(table->p_allocator, 
+  table->m_entries = (struct fdb_hashtable_node_t*)mem_alloc(table->p_allocator, 
                                                       1, 
-                                                      sizeof(fdb_hashtable_node_t)*table->m_capacity, 
+                                                      sizeof(struct fdb_hashtable_node_t)*table->m_capacity, 
                                                       FDB_NO_HINT);
-  memset(table->m_entries, 0, sizeof(fdb_hashtable_node_t)*table->m_capacity);
+  memset(table->m_entries, 0, sizeof(struct fdb_hashtable_node_t)*table->m_capacity);
 }
 
 void
-fdb_hashtable_release(fdb_hashtable_t* table)
+fdb_hashtable_release(struct fdb_hashtable_t* table)
 {
   for (uint32_t i = 0; 
        i < table->m_capacity; 
        ++i) 
   {
-    fdb_hashtable_node_t* next = table->m_entries[i].p_next;
+    struct fdb_hashtable_node_t* next = table->m_entries[i].p_next;
     while(next != NULL)
     {
-      fdb_hashtable_node_t* tmp = next->p_next;
+      struct fdb_hashtable_node_t* tmp = next->p_next;
       mem_free(table->p_allocator, next);
       next = tmp;
     }
@@ -52,13 +52,13 @@ fdb_hashtable_release(fdb_hashtable_t* table)
 
 
 void*
-fdb_hashtable_add(fdb_hashtable_t* table, 
+fdb_hashtable_add(struct fdb_hashtable_t* table, 
                   uint32_t key, 
                   void* value)
 {
   uint32_t index = key % table->m_capacity;
-  fdb_hashtable_node_t* current = &table->m_entries[index];
-  fdb_hashtable_node_t* last = NULL;
+  struct fdb_hashtable_node_t* current = &table->m_entries[index];
+  struct fdb_hashtable_node_t* last = NULL;
   while(current != NULL)
   {
     last = current;
@@ -84,11 +84,11 @@ fdb_hashtable_add(fdb_hashtable_t* table,
     return NULL;
   }
 
-  fdb_hashtable_node_t* next = (fdb_hashtable_node_t*)mem_alloc(table->p_allocator, 
+  struct fdb_hashtable_node_t* next = (struct fdb_hashtable_node_t*)mem_alloc(table->p_allocator, 
                                                                 1, 
-                                                                sizeof(fdb_hashtable_node_t), 
+                                                                sizeof(struct fdb_hashtable_node_t), 
                                                                 -1);
-  memset(next, 0, sizeof(fdb_hashtable_node_t));
+  memset(next, 0, sizeof(struct fdb_hashtable_node_t));
   next->m_keys[0] = key;
   next->m_elements[0] = value;
   ++next->m_num_elements;
@@ -97,11 +97,11 @@ fdb_hashtable_add(fdb_hashtable_t* table,
 }
 
 void*
-fdb_hashtable_get(fdb_hashtable_t* table, 
+fdb_hashtable_get(struct fdb_hashtable_t* table, 
                   uint32_t key)
 {
   uint32_t index = key % table->m_capacity;
-  fdb_hashtable_node_t* current = &table->m_entries[index];
+  struct fdb_hashtable_node_t* current = &table->m_entries[index];
   while(current != NULL)
   {
     for(uint32_t i = 0; 
@@ -118,10 +118,10 @@ fdb_hashtable_get(fdb_hashtable_t* table,
   return NULL;
 }
 
-fdb_hashtable_iter_t
-fdb_hashtable_iter_init(fdb_hashtable_t* hashtable)
+struct fdb_hashtable_iter_t
+fdb_hashtable_iter_init(struct fdb_hashtable_t* hashtable)
 {
-  fdb_hashtable_iter_t iter;
+  struct fdb_hashtable_iter_t iter;
   iter.p_table = hashtable;
   iter.p_next_node = NULL;
   iter.m_next_entry = 0;
@@ -131,7 +131,7 @@ fdb_hashtable_iter_init(fdb_hashtable_t* hashtable)
       ++i)
   {
     iter.m_next_entry = i+1;
-    fdb_hashtable_node_t* next_node = &iter.p_table->m_entries[i];
+    struct fdb_hashtable_node_t* next_node = &iter.p_table->m_entries[i];
     if(next_node->m_num_elements > 0)
     {
       iter.p_next_node = next_node;
@@ -142,20 +142,20 @@ fdb_hashtable_iter_init(fdb_hashtable_t* hashtable)
 }
 
 void
-fdb_hashtable_iter_release(fdb_hashtable_iter_t* iter)
+fdb_hashtable_iter_release(struct fdb_hashtable_iter_t* iter)
 {
 }
 
 bool
-fdb_hashtable_iter_has_next(fdb_hashtable_iter_t* iter)
+fdb_hashtable_iter_has_next(struct fdb_hashtable_iter_t* iter)
 {
   return iter->p_next_node != NULL;
 }
 
-fdb_hashtable_entry_t
-fdb_hashtable_iter_next(fdb_hashtable_iter_t* iter)
+struct fdb_hashtable_entry_t
+fdb_hashtable_iter_next(struct fdb_hashtable_iter_t* iter)
 {
-  fdb_hashtable_entry_t entry = {iter->p_next_node->m_keys[iter->m_next_element],
+  struct fdb_hashtable_entry_t entry = {iter->p_next_node->m_keys[iter->m_next_element],
     iter->p_next_node->m_elements[iter->m_next_element]};
   ++iter->m_next_element;
   if(iter->m_next_element >= iter->p_next_node->m_num_elements)

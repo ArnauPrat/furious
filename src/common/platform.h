@@ -53,27 +53,54 @@
 #define FDB_BTREE_ALIGNMENT                   64 
 #define FDB_BTREE_PAGE_SIZE                   KILOBYTES(4)
 
+#define FDB_TXBTREE_ALIGNMENT                 64
+#define FDB_TXBTREE_PAGE_SIZE                 KILOBYTES(4) 
+#define FDB_TXBTREE_NODE_ALIGNMENT            64
+#define FDB_TXBTREE_NODE_PAGE_SIZE            KILOBYTES(4) 
+
 #define FDB_BITMAP_ALIGNMENT                  64 
 #define FDB_BITMAP_PAGE_SIZE                  KILOBYTES(4)
 #define FDB_BITMAP_DATA_ALIGNMENT             64 
 #define FDB_BITMAP_DATA_PAGE_SIZE             KILOBYTES(4)
 
-#define FDB_TABLE_BLOCK_ALIGNMENT             64
-#define FDB_TABLE_BLOCK_DATA_ALIGNMENT        64
+#define FDB_TXBITMAP_ALIGNMENT                  64 
+#define FDB_TXBITMAP_PAGE_SIZE                  KILOBYTES(4)
+#define FDB_TXBITMAP_DATA_ALIGNMENT             64 
+#define FDB_TXBITMAP_DATA_PAGE_SIZE             KILOBYTES(4)
 
-#define FDB_TABLE_BLOCK_PAGE_SIZE             KILOBYTES(4)
-#define FDB_TABLE_BLOCK_DATA_PAGE_SIZE        KILOBYTES(64)
+#define FDB_TXTABLE_ALIGNMENT                   64
+#define FDB_TXTABLE_BLOCK_ALIGNMENT             64
+#define FDB_TXTABLE_BLOCK_DATA_ALIGNMENT        64
+
+#define FDB_TXTABLE_PAGE_SIZE                   KILOBYTES(4)
+#define FDB_TXTABLE_BLOCK_PAGE_SIZE             KILOBYTES(4)
+#define FDB_TXTABLE_BLOCK_DATA_PAGE_SIZE        KILOBYTES(64)
+
+
+#define FDB_TXBITTABLE_BITMAP_ALIGNMENT       64
+#define FDB_TXBITTABLE_BITMAP_PAGE_SIZE       KILOBYTES(64)
+
+#define FDB_TMPBITTABLE_BITMAP_ALIGNMENT       64
+#define FDB_TMPBITTABLE_BITMAP_PAGE_SIZE       KILOBYTES(64)
+
+#define FDB_TXHEAP_POOL_ALIGNMENT             64
+#define FDB_TXHEAP_PAGE_SIZE                  KILOBYTES(4)
+
+#define FDB_TXPOOL_POOL_ALIGNMENT             64
+#define FDB_TXPOOL_POOL_PAGE_SIZE             KILOBYTES(4)
 
 #define FDB_DATABASE_TABLE_ALIGNMENT          64
 #define FDB_DATABASE_BITTABLE_ALIGNMENT       64 
+#define FDB_DATABASE_GLOBAL_INFO_ALIGNMENT    64 
 #define FDB_DATABASE_GLOBAL_ALIGNMENT         64 
 #define FDB_DATABASE_TABLE_PAGE_SIZE          KILOBYTES(4)
 #define FDB_DATABASE_BITTABLE_PAGE_SIZE       KILOBYTES(4)
+#define FDB_DATABASE_GLOBAL_INFO_PAGE_SIZE    KILOBYTES(4)
 #define FDB_DATABASE_GLOBAL_PAGE_SIZE         KILOBYTES(4)
 
 #define FDB_INVALID_ID                        0xffffffff
 #define FDB_INVALID_TABLE_ID                  FDB_INVALID_ID 
-#define FDB_TABLE_BLOCK_SIZE                  256
+#define FDB_TXTABLE_BLOCK_SIZE                256
 #define FDB_MAX_TABLE_NAME                    256
 
 #define FDB_MAX_COMPONENT_FIELDS              32
@@ -85,6 +112,8 @@
 #define FDB_MAX_WEBSERVER_ADDRESS_SIZE        64
 
 #define FDB_TX_GC_PAGE_SIZE                   KILOBYTES(4)
+#define FDB_TX_CTX_ALIGNMENT                  64 
+#define FDB_TX_CTX_PAGE_SIZE                  KILOBYTES(4)
 /// FCC_COMPILER 
 
 #define FCC_INVALID_ID                            FDB_INVALID_ID
@@ -132,5 +161,20 @@ fdb_os_pow2_bit(uint64_t x);
  */
 void
 fdb_mem_barrier();
+
+/**
+ * \brief Given a block id, a chunk size and a stride, returns the offset
+ * (thread id) responsible of the block start.
+ *
+ * \param block_start The block id 
+ * \param chunk_size The chunk size
+   * \param stride The stride (num threads)
+   *
+   * \return Returns the offset (thread id)
+   */
+uint32_t
+fdb_block_get_offset(uint32_t block_id, 
+                     uint32_t chunk_size,
+                     uint32_t stride);
 
 #endif

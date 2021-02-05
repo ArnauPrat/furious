@@ -1,6 +1,6 @@
 
-#ifndef _FDB_TABLE_H_
-#define _FDB_TABLE_H_
+#ifndef _FDB_TMPTABLE_H_
+#define _FDB_TMPTABLE_H_
 
 #include "../../common/memory/memory.h"
 #include "../../common/bitmap.h"
@@ -18,12 +18,12 @@ extern "C" {
    * \brief A row of a table block. This is used to conveniently access the
    * information of a row, eventhough data is not stored in rows in the block  
    */
-  typedef struct fdb_table_entry_t
+  struct fdb_tmptable_entry_t
   {
     entity_id_t   m_id;
     void*         p_data;
     bool          m_enabled;
-  } fdb_table_entry_t;
+  };
 
 
   ////////////////////////////////////////////////
@@ -34,28 +34,26 @@ extern "C" {
    * \brief Represents a block of data in a table. Each block contains
    * FDB_TABLE_BLOCK_SIZE elements
    */
-  typedef struct fdb_table_block_t 
+  struct fdb_tmptable_block_t 
   {
-    FDB_ALIGNED(void*, p_data, FDB_TABLE_BLOCK_DATA_ALIGNMENT);    // The pointer to the block data
-    entity_id_t m_start;                                              // The id of the first component in the block
-    size_t m_num_components;                                          // The number of components in the block
-    size_t m_num_enabled_components;                                  // The number of enabled components in the block
-    size_t m_esize;                                                   // The size of the components contained in the block
-    fdb_bitmap_t m_exists;                                                // A bitmap used to test whether an component is in the block or not
-    fdb_bitmap_t m_enabled;                                               // A bitmap used to mark components that are enabled/disabled
-  } fdb_table_block_t;
+    struct fdb_tmptable_t* p_table;                                // Pointer to the parent table containing this block
+    FDB_ALIGNED(void*, p_data, FDB_TXTABLE_BLOCK_DATA_ALIGNMENT);  // The pointer to the block data
+    entity_id_t   m_start;                                         // The id of the first component in the block
+    size_t        m_num_components;                                // The number of components in the block
+    size_t        m_num_enabled_components;                        // The number of enabled components in the block
+    size_t        m_esize;                                         // The size of the components contained in the block
+    struct fdb_bitmap_t  m_exists;                                 // A bitmap used to test whether an component is in the block or not
+    struct fdb_bitmap_t  m_enabled;                                // A bitmap used to mark components that are enabled/disabled
+  };
 
   void 
-  fdb_table_block_init(fdb_table_block_t* tb, 
-                       entity_id_t start, 
-                       size_t esize, 
-                       fdb_mem_allocator_t* data_allocator, 
-                       fdb_mem_allocator_t* fdb_bitmap_allocator);
+  fdb_tmptable_block_init(struct fdb_tmptable_block_t* tb, 
+                          struct fdb_tmptable_t* table, 
+                          entity_id_t start, 
+                          size_t esize);
 
   void
-  fdb_table_block_release(fdb_table_block_t* tblock, 
-                          fdb_mem_allocator_t* data_allocator, 
-                          fdb_mem_allocator_t* fdb_bitmap_allocator);
+  fdb_tmptable_block_release(struct fdb_tmptable_block_t* tblock);
 
 
 
@@ -70,7 +68,7 @@ extern "C" {
    * \return Returns true if the block contains such component
    */
   bool 
-  fdb_table_block_has_component(const fdb_table_block_t* block, 
+  fdb_tmptable_block_has_component(struct fdb_tmptable_block_t* block, 
                                 entity_id_t id);
 
   /**
@@ -81,9 +79,9 @@ extern "C" {
    * \return Returns a pointer to the component. Returns nullptr if the component does
    * not exist in the block
    */
-  fdb_table_entry_t 
-  fdb_table_block_get_component(const fdb_table_block_t *block, 
-                                entity_id_t id);
+  struct fdb_tmptable_entry_t 
+  fdb_tmptable_block_get_component(struct fdb_tmptable_block_t *block, 
+                                   entity_id_t id);
 
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
@@ -92,11 +90,11 @@ extern "C" {
   /**
    * \brief Iterator to iterate over the components of a table block. 
    */
-  typedef struct fdb_tblock_iter_t
+  struct fdb_tmptblock_iter_t
   {
-    fdb_table_block_t*  p_block;          //< Pointer to the block being iterated
-    uint32_t        m_next_position;  //< The next position in the table block to iterate to
-  } fdb_tblock_iter_t;
+    struct fdb_tmptable_block_t*  p_block;   //< Pointer to the block being iterated
+    uint32_t        m_next_position;      //< The next position in the table block to iterate to
+  };
 
   /**
    * \brief inits a table block iterator
@@ -106,8 +104,8 @@ extern "C" {
    * \return Returns a newly initd table block iterator
    */
   void
-  fdb_tblock_iter_init(fdb_tblock_iter_t* iter, 
-                   fdb_table_block_t* tblock);
+  fdb_tmptblock_iter_init(struct fdb_tmptblock_iter_t* iter, 
+                       struct fdb_tmptable_block_t* tblock);
 
   /**
    * \brief releases a table block iterator
@@ -115,7 +113,7 @@ extern "C" {
    * \param iter The table block iterator to release
    */
   void
-  fdb_tblock_iter_release(fdb_tblock_iter_t* iter);
+  fdb_tmptblock_iter_release(struct fdb_tmptblock_iter_t* iter);
 
   /**
    * \brief Checks if there are new items to iterate in the table block iterator
@@ -123,15 +121,15 @@ extern "C" {
    * \return Returns true if there are remaining items to iterate
    */
   bool
-  fdb_tblock_iter_has_next(fdb_tblock_iter_t* iter);
+  fdb_tmptblock_iter_has_next(struct fdb_tmptblock_iter_t* iter);
 
   /**
    * \brief Gets the next entry in the table block iterator
    *
    * \return  The next entry in the table block iterator
    */
-  fdb_table_entry_t
-  fdb_tblock_iter_next(fdb_tblock_iter_t* iter);
+  struct fdb_tmptable_entry_t
+  fdb_tmptblock_iter_next(struct fdb_tmptblock_iter_t* iter);
 
   /**
    * \brief Resets the table block iterator with the given block
@@ -139,29 +137,52 @@ extern "C" {
    * \param block The new block to reset the iterator with
    */
   void
-  fdb_tblock_iter_reset(fdb_tblock_iter_t* iter, 
-                    fdb_table_block_t* block);
+  fdb_tmptblock_iter_reset(struct fdb_tmptblock_iter_t* iter, 
+                        struct fdb_tmptable_block_t* block);
 
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
 
-
-  typedef struct fdb_table_t 
+  struct fdb_tmptable_factory_t
   {
-    char                  m_name[FDB_MAX_TABLE_NAME]; //< The name of the table
-    uint64_t              m_id;                           //< The id of the table
-    size_t                m_esize;                        //< The size of each component in bytes
-    fdb_btree_t           m_blocks;                       //< The btree with the table blocks
-    size_t                m_num_components;               //< The number of components in this table
+    struct fdb_btree_factory_t    m_btree_factory;
+    struct fdb_pool_alloc_t       m_tblock_allocator;      //< The allocator for the table blocks structure
+    struct fdb_bitmap_factory_t   m_bitmap_factory; //< The allocator for the bitmaps (this is forwarded to bitmap allocation in table blocks)
+    struct fdb_mem_allocator_t*   p_allocator;             //< The parent allocator used in this factory
+  };
+
+  struct fdb_tmptable_t 
+  {
+    struct fdb_tmptable_factory_t*  p_factory;                //< Pointer to the factory creating this table
+    char                            m_name[FDB_MAX_TABLE_NAME];     //< The name of the table
+    uint64_t                        m_id;                           //< The id of the table
+    size_t                          m_esize;                        //< The size of each component in bytes
+    struct fdb_btree_t              m_blocks;                       //< The btree with the table blocks
+    size_t                          m_num_components;               //< The number of components in this table
     void (*m_destructor)(void *ptr);                      //< The pointer to the destructor for the components
-    fdb_mutex_t           m_mutex;                        //< The able mutex
 
     // fixed block memory allocators for the different parts
-    fdb_pool_alloc_t       m_tblock_allocator;      //< The allocator for the table blocks structure
-    fdb_pool_alloc_t       m_data_allocator;        //< The allocator for the actual components data in table blocks
-    fdb_pool_alloc_t       m_bitmap_data_allocator; //< The allocator for the bitmaps (this is forwarded to bitmap allocation in table blocks)
-  } fdb_table_t;
+    struct fdb_pool_alloc_t       m_data_allocator;        //< The allocator for the actual components data in table blocks
+  };
+
+  /**
+   * \brief Initializes a tmptable factory
+   *
+   * \param factory The factory to initialize
+   * \param allocator The allocator to use within the factory 
+   */
+  void
+  fdb_tmptable_factory_init(struct fdb_tmptable_factory_t* factory, 
+                            struct fdb_mem_allocator_t* allocator);
+
+  /**
+   * \brief Releases a tmptable factory
+   *
+   * \param factory The factory to release
+   */
+  void
+  fdb_tmptable_factory_release(struct  fdb_tmptable_factory_t* factory);
 
 
   /**
@@ -175,12 +196,12 @@ extern "C" {
    * \return 
    */
   void
-  fdb_table_init(fdb_table_t* table, 
-                 const char* name, 
-                 int64_t id, 
-                 size_t esize, 
-                 void (*destructor)(void *ptr), 
-                 fdb_mem_allocator_t* allocator);
+  fdb_tmptable_init(struct fdb_tmptable_t* table, 
+                    struct fdb_tmptable_factory_t* factory, 
+                    const char* name, 
+                    int64_t id, 
+                    size_t esize, 
+                    void (*destructor)(void *ptr));
 
   /**
    * \brief releases a table
@@ -188,7 +209,7 @@ extern "C" {
    * \param table The table to release
    */
   void
-  fdb_table_release(fdb_table_t* table);
+  fdb_tmptable_release(struct fdb_tmptable_t* table);
 
   /**
    * \brief Clears the table
@@ -196,7 +217,7 @@ extern "C" {
    * \param table The table to clear
    */
   void 
-  fdb_table_clear(fdb_table_t* table);
+  fdb_tmptable_clear(struct fdb_tmptable_t* table);
 
   /**
    * \brief Gets the component with the given id
@@ -208,7 +229,7 @@ extern "C" {
    * does not exist in the table
    */
   void* 
-  fdb_table_get_component(fdb_table_t* table, 
+  fdb_tmptable_get_component(struct fdb_tmptable_t* table, 
                           entity_id_t id);
 
   /**
@@ -218,7 +239,7 @@ extern "C" {
    * \param id The id of the component to enable 
    */
   void 
-  fdb_table_enable_component(fdb_table_t* table, 
+  fdb_tmptable_enable_component(struct fdb_tmptable_t* table, 
                              entity_id_t id);
 
   /**
@@ -228,7 +249,7 @@ extern "C" {
    * \param id The if of the component to disable 
    */
   void 
-  fdb_table_disable_component(fdb_table_t* table, 
+  fdb_tmptable_disable_component(struct fdb_tmptable_t* table, 
                               entity_id_t id);
 
   /**
@@ -240,7 +261,7 @@ extern "C" {
    * \return True if the component is enabled. False if it is not 
    */
   bool 
-  fdb_table_is_enabled(fdb_table_t* table, entity_id_t id);
+  fdb_tmptable_is_enabled(struct fdb_tmptable_t* table, entity_id_t id);
 
 
   /**
@@ -251,24 +272,9 @@ extern "C" {
    *
    * \return A pointer to the block
    */
-  fdb_table_block_t* 
-  fdb_table_get_block(fdb_table_t* table, uint32_t block_id);
+  struct fdb_tmptable_block_t* 
+  fdb_tmptable_get_block(struct fdb_tmptable_t* table, uint32_t block_id);
 
-  /**
-   * \brief Locks the table
-   *
-   * \param table The table to lock
-   */
-  void
-  fdb_table_lock(fdb_table_t* table);
-
-  /**
-   * \brief Unlocks the table
-   *
-   * \param The table to release
-   */
-  void
-  fdb_table_unlock(fdb_table_t* table);
 
   /**
    * \brief This function virtually allocates the space of an component and
@@ -281,7 +287,7 @@ extern "C" {
    *
    */
   void* 
-  fdb_table_create_component(fdb_table_t* table, 
+  fdb_tmptable_create_component(struct fdb_tmptable_t* table, 
                              entity_id_t id);
 
   /**
@@ -292,7 +298,7 @@ extern "C" {
    *
    */
   void 
-  fdb_table_destroy_component(fdb_table_t* table, 
+  fdb_tmptable_destroy_component(struct fdb_tmptable_t* table, 
                               entity_id_t id);
 
   /**
@@ -301,11 +307,11 @@ extern "C" {
    * \param table The table to get the number of components for
    */
   size_t
-  fdb_table_size(fdb_table_t* table);
+  fdb_tmptable_size(struct fdb_tmptable_t* table);
 
 
   void
-  fdb_table_set_component_destructor(fdb_table_t* table, void (*destr)(void *ptr));
+  fdb_tmptable_set_component_destructor(struct fdb_tmptable_t* table, void (*destr)(void *ptr));
 
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////
@@ -315,15 +321,15 @@ extern "C" {
   /**
    * \brief Iterator of a table, used to iterate over the table blocks of a table
    */
-  typedef struct fdb_table_iter_t 
+  struct fdb_tmptable_iter_t 
   {
-    fdb_btree_t*                          p_blocks;       //< The table btree with the blocks
-    fdb_btree_iter_t                      m_it;           //< The btree iterator
+    struct fdb_btree_t*                   p_blocks;       //< The table btree with the blocks
+    struct fdb_btree_iter_t               m_it;           //< The btree iterator
     uint32_t                              m_chunk_size;   //< The size of consecutive blocks (chunks) to iterate
     uint32_t                              m_offset;       //< The offset in chunk size to start iterate from
     uint32_t                              m_stride;       //< The amount of blocks to skip (in chunk size) after a chunk has been consumed
-    fdb_table_block_t*                    m_next;         //< The next table block to iterate
-  } fdb_table_iter_t;
+    struct fdb_tmptable_block_t*          m_next;         //< The next table block to iterate
+  };
 
   /**
    * \brief inits a table iterator to iterate on a subset of qualifying table
@@ -338,8 +344,8 @@ extern "C" {
    * \return Returns the newly initd iterator
    */
   void
-  fdb_table_iter_init(fdb_table_iter_t* iter, 
-                      fdb_table_t* table,
+  fdb_tmptable_iter_init(struct fdb_tmptable_iter_t* iter, 
+                      struct fdb_tmptable_t* table,
                       uint32_t chunk_size,
                       uint32_t offset, 
                       uint32_t stride);
@@ -350,7 +356,7 @@ extern "C" {
    * \param iter The iter to release
    */
   void
-  fdb_table_iter_release(fdb_table_iter_t* iter);
+  fdb_tmptable_iter_release(struct fdb_tmptable_iter_t* iter);
 
   /**
    * \brief Checks if the iterator has members to consume
@@ -360,7 +366,7 @@ extern "C" {
    * \return Returns true if there are members to consume
    */
   bool
-  fdb_table_iter_has_next(fdb_table_iter_t* iter);
+  fdb_tmptable_iter_has_next(struct fdb_tmptable_iter_t* iter);
 
   /**
    * \brief Checks if the iterator has table blocks to consume
@@ -369,8 +375,8 @@ extern "C" {
    *
    * \return Returns true if there are members to consume
    */
-  fdb_table_block_t*
-  fdb_table_iter_next(fdb_table_iter_t* iter);
+  struct fdb_tmptable_block_t*
+  fdb_tmptable_iter_next(struct fdb_tmptable_iter_t* iter);
 
   ////////////////////////////////////////////////
   ////////////////////////////////////////////////

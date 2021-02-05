@@ -26,14 +26,18 @@ struct Component \
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-#define FDB_CREATE_TABLE(database, component, dstr) \
+#define FDB_CREATE_TABLE(database, tx, txtctx, component, dstr) \
   fdb_database_create_table(database,\
-                        #component,\
-                        sizeof(component),\
-                        dstr)
+                            tx,\
+                            txtctx,\
+                            #component,\
+                            sizeof(component),\
+                            dstr)
 
-#define FDB_REMOVE_TABLE(database, component)\
+#define FDB_REMOVE_TABLE(database, tx, txtctx, component)\
   fdb_database_remove_table(database,\
+                            tx, \
+                            txtctx,\
                         #component)
 
 #define FDB_FIND_TABLE(database, component)\
@@ -91,8 +95,10 @@ struct Component \
                         sizeof(component),\
                         dstr)
 
-#define FDB_REMOVE_TEMP_TABLE(database, component, name)\
+#define FDB_REMOVE_TEMP_TABLE(database, tx, txtctx, component, name)\
   fdb_database_remove_table(database,\
+                            tx,\
+                            txtctx,\
                         name)
 
 #define FDB_FIND_TEMP_TABLE(database, component, name)\
@@ -103,32 +109,20 @@ struct Component \
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 
-#define FDB_ADD_COMPONENT(table, component, entity) \
-  ((component*)fdb_table_create_component(table, entity));\
+#define FDB_ADD_COMPONENT(table, tx, txtctx, component, entity) \
+  ((component*)fdb_txtable_create_component(table, tx, txtctx, entity));\
   FDB_ASSERT(strcmp(#component, table->m_name)==0 && "Trying to create a component from the wrong table");
 
-#define FDB_REMOVE_COMPONENT(table, entity) \
-  fdb_table_destroy_component(table, entity)
+#define FDB_REMOVE_COMPONENT(table, tx, txtctx, entity) \
+  fdb_txtable_destroy_component(table, tx, txtctx, entity)
 
-#define FDB_GET_COMPONENT(table, component, entity) \
-  ((component*)fdb_table_get_component(table, entity))
+#define FDB_GET_COMPONENT(table, tx, txtctx, component, entity) \
+  ((component*)fdb_txtable_get_component(table, tx, txtctx, entity))
 
-#define FDB_ADD_TAG(bittable, entity) \
-  fdb_bittable_add(bittable, entity)
+#define FDB_ADD_TAG(bittable, tx, txtctx, entity) \
+  fdb_txbittable_add(bittable, tx, txtctx, entity)
 
-#define FDB_REMOVE_TAG(entity, tag) \
-  (entity).remove_tag(tag)
-
-#define FDB_HAS_TAG(entity, tag) \
-  (entity).has_tag(tag)
-
-#define FDB_ADD_REFERENCE(reftable, tail, head) \
-  fdb_reftable_add(reftable, tail, head)
-
-#define FDB_REMOVE_REFERENCE(entity, reference, other) \
-  (entity).remove_reference(reference, other)
-
-#define FDB_GET_REFERENCE(entity, reference) \
-  (entity).get_reference(reference)
+#define FDB_ADD_REFERENCE(reftable, tx, txtctx, tail, head) \
+  fdb_txtable_add_reference(reftable, tx, txtctx, tail, head)
 
 #endif

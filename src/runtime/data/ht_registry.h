@@ -1,6 +1,6 @@
 
 #ifndef _FDB_HASHTABLE_REGISTRY_H_
-#define _FDB_HASHTABLE_REGISTRY_H_ value
+#define _FDB_HASHTABLE_REGISTRY_H_
 
 #include "../../common/mutex.h" 
 #include "../../common/btree.h" 
@@ -10,30 +10,32 @@ extern "C" {
 #endif
 
 
-typedef struct fdb_htregistry_t
+struct fdb_htregistry_t
 {
-  fdb_btree_t   m_registry;
-  fdb_mutex_t   m_mutex;
-} fdb_htregistry_t;
+  struct fdb_btree_factory_t  m_btree_factory;
+  struct fdb_btree_t          m_registry;
+  struct fdb_mutex_t          m_mutex;
+};
 
 void
-fdb_htregistry_init(fdb_htregistry_t* registry, fdb_mem_allocator_t* allocator);
+fdb_htregistry_init(struct fdb_htregistry_t* registry, 
+                    struct fdb_mem_allocator_t* allocator);
 
 void
-fdb_htregistry_release(fdb_htregistry_t* registry);
+fdb_htregistry_release(struct fdb_htregistry_t* registry);
 
 void
-fdb_htregistry_insert(fdb_htregistry_t* registry, 
-                   const char* key, 
-                   void* value);
+fdb_htregistry_insert(struct fdb_htregistry_t* registry, 
+                      const char* key, 
+                      void* value);
 
 void*
-fdb_htregistry_get(fdb_htregistry_t* registry,
-                const char* key);
+fdb_htregistry_get(struct fdb_htregistry_t* registry,
+                   const char* key);
 
 void
-fdb_htregistry_remove(fdb_htregistry_t* registyr, 
-                   const char* key);
+fdb_htregistry_remove(struct fdb_htregistry_t* registyr, 
+                      const char* key);
 
 #ifdef __cplusplus
 }

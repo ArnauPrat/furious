@@ -32,13 +32,15 @@ SET(TESTS
   bitmap_test
   btree_test
   memory_test
-  table_test
+  txtable_test
   bittable_test
   database_test
   tags_test
   refs_test
   dyn_array_test
   txpool_alloc_test
+  txbtree_test
+  txbitmap_test
   )
 
 foreach( TEST ${TESTS} )

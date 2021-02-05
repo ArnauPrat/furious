@@ -4,6 +4,16 @@
 #include "../../../common/platform.h"
 #include "string.h"
 
+struct fdb_pool_alloc_t     m_tx_pool_allocator;
+
+struct fdb_txpool_alloc_t
+{
+  struct fdb_pool_alloc_t        m_data_palloc;      //< The normal pool allocator used to allocate blocks
+  struct fdb_pool_alloc_t        m_block_palloc;      //< The normal pool allocator used to allocate blocks
+  uint32_t                m_data_size;//< The payload size. This is the size of the data requested by the user (plus alignment overhead)
+  uint32_t                m_data_alignment;
+};
+
 typedef struct fdb_txpool_alloc_block_t
 {
   uint64_t                                    m_ts;
@@ -11,20 +21,91 @@ typedef struct fdb_txpool_alloc_block_t
   struct fdb_txpool_alloc_block_t* volatile   p_next_version;
 } fdb_txpool_alloc_block_t;
 
-
-
 void
-fdb_txpool_alloc_init(fdb_txpool_alloc_t* palloc, 
+fdb_txpool_alloc_init(struct fdb_txpool_alloc_t* palloc, 
                       uint32_t alignment, 
                       uint32_t block_size, 
                       uint32_t page_size,
-                      fdb_mem_allocator_t* allocator)
+                      struct fdb_mem_allocator_t* allocator);
+void
+fdb_txpool_alloc_release(struct fdb_txpool_alloc_t* palloc);
+
+void fdb_txpool_alloc_init_subsystem(struct fdb_mem_allocator_t* allocator)
+{
+  fdb_pool_alloc_init(&m_tx_pool_allocator, 
+                      FDB_TXPOOL_POOL_ALIGNMENT, 
+                      sizeof(struct fdb_txpool_alloc_t), 
+                      FDB_TXPOOL_POOL_PAGE_SIZE,
+                      allocator);
+}
+
+
+
+void fdb_txpool_alloc_release_subsystem()
+{
+  fdb_pool_alloc_release(&m_tx_pool_allocator);
+}
+
+
+struct fdb_txpool_alloc_t* 
+fdb_txpool_alloc_create(uint32_t alignment, 
+                        uint32_t block_size, 
+                        uint32_t page_size, 
+                        struct fdb_mem_allocator_t* allocator)
+{
+  struct fdb_txpool_alloc_t* alloc = fdb_pool_alloc_alloc(&m_tx_pool_allocator, 
+                                                          FDB_TXPOOL_POOL_ALIGNMENT, 
+                                                          sizeof(struct fdb_txpool_alloc_t), 
+                                                          FDB_NO_HINT);
+  fdb_txpool_alloc_init(alloc, 
+                        alignment, 
+                        block_size, 
+                        page_size, 
+                        allocator);
+  return alloc;
+}
+
+
+static void fdb_txpool_alloc_destr(void* pool)
+{
+  fdb_txpool_alloc_release((struct fdb_txpool_alloc_t*)pool);
+}
+
+void
+fdb_txpool_alloc_destroy(struct fdb_txpool_alloc_t* allocator, 
+                         struct fdb_tx_t* tx, 
+                         struct fdb_txthread_ctx_t* txtctx)
+{
+
+  fdb_txthread_ctx_gc_obj(txtctx, 
+                          allocator, 
+                          fdb_txpool_alloc_destr, 
+                          tx->m_txversion);
+}
+
+
+/**
+ * \brief inits a pool allocator
+ *
+ * \param alignment The alignment of the allocations
+ * \param block_size The size of the allocations
+ * \param page_size The size of the batches to preallocate
+ * \param allocator The parent allocator to use by this allocator
+ *
+ * \return  Returns the memory allocator
+ */
+void
+fdb_txpool_alloc_init(struct fdb_txpool_alloc_t* palloc, 
+                      uint32_t alignment, 
+                      uint32_t block_size, 
+                      uint32_t page_size,
+                      struct fdb_mem_allocator_t* allocator)
 {
   FDB_ASSERT(((allocator == NULL) ||
               (allocator->p_mem_alloc != NULL && allocator->p_mem_free != NULL)) &&
              "Provided allocator is ill-formed.")
 
-  memset(palloc, 0, sizeof(fdb_txpool_alloc_t));
+  memset(palloc, 0, sizeof(struct fdb_txpool_alloc_t));
   palloc->m_data_size = block_size;
   palloc->m_data_alignment = alignment;
 
@@ -41,32 +122,23 @@ fdb_txpool_alloc_init(fdb_txpool_alloc_t* palloc,
                       allocator);
 }
 
+/**
+ * \brief releases a pool allocator
+ *
+ * \param fdb_txpool_alloc The pool allocator to release
+ */
 void
-fdb_txpool_alloc_release(fdb_txpool_alloc_t* palloc)
+fdb_txpool_alloc_release(struct fdb_txpool_alloc_t* palloc)
 {
   fdb_pool_alloc_release(&palloc->m_data_palloc);
   fdb_pool_alloc_release(&palloc->m_block_palloc);
 }
 
 void
-fdb_txpool_alloc_flush(fdb_txpool_alloc_t* palloc)
+fdb_txpool_alloc_flush(struct fdb_txpool_alloc_t* palloc)
 {
   fdb_pool_alloc_flush(&palloc->m_data_palloc);
   fdb_pool_alloc_flush(&palloc->m_block_palloc);
-}
-
-void
-fdb_txpool_alloc_ref_nullify(fdb_txpool_alloc_t* palloc, 
-                             fdb_txpool_alloc_ref_t* ref)
-{
-  *ref = (fdb_txpool_alloc_ref_t){};
-}
-
-bool
-fdb_txpool_alloc_ref_isnull(fdb_txpool_alloc_t* palloc, 
-                            fdb_txpool_alloc_ref_t* ref)
-{
-  return ref->p_main == NULL;
 }
 
 
@@ -81,39 +153,30 @@ fdb_txpool_alloc_ref_isnull(fdb_txpool_alloc_t* palloc,
  *
  * @return 
  */
-void fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc, 
-                            fdb_tx_t* tx, 
-                            fdb_txthread_ctx_t* txtctx,
-                            uint32_t alignment, 
-                            uint32_t size,
-                            uint32_t hint, 
-                            fdb_txpool_alloc_ref_t* ref)
+struct fdb_txpool_alloc_ref_t 
+fdb_txpool_alloc_alloc(struct fdb_txpool_alloc_t* palloc, 
+                       struct fdb_tx_t* tx, 
+                       struct fdb_txthread_ctx_t* txtctx,
+                       uint32_t alignment, 
+                       uint32_t size,
+                       uint32_t hint)
 {
   FDB_ASSERT(tx->m_tx_type == E_READ_WRITE && "Read transactions cannot allocate from a transactional pool");
   FDB_ASSERT(size == palloc->m_data_size);
   FDB_ASSERT(alignment == palloc->m_data_alignment);
-  FDB_ASSERT(ref->p_main == NULL && "Alloc can only be called on a nullified reference");
 
-  ref->p_main = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
+  struct fdb_txpool_alloc_ref_t ref  = {};
+  ref.p_main = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
                                      FDB_MIN_ALIGNMENT, 
                                      sizeof(fdb_txpool_alloc_block_t), 
                                      FDB_NO_HINT);
-  *ref->p_main = (fdb_txpool_alloc_block_t){};
-
-
-  fdb_txpool_alloc_block_t* new_block = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
-                                                             FDB_MIN_ALIGNMENT, 
-                                                             sizeof(fdb_txpool_alloc_block_t), 
-                                                             FDB_NO_HINT);
-  *new_block = (fdb_txpool_alloc_block_t){};
-  new_block->p_data = fdb_pool_alloc_alloc(&palloc->m_data_palloc, 
-                                           palloc->m_data_alignment, 
-                                           palloc->m_data_size, 
-                                           hint);
-  new_block->p_next_version = ref->p_main->p_next_version;
-  new_block->m_ts = tx->m_txversion;
-  fdb_mem_barrier();
-  ref->p_main->p_next_version = new_block; 
+  *ref.p_main = (fdb_txpool_alloc_block_t){};
+  ref.p_main->p_data = fdb_pool_alloc_alloc(&palloc->m_data_palloc, 
+                                             palloc->m_data_alignment, 
+                                             palloc->m_data_size, 
+                                             hint);
+  ref.p_main->m_ts = tx->m_txversion;
+  return ref;
 }
 
 
@@ -123,23 +186,22 @@ void fdb_txpool_alloc_alloc(fdb_txpool_alloc_t* palloc,
  * #param ptr The state
  * @param ptr The pointer to the memory block to free
  */
-void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc, 
-                           fdb_tx_t* tx, 
-                           fdb_txthread_ctx_t* txtctx,
-                           fdb_txpool_alloc_ref_t* ref )
+void fdb_txpool_alloc_free(struct fdb_txpool_alloc_t* palloc, 
+                           struct fdb_tx_t* tx, 
+                           struct fdb_txthread_ctx_t* txtctx,
+                           struct fdb_txpool_alloc_ref_t ref)
 {
 
-  FDB_ASSERT(ref->p_main != NULL && "Cannot free a nullified reference");
-  FDB_ASSERT(ref->p_main->p_data != NULL && "Detected double free");
+  FDB_ASSERT(ref.p_main != NULL && "Cannot free a nullified reference");
   FDB_ASSERT(tx->m_tx_type == E_READ_WRITE && "A read-only tx cannot free a block");
 
   fdb_txpool_alloc_gc(palloc, 
                       txtctx,
                       tx->m_ortxversion,
-                      ref->p_main, 
+                      ref.p_main, 
                       false);
 
-  fdb_txpool_alloc_block_t* candidate_version = ref->p_main->p_next_version;
+  fdb_txpool_alloc_block_t* candidate_version = ref.p_main->p_next_version;
   /*while(candidate_version != NULL && 
     candidate_version->m_ts > tx->m_txversion)
     {
@@ -148,7 +210,7 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
 
   if(candidate_version == NULL)
   {
-    candidate_version = ref->p_main;
+    candidate_version = ref.p_main;
   }
 
   FDB_ASSERT((candidate_version->m_ts <= tx->m_txversion && candidate_version->p_data != NULL) && "Detected double free");
@@ -161,7 +223,7 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
                                                                sizeof(fdb_txpool_alloc_block_t), 
                                                                FDB_NO_HINT);
     *new_block = (fdb_txpool_alloc_block_t){};
-    if(candidate_version != ref->p_main)
+    if(candidate_version != ref.p_main)
     {
       new_block->p_next_version = candidate_version->p_next_version;
     }
@@ -172,7 +234,7 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
 
     new_block->m_ts = tx->m_txversion;
     fdb_mem_barrier();
-    ref->p_main->p_next_version = new_block; 
+    ref.p_main->p_next_version = new_block; 
   }
   else
   {
@@ -182,21 +244,21 @@ void fdb_txpool_alloc_free(fdb_txpool_alloc_t* palloc,
     candidate_version->p_data = NULL;
   }
 
-  fdb_txthread_ctx_add_entry(txtctx, 
-                             palloc, 
-                             ref->p_main);
+  fdb_txthread_ctx_gc_block(txtctx, 
+                            palloc, 
+                            ref.p_main);
 }
 
 
 void*
-fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc, 
-                     fdb_tx_t* tx, 
-                     fdb_txthread_ctx_t* txtctx,
-                     fdb_txpool_alloc_ref_t* ref, 
+fdb_txpool_alloc_ptr(struct fdb_txpool_alloc_t* palloc, 
+                     struct fdb_tx_t* tx, 
+                     struct fdb_txthread_ctx_t* txtctx,
+                     struct fdb_txpool_alloc_ref_t ref, 
                      bool write)
 {
 
-  FDB_ASSERT(ref->p_main != NULL && "Cannot dereference a nullified reference");
+  FDB_ASSERT(ref.p_main != NULL && "Cannot dereference a nullified reference");
 
   if(tx->m_tx_type == E_READ_WRITE)
   {
@@ -204,13 +266,13 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
     fdb_txpool_alloc_gc(palloc, 
                         txtctx,
                         tx->m_ortxversion,
-                        ref->p_main, 
+                        ref.p_main, 
                         false);
   }
 
 
   void* ret = NULL;
-  fdb_txpool_alloc_block_t* candidate_version = ref->p_main->p_next_version;
+  fdb_txpool_alloc_block_t* candidate_version = ref.p_main->p_next_version;
   while(candidate_version != NULL && 
         candidate_version->m_ts > tx->m_txversion)
   {
@@ -222,7 +284,7 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
 
   if(candidate_version == NULL)
   {
-    candidate_version = ref->p_main;
+    candidate_version = ref.p_main;
   }
 
   if(candidate_version->m_ts > tx->m_txversion ||
@@ -242,7 +304,7 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
       {
         if(write && candidate_version->m_ts < tx->m_txversion)
         {
-          FDB_ASSERT((candidate_version == ref->p_main || candidate_version == ref->p_main->p_next_version) && "Invariant violation. Write transactions should always get most recent version");
+          FDB_ASSERT((candidate_version == ref.p_main || candidate_version == ref.p_main->p_next_version) && "Invariant violation. Write transactions should always get most recent version");
 
           fdb_txpool_alloc_block_t* new_block = fdb_pool_alloc_alloc(&palloc->m_block_palloc, 
                                                                      FDB_MIN_ALIGNMENT, 
@@ -256,13 +318,13 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
 
           memcpy(new_block->p_data, candidate_version->p_data, palloc->m_data_size);
           new_block->m_ts = tx->m_txversion;
-          if(candidate_version != ref->p_main)
+          if(candidate_version != ref.p_main)
           {
             FDB_ASSERT(new_block->m_ts > candidate_version->m_ts && "Invariant violation, new block ts must be larger than previous one");
             new_block->p_next_version = candidate_version;
           }
           fdb_mem_barrier(); // to make sure that the pointer in new_ref and other values are set before the pointer of base_ref is set
-          ref->p_main->p_next_version = new_block; 
+          ref.p_main->p_next_version = new_block; 
           fdb_mem_barrier(); // to make sure that the pointer in new_ref and other values are set before the pointer of base_ref is set
           ret = new_block->p_data;
         }
@@ -277,8 +339,8 @@ fdb_txpool_alloc_ptr(fdb_txpool_alloc_t* palloc,
 }
 
 bool
-fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc, 
-                    fdb_txthread_ctx_t* txtctx,
+fdb_txpool_alloc_gc(struct fdb_txpool_alloc_t* palloc, 
+                    struct fdb_txthread_ctx_t* txtctx,
                     uint64_t orv,
                     fdb_txpool_alloc_block_t* root, 
                     bool force)
@@ -360,7 +422,7 @@ fdb_txpool_alloc_gc(fdb_txpool_alloc_t* palloc,
       }
       root->m_ts = youngest_version->m_ts;
       root->p_next_version = NULL;
-      fdb_txthread_ctx_add_entry(txtctx, palloc, youngest_version);
+      fdb_txthread_ctx_gc_block(txtctx, palloc, youngest_version);
       fdb_mem_barrier(); // to make sure that base_ref next_ref pointer is set to NULL before any modification to the version
     }
 

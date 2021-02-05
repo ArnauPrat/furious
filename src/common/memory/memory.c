@@ -4,10 +4,10 @@
 
 #include "numa_alloc.h"
 
-fdb_mem_allocator_t  global_mem_allocator;
+struct fdb_mem_allocator_t  global_mem_allocator;
 
 void*
-mem_alloc(fdb_mem_allocator_t* mem_allocator, 
+mem_alloc(struct fdb_mem_allocator_t* mem_allocator, 
           uint32_t alignment, 
           uint32_t size, 
           uint32_t hint)
@@ -19,20 +19,20 @@ mem_alloc(fdb_mem_allocator_t* mem_allocator,
 }
 
 void 
-mem_free(fdb_mem_allocator_t* mem_allocator, 
+mem_free(struct fdb_mem_allocator_t* mem_allocator, 
          void* ptr)
 {
   return mem_allocator->p_mem_free(mem_allocator->p_mem_state, 
                                    ptr);
 }
 
-fdb_mem_stats_t 
-mem_stats(fdb_mem_allocator_t* mem_allocator)
+struct fdb_mem_stats_t 
+mem_stats(struct fdb_mem_allocator_t* mem_allocator)
 {
   return mem_allocator->p_mem_stats(mem_allocator->p_mem_state);
 }
 
-fdb_mem_allocator_t*
+struct fdb_mem_allocator_t*
 fdb_get_global_mem_allocator()
 {
   if(global_mem_allocator.p_mem_alloc == NULL ||

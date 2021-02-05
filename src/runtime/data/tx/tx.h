@@ -3,6 +3,7 @@
 #define _FDB_TX_H_
 
 #include "../../../common/platform.h"
+#include "../../../common/atomic_counter.h"
 #include "../../../common/memory/pool_allocator.h"
 #include <stdbool.h>
 
@@ -12,46 +13,35 @@ extern "C" {
 
   struct fdb_txpool_alloc_t;
   struct fdb_txpool_alloc_block_t;
+  struct fdb_txthread_ctx_t;
 
 #define FDB_TX_INVALID_ID (uint64_t)0LL
 
-  typedef enum fdb_txtype_t
+  enum fdb_txtype_t
   {
     E_READ_ONLY,      ///< A read-only transaction
     E_READ_WRITE      ///< A read-write transaction
-  } fdb_txtype_t;
+  };
 
-  typedef struct fdb_tx_t
+  struct fdb_tx_t
   {
-    uint64_t          m_id;         ///< The id of the transaction 
-    uint64_t          m_txversion;       ///< The maximum version timestamp
-    uint64_t          m_ortxversion;       ///< The ts of the oldest running ts. Used for GC during executiong of READ_WRITE tx's. 
-    fdb_txtype_t      m_tx_type;    ///< The transaction type
-    struct fdb_tx_t*  p_next;
-    struct fdb_tx_t*  p_prev;
-  } fdb_tx_t;
-
-  typedef struct fdb_txgarbage_t
-  {
-    struct fdb_txpool_alloc_t*        p_palloc;   ///< The txpool where this garbage item belongs to
-    struct fdb_txpool_alloc_block_t*  p_block;    ///< The block to the garbage
-    struct fdb_txgarbage_t*           p_next;     ///< The next garbage entry in the linkect list
-    struct fdb_txgarbage_t*           p_prev;     ///< The previous garbage entry in th elinked list
-    bool                              m_release;  ///< Whether to fully release the reference or just GC it
-  } fdb_txgarbage_t;
-
-
-  typedef struct fdb_txthread_ctx_t
-  {
-    fdb_pool_alloc_t    m_palloc;       ///< the pool allocator used to allocate garbage objects
-    fdb_txgarbage_t*    p_first;        ///< the first garbage object in the linked list 
-  } fdb_txthread_ctx_t;
+    uint64_t                    m_id;           //< The id of the transaction 
+    uint64_t                    m_txversion;    //< The maximum version timestamp
+    uint64_t                    m_ortxversion;  //< The ts of the oldest running ts. Used for GC during executiong of READ_WRITE tx's. 
+    enum fdb_txtype_t           m_tx_type;      //< The transaction type
+    struct fdb_tx_t*            p_next;         //< Next transaction in the transaction list
+    struct fdb_tx_t*            p_prev;         //< Previous transaction in the transaction list
+    struct fdb_txthread_ctx_t*  p_first_ctx;     //< Pointer to the first context in the thread context list
+    struct fdb_txthread_ctx_t*  p_last_ctx;     //< Pointer to the first context in the thread context list
+  };
 
   /**
    * \brief Initializes the transactional subsytem
+   *
+   * \param The memory allocator used to allocate the pools.
    */
   void
-  fdb_tx_init();
+  fdb_tx_init(struct fdb_mem_allocator_t* pool_allocator);
 
   /**
    * \brief Releases the transactional subsystem
@@ -68,7 +58,8 @@ extern "C" {
    * \param fdb_txtype_t The type of transaction
    */
   void
-  fdb_tx_begin(fdb_tx_t* tx, fdb_txtype_t txtype);
+  fdb_tx_begin(struct fdb_tx_t* tx, 
+               enum fdb_txtype_t txtype);
 
   /**
    * \brief Commits a transaction
@@ -76,7 +67,7 @@ extern "C" {
    * \param tx The transaction to commit
    */
   void 
-  fdb_tx_commit(fdb_tx_t* tx); 
+  fdb_tx_commit(struct fdb_tx_t* tx); 
 
   /**
    * \brief Locks the tx manager so no transactions can beging
@@ -97,17 +88,9 @@ extern "C" {
    * \param txtctx The txthread context to initialize
    * \param allocator Pointer to the memory allocator to use within the context
    */
-  void
-  fdb_txthread_ctx_init(fdb_txthread_ctx_t* txtctx, 
-                        fdb_mem_allocator_t* allocator);
-
-  /**
-   * \brief Releases the txthread context
-   *
-   * \param txctx The txthread context to release
-   */
-  void
-  fdb_txthread_ctx_release(fdb_txthread_ctx_t* txctx);
+  struct fdb_txthread_ctx_t*  
+  fdb_tx_txthread_ctx_get(struct fdb_tx_t* tx, 
+                          struct fdb_mem_allocator_t* allocator);
 
   /**
    * \brief Adds a txpool reference to the given txthread context
@@ -120,22 +103,27 @@ extern "C" {
    * \param release True if we want to fully release the reference.
    */
   void
-  fdb_txthread_ctx_add_entry(fdb_txthread_ctx_t* txtctx, 
-                             struct fdb_txpool_alloc_t* palloc, 
-                             struct fdb_txpool_alloc_block_t* ref);
+  fdb_txthread_ctx_gc_block(struct fdb_txthread_ctx_t* txtctx, 
+                            struct fdb_txpool_alloc_t* palloc, 
+                            struct fdb_txpool_alloc_block_t* ref);
 
   /**
-   * \brief Executes the garbage collection process on this txthread ctx.
+   * \brief Garbage collectes an object. Used to gc objects whose destruction
+   * needs to happen after a block has been gced.
    *
-   * \param txtctx The txthread context to run the garbage collection process
-   * for
-   * \param force Locks the tx manager and forces the garbage collection process.  
-   *
-   * \return True if all items were garbage collected. False otherwise
+   * \param txtctx The thread context
+   * \param obj The obj to gc
+   * \param destr The destructor to gc the object
+   * \param ts The timestamp of the transaction that marked this object to be
+   * gced
    */
-  bool 
-  fdb_txthread_ctx_gc(fdb_txthread_ctx_t* txtctx, 
-                      bool force);
+  void
+  fdb_txthread_ctx_gc_obj(struct fdb_txthread_ctx_t* txtctx, 
+                          void* obj,
+                          void (*destr)(void*),
+                          uint64_t ts);
+
+
 
 
 #ifdef __cplusplus

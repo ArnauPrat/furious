@@ -8,14 +8,14 @@
 extern "C" {
 #endif
 
-typedef enum fdb_log_level_t
+enum fdb_log_level_t
 {
   E_INFO,
   E_WARNING,
   E_ERROR
-} fdb_log_level_t;
+};;
 
-typedef void (*fdb_log_func_t) (fdb_log_level_t, const char*);  // hint with the block id of this allocation. -1 indicates no hint
+typedef void (*fdb_log_func_t) (enum fdb_log_level_t, const char*);  // hint with the block id of this allocation. -1 indicates no hint
 
 extern fdb_log_func_t m_log_function;
 

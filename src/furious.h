@@ -10,22 +10,22 @@
 #include <string.h>
 
 extern void 
-furious_init(fdb_database_t* database);
+furious_init(struct fdb_database_t* database);
 
 extern void 
 furious_frame(float delta, 
-              fdb_database_t* database,
+              struct fdb_database_t* database,
               void* user_data);
 
 extern void 
 furious_post_frame(float delta, 
-                   fdb_database_t* database,
+                   struct fdb_database_t* database,
                    void* user_data);
 
-extern fdb_task_graph_t* 
+extern struct fdb_task_graph_t* 
 furious_task_graph();
 
-extern fdb_task_graph_t* 
+extern struct fdb_task_graph_t* 
 furious_post_task_graph();
 
 extern void 

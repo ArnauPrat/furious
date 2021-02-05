@@ -12,29 +12,44 @@ FDB_END_COMPONENT
 
 TEST(RefsTest,TagWorks) 
 {
+  fdb_tx_init(NULL);
   fdb_database_t database;
   fdb_database_init(&database, 
                     nullptr);
+
+  fdb_tx_t tx;
+  fdb_tx_begin(&tx, E_READ_WRITE);
+  fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, NULL);
 
   entity_id_t entX=0;
   entity_id_t entY=1;
   entity_id_t entZ=2;
 
-  fdb_reftable_t* rt = fdb_database_find_or_create_reftable(&database, "test_ref");
-  fdb_reftable_add(rt, entX, entY);
-  fdb_reftable_add(rt, entY, entZ);
+  fdb_txtable_t* rt = fdb_database_find_or_create_reftable(&database, 
+                                                           &tx, 
+                                                           txtctx, 
+                                                           "test_ref");
+  fdb_txtable_add_reference(rt, &tx, txtctx, entX, entY);
+  fdb_txtable_add_reference(rt, &tx, txtctx, entY, entZ);
 
 
-  ASSERT_TRUE(fdb_reftable_exists(rt, entX, entY));
-  ASSERT_TRUE(fdb_reftable_exists(rt, entY, entZ));
-  ASSERT_FALSE(fdb_reftable_exists(rt, entX, entZ));
+  ASSERT_TRUE(fdb_txtable_exists_reference(rt, &tx, txtctx, entX, entY));
+  ASSERT_TRUE(fdb_txtable_exists_reference(rt, &tx, txtctx, entY, entZ));
+  ASSERT_FALSE(fdb_txtable_exists_reference(rt,&tx, txtctx,  entX, entZ));
 
-  fdb_reftable_add(rt, entX, entZ);
+  fdb_txtable_add_reference(rt, 
+                            &tx, 
+                            txtctx, 
+                            entX, entZ);
 
-  ASSERT_TRUE(fdb_reftable_exists(rt, entX, entZ));
-  ASSERT_FALSE(fdb_reftable_exists(rt, entX, entY));
+  ASSERT_TRUE(fdb_txtable_exists_reference(rt, &tx, txtctx, entX, entZ));
+  ASSERT_FALSE(fdb_txtable_exists_reference(rt, &tx, txtctx, entX, entY));
 
-  fdb_database_release(&database);
+  fdb_database_release(&database, 
+                       &tx, 
+                       txtctx);
+  fdb_tx_commit(&tx);
+  fdb_tx_release();
 }
 
 int main(int argc, char *argv[])

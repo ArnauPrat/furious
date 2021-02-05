@@ -20,8 +20,11 @@ TEST(BTreeTest, fdb_btree_create)
                        KILOBYTES(64), 
                        nullptr);
 
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, &lallocator.m_super);
+
   fdb_btree_t btree;
-  fdb_btree_init(&btree, &lallocator.m_super);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* internal = fdb_btree_create_internal(&btree);
   for (uint32_t i = 0; i < FDB_BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
@@ -47,14 +50,17 @@ TEST(BTreeTest, fdb_btree_create)
   ASSERT_EQ(leaf->m_leaf.m_next, nullptr);
   fdb_btree_destroy_node(&btree,leaf);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
   fdb_stack_alloc_release(&lallocator);
 }
 
 TEST(BTreeTest, fdb_btree_next_internal) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
   fdb_btree_init(&btree, 
-                 nullptr);
+                 &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_internal(&btree);
 
   for (uint32_t i = 0; i < FDB_BTREE_INTERNAL_MAX_ARITY; ++i) 
@@ -75,12 +81,15 @@ TEST(BTreeTest, fdb_btree_next_internal)
 
   fdb_btree_destroy_node(&btree, node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_next_leaf) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_leaf(&btree);
 
   for (uint32_t i = 0; i < FDB_BTREE_LEAF_MAX_ARITY; ++i) 
@@ -109,14 +118,17 @@ TEST(BTreeTest, fdb_btree_next_leaf)
 
   fdb_btree_destroy_node(&btree, node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_split_internal) 
 {
 
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
   fdb_btree_init(&btree, 
-                 nullptr);
+                 &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_internal(&btree);
 
   for (uint32_t i = 0; i < FDB_BTREE_INTERNAL_MAX_ARITY; ++i) 
@@ -175,12 +187,15 @@ TEST(BTreeTest, fdb_btree_split_internal)
   fdb_btree_destroy_node(&btree, 
                      node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_split_leaf) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_leaf(&btree);
 
   for (uint32_t i = 0; i < FDB_BTREE_LEAF_MAX_ARITY; ++i) 
@@ -241,12 +256,15 @@ TEST(BTreeTest, fdb_btree_split_leaf)
   fdb_btree_destroy_node(&btree, 
                      node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_get) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_internal(&btree);
 
   for (uint32_t i = 0; i < FDB_BTREE_INTERNAL_MAX_ARITY; ++i) 
@@ -283,12 +301,15 @@ TEST(BTreeTest, fdb_btree_get)
 
   fdb_btree_destroy_node(&btree, node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_shift_insert_internal) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_internal(&btree);
   fdb_btree_node_t* child = fdb_btree_create_internal(&btree);
   node->m_internal.m_children[0] = child;
@@ -312,12 +333,15 @@ TEST(BTreeTest, fdb_btree_shift_insert_internal)
 
   fdb_btree_destroy_node(&btree, node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_insert_root) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t root;
-  fdb_btree_init(&root, nullptr);
+  fdb_btree_init(&root, &btree_factory);
   TestValue val1;
   TestValue val2;
   fdb_btree_insert_t insert = fdb_btree_insert(&root, 0, &val1); 
@@ -333,12 +357,15 @@ TEST(BTreeTest, fdb_btree_insert_root)
   ASSERT_EQ(insert.m_inserted, false);
 
   fdb_btree_release(&root);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_remove_shift_internal) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_internal(&btree);
   for (uint32_t i = 0; i < FDB_BTREE_INTERNAL_MAX_ARITY; ++i) 
   {
@@ -368,12 +395,15 @@ TEST(BTreeTest, fdb_btree_remove_shift_internal)
   fdb_btree_destroy_node(&btree, 
                      node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, fdb_btree_remove_shift_leaf) 
 {
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, nullptr);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, nullptr);
+  fdb_btree_init(&btree, &btree_factory);
   fdb_btree_node_t* node = fdb_btree_create_leaf(&btree);
   for (uint32_t i = 0; i < FDB_BTREE_LEAF_MAX_ARITY; ++i) 
   {
@@ -402,14 +432,17 @@ TEST(BTreeTest, fdb_btree_remove_shift_leaf)
 
   fdb_btree_destroy_node(&btree, node);
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
 }
 
 TEST(BTreeTest, BTIteratorTest) 
 {
   fdb_stack_alloc_t lallocator;
   fdb_stack_alloc_init(&lallocator, KILOBYTES(64), nullptr);
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, &lallocator.m_super);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, &lallocator.m_super);
+  fdb_btree_init(&btree, &btree_factory);
 
   uint32_t BTREE_MAX_BLOCK=1024;
   fdb_hashtable_t hashtable;
@@ -458,6 +491,7 @@ TEST(BTreeTest, BTIteratorTest)
   fdb_hashtable_iter_release(&iter);
 
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
   fdb_hashtable_release(&hashtable);
   //ASSERT_EQ(fdb_btree_num_allocations, 0);
   fdb_stack_alloc_release(&lallocator);
@@ -467,8 +501,10 @@ TEST(BTreeTest, BTreeSteps)
 {
   fdb_stack_alloc_t lallocator;
   fdb_stack_alloc_init(&lallocator, KILOBYTES(64), nullptr);
+  fdb_btree_factory_t btree_factory;
+  fdb_btree_factory_init(&btree_factory, &lallocator.m_super);
   fdb_btree_t btree;
-  fdb_btree_init(&btree, &lallocator.m_super);
+  fdb_btree_init(&btree, &btree_factory);
   constexpr uint32_t MAX_ELEMENTS = 1000;
   uint32_t stride = 21;
   uint32_t offset = 21604;
@@ -484,6 +520,7 @@ TEST(BTreeTest, BTreeSteps)
   }
 
   fdb_btree_release(&btree);
+  fdb_btree_factory_release(&btree_factory);
   fdb_stack_alloc_release(&lallocator);
   //ASSERT_EQ(fdb_btree_num_allocations, 0);
 }

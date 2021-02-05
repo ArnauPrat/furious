@@ -6,13 +6,13 @@
 #include <string.h>
 
 void
-fdb_task_graph_init(fdb_task_graph_t* task_graph, 
+fdb_task_graph_init(struct fdb_task_graph_t* task_graph, 
                     uint32_t num_tasks,
                     uint32_t num_roots)
 {
-  task_graph->m_tasks = (fdb_task_t*)fdb_numa_alloc(NULL, 
+  task_graph->m_tasks = (struct fdb_task_t*)fdb_numa_alloc(NULL, 
                                                    64, 
-                                                   sizeof(fdb_task_t)*num_tasks, 
+                                                   sizeof(struct fdb_task_t)*num_tasks, 
                                                    FDB_NO_HINT);
 
   task_graph->m_roots = (uint32_t*)fdb_numa_alloc(NULL, 
@@ -25,7 +25,7 @@ fdb_task_graph_init(fdb_task_graph_t* task_graph,
 
 
 void
-fdb_task_graph_release(fdb_task_graph_t* task_graph)
+fdb_task_graph_release(struct fdb_task_graph_t* task_graph)
 {
   fdb_numa_free(NULL, task_graph->m_tasks);
   fdb_numa_free(NULL, task_graph->m_roots);
@@ -33,13 +33,13 @@ fdb_task_graph_release(fdb_task_graph_t* task_graph)
 
 
 void
-fdb_task_graph_insert_task(fdb_task_graph_t* task_graph,
-                       uint32_t task_id,
-                       fdb_task_func_t func,
-                       bool requires_sync,
-                       const char* info)
+fdb_task_graph_insert_task(struct fdb_task_graph_t* task_graph,
+                           uint32_t task_id,
+                           fdb_task_func_t func,
+                           bool requires_sync,
+                           const char* info)
 {
-  memset(&task_graph->m_tasks[task_id], 0, sizeof(fdb_task_t));
+  memset(&task_graph->m_tasks[task_id], 0, sizeof(struct fdb_task_t));
   task_graph->m_tasks[task_id].m_id = task_id;
   task_graph->m_tasks[task_id].p_info = info;
   task_graph->m_tasks[task_id].p_func = func;
@@ -47,12 +47,12 @@ fdb_task_graph_insert_task(fdb_task_graph_t* task_graph,
 }
 
 void
-fdb_task_graph_set_parent(fdb_task_graph_t* task_graph,
-                uint32_t task_id,
-                uint32_t parent_id)
+fdb_task_graph_set_parent(struct fdb_task_graph_t* task_graph,
+                          uint32_t task_id,
+                          uint32_t parent_id)
 {
-  fdb_task_t* c = &task_graph->m_tasks[task_id];
-  fdb_task_t* p = &task_graph->m_tasks[parent_id];
+  struct fdb_task_t* c = &task_graph->m_tasks[task_id];
+  struct fdb_task_t* p = &task_graph->m_tasks[parent_id];
 
   FDB_ASSERT(c->m_num_parents < FCC_MAX_TASK_PARENTS && "Task maximum number of parents exceeded");
   FDB_ASSERT(p->m_num_parents < FCC_MAX_TASK_CHILDREN && "Task maximum number of children exceeded");
@@ -62,15 +62,15 @@ fdb_task_graph_set_parent(fdb_task_graph_t* task_graph,
 }
 
 void
-fdb_task_graph_set_root(fdb_task_graph_t* task_graph,
-                    uint32_t root_idx,
-                    uint32_t task_id)
+fdb_task_graph_set_root(struct fdb_task_graph_t* task_graph,
+                        uint32_t root_idx,
+                        uint32_t task_id)
 {
   task_graph->m_roots[root_idx] = task_id;
 }
 
 static bool
-all_visited_parents(const fdb_task_graph_t* task_graph, 
+all_visited_parents(const struct fdb_task_graph_t* task_graph, 
                     uint32_t node_id,
                     bool * visited)
 {
@@ -87,10 +87,10 @@ all_visited_parents(const fdb_task_graph_t* task_graph,
 }
 
 void
-fdb_task_graph_run(fdb_task_graph_t* task_graph,
-               float delta,
-               fdb_database_t* database,
-               void* user_data)
+fdb_task_graph_run(struct fdb_task_graph_t* task_graph,
+                   float delta,
+                   struct fdb_database_t* database,
+                   void* user_data)
 {
   const uint32_t num_nodes = task_graph->m_num_tasks;
   bool visited_nodes[num_nodes];
@@ -117,7 +117,7 @@ fdb_task_graph_run(fdb_task_graph_t* task_graph,
           for(uint32_t ii = 0; ii < ccfrontier; ++ii)
           {
             const uint32_t next_node_id = cfrontier[ii];
-            const fdb_task_t* next_node = &task_graph->m_tasks[next_node_id]; 
+            const struct fdb_task_t* next_node = &task_graph->m_tasks[next_node_id]; 
             next_node->p_func(delta, database, user_data, 1, 0, 1, NULL);
             const uint32_t* children = next_node->m_children;
             const uint32_t num_children = next_node->m_num_children;

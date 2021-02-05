@@ -28,7 +28,8 @@ void* fdb_numa_alloc(void* state,
   //  real_size += (min_alignment-residual);
   //}
   void* ptr = NULL;
-  posix_memalign(&ptr, min_alignment, size);
+  int ret = posix_memalign(&ptr, min_alignment, size);
+  FDB_ASSERT(ret == 0);
   return ptr;
 }
 

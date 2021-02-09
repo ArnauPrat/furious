@@ -44,14 +44,18 @@ struct Component \
   fdb_database_find_table(database,\
                       #component)
 
-#define FDB_FIND_OR_CREATE_TABLE(database, component, dstr)\
+#define FDB_FIND_OR_CREATE_TABLE(database, tx, txtctx, component, dstr)\
   fdb_database_find_or_create_table(database,\
+                                    tx,\
+                                    txtctx,\
                                 #component,\
                                 sizeof(component),\
                                 dstr)
 
-#define FDB_CREATE_GLOBAL(database, component, dstr) \
+#define FDB_CREATE_GLOBAL(database, tx, txtctx, component, dstr) \
   (component*)fdb_database_create_global(database,\
+                                         tx,\
+                                         txtctx,\
                                      #component,\
                                      sizeof(component),\
                                      dstr)
@@ -75,16 +79,16 @@ struct Component \
                                             destr)
 
 #define FDB_FIND_REF_TABLE(database, ref_name)\
-  fdb_database_find_reftable(database, ref_name)
+  fdb_database_find_table(database, ref_name)
 
-#define FDB_FIND_OR_CREATE_REF_TABLE(database, ref_name)\
-  fdb_database_find_or_create_reftable(database, ref_name)
+#define FDB_FIND_OR_CREATE_REF_TABLE(database, tx, txtctx, ref_name)\
+  fdb_database_find_or_create_table(database, tx, txtctx, ref_name, sizeof(entity_id_t), NULL)
 
-#define FDB_CREATE_REF_TABLE(database, ref_name)\
-  fdb_database_find_or_create_reftable(database, ref_name)
+#define FDB_CREATE_REF_TABLE(database, tx, txtctx, ref_name)\
+  fdb_database_create_table(database, tx, txtctx, ref_name, sizeof(entity_id_t), NULL)
 
-#define FDB_FIND_TAG_TABLE(database, tagname)\
-  fdb_database_get_tagged_entities(database, tagname)
+#define FDB_FIND_TAG_TABLE(database, tx, txtctx, tagname)\
+  fdb_database_get_tagged_entities(database, tx, txtctx, tagname)
 
 #define FDB_GET_REFL_DATA(database, component) \
   fdb_mregistry_get_mstruct(fdb_database_get_mregistry(database), #component);
@@ -116,8 +120,8 @@ struct Component \
 #define FDB_REMOVE_COMPONENT(table, tx, txtctx, entity) \
   fdb_txtable_destroy_component(table, tx, txtctx, entity)
 
-#define FDB_GET_COMPONENT(table, tx, txtctx, component, entity) \
-  ((component*)fdb_txtable_get_component(table, tx, txtctx, entity))
+#define FDB_GET_COMPONENT(table, tx, txtctx, component, entity, write) \
+  ((component*)fdb_txtable_get_component(table, tx, txtctx, entity, write))
 
 #define FDB_ADD_TAG(bittable, tx, txtctx, entity) \
   fdb_txbittable_add(bittable, tx, txtctx, entity)

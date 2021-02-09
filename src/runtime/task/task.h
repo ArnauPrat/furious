@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+struct fdb_tx_t;
+struct fdb_txthread_ctx_t;
 struct fdb_database_t;
 struct fdb_barrier_t
 {
@@ -18,7 +20,9 @@ struct fdb_barrier_t
   void (*p_reset) ();
 };
 
-typedef void (*fdb_task_func_t) (float, // delta 
+typedef void (*fdb_task_func_t) (struct fdb_tx_t*, 
+                                 struct fdb_txthread_ctx_t*, 
+                                 float, // delta 
                                  struct fdb_database_t*, // database
                                  void*, // userdata
                                  uint32_t, // chunksize 

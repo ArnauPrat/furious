@@ -135,7 +135,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   fprintf(fd, "\n\n\n");
   fprintf(fd,"// Variable declarations \n");
 
-  fprintf(fd,"fdb_htregistry_t ht_registry;\n\n");
+  fprintf(fd,"fdb_htregistry_t ht_registry;\n");
 
   fcc_vars_extr_t vars_extr;
   fcc_vars_extr_init(&vars_extr);
@@ -162,7 +162,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                         FCC_MAX_TABLE_VARNAME);
 
 
-    fprintf(fd, "fdb_table_t* %s;\n", tmp);
+    fprintf(fd, "struct fdb_txtable_t* %s;\n", tmp);
   }
 
   const uint32_t nrefs = vars_extr.m_refs.m_count;
@@ -174,7 +174,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                             tmp, 
                             FCC_MAX_REF_TABLE_VARNAME);
 
-    fprintf(fd, "fdb_reftable_t* %s;\n", tmp);
+    fprintf(fd, "struct fdb_txtable_t* %s;\n", tmp);
   }
 
   // DECLARING BITTABLES
@@ -188,7 +188,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                            FCC_MAX_TAG_TABLE_VARNAME);
 
 
-    fprintf(fd, "fdb_bittable_t* %s;\n", tmp);
+    fprintf(fd, "struct fdb_txbittable_t* %s;\n", tmp);
   }
 
   // DECLARING SYSTEMWRAPPERS
@@ -212,8 +212,8 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fprintf(fd, "%s* %s;\n", system_name, wrapper_name);
   }
 
-  fprintf(fd, "fdb_task_graph_t task_graph;\n");
-  fprintf(fd, "fdb_task_graph_t post_task_graph;\n");
+  fprintf(fd, "struct fdb_task_graph_t task_graph;\n");
+  fprintf(fd, "struct fdb_task_graph_t post_task_graph;\n");
 
   // DEFINING TASKS CODE BASED ON EXECUTION PLAN ROOTS
   num_nodes = exec_plan->m_nnodes;
@@ -224,23 +224,66 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fcc_subplan_printer_print(&printer, 
                               exec_plan->m_subplans[i]);
     fprintf(fd,"const char* __task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
-    fprintf(fd,"void __task_%d(float delta,\n\
-    fdb_database_t* database,\n\
+    fprintf(fd,"void __task_%d(struct fdb_tx_t* tx,\n\
+            struct fdb_txthread_ctx_t* txtctx,\n\
+            float delta,\n\
+            struct fdb_database_t* database,\n\
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
             uint32_t stride,\n\
-            fdb_barrier_t* barrier)\n", 
+            struct fdb_barrier_t* barrier)\n", 
             i);
 
     fprintf(fd,"{\n");
 
-    fprintf(fd, "fdb_context_t context;\n");
+    fprintf(fd, "struct fdb_context_t context;\n");
     fprintf(fd, "fdb_context_init(&context, delta,database,user_data, chunk_size, offset, stride);\n");
-    fprintf(fd, "fdb_stack_alloc_t task_allocator;\n");
+    fprintf(fd, "struct fdb_stack_alloc_t task_allocator;\n");
     fprintf(fd, "fdb_stack_alloc_init(&task_allocator, KILOBYTES(4), fdb_get_global_mem_allocator());\n");
+
+  // INITIALIZING  BTREE FACTORY
+    fprintf(fd,"struct fdb_btree_factory_t btree_factory;\n\n");
+    fprintf(fd, "fdb_btree_factory_init(&btree_factory\n, &task_allocator.m_super);\n");
+
+  // INITIALIZING  BCLUSTER FACTORY
+    fprintf(fd,"struct fdb_bcluster_factory_t bcluster_factory;\n\n");
+    fprintf(fd, "fdb_bcluster_factory_init(&bcluster_factory\n, &task_allocator.m_super);\n");
+
+    // INITIALIZING BITMAP FACTORY
+    fprintf(fd,"struct fdb_bitmap_factory_t bitmap_factory;\n\n");
+    fprintf(fd, "fdb_bitmap_factory_init(&bitmap_factory\n, FDB_TXTABLE_BLOCK_SIZE, &task_allocator.m_super);\n");
+
+    // INITIALIZING TMPTABLE FACTORY
+    fprintf(fd,"struct fdb_tmptable_factory_t tmptable_factory;\n\n");
+    fprintf(fd, "fdb_tmptable_factory_init(&tmptable_factory\n, &task_allocator.m_super);\n");
+
+    // INITIALIZING TMPBITTABLE FACTORY
+    fprintf(fd,"struct fdb_tmpbittable_factory_t tmpbittable_factory;\n\n");
+    fprintf(fd, "fdb_tmpbittable_factory_init(&tmpbittable_factory\n, &task_allocator.m_super);\n");
+
     const fcc_operator_t* root = &exec_plan->m_subplans[i]->m_nodes[exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
+
+    // RELEASING TMPBITTABLE FACTORY 
+    fprintf(fd, 
+            "fdb_tmpbittable_factory_release(&tmpbittable_factory);\n\n");
+
+    // RELEASING TMPTABLE FACTORY 
+    fprintf(fd, 
+            "fdb_tmptable_factory_release(&tmptable_factory);\n\n");
+
+    // RELEASING BCLUSTER FACTORY 
+    fprintf(fd, 
+            "fdb_bitmap_factory_release(&bitmap_factory);\n\n");
+
+    // RELEASING BCLUSTER FACTORY 
+    fprintf(fd, 
+            "fdb_bcluster_factory_release(&bcluster_factory);\n\n");
+
+    // RELEASING BTREE FACTORY 
+    fprintf(fd, 
+            "fdb_btree_factory_release(&btree_factory);\n\n");
     fprintf(fd, "fdb_stack_alloc_release(&task_allocator);\n");
     fprintf(fd,"}\n");
     fcc_subplan_printer_release(&printer);
@@ -255,17 +298,19 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
     fcc_subplan_printer_print(&printer, 
                               post_exec_plan->m_subplans[i]);
     fprintf(fd,"const char* __pf_task_%d_info = \"%s\";\n", i, printer.m_str_builder.p_buffer);
-    fprintf(fd,"void __pf_task_%d(float delta,\n\
-    databaset* database,\n\
+    fprintf(fd,"void __pf_task_%d(struct fdb_tx_t* tx,\n\
+            struct fdb_txthread_ctx_t* txtctx,\n\
+            float delta,\n\
+    struct fdb_database_t* database,\n\
             void* user_data,\n\
             uint32_t chunk_size,\n\
             uint32_t offset,\n\
             uint32_t stride,\n\
-            fdb_barrier_t* barrier)\n", i);
+            struct fdb_barrier_t* barrier)\n", i);
     fprintf(fd,"{\n");
 
-    fprintf(fd, "fdb_context_t context;\n");
-    fprintf(fd, "fdb_stack_alloc_t task_allocator;\n");
+    fprintf(fd, "struct fdb_context_t context;\n");
+    fprintf(fd, "struct fdb_stack_alloc_t task_allocator;\n");
     fprintf(fd, "fdb_stack_alloc_init(&task_allocator, KILOBYTES(4), fdb_get_global_mem_allocator());\n");
     const fcc_operator_t* root = &post_exec_plan->m_subplans[i]->m_nodes[post_exec_plan->m_subplans[i]->m_root];
     produce(fd,root, true);
@@ -277,10 +322,16 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
   /// GENERATING furious__init  
   fprintf(fd, "\n\n\n");
   fprintf(fd, "// Variable initializations \n");
-  fprintf(fd, "void furious_init(fdb_database_t* database)\n{\n");
+  fprintf(fd, "void furious_init(struct fdb_database_t* database)\n{\n");
+
+  // CREATING INIT TRANSACTION
+  fprintf(fd, "struct fdb_tx_t tx;");
+  fprintf(fd, "fdb_tx_begin(&tx, E_READ_WRITE);");
+  fprintf(fd, "struct fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, NULL);");
 
   // INITIALIZING HT REGISTRY
-  fprintf(fd, "fdb_htregistry_init(&ht_registry\n, NULL);\n");
+  fprintf(fd, "fdb_htregistry_init(&ht_registry\n, fdb_get_global_mem_allocator());\n");
+
 
   // INITIALIZING TABLEVIEWS 
   {
@@ -294,7 +345,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
                           FCC_MAX_TABLE_VARNAME);
 
       fprintf(fd,
-              "%s  = FDB_FIND_OR_CREATE_TABLE(database, %s, nullptr);\n",
+              "%s  = FDB_FIND_OR_CREATE_TABLE(database, &tx, txtctx, %s, nullptr);\n",
               tmp,
               comps[i]);
     }
@@ -313,7 +364,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
 
       fprintf(fd,
-              "%s  = FDB_FIND_OR_CREATE_REF_TABLE(database, \"%s\");\n",
+              "%s  = FDB_FIND_OR_CREATE_REF_TABLE(database, &tx, txtctx, \"%s\");\n",
               tmp,
               refs[i]);
     }
@@ -332,7 +383,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
 
       fprintf(fd,
-              "%s = FDB_FIND_TAG_TABLE(database, \"%s\");\n",
+              "%s = FDB_FIND_TAG_TABLE(database, &tx, txtctx, \"%s\");\n",
               tmp,
               tags[i]);
     }
@@ -414,6 +465,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
   fcc_generate_task_graph(fd, "&post_task_graph", "__pf_task", post_exec_plan);
 
+  fprintf(fd, "fdb_tx_commit(&tx);");
 
   fprintf(fd,"}\n");
 
@@ -466,6 +518,7 @@ fcc_generate_code(const fcc_exec_plan_t* exec_plan,
 
   fprintf(fd, 
           "fdb_task_graph_release(&post_task_graph);\n");
+
 
   // RELEASING HT REGISTRY
   fprintf(fd, 

@@ -107,8 +107,8 @@ TEST(TableTest,TableWorks)
   ASSERT_EQ(fdb_txtable_size(t, &tx, txtctx),0);
 
   FDB_REMOVE_TABLE(&database, &tx, txtctx, Component);
-  fdb_database_release(&database, &tx, txtctx);
   fdb_tx_commit(&tx);
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 
@@ -158,9 +158,9 @@ TEST(IteratorTest,TableWorks)
     uint32_t block_start = block->m_start / FDB_TXTABLE_BLOCK_SIZE;
     ASSERT_TRUE(block_start % 2 == 1);
   }
-
-  fdb_database_release(&database, &tx, txtctx);
   fdb_tx_commit(&tx);
+
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 

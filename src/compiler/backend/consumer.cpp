@@ -164,7 +164,7 @@ consume_foreach(FILE*fd,
     {
       case fcc_column_type_t::E_COMPONENT:
         fprintf(fd,
-                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(%s->p_blocks[%d]);\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -173,7 +173,7 @@ consume_foreach(FILE*fd,
         break;
       case fcc_column_type_t::E_REFERENCE:
         fprintf(fd,
-                "FDB_ALIGNED(%s**,data_%d,64) = (%s**)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                "FDB_ALIGNED(%s**,data_%d,64) = (%s**)(%s->p_blocks[%d]);\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -182,7 +182,7 @@ consume_foreach(FILE*fd,
         break;
       case fcc_column_type_t::E_GLOBAL:
         fprintf(fd,
-                "FDB_ALIGNED(%s*,data_%d, 64) = (%s*)(fdb_bcluster_get_global(%s, %d));\n", 
+                "FDB_ALIGNED(%s*,data_%d, 64) = (%s*)(%s->p_blocks[%d]);\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -264,11 +264,11 @@ consume_foreach(FILE*fd,
   else
   {
     fprintf(fd,
-            "if(%s->m_enabled.m_num_set == FDB_TABLE_BLOCK_SIZE)\n{\n", 
+            "if(%s->m_enabled.m_num_set == FDB_TXTABLE_BLOCK_SIZE)\n{\n", 
             source);
 
     fprintf(fd,
-            "for (size_t i = 0; i < FDB_TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FDB_TXTABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
             "%s",
             str_builder.p_buffer);
@@ -279,7 +279,7 @@ consume_foreach(FILE*fd,
     fprintf(fd,
             "else\n{\n");
     fprintf(fd,
-            "for (size_t i = 0; i < FDB_TABLE_BLOCK_SIZE; ++i)\n{\n");
+            "for (size_t i = 0; i < FDB_TXTABLE_BLOCK_SIZE; ++i)\n{\n");
     fprintf(fd,
             "if(fdb_bitmap_is_set(&%s->m_enabled, i))\n{\n", 
             source);
@@ -332,22 +332,22 @@ consume_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source); 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, cluster->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, cluster->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             hashtable); 
   }
   else 
   {
 
     fprintf(fd,
-            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE);\n",
+            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
 
@@ -362,7 +362,7 @@ consume_join(FILE*fd,
             "fdb_bcluster_t %s;\n", 
             clustername);
     fprintf(fd,
-            "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+            "fdb_bcluster_init(&%s, &bcluster_factory);\n", 
             clustername);
     fprintf(fd,
             "fdb_bcluster_append_cluster(&%s, build);\n", 
@@ -388,7 +388,7 @@ consume_join(FILE*fd,
     fprintf(fd,"}\n");
 
     fprintf(fd,
-            "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+            "fdb_bcluster_release(&%s);\n", 
             clustername);
 
     fprintf(fd,"}\n");
@@ -410,24 +410,24 @@ consume_leftfilter_join(FILE*fd,
   {
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
   else 
   {
     fprintf(fd,
-            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE);\n",
+            "fdb_bcluster_t* build = (fdb_bcluster_t*)fdb_btree_get(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n",
             hashtable,
             source);
     fprintf(fd,
@@ -441,7 +441,7 @@ consume_leftfilter_join(FILE*fd,
             "fdb_bcluster_t %s;\n", 
             clustername);
     fprintf(fd,
-            "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+            "fdb_bcluster_init(&%s, &bcluster_factory);\n", 
             clustername);
     fprintf(fd,
             "fdb_bcluster_append_cluster(&%s, build);\n", 
@@ -467,7 +467,7 @@ consume_leftfilter_join(FILE*fd,
     fprintf(fd,"}\n");
 
     fprintf(fd,
-            "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+            "fdb_bcluster_release(&%s);\n", 
             clustername);
     fprintf(fd,"}\n");
   }
@@ -492,17 +492,17 @@ consume_cross_join(FILE*fd,
     fdb_str_builder_append(&str_builder,"left_%s", hashtable);
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source);
 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
     fdb_str_builder_release(&str_builder);
@@ -514,17 +514,17 @@ consume_cross_join(FILE*fd,
     fdb_str_builder_append(&str_builder,"right_%s", hashtable);
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster,%s);\n", 
             source);
 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             str_builder.p_buffer, 
             source); 
     fdb_str_builder_release(&str_builder);
@@ -557,7 +557,7 @@ consume_tag_filter(FILE*fd,
   if(!tag_filter->m_tag_filter.m_on_column)
   {
     fprintf(fd,
-            "const fdb_bitmap_t* filter = fdb_bittable_get_bitmap(%s, %s->m_start);\n", 
+            "fdb_txbitmap_t* filter = fdb_txbittable_get_bitmap(%s, tx, txtctx, %s->m_start);\n", 
             fdb_bittable_name, 
             source);
 
@@ -569,7 +569,7 @@ consume_tag_filter(FILE*fd,
           fprintf(fd,
                   "if(filter != nullptr){\n");
           fprintf(fd,
-                  "fdb_bitmap_set_and(&%s->m_enabled, filter);\n",
+                  "fdb_bitmap_set_txbitmap_and(&%s->m_enabled, filter, tx, txtctx);\n",
                   source);
           fprintf(fd,
                   "}\n");
@@ -588,11 +588,11 @@ consume_tag_filter(FILE*fd,
           fprintf(fd, 
                   "fdb_bitmap_t negate;\n");
           fprintf(fd, 
-                  "fdb_bitmap_init(&negate, FDB_TABLE_BLOCK_SIZE, &task_allocator.m_super);\n");
+                  "fdb_bitmap_init(&negate, &bitmap_factory);\n");
           fprintf(fd,
                   "if(filter != nullptr){\n");
           fprintf(fd, 
-                  "fdb_bitmap_set_bitmap(&negate, filter);\n");
+                  "fdb_bitmap_set_txbitmap(&negate, filter, tx, txtctx);\n");
           fprintf(fd,
                   "}\n");
           fprintf(fd, 
@@ -601,7 +601,7 @@ consume_tag_filter(FILE*fd,
                   "fdb_bitmap_set_and(&%s->m_enabled, &negate);\n",
                   source);
           fprintf(fd, 
-                  "fdb_bitmap_release(&negate, &task_allocator.m_super);\n");
+                  "fdb_bitmap_release(&negate);\n");
           break;
         }
     }
@@ -621,7 +621,7 @@ consume_tag_filter(FILE*fd,
       case fcc_filter_op_type_t::E_HAS:
         {
           fprintf(fd,
-                  "filter_bittable_exists(%s,%s,0);\n",
+                  "filter_txbittable_exists(%s,tx, txtctx, %s,0);\n",
                   fdb_bittable_name,
                   source);
           break;
@@ -629,7 +629,7 @@ consume_tag_filter(FILE*fd,
       case fcc_filter_op_type_t::E_HAS_NOT:
         {
           fprintf(fd,
-                  "filter_bittable_not_exists(%s,%s,0);\n",
+                  "filter_txbittable_not_exists(%s,tx, txtctx, %s,0);\n",
                   fdb_bittable_name,
                   source);
           break;
@@ -695,7 +695,7 @@ consume_predicate_filter(FILE*fd,
     {
       case fcc_column_type_t::E_COMPONENT:
         fprintf(fd,
-                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                "FDB_ALIGNED(%s*,data_%d,64) = (%s*)(%s->p_blocks[%d]);\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -704,7 +704,7 @@ consume_predicate_filter(FILE*fd,
         break;
       case fcc_column_type_t::E_REFERENCE:
         fprintf(fd,
-                "FDB_ALIGNED(%s**, data_%d, 64) = (%s**)(fdb_bcluster_get_tblock(%s, %d)->p_data);\n", 
+                "FDB_ALIGNED(%s**, data_%d, 64) = (%s**)(%s->p_blocks[%d]));\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -713,7 +713,7 @@ consume_predicate_filter(FILE*fd,
         break;
       case fcc_column_type_t::E_GLOBAL:
         fprintf(fd,
-                "FDB_ALIGNED(%s*, data_%d, 64) = (%s*)(fdb_bcluster_get_global(%s, %d));\n", 
+                "FDB_ALIGNED(%s*, data_%d, 64) = (%s*)(%s->p_blocks[%d]);\n", 
                 tmp, 
                 param_index, 
                 tmp, 
@@ -750,7 +750,7 @@ consume_predicate_filter(FILE*fd,
                          2048);
 
   fprintf(fd,
-          "for(uint32_t i = 0; i < FDB_TABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
+          "for(uint32_t i = 0; i < FDB_TXTABLE_BLOCK_SIZE && (%s->m_enabled.m_num_set != 0); ++i) \n{\n",
           source);
   fprintf(fd,
           "fdb_bitmap_set_bit(&%s->m_enabled, i, fdb_bitmap_is_set(&%s->m_enabled, i) && %s(",
@@ -826,7 +826,7 @@ consume_gather(FILE*fd,
   {
     // FILLING UP TEMPORAL TABLES
     fprintf(fd,
-            "fdb_table_t* temp_tables[] = {");
+            "fdb_tmptable_t* temp_tables[] = {");
     fcc_operator_t* child = &subplan->m_nodes[gather->m_gather.m_child];
     fcc_column_t* child_columns = child->m_columns;
     uint32_t ncols = child->m_num_columns;
@@ -844,13 +844,13 @@ consume_gather(FILE*fd,
                                gather);
 
 
-      fprintf(fd,"%s, ",
+      fprintf(fd,"&%s, ",
               tablename);
     }
     fprintf(fd,"nullptr};\n");
 
     fprintf(fd,
-            "gather(%s,hash_tables, chunk_size, stride, temp_tables, %d);\n",
+            "gather(tx, txtctx, %s,hash_tables, chunk_size, stride, temp_tables, %d);\n",
             source,
             ncols);
   }
@@ -863,18 +863,18 @@ consume_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
 
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -898,7 +898,7 @@ consume_cascading_gather(FILE*fd,
 
     // FILLING UP TEMPORAL TABLES
     fprintf(fd,
-            "fdb_table_t* temp_tables[] = {");
+            "fdb_tmptable_t* temp_tables[] = {");
 
     fcc_operator_t* child = &subplan->m_nodes[casc_gather->m_gather.m_child];
     fcc_column_t* child_columns = child->m_columns;
@@ -917,13 +917,13 @@ consume_cascading_gather(FILE*fd,
                                casc_gather);
 
 
-      fprintf(fd,"%s, ",
+      fprintf(fd,"&%s, ",
               tablename);
     }
     fprintf(fd,"nullptr};\n");
 
     fprintf(fd,
-            "gather(%s, hash_tables, chunk_size, stride, temp_tables, %d);\n",
+            "gather(tx, txtctx, %s, hash_tables, chunk_size, stride, temp_tables, %d);\n",
             source,
             ncols);
 
@@ -934,18 +934,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
 
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_btree_insert(&ref_%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&ref_%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
   }
@@ -958,18 +958,18 @@ consume_cascading_gather(FILE*fd,
 
 
     fprintf(fd, 
-            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TABLE_BLOCK_SIZE);\n", 
+            "fdb_bcluster_t* cluster = (fdb_bcluster_t*)mem_alloc(&task_allocator.m_super, 64, sizeof(fdb_bcluster_t), %s->m_start / FDB_TXTABLE_BLOCK_SIZE);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_bcluster_init(cluster, &task_allocator.m_super);\n");
+            "fdb_bcluster_init(cluster, &bcluster_factory);\n");
 
     fprintf(fd, 
             "fdb_bcluster_append_cluster(cluster, %s);\n", 
             source); 
 
     fprintf(fd, 
-            "fdb_btree_insert(&%s, %s->m_start / FDB_TABLE_BLOCK_SIZE, cluster);\n", 
+            "fdb_btree_insert(&%s, %s->m_start / FDB_TXTABLE_BLOCK_SIZE, cluster);\n", 
             hashtable, 
             source); 
 

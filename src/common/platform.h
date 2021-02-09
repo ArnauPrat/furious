@@ -52,6 +52,8 @@
 
 #define FDB_BTREE_ALIGNMENT                   64 
 #define FDB_BTREE_PAGE_SIZE                   KILOBYTES(4)
+#define FDB_BTREE_NODE_ALIGNMENT              64
+#define FDB_BTREE_NODE_PAGE_SIZE              KILOBYTES(4)
 
 #define FDB_TXBTREE_ALIGNMENT                 64
 #define FDB_TXBTREE_PAGE_SIZE                 KILOBYTES(4) 
@@ -68,6 +70,7 @@
 #define FDB_TXBITMAP_DATA_ALIGNMENT             64 
 #define FDB_TXBITMAP_DATA_PAGE_SIZE             KILOBYTES(4)
 
+#define FDB_TXTABLE_BLOCK_SIZE                  256
 #define FDB_TXTABLE_ALIGNMENT                   64
 #define FDB_TXTABLE_BLOCK_ALIGNMENT             64
 #define FDB_TXTABLE_BLOCK_DATA_ALIGNMENT        64
@@ -76,12 +79,20 @@
 #define FDB_TXTABLE_BLOCK_PAGE_SIZE             KILOBYTES(4)
 #define FDB_TXTABLE_BLOCK_DATA_PAGE_SIZE        KILOBYTES(64)
 
+#define FDB_TMPTABLE_BLOCK_SIZE                  FDB_TXTABLE_BLOCK_SIZE
+#define FDB_TMPTABLE_ALIGNMENT                   64
+#define FDB_TMPTABLE_BLOCK_ALIGNMENT             64
+#define FDB_TMPTABLE_BLOCK_DATA_ALIGNMENT        64
+
+#define FDB_TMPTABLE_PAGE_SIZE                   KILOBYTES(4)
+#define FDB_TMPTABLE_BLOCK_PAGE_SIZE             KILOBYTES(4)
+#define FDB_TMPTABLE_BLOCK_DATA_PAGE_SIZE        KILOBYTES(4)
 
 #define FDB_TXBITTABLE_BITMAP_ALIGNMENT       64
 #define FDB_TXBITTABLE_BITMAP_PAGE_SIZE       KILOBYTES(64)
 
 #define FDB_TMPBITTABLE_BITMAP_ALIGNMENT       64
-#define FDB_TMPBITTABLE_BITMAP_PAGE_SIZE       KILOBYTES(64)
+#define FDB_TMPBITTABLE_BITMAP_PAGE_SIZE       KILOBYTES(4)
 
 #define FDB_TXHEAP_POOL_ALIGNMENT             64
 #define FDB_TXHEAP_PAGE_SIZE                  KILOBYTES(4)
@@ -100,7 +111,6 @@
 
 #define FDB_INVALID_ID                        0xffffffff
 #define FDB_INVALID_TABLE_ID                  FDB_INVALID_ID 
-#define FDB_TXTABLE_BLOCK_SIZE                256
 #define FDB_MAX_TABLE_NAME                    256
 
 #define FDB_MAX_COMPONENT_FIELDS              32

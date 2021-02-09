@@ -1,6 +1,7 @@
 
 
 #include "task.h"
+#include "../data/tx/tx.h"
 #include "../../common/memory/memory.h"
 #include "../../common/memory/numa_alloc.h"
 #include <string.h>
@@ -92,6 +93,9 @@ fdb_task_graph_run(struct fdb_task_graph_t* task_graph,
                    struct fdb_database_t* database,
                    void* user_data)
 {
+  struct fdb_tx_t tx;
+  fdb_tx_begin(&tx, E_READ_WRITE);
+  struct fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, fdb_get_global_mem_allocator());
   const uint32_t num_nodes = task_graph->m_num_tasks;
   bool visited_nodes[num_nodes];
   memset(visited_nodes, 0, sizeof(bool)*num_nodes);
@@ -118,7 +122,7 @@ fdb_task_graph_run(struct fdb_task_graph_t* task_graph,
           {
             const uint32_t next_node_id = cfrontier[ii];
             const struct fdb_task_t* next_node = &task_graph->m_tasks[next_node_id]; 
-            next_node->p_func(delta, database, user_data, 1, 0, 1, NULL);
+            next_node->p_func(&tx, txtctx, delta, database, user_data, 1, 0, 1, NULL);
             const uint32_t* children = next_node->m_children;
             const uint32_t num_children = next_node->m_num_children;
             for(uint32_t j = 0; j < num_children; ++j)
@@ -139,4 +143,5 @@ fdb_task_graph_run(struct fdb_task_graph_t* task_graph,
       }
     }
   }
+  fdb_tx_commit(&tx);
 }

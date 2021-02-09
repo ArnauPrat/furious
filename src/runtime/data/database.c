@@ -52,7 +52,9 @@ fdb_database_init(struct fdb_database_t* db, struct fdb_mem_allocator_t* allocat
                         db->p_page_allocator);
 
   // Initializing members
+#ifdef FDB_ENABLE_WEBSERVER
   fdb_webserver_init(&db->m_webserver);
+#endif
   fdb_btree_init(&db->m_tags, 
                  &db->m_btree_factory);
   fdb_btree_init(&db->m_tables,
@@ -65,14 +67,17 @@ fdb_database_init(struct fdb_database_t* db, struct fdb_mem_allocator_t* allocat
 }
 
 void
-fdb_database_release(struct fdb_database_t* db, 
-                     struct fdb_tx_t* tx, 
-                     struct fdb_txthread_ctx_t* txtctx) 
+fdb_database_release(struct fdb_database_t* db) 
 {
+#ifdef FDB_ENABLE_WEBSERVER
   fdb_database_stop_webserver(db);
   fdb_webserver_release(&db->m_webserver);
+#endif
+  struct fdb_tx_t tx;
+  fdb_tx_begin(&tx, E_READ_WRITE);
+  struct fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, NULL);
   fdb_database_clear(db, 
-                     tx, 
+                     &tx, 
                      txtctx);
 
   // releaseing members
@@ -84,18 +89,19 @@ fdb_database_release(struct fdb_database_t* db,
 
   // releaseing allocators
   fdb_txheap_alloc_release(&db->m_global_allocator, 
-                           tx, 
+                           &tx, 
                            txtctx);
   fdb_pool_alloc_release(&db->m_global_info_allocator);
   fdb_btree_factory_release(&db->m_btree_factory);
   fdb_txbittable_factory_release(&db->m_txbittable_factory, 
-                                 tx, 
+                                 &tx, 
                                  txtctx);
   fdb_pool_alloc_release(&db->m_txbittable_allocator);
   fdb_txtable_factory_release(&db->m_txtable_factory, 
-                              tx, 
+                              &tx, 
                               txtctx);
   fdb_pool_alloc_release(&db->m_txtable_allocator);
+  fdb_tx_commit(&tx);
 }
 
 void fdb_database_clear(struct fdb_database_t* db,
@@ -117,6 +123,7 @@ void fdb_database_clear(struct fdb_database_t* db,
   fdb_btree_iter_release(&it_tables);
   fdb_btree_clear(&db->m_tables);
 
+  /*
   // clearing tag tables
   struct fdb_btree_iter_t it_tags;
   fdb_btree_iter_init(&it_tags, 
@@ -173,6 +180,7 @@ void fdb_database_clear(struct fdb_database_t* db,
   }
   fdb_btree_iter_release(&it_globals);
   fdb_btree_clear(&db->m_globals);
+  */
 
 }
 
@@ -444,16 +452,21 @@ fdb_database_start_webserver(struct fdb_database_t* db,
                              const char* address, 
                              const char* port)
 {
+  
+#ifdef FDB_ENABLE_WEBSERVER
   fdb_webserver_start(&db->m_webserver, 
                       db,
                       address,
                       port);
+#endif
 }
 
 void
 fdb_database_stop_webserver(struct fdb_database_t* db)
 {
+#ifdef FDB_ENABLE_WEBSERVER
   fdb_webserver_stop(&db->m_webserver);
+#endif
 }
 
 size_t

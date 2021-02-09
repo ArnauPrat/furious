@@ -1,6 +1,7 @@
 
 #include "data_utils.h"
 #include "tmpbittable.h"
+#include "txbittable.h"
 #include "txtable.h"
 #include "tmptable.h"
 #include "block_cluster.h"
@@ -120,16 +121,18 @@ frontiers_union(FDB_RESTRICT(struct fdb_tmpbittable_t*) next_frontiers[],
 }
 
 void
-filter_tmpbittable_exists(struct fdb_tmpbittable_t* bittable, 
-                          struct fdb_bcluster_t* block_cluster,
-                          uint32_t column)
+filter_txbittable_exists(struct fdb_txbittable_t* bittable, 
+                         struct fdb_tx_t* tx, 
+                         struct fdb_txthread_ctx_t* txtctx, 
+                         struct fdb_bcluster_t* block_cluster,
+                         uint32_t column)
 {
   for(uint32_t i = 0; i < FDB_TXTABLE_BLOCK_SIZE; ++i)
   {
     if(fdb_bitmap_is_set(&block_cluster->m_enabled, i))
     {
-      entity_id_t id = ((entity_id_t*)block_cluster->p_blocks[i])[i];
-      if(!fdb_tmpbittable_exists(bittable, id))
+      entity_id_t id = ((entity_id_t*)block_cluster->p_blocks[column])[i];
+      if(!fdb_txbittable_exists(bittable, tx, txtctx, id))
       {
         fdb_bitmap_unset(&block_cluster->m_enabled, i);
       }
@@ -138,8 +141,10 @@ filter_tmpbittable_exists(struct fdb_tmpbittable_t* bittable,
 }
 
 void
-filter_tmpbittable_not_exists(struct fdb_tmpbittable_t* bittable, 
-                              struct fdb_bcluster_t* block_cluster,
+filter_txbittable_not_exists(struct fdb_txbittable_t* bittable, 
+                             struct fdb_tx_t* tx, 
+                             struct fdb_txthread_ctx_t* txtctx, 
+                             struct fdb_bcluster_t* block_cluster,
                               uint32_t column)
 {
   for(uint32_t i = 0; i < FDB_TXTABLE_BLOCK_SIZE; ++i)
@@ -147,7 +152,7 @@ filter_tmpbittable_not_exists(struct fdb_tmpbittable_t* bittable,
     if(fdb_bitmap_is_set(&block_cluster->m_enabled, i))
     {
       entity_id_t id = ((entity_id_t*)block_cluster->p_blocks[column])[i];
-      if(fdb_tmpbittable_exists(bittable, id))
+      if(fdb_txbittable_exists(bittable, tx, txtctx, id))
       {
         fdb_bitmap_unset(&block_cluster->m_enabled, i);
       }

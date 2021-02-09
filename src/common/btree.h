@@ -13,7 +13,6 @@ extern "C" {
 #endif
 
 
-#define FDB_BTREE_NODE_ALIGNMENT 64
 
 /**
  * \brief This is the arity of the BTree. The arity is choosen in order to make

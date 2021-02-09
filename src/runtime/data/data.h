@@ -2,6 +2,8 @@
 #include "block_cluster.h"
 #include "database.h"
 #include "txbittable.h"
+#include "txbitmap.h"
+#include "txbitmap_utils.h"
 #include "txtable.h"
 #include "context.h"
 #include "data_utils.h"

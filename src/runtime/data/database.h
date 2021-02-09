@@ -84,9 +84,7 @@ fdb_database_init(struct fdb_database_t* db,
  * \param db The db to destroy
  */
 void
-fdb_database_release(struct fdb_database_t* db, 
-                     struct fdb_tx_t* tx, 
-                     struct fdb_txthread_ctx_t* txtctx);
+fdb_database_release(struct fdb_database_t* db);
 
 /**
  * \brief Creates a table in the db

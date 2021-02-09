@@ -114,7 +114,8 @@ fdb_bcluster_append_tmptable_block(struct fdb_bcluster_t* bc,
  */
 void 
 fdb_bcluster_append_global(struct fdb_bcluster_t* bc, 
-                           void* global);
+                           void* global, 
+                           size_t esize);
 
 void 
 fdb_bcluster_append_cluster(FDB_RESTRICT(struct fdb_bcluster_t*) bc,

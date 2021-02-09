@@ -21,6 +21,13 @@ typedef struct fdb_txpool_alloc_block_t
   struct fdb_txpool_alloc_block_t* volatile   p_next_version;
 } fdb_txpool_alloc_block_t;
 
+
+uint64_t
+fdb_txpool_alloc_block_ts(struct fdb_txpool_alloc_block_t* block)
+{
+  return block->m_ts;
+}
+
 void
 fdb_txpool_alloc_init(struct fdb_txpool_alloc_t* palloc, 
                       uint32_t alignment, 

@@ -11,6 +11,7 @@ extern "C" {
 
 struct fdb_bcluster_t;
 struct fdb_tmpbittable_t;
+struct fdb_txbittable_t;
 struct fdb_tmptable_t;
 struct fdb_txtable_t;
 struct fdb_tx_t;
@@ -162,13 +163,17 @@ build_bcluster_from_refs(FDB_RESTRICT(struct fdb_bcluster_t*) ref_cluster,
  * exists in BitTable.
  *
  * \param bittable The BitTable to check
+ * \param tx The transaction
+ * \param txtctx The transaction thread context
  * \param block_cluster The block cluster to manipulate
  * \param column The column of the block cluster
  */
 void
-filter_tmpbittable_exists(struct fdb_tmpbittable_t* bittable, 
-                          struct fdb_bcluster_t* block_cluster,
-                          uint32_t column);
+filter_txbittable_exists(struct fdb_txbittable_t* bittable, 
+                         struct fdb_tx_t* tx, 
+                         struct fdb_txthread_ctx_t* txtctx, 
+                         struct fdb_bcluster_t* block_cluster,
+                         uint32_t column);
 
 /**
  * \brief This operation assumes that the "column" column in the block cluster
@@ -177,13 +182,17 @@ filter_tmpbittable_exists(struct fdb_tmpbittable_t* bittable,
  * exist in BitTable
  *
  * \param bittable The BitTable to check
+ * \param tx The transaction
+ * \param txtctx The transaction thread context
  * \param block_cluster The block cluster to manipulate
  * \param column The column of the block cluster
  */
 void
-filter_tmpbittable_not_exists(struct fdb_tmpbittable_t* bittable, 
-                              struct fdb_bcluster_t* block_cluster,
-                              uint32_t column);
+filter_txbittable_not_exists(struct fdb_txbittable_t* bittable, 
+                             struct fdb_tx_t* tx, 
+                             struct fdb_txthread_ctx_t* txtctx, 
+                             struct fdb_bcluster_t* block_cluster,
+                             uint32_t column);
 #ifdef __cplusplus
 }
 #endif

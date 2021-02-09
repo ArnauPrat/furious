@@ -30,8 +30,9 @@ TEST(fdb_bcluster_Test, fdb_bcluster_Test)
   fdb_bcluster_init(&cluster, &cluster_factory);
   fdb_bcluster_append_tmptable_block(&cluster, &tblock);
   ASSERT_EQ(cluster.p_blocks[0], tblock.p_data);
-  fdb_bcluster_append_global(&cluster, (void*)(0xff));
+  fdb_bcluster_append_global(&cluster, (void*)(0xff), 4);
   ASSERT_EQ(cluster.p_blocks[1], (void*)0xff);
+  ASSERT_EQ(cluster.m_sizes[1], 4);
 
   struct fdb_tmptable_block_t tblock2;
   fdb_tmptable_block_init(&tblock2, 

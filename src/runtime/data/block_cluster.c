@@ -113,10 +113,12 @@ fdb_bcluster_append_tmptable_block(struct fdb_bcluster_t* bc,
 
 void 
 fdb_bcluster_append_global(struct fdb_bcluster_t* bc, 
-                           void* global)
+                           void* global, 
+                           size_t esize)
 {
   fdb_bitmap_set(&bc->m_global, bc->m_num_columns);
   bc->p_blocks[bc->m_num_columns] = global;
+  bc->m_sizes[bc->m_num_columns] = esize;
   bc->m_num_columns++;
 }
 
@@ -145,6 +147,7 @@ fdb_bcluster_append_cluster(FDB_RESTRICT(struct fdb_bcluster_t*) bc,
   {
     FDB_ASSERT(bc->m_num_columns < FDB_MAX_CLUSTER_SIZE && "Cannot append cluster. Not enough room");
     bc->p_blocks[bc->m_num_columns] = other->p_blocks[i];
+    bc->m_sizes[bc->m_num_columns] = other->m_sizes[i];
     if(fdb_bitmap_is_set(&other->m_global, i))
     {
       fdb_bitmap_set(&bc->m_global, bc->m_num_columns);

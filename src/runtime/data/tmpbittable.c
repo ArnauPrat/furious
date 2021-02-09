@@ -182,7 +182,7 @@ fdb_tmpbittable_get_bitmap(struct fdb_tmpbittable_t* bt,
 }
 
 uint32_t
-fdb_bittable_size(const struct fdb_tmpbittable_t* bt)
+fdb_tmpbittable_size(const struct fdb_tmpbittable_t* bt)
 {
   return bt->m_size;
 }

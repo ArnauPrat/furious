@@ -26,10 +26,8 @@ TEST(DatabaseTest, CreateAndRemoveTable) {
                      txtctx);
   FDB_CREATE_TABLE(&database, &tx, txtctx, Component, NULL);
   FDB_REMOVE_TABLE(&database, &tx, txtctx, Component);
-  fdb_database_release(&database, 
-                       &tx, 
-                       txtctx);
   fdb_tx_commit(&tx);
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 
@@ -47,8 +45,8 @@ TEST(DatabaseTest, FindTable) {
   FDB_CREATE_TABLE(&database, &tx, txtctx, Component, nullptr);
   FDB_FIND_TABLE(&database, Component);
   FDB_REMOVE_TABLE(&database, &tx, txtctx, Component);
-  fdb_database_release(&database, &tx, txtctx);
   fdb_tx_commit(&tx);
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 

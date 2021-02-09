@@ -30,8 +30,8 @@ decode_id(entity_id_t id)
 {
   assert(id != FDB_INVALID_ID);
   struct fdb_decoded_id_t did = {
-                          .m_block_id = id / FDB_TXTABLE_BLOCK_SIZE, 
-                          .m_block_offset = id % FDB_TXTABLE_BLOCK_SIZE
+                          .m_block_id = id / FDB_TMPTABLE_BLOCK_SIZE, 
+                          .m_block_offset = id % FDB_TMPTABLE_BLOCK_SIZE
                          };
   return did;
 }
@@ -62,8 +62,8 @@ fdb_tmptable_block_init(struct fdb_tmptable_block_t* tblock,
   tblock->p_table = table;
   tblock->p_data = fdb_pool_alloc_alloc(&tblock->p_table->m_data_allocator, 
                                         64, 
-                                        esize*FDB_TXTABLE_BLOCK_SIZE, 
-                                        start / FDB_TXTABLE_BLOCK_SIZE);
+                                        esize*FDB_TMPTABLE_BLOCK_SIZE, 
+                                        start / FDB_TMPTABLE_BLOCK_SIZE);
   tblock->m_start = start;
   tblock->m_num_components = 0;
   tblock->m_num_enabled_components = 0;
@@ -99,7 +99,7 @@ fdb_tmptable_block_get_component(struct fdb_tmptable_block_t* block,
 {
   assert(id != FDB_INVALID_ID);
   struct fdb_decoded_id_t decoded_id = decode_id(id);
-  assert(block->m_start == (id / FDB_TXTABLE_BLOCK_SIZE) * FDB_TXTABLE_BLOCK_SIZE) ;
+  assert(block->m_start == (id / FDB_TMPTABLE_BLOCK_SIZE) * FDB_TMPTABLE_BLOCK_SIZE) ;
 
   struct fdb_tmptable_entry_t entry;  
   if(fdb_bitmap_is_set(&block->m_enabled, decoded_id.m_block_offset)) 
@@ -123,7 +123,7 @@ fdb_tmptblock_iter_init(struct fdb_tmptblock_iter_t* tblock_iter,
   tblock_iter->p_block = tblock;
   tblock_iter->m_next_position = 0;
   if(tblock_iter->p_block != NULL) {
-    while(tblock_iter->m_next_position < FDB_TXTABLE_BLOCK_SIZE && 
+    while(tblock_iter->m_next_position < FDB_TMPTABLE_BLOCK_SIZE && 
           !fdb_tmptable_block_has_component(tblock_iter->p_block, 
                                          tblock_iter->p_block->m_start+tblock_iter->m_next_position) ) 
     {
@@ -141,7 +141,7 @@ bool
 fdb_tmptblock_iter_has_next(struct fdb_tmptblock_iter_t* tblock_iter) 
 {
   return  tblock_iter->p_block != NULL && 
-          tblock_iter->m_next_position < FDB_TXTABLE_BLOCK_SIZE;
+          tblock_iter->m_next_position < FDB_TMPTABLE_BLOCK_SIZE;
 }
 
 struct fdb_tmptable_entry_t 
@@ -151,7 +151,7 @@ fdb_tmptblock_iter_next(struct fdb_tmptblock_iter_t* tblock_iter)
                                                         tblock_iter->p_block->m_start + 
                                                         tblock_iter->m_next_position);
   tblock_iter->m_next_position++; 
-  while(tblock_iter->m_next_position < FDB_TXTABLE_BLOCK_SIZE && 
+  while(tblock_iter->m_next_position < FDB_TMPTABLE_BLOCK_SIZE && 
         !fdb_tmptable_block_has_component(tblock_iter->p_block, 
                        tblock_iter->p_block->m_start+tblock_iter->m_next_position)) 
   {
@@ -238,7 +238,7 @@ fdb_tmptable_iter_next(struct fdb_tmptable_iter_t* iter)
       next = (struct fdb_tmptable_block_t*)fdb_btree_iter_next(&iter->m_it).p_value;
       if(next != NULL)
       {
-        uint32_t chunk_id = next->m_start / (FDB_TXTABLE_BLOCK_SIZE);
+        uint32_t chunk_id = next->m_start / (FDB_TMPTABLE_BLOCK_SIZE);
         found = is_selected(chunk_id, 
                             iter->m_chunk_size, 
                             iter->m_offset, 
@@ -262,11 +262,11 @@ fdb_tmptable_factory_init(struct fdb_tmptable_factory_t* factory,
   fdb_pool_alloc_init(&factory->m_tblock_allocator, 
                       FDB_TXTABLE_BLOCK_ALIGNMENT,
                       sizeof(struct fdb_tmptable_block_t), 
-                      FDB_TXTABLE_BLOCK_PAGE_SIZE, 
+                      FDB_TMPTABLE_BLOCK_PAGE_SIZE, 
                       factory->p_allocator);
 
   fdb_bitmap_factory_init(&factory->m_bitmap_factory, 
-                          FDB_TXTABLE_BLOCK_SIZE, 
+                          FDB_TMPTABLE_BLOCK_SIZE, 
                           factory->p_allocator);
 
 }
@@ -295,9 +295,9 @@ fdb_tmptable_init(struct fdb_tmptable_t* table,
   FDB_COPY_AND_CHECK_STR(&table->m_name[0], name, FDB_MAX_TABLE_NAME);
 
   fdb_pool_alloc_init(&table->m_data_allocator, 
-                      FDB_TXTABLE_BLOCK_DATA_ALIGNMENT, 
-                      esize*FDB_TXTABLE_BLOCK_SIZE, 
-                      FDB_TXTABLE_BLOCK_DATA_PAGE_SIZE, 
+                      FDB_TMPTABLE_BLOCK_DATA_ALIGNMENT, 
+                      esize*FDB_TMPTABLE_BLOCK_SIZE, 
+                      FDB_TMPTABLE_BLOCK_DATA_PAGE_SIZE, 
                       table->p_factory->p_allocator);
 
   fdb_btree_init(&table->m_blocks, 
@@ -385,7 +385,7 @@ fdb_tmptable_create_component(struct fdb_tmptable_t* table,
 
     fdb_tmptable_block_init(block, 
                          table,
-                         decoded_id.m_block_id*FDB_TXTABLE_BLOCK_SIZE,
+                         decoded_id.m_block_id*FDB_TMPTABLE_BLOCK_SIZE,
                          table->m_esize);
 
     fdb_btree_insert(&table->m_blocks, 

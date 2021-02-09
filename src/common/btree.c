@@ -96,9 +96,9 @@ fdb_btree_factory_init(struct fdb_btree_factory_t* factory,
              "Provided allocator is ill-formed.")
   *factory = (struct fdb_btree_factory_t){};
   fdb_pool_alloc_init(&factory->m_node_allocator, 
-                      FDB_BTREE_ALIGNMENT, 
+                      FDB_BTREE_NODE_ALIGNMENT, 
                       sizeof(struct fdb_btree_node_t),
-                      FDB_BTREE_PAGE_SIZE,
+                      FDB_BTREE_NODE_PAGE_SIZE,
                       allocator);
 
 }

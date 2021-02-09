@@ -126,6 +126,16 @@ fdb_txpool_alloc_destroy(struct fdb_txpool_alloc_t* allocator,
                             bool force);
 
 
+  /**
+   * \brief gets the timestamp of a block
+   *
+   * \param block The block to get the timestamp from
+   *
+   * \return The timetamp of the block
+   */
+  uint64_t
+  fdb_txpool_alloc_block_ts(struct fdb_txpool_alloc_block_t* block);
+
 
 #ifdef __cplusplus
 }

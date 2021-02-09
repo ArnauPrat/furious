@@ -45,11 +45,11 @@ endfunction(create_test)
 
 SET(TESTS 
      basic_test
-#    filter_tag_test
-#    filter_func_test
-#    filter_lambda_test
-#    dependency_test
-#    expand_test
+     filter_tag_test
+     filter_func_test
+     filter_lambda_test
+     dependency_test
+     expand_test
 #    global_test
 #    reflection_test
   )

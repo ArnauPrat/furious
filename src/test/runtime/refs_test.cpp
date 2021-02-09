@@ -44,11 +44,9 @@ TEST(RefsTest,TagWorks)
 
   ASSERT_TRUE(fdb_txtable_exists_reference(rt, &tx, txtctx, entX, entZ));
   ASSERT_FALSE(fdb_txtable_exists_reference(rt, &tx, txtctx, entX, entY));
-
-  fdb_database_release(&database, 
-                       &tx, 
-                       txtctx);
   fdb_tx_commit(&tx);
+
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 

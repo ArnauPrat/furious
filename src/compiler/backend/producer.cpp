@@ -219,24 +219,26 @@ produce_scan(FILE* fd,
     if(column[0].m_type == fcc_column_type_t::E_ID)
     {
       fprintf(fd,
-              "fdb_table_iter_t %s;\n",
+              "fdb_txtable_iter_t %s;\n",
               itername);
       fprintf(fd,
-              "fdb_table_iter_init(&%s, &%s->m_table, chunk_size, offset, stride);\n",
+              "fdb_txtable_iter_init(&%s, %s, tx, txtctx, chunk_size, offset, stride, %s);\n",
               itername,
-              tablename);
+              tablename, 
+              column[0].m_access_mode == fcc_access_mode_t::E_READ ? "false" : "true" );
 
     }
     else
     {
 
       fprintf(fd,
-              "fdb_table_iter_t %s;\n",
+              "fdb_txtable_iter_t %s;\n",
               itername);
       fprintf(fd,
-              "fdb_table_iter_init(&%s, %s, chunk_size, offset, stride);\n",
+              "fdb_txtable_iter_init(&%s, %s, tx, txtctx, chunk_size, offset, stride, %s);\n",
               itername,
-              tablename);
+              tablename, 
+              column[0].m_access_mode == fcc_access_mode_t::E_READ ? "false" : "true" );
 
     }
   }
@@ -245,36 +247,39 @@ produce_scan(FILE* fd,
     if(column[0].m_type == fcc_column_type_t::E_ID)
     {
       fprintf(fd,
-              "fdb_table_iter_t %s;\n",
+              "fdb_txtable_iter_t %s;\n",
               itername);
       fprintf(fd,
-              "fdb_table_iter_init(&%s, &%s->m_table, 1, 0, 1);\n",
+              "fdb_txtable_iter_init(&%s, &%s->m_table, tx, txtctx, 1, 0, 1, %s);\n",
               itername,
-              tablename);
+              tablename, 
+              column[0].m_access_mode == fcc_access_mode_t::E_READ ? "false" : "true" );
     }
     else
     {
       fprintf(fd,
-              "fdb_table_iter_t %s;\n",
+              "fdb_txtable_iter_t %s;\n",
               itername);
       fprintf(fd,
-              "fdb_table_iter_init(&%s, %s, 1, 0, 1);\n",
+              "fdb_txtable_iter_init(&%s, %s, tx, txtctx, 1, 0, 1, %s);\n",
               itername,
-              tablename);
+              tablename, 
+              column[0].m_access_mode == fcc_access_mode_t::E_READ ? "false" : "true" );
     }
   }
 
   fprintf(fd,
-          "while(fdb_table_iter_has_next(&%s))\n\
+          "while(fdb_txtable_iter_has_next(&%s))\n\
           {\n\
-          fdb_bcluster_t %s;\n\
-          fdb_bcluster_init(&%s, &task_allocator.m_super);\n",
+          struct fdb_bcluster_t %s;\n\
+          fdb_bcluster_init(&%s, &bcluster_factory);\n",
           itername,
           blockname, 
           blockname);
   fprintf(fd, 
-          "fdb_bcluster_append_block(&%s,fdb_table_iter_next(&%s));\n",
+          "fdb_bcluster_append_txtable_block(&%s,fdb_txtable_iter_next(&%s), tx, txtctx, %s.m_write);\n",
           blockname,
+          itername,
           itername
          );
 
@@ -293,14 +298,14 @@ produce_scan(FILE* fd,
   fdb_str_builder_release(&str_builder);
 
   fprintf(fd, 
-          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n",
+          "fdb_bcluster_release(&%s);\n",
           blockname);
 
   fprintf(fd,
           "}\n\n");
 
     fprintf(fd,
-            "fdb_table_iter_release(&%s);\n",
+            "fdb_txtable_iter_release(&%s);\n",
             itername);
 }
 
@@ -316,11 +321,11 @@ produce_join(FILE* fd,
 
 
   fprintf(fd,
-          "fdb_btree_t %s;\n", 
+          "struct fdb_btree_t %s;\n", 
           hashtable);
 
   fprintf(fd,
-          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_btree_init(&%s, &btree_factory);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = join->p_subplan;
@@ -343,10 +348,10 @@ produce_join(FILE* fd,
           "while(fdb_btree_iter_has_next(&iter_%s))\n{\n",
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&iter_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&iter_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -369,11 +374,11 @@ produce_leftfilter_join(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   fprintf(fd,
-          "fdb_btree_t %s;\n", 
+          "struct fdb_btree_t %s;\n", 
           hashtable);
 
   fprintf(fd,
-          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_btree_init(&%s, &btree_factory);\n", 
           hashtable);
 
   fcc_subplan_t* subplan = left_filter_join->p_subplan;
@@ -391,10 +396,10 @@ produce_leftfilter_join(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -419,11 +424,11 @@ produce_cross_join(FILE* fd,
   fdb_str_builder_init(&fdb_str_builder_left);
   fdb_str_builder_append(&fdb_str_builder_left, "left_%s", hashtable);
   fprintf(fd,
-          "fdb_btree_t %s;\n", 
+          "struct fdb_btree_t %s;\n", 
           fdb_str_builder_left.p_buffer);
 
   fprintf(fd,
-          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_btree_init(&%s, &btree_factory);\n", 
           fdb_str_builder_left.p_buffer);
 
   fcc_subplan_t* subplan = cross_join->p_subplan;
@@ -433,11 +438,11 @@ produce_cross_join(FILE* fd,
   fdb_str_builder_init(&fdb_str_builder_right);
   fdb_str_builder_append(&fdb_str_builder_right, "right_%s", hashtable);
   fprintf(fd,
-          "fdb_btree_t %s;\n", 
+          "struct fdb_btree_t %s;\n", 
           fdb_str_builder_right.p_buffer);
 
   fprintf(fd,
-          "fdb_btree_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_btree_init(&%s, &btree_factory);\n", 
           fdb_str_builder_right.p_buffer);
 
   produce(fd,&subplan->m_nodes[cross_join->m_cross_join.m_right], parallel_stream);
@@ -462,7 +467,7 @@ produce_cross_join(FILE* fd,
   fdb_str_builder_init(&fdb_str_builder_cluster_left);
   fdb_str_builder_append(&fdb_str_builder_cluster_left,"left_%s", cluster);
   fprintf(fd,
-          "fdb_bcluster_t* %s = (fdb_bcluster_t*)fdb_btree_iter_next(&left_iter_hashtable_%d).p_value;\n", 
+          "struct fdb_bcluster_t* %s = (struct fdb_bcluster_t*)fdb_btree_iter_next(&left_iter_hashtable_%d).p_value;\n", 
           fdb_str_builder_cluster_left.p_buffer,
           cross_join->m_id);
 
@@ -479,7 +484,7 @@ produce_cross_join(FILE* fd,
   fdb_str_builder_init(&fdb_str_builder_cluster_right);
   fdb_str_builder_append(&fdb_str_builder_cluster_right,"right_%s", cluster);
   fprintf(fd,
-          "fdb_bcluster_t* %s = (fdb_bcluster_t*)fdb_btree_iter_next(&right_iter_hashtable_%d).p_value;\n", 
+          "struct fdb_bcluster_t* %s = (struct fdb_bcluster_t*)fdb_btree_iter_next(&right_iter_hashtable_%d).p_value;\n", 
           fdb_str_builder_cluster_right.p_buffer,
           cross_join->m_id);
 
@@ -491,11 +496,11 @@ produce_cross_join(FILE* fd,
 
 
   fprintf(fd,
-          "fdb_bcluster_t %s;\n", 
+          "struct fdb_bcluster_t %s;\n", 
           joined_cluster);
 
   fprintf(fd,
-          "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_bcluster_init(&%s, &bcluster_factory);\n", 
           joined_cluster);
 
   fprintf(fd,
@@ -517,7 +522,7 @@ produce_cross_join(FILE* fd,
           cross_join);
 
   fprintf(fd,
-          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+          "fdb_bcluster_release(&%s);\n", 
           joined_cluster);
 
   fprintf(fd, 
@@ -539,10 +544,10 @@ produce_cross_join(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_%s))\n{\n", fdb_str_builder_left.p_buffer);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           fdb_str_builder_left.p_buffer);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -566,10 +571,10 @@ produce_cross_join(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_%s))\n{\n", fdb_str_builder_right.p_buffer);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           fdb_str_builder_right.p_buffer);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -621,11 +626,11 @@ produce_fetch(FILE* fd,
           globalname);
 
   fprintf(fd, 
-          "fdb_bcluster_t %s;\n", 
+          "struct fdb_bcluster_t %s;\n", 
           clustername); 
 
   fprintf(fd, 
-          "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", 
+          "fdb_bcluster_init(&%s, &bcluster_factory);\n", 
           clustername); 
 
   fprintf(fd, 
@@ -645,7 +650,7 @@ produce_fetch(FILE* fd,
   fdb_str_builder_release(&str_builder);
 
   fprintf(fd, 
-          "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+          "fdb_bcluster_release(&%s);\n", 
           clustername); 
 
   fprintf(fd, 
@@ -710,8 +715,8 @@ produce_gather(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"fdb_btree_t %s;\n", hashtable);
-  fprintf(fd,"fdb_btree_init(&%s, &task_allocator.m_super);\n", hashtable);
+  fprintf(fd,"struct fdb_btree_t %s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&%s, &btree_factory);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -771,14 +776,14 @@ produce_gather(FILE* fd,
             gather->p_subplan->m_id,
             gather->m_id);
 
-    fprintf(fd,"fdb_table_t* %s = FDB_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d, nullptr);\n", 
-            temptablename,
-            ctype,
-            gather->p_subplan->m_id,
-            gather->m_id);
-
-    fprintf(fd,"fdb_table_clear(%s);\n", 
+    fprintf(fd,"struct fdb_tmptable_t %s;\n", 
             temptablename);
+
+    fprintf(fd,"fdb_tmptable_init(&%s, &tmptable_factory, tmp_buffer_%d_%d, 0, sizeof(%s*), nullptr);\n", 
+            temptablename,
+            gather->p_subplan->m_id,
+            gather->m_id, 
+            ctype);
   }
 
   // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
@@ -792,7 +797,7 @@ produce_gather(FILE* fd,
           "}\n");
 
   fprintf(fd, 
-          "FDB_RESTRICT(fdb_btree_t*) hash_tables[stride];\n");
+          "FDB_RESTRICT(struct fdb_btree_t*) hash_tables[stride];\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -805,7 +810,7 @@ produce_gather(FILE* fd,
           gather->p_subplan->m_id,
           gather->m_id);
   fprintf(fd,
-          "fdb_btree_t* ht = (fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "struct fdb_btree_t* ht = (struct fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           gather->p_subplan->m_id, 
           gather->m_id);
   fprintf(fd, 
@@ -817,7 +822,7 @@ produce_gather(FILE* fd,
   fcc_operator_t* ref_table = &subplan->m_nodes[gather->m_gather.m_ref_table];
   produce(fd, ref_table, parallel_stream);
 
-  // DEFININT ITERATORS TO TEMPORAL TABLES
+  // DEFINING ITERATORS TO TEMPORAL TABLES
   for(uint32_t i = 0; i < ncolumns; ++i)
   {
     fcc_column_t* column = &child_columns[i];
@@ -840,19 +845,19 @@ produce_gather(FILE* fd,
 
     if(parallel_stream)
     {
-      fprintf(fd, "fdb_table_iter_t %s;\n", 
+      fprintf(fd, "fdb_tmptable_iter_t %s;\n", 
               itername);
 
-      fprintf(fd, "fdb_table_iter_init(&%s, %s, chunk_size, offset, stride);\n", 
+      fprintf(fd, "fdb_tmptable_iter_init(&%s, &%s, chunk_size, offset, stride);\n", 
               itername, 
               tablename);
     }
     else
     {
-      fprintf(fd, "fdb_table_iter_t %s;\n", 
+      fprintf(fd, "fdb_tmptable_iter_t %s;\n", 
               itername);
 
-      fprintf(fd, "fdb_table_iter_init(&%s, %s, 1, 0, 1);\n", 
+      fprintf(fd, "fdb_tmptable_iter_init(&%s, &%s, tx, txtctx, 1, 0, 1);\n", 
               itername, 
               tablename);
     }
@@ -878,15 +883,15 @@ produce_gather(FILE* fd,
                            FCC_MAX_ITER_VARNAME);
 
   // ITERATE OVER TEMPORAL TABLES AND PRODUCE CLUSTERS FOR CALLER OPERATORS
-  fprintf(fd, "while(fdb_table_iter_has_next(&%s))\n{\n", itername);
+  fprintf(fd, "while(fdb_tmptable_iter_has_next(&%s))\n{\n", itername);
 
   char clustername[FCC_MAX_CLUSTER_VARNAME];
   generate_cluster_name(gather,
                         clustername,
                         FCC_MAX_CLUSTER_VARNAME);
 
-  fprintf(fd, "fdb_bcluster_t %s;\n", clustername);
-  fprintf(fd, "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", clustername);
+  fprintf(fd, "struct fdb_bcluster_t %s;\n", clustername);
+  fprintf(fd, "fdb_bcluster_init(&%s, &bcluster_factory);\n", clustername);
 
   for(uint32_t i = 0; i < ncolumns; ++i)
   {
@@ -908,7 +913,7 @@ produce_gather(FILE* fd,
                              itername,
                              FCC_MAX_ITER_VARNAME);
 
-    fprintf(fd, "fdb_bcluster_append_block(&%s, fdb_table_iter_next(&%s));\n", 
+    fprintf(fd, "fdb_bcluster_append_tmptable_block(&%s, fdb_tmptable_iter_next(&%s));\n", 
             clustername, 
             itername);
   }
@@ -922,11 +927,11 @@ produce_gather(FILE* fd,
           gather);
   fdb_str_builder_release(&str_builder);
 
-  fprintf(fd, "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", clustername);
+  fprintf(fd, "fdb_bcluster_release(&%s);\n", clustername);
 
   fprintf(fd,"}\n\n");
   fprintf(fd, 
-          "fdb_table_iter_release(&%s);\n", 
+          "fdb_tmptable_iter_release(&%s);\n", 
           itername);
   
 
@@ -953,10 +958,10 @@ produce_gather(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -965,6 +970,24 @@ produce_gather(FILE* fd,
           "fdb_btree_iter_release(&it_%s);\n", 
           hashtable);
   fprintf(fd,"fdb_btree_release(&%s);\n", hashtable);
+
+  {
+  char ctype[FCC_MAX_TYPE_NAME];
+  fcc_type_name(column->m_component_type,
+                ctype,
+                FCC_MAX_TYPE_NAME); 
+
+
+  char tablename[FCC_MAX_TABLE_VARNAME];
+  generate_temp_table_name(ctype, 
+                           tablename, 
+                           FCC_MAX_TABLE_VARNAME,
+                           gather);
+
+  fprintf(fd,"fdb_tmptable_release(&%s);\n", 
+          tablename);
+  }
+
 
 }
 
@@ -993,8 +1016,8 @@ produce_cascading_gather(FILE* fd,
                           FCC_MAX_HASHTABLE_VARNAME);
 
   // DECLARE HASH TABLE
-  fprintf(fd,"fdb_btree_t %s;\n", hashtable);
-  fprintf(fd,"fdb_btree_init(&%s, &task_allocator.m_super);\n", hashtable);
+  fprintf(fd,"struct fdb_btree_t %s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&%s, &btree_factory);\n", hashtable);
 
   // REGISTER HASHTABLE TO REGISTRY FOR MULTITHREADED EXECUTION
   fprintf(fd,"snprintf(tmp_buffer_%d_%d, 256-1, \"%s_%d_%d_%%d_%%d_%%d\", chunk_size, offset, stride);\n", 
@@ -1017,24 +1040,24 @@ produce_cascading_gather(FILE* fd,
 
   // DECLARE BITTABLES FOR CASCADING
   fprintf(fd,
-          "fdb_bittable_t current_frontier_%u;\n", 
+          "fdb_tmpbittable_t current_frontier_%u;\n", 
           casc_gather->m_id);
   fprintf(fd,
-          "fdb_bittable_init(&current_frontier_%u, &task_allocator.m_super);\n", 
-          casc_gather->m_id);
-
-  fprintf(fd,
-          "fdb_bittable_t next_frontier_%u;\n", 
-          casc_gather->m_id);
-  fprintf(fd,
-          "fdb_bittable_init(&next_frontier_%u, &task_allocator.m_super);\n", 
+          "fdb_tmpbittable_init(&current_frontier_%u, &tmpbittable_factory);\n", 
           casc_gather->m_id);
 
   fprintf(fd,
-          "fdb_bittable_t partial_blacklist_%u;\n", 
+          "fdb_tmpbittable_t next_frontier_%u;\n", 
           casc_gather->m_id);
   fprintf(fd,
-          "fdb_bittable_init(&partial_blacklist_%u, &task_allocator.m_super);\n", 
+          "fdb_tmpbittable_init(&next_frontier_%u, &tmpbittable_factory);\n", 
+          casc_gather->m_id);
+
+  fprintf(fd,
+          "fdb_tmpbittable_t partial_blacklist_%u;\n", 
+          casc_gather->m_id);
+  fprintf(fd,
+          "fdb_tmpbittable_init(&partial_blacklist_%u, &tmpbittable_factory);\n", 
           casc_gather->m_id);
 
   fcc_column_t* child_columns = child->m_columns;
@@ -1093,14 +1116,14 @@ produce_cascading_gather(FILE* fd,
             casc_gather->p_subplan->m_id,
             casc_gather->m_id);
 
-    fprintf(fd,"fdb_table_t* %s = FDB_CREATE_TEMP_TABLE(database, %s*, tmp_buffer_%d_%d, nullptr);\n", 
-            temp_table_names[i],
-            ctype,
-            casc_gather->p_subplan->m_id,
-            casc_gather->m_id);
-
-    fprintf(fd,"fdb_table_clear(%s);\n", 
+    fprintf(fd,"struct fdb_tmptable_t %s;\n", 
             temp_table_names[i]);
+
+    fprintf(fd,"fdb_tmptable_init(&%s, &tmptable_factory, tmp_buffer_%d_%d, 0, sizeof(%s*), nullptr);\n", 
+            temp_table_names[i],
+            casc_gather->p_subplan->m_id,
+            casc_gather->m_id, 
+            ctype);
   }
 
   // SYNCHRONIZING THREADS TO MAKE SURE HASHTABLES ARE AVAILABLE
@@ -1114,7 +1137,7 @@ produce_cascading_gather(FILE* fd,
           "}\n");
 
   fprintf(fd, 
-          "FDB_RESTRICT(fdb_btree_t*) hash_tables[stride];\n");
+          "FDB_RESTRICT(struct fdb_btree_t*) hash_tables[stride];\n");
   fprintf(fd, 
           "for(uint32_t i = 0; i < stride; ++i)\n");
   fprintf(fd, 
@@ -1127,7 +1150,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather->p_subplan->m_id,
           casc_gather->m_id);
   fprintf(fd,
-          "fdb_btree_t* ht = (fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "struct fdb_btree_t* ht = (struct fdb_btree_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
   fprintf(fd, 
@@ -1136,8 +1159,8 @@ produce_cascading_gather(FILE* fd,
           "}\n");
 
   // DECLARE HASH TABLE
-  fprintf(fd,"fdb_btree_t ref_%s;\n", hashtable);
-  fprintf(fd,"fdb_btree_init(&ref_%s, &task_allocator.m_super);\n", hashtable);
+  fprintf(fd,"struct fdb_btree_t ref_%s;\n", hashtable);
+  fprintf(fd,"fdb_btree_init(&ref_%s, &btree_factory);\n", hashtable);
 
   // PRODUCING REFERENCE TABLE
   fcc_operator_t* ref_table = &subplan->m_nodes[casc_gather->m_gather.m_ref_table];
@@ -1180,11 +1203,11 @@ produce_cascading_gather(FILE* fd,
   // BROADCASTING NEXT FRONTIERS TO CURRENT FRONTIER
   
   fprintf(fd, 
-          "FDB_RESTRICT(fdb_bittable_t*) blacklists_%u[stride];\n",
+          "FDB_RESTRICT(fdb_tmpbittable_t*) blacklists_%u[stride];\n",
           casc_gather->m_id);
 
   fprintf(fd, 
-          "FDB_RESTRICT(fdb_bittable_t*) next_frontiers_%u[stride];\n",
+          "FDB_RESTRICT(fdb_tmpbittable_t*) next_frontiers_%u[stride];\n",
           casc_gather->m_id);
   fprintf(fd,
           "for(uint32_t i = 0; i < stride; ++i)\n{\n");
@@ -1197,7 +1220,7 @@ produce_cascading_gather(FILE* fd,
 
   
   fprintf(fd,
-          "fdb_bittable_t* other_blacklist = (fdb_bittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_tmpbittable_t* other_blacklist = (fdb_tmpbittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
 
@@ -1213,7 +1236,7 @@ produce_cascading_gather(FILE* fd,
 
   
   fprintf(fd,
-          "fdb_bittable_t* other_frontier = (fdb_bittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
+          "fdb_tmpbittable_t* other_frontier = (fdb_tmpbittable_t*)fdb_htregistry_get(&ht_registry, tmp_buffer_%d_%d);\n",
           casc_gather->p_subplan->m_id, 
           casc_gather->m_id);
 
@@ -1254,11 +1277,11 @@ produce_cascading_gather(FILE* fd,
 
 
   fprintf(fd,
-          "while(fdb_bittable_size(&current_frontier_%u) > 0)\n{\n", 
+          "while(fdb_tmpbittable_size(&current_frontier_%u) > 0)\n{\n", 
           casc_gather->m_id);
 
   fprintf(fd,
-          "fdb_bittable_clear(&next_frontier_%u);\n",
+          "fdb_tmpbittable_clear(&next_frontier_%u);\n",
           casc_gather->m_id);
   
 
@@ -1296,21 +1319,21 @@ produce_cascading_gather(FILE* fd,
                         clustername,
                         FCC_MAX_CLUSTER_VARNAME);
 
-  fprintf(fd, "fdb_bcluster_t %s;\n", clustername);
-  fprintf(fd, "fdb_bcluster_init(&%s, &task_allocator.m_super);\n", clustername);
+  fprintf(fd, "struct fdb_bcluster_t %s;\n", clustername);
+  fprintf(fd, "fdb_bcluster_init(&%s, &bcluster_factory);\n", clustername);
 
     fprintf(fd,
-            "fdb_table_t* temp_tables[] = {");
+            "fdb_tmptable_t* temp_tables[] = {");
     for(uint32_t i = 0; i < ncolumns; ++i)
     {
       fprintf(fd, 
-              "%s,", 
+              "&%s,", 
               temp_table_names[i]);
     }
       fprintf(fd, 
               "nullptr};\n");
   fprintf(fd, 
-          "build_fdb_bcluster_from_refs((fdb_bcluster_t*)fdb_btree_iter_next(&iter_ref_hashtable_%d).p_value,"
+          "build_bcluster_from_refs((struct fdb_bcluster_t*)fdb_btree_iter_next(&iter_ref_hashtable_%d).p_value,"
           "&current_frontier_%u,"
           "&next_frontier_%u,"
           "&%s," 
@@ -1332,7 +1355,7 @@ produce_cascading_gather(FILE* fd,
           casc_gather);
   fdb_str_builder_release(&fdb_str_builder_cluster);
 
-  fprintf(fd, "fdb_bcluster_release(&%s, &task_allocator.m_super);\n", 
+  fprintf(fd, "fdb_bcluster_release(&%s);\n", 
           clustername);
   fprintf(fd,"}\n");
 
@@ -1349,7 +1372,7 @@ produce_cascading_gather(FILE* fd,
           "}\n");
 
   fprintf(fd,
-          "fdb_bittable_clear(&current_frontier_%u);\n",
+          "fdb_tmpbittable_clear(&current_frontier_%u);\n",
           casc_gather->m_id);
   fprintf(fd,
           "frontiers_union(next_frontiers_%u, stride, &current_frontier_%u);\n", 
@@ -1380,10 +1403,10 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_%s))\n{\n", hashtable);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -1402,10 +1425,10 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,
           "while(fdb_btree_iter_has_next(&it_ref_%s))\n{\n", hashtable);
   fprintf(fd,
-          "fdb_bcluster_t* next = (fdb_bcluster_t*)fdb_btree_iter_next(&it_ref_%s).p_value;\n", 
+          "struct fdb_bcluster_t* next = (struct fdb_bcluster_t*)fdb_btree_iter_next(&it_ref_%s).p_value;\n", 
           hashtable);
   fprintf(fd,
-          "fdb_bcluster_release(next, &task_allocator.m_super);\n");
+          "fdb_bcluster_release(next);\n");
   fprintf(fd,
           "mem_free(&task_allocator.m_super,next);\n");
   fprintf(fd,
@@ -1413,13 +1436,13 @@ produce_cascading_gather(FILE* fd,
   fprintf(fd,"fdb_btree_iter_release(&it_ref_%s);\n", hashtable);
   fprintf(fd,"fdb_btree_release(&ref_%s);\n", hashtable);
 
-  fprintf(fd,"fdb_bittable_release(&current_frontier_%u);\n", 
+  fprintf(fd,"fdb_tmpbittable_release(&current_frontier_%u);\n", 
           casc_gather->m_id);
 
-  fprintf(fd,"fdb_bittable_release(&next_frontier_%u);\n", 
+  fprintf(fd,"fdb_tmpbittable_release(&next_frontier_%u);\n", 
           casc_gather->m_id);
 
-  fprintf(fd,"fdb_bittable_release(&partial_blacklist_%u);\n", 
+  fprintf(fd,"fdb_tmpbittable_release(&partial_blacklist_%u);\n", 
           casc_gather->m_id);
 
   // CLEARING TEMPORAL TABLES
@@ -1438,7 +1461,7 @@ produce_cascading_gather(FILE* fd,
                              FCC_MAX_TABLE_VARNAME,
                              casc_gather);
 
-    fprintf(fd,"fdb_table_clear(%s);\n", 
+    fprintf(fd,"fdb_tmptable_release(&%s);\n", 
             tablename);
   }
 

@@ -228,7 +228,7 @@ fdb_tx_init(struct fdb_mem_allocator_t* allocator)
 void
 fdb_tx_release()
 {
-  FDB_ASSERT(!p_first)
+  FDB_ASSERT(!p_first && "There are uncommitted transactions")
   FDB_ASSERT(!p_last)
   fdb_tx_do_gc(true);
   FDB_ASSERT(!p_first_ctx);
@@ -416,7 +416,6 @@ fdb_txthread_ctx_gc_block(struct fdb_txthread_ctx_t* txtctx,
                           struct fdb_txpool_alloc_t* palloc, 
                           struct fdb_txpool_alloc_block_t* block)
 {
-
   struct fdb_txgarbage_t* entry  = (struct fdb_txgarbage_t*)fdb_pool_alloc_alloc(&txtctx->m_palloc,
                                                                                  FDB_MIN_ALIGNMENT, 
                                                                                  sizeof(struct fdb_txgarbage_t), 
@@ -425,10 +424,25 @@ fdb_txthread_ctx_gc_block(struct fdb_txthread_ctx_t* txtctx,
   if(txtctx->p_first != NULL)
   {
     FDB_ASSERT(txtctx->p_last != NULL && "Pointer to last cannot be NULL");
-    txtctx->p_last->p_next = entry;
-    entry->p_prev = txtctx->p_last;
-    entry->p_next = NULL;
-    txtctx->p_last = entry;
+    // Looking for place to insert the block based on its timestamp
+    struct fdb_txgarbage_t* next = txtctx->p_first;
+    while(fdb_txpool_alloc_block_ts(next->m_block.p_block) <= fdb_txpool_alloc_block_ts(block))
+    {
+      if(next->p_next == NULL)
+        break;
+      next = next->p_next;
+    }
+    if(next->p_next != NULL)
+    {
+      next->p_next->p_prev= entry;
+      entry->p_next = next->p_next;
+    }
+    next->p_next = entry;
+    entry->p_prev = next;
+    if(txtctx->p_last == next)
+    {
+      txtctx->p_last = entry;
+    }
   }
   else
   {

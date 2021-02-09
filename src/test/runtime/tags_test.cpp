@@ -26,9 +26,9 @@ TEST(TagTests,TagWorks)
   ASSERT_TRUE(fdb_txbittable_exists(selected, &tx, txtctx, entX));
   ASSERT_FALSE(fdb_txbittable_exists(selected,&tx, txtctx,  entY));
   ASSERT_TRUE(fdb_txbittable_exists(selected, &tx, txtctx, entZ));
-
-  fdb_database_release(&database, &tx, txtctx);
   fdb_tx_commit(&tx);
+
+  fdb_database_release(&database);
   fdb_tx_release();
 }
 

@@ -573,7 +573,7 @@ fdb_database_remove_global(struct fdb_database_t* db,
 }
 
 void*
-fdb_find_global(struct fdb_database_t* db, 
+fdb_database_find_global(struct fdb_database_t* db, 
                 struct fdb_tx_t* tx, 
                 struct fdb_txthread_ctx_t* txtctx,
                 const char* name, 

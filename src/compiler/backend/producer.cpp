@@ -615,11 +615,14 @@ produce_fetch(FILE* fd,
                         clustername,
                         FCC_MAX_CLUSTER_VARNAME);
 
+
+  const fcc_column_t* column = &fetch->m_columns[0];
   fprintf(fd, 
-          "%s* %s = FDB_FIND_GLOBAL_NO_LOCK(database, %s);\n", 
+          "%s* %s = FDB_FIND_GLOBAL(database, tx, txtctx, %s, %s);\n", 
           globaltype,
           globalname,
-          globaltype);
+          globaltype, 
+          column[0].m_access_mode == fcc_access_mode_t::E_READ ? "false" : "true" );
 
   fprintf(fd, 
           "if(%s != nullptr )\n{\n", 
@@ -634,9 +637,10 @@ produce_fetch(FILE* fd,
           clustername); 
 
   fprintf(fd, 
-          "fdb_bcluster_append_global(&%s, %s);\n", 
+          "fdb_bcluster_append_global(&%s, %s, sizeof(%s));\n", 
           clustername,
-          globalname); 
+          globalname, 
+          globaltype); 
 
   fdb_str_builder_t str_builder;
   fdb_str_builder_init(&str_builder);

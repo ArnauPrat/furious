@@ -64,13 +64,13 @@ struct Component \
   fdb_database_remove_global(database,\
                          #component)
 
-#define FDB_FIND_GLOBAL(database, component)\
-  (component*)fdb_database_find_global(database\
-                       #component)
+#define FDB_FIND_GLOBAL(database, tx, txtctx, component, write)\
+  (component*)fdb_database_find_global(database,\
+                                       tx,\
+                                       txtctx,\
+                                       #component,\
+                                       write)
 
-#define FDB_FIND_GLOBAL_NO_LOCK(database, component)\
-  (component*)fdb_database_find_global_no_lock(database,\
-                               #component)
 
 #define FDB_FIND_OR_CREATE_GLOBAL(database, component, dstr)\
   (component*)fdb_database_find_or_create_global<Component>(database,\

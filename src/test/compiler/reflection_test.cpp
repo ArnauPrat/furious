@@ -11,6 +11,7 @@
   
 TEST(ReflectionTest, ReflectionTest ) 
 {
+  fdb_tx_init(nullptr);
   fdb_database_t database;
   fdb_database_init(&database, NULL);
   fdb_database_start_webserver(&database, 
@@ -18,9 +19,12 @@ TEST(ReflectionTest, ReflectionTest )
                            "8080");
   furious_init(&database);
 
-  fdb_table_t* tc_table = FDB_FIND_TABLE(&database, TestComponent);
+  struct fdb_tx_t tx;
+  fdb_tx_begin(&tx, E_READ_WRITE);
+  struct fdb_txthread_ctx_t* txtctx = fdb_tx_txthread_ctx_get(&tx, nullptr);
+  struct fdb_txtable_t* tc_table = FDB_FIND_OR_CREATE_TABLE(&database, &tx, txtctx, TestComponent, nullptr);
   entity_id_t ent = 0;
-  TestComponent* tc = FDB_ADD_COMPONENT(tc_table, TestComponent, ent);
+  TestComponent* tc = FDB_ADD_COMPONENT(tc_table, &tx, txtctx, TestComponent, ent);
   tc->m_x = 1.0f;
   tc->m_y = 2.0f; 
   tc->m_z = 3.0f;
@@ -28,6 +32,7 @@ TEST(ReflectionTest, ReflectionTest )
   tc->m_t = 5.0f;
   tc->X.m_a = 6.0f;
   tc->X.m_b = 6.0f;
+  fdb_tx_commit(&tx);
 
   furious_frame(0.1, &database, nullptr);
 
@@ -111,6 +116,7 @@ TEST(ReflectionTest, ReflectionTest )
 
   furious_release();
   fdb_database_release(&database);
+  fdb_tx_release();
 }
 
 int main(int argc, char *argv[])

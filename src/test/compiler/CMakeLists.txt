@@ -50,8 +50,8 @@ SET(TESTS
      filter_lambda_test
      dependency_test
      expand_test
-#    global_test
-#    reflection_test
+     global_test
+     reflection_test
   )
 
 foreach( TEST ${TESTS} )
